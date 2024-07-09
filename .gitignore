@@ -1,0 +1,41 @@
+# Ignore build directories
+build/
+Build/
+
+# Ignore CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+
+# Ignore compiled object files, shared libraries, and executables
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.out
+
+# Ignore Qt specific files
+*.pro.user
+*.qmake.stash
+*.pro.user.*
+
+# Ignore Visual Studio Code specific files
+.vscode/
+*.code-workspace
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore log files and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Ignore user-specific files
+*.user
+*.user.*
