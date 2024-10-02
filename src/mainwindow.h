@@ -15,9 +15,6 @@ private slots:
     void newFile();
     void openFile();
     void saveFile();
-    void startServer();
-    void handleNewConnection();  // Slot to handle new connections
-    void handleRequest();
 
 private:
     void createMenus();
@@ -27,7 +24,4 @@ private:
     QAction *newAction;
     QAction *openAction;
     QAction *saveAction;
-    QAction *startServerAction;
-    QTcpServer *tcpServer;
-    QTcpSocket *clientSocket;
 };
