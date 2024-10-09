@@ -7,6 +7,8 @@
 #include <QLineEdit>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QKeyEvent>
+#include "chatoverlay.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -25,8 +27,8 @@ MainWindow::MainWindow(QWidget *parent)
     QLabel *label = new QLabel("Welcome to the Main Window");
     mainLayout->addWidget(label);
 
-    QLineEdit *textField = new QLineEdit();
-    mainLayout->addWidget(textField);
+    // QLineEdit *textField = new QLineEdit();
+    // mainLayout->addWidget(textField);
 
     QPushButton *button = new QPushButton("Click Me");
     mainLayout->addWidget(button);
@@ -40,10 +42,24 @@ MainWindow::~MainWindow()
     // Destructor implementation
 }
 
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->modifiers() == (Qt::ShiftModifier | Qt::AltModifier))
+    {
+        if (event->key() == Qt::Key_Space)
+        {
+            qDebug() << "Shift + Option + Space detected!";
+        }
+    }
+    // Handle your logic here
+}
+
 void MainWindow::newFile()
 {
     // Implement the New action
-    QMessageBox::information(this, tr("New File"), tr("New file created."));
+    // QMessageBox::information(this, tr("New File"), tr("New file created."));
+    ChatOverlay *overlay = new ChatOverlay;
+    overlay->show();
 }
 
 void MainWindow::openFile()

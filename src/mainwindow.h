@@ -3,13 +3,18 @@
 #include <QMainWindow>
 class QTcpServer;
 class QTcpSocket;
+class QKeyEvent;
 
-class MainWindow : public QMainWindow {
+class MainWindow : public QMainWindow
+{
     Q_OBJECT
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
     void newFile();

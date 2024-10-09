@@ -1,14 +1,13 @@
-// src/main.cpp
 #include <QApplication>
-#include <QDebug>
+#include <QShortcut>
+#include "ChatOverlay.h"
 #include "mainwindow.h"
+#include "customapplication.h"
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv); // QApplication for GUI applications
-
-    MainWindow window;
-    window.show();
-
+    CustomApplication app(argc, argv);
+    MainWindow mainwindow;
+    mainwindow.show();
     return app.exec();
 }
