@@ -20,10 +20,13 @@ Required outputs per lesson folder
 - `README.md`: per-lesson instructions that explain how to build and run the lesson project. At minimum, include:
 	- the exact commands to configure and build the lesson (for example: `mkdir build && cd build && cmake .. && cmake --build .`),
 	- the exact command to run the resulting executable inside the container,
-	- a short note about any required environment variables, ports, or Docker options specific to this lesson.
+	- a short note about any required environment variables, ports, or Docker options specific to this lesson,
+	- for GUI applications, X11 setup instructions: mention that XQuartz (macOS) or an X server must be running, and include a note to run the `../scripts/xhost-allow-for-compose.sh` helper script at least once before running the container to grant X11 access. Show both macOS and Linux examples.
+	- **IMPORTANT**: Do NOT add comments inside code blocks. Write all explanations and instructions as descriptive text before each code snippet to keep commands copy-pasteable.
 
 Container / build constraints
 - Assume lessons will be built and run inside a container. Each lesson that requires additional libraries (Qt Quick, Qt Multimedia, SQL drivers, OpenGL, etc.) must include its own `Dockerfile` (or `docker-compose.yml`) inside the lesson folder that installs those dependencies. Do not rely on a monolithic root Dockerfile.
+- **Shared base image pattern**: All lessons should use `FROM qtapp-qt-dev-env:latest` as their base to avoid duplicating Qt installation across multiple images. The base image is built from the root Dockerfile with `docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .` and provides Qt 6, CMake, and all common build tools.
 - Build/run commands expected in `README.md`: `mkdir build && cd build && cmake .. && cmake --build .` then run `./<lesson-executable>` (or `./run.sh` wrapper if needed). Tests are optional.
 - Target Qt version: default to Qt 6.x (explicitly state exact Qt module dependencies per lesson). If a lesson requires Qt 5, document why and include compatible Dockerfile.
  - Keep container images lean: prefer a shared base image pattern (e.g., a common Qt runtime/base stage) and small per-lesson layers rather than many completely separate heavy images.

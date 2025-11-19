@@ -12,13 +12,7 @@ This repository contains a small Qt application and a Docker setup to run it. Im
 - On macOS (XQuartz):
 	- Install and open XQuartz: https://www.xquartz.org/
 	- In XQuartz -> Preferences -> Security: enable **Allow connections from network clients**.
-	- In a host terminal allow local connections from Docker containers (recommended instead of fully open):
-
-		```bash
-		xhost + 127.0.0.1
-		```
-
-	- Note: avoid `xhost +` because it allows all hosts to connect (insecure).
+	- Use the helper script to allow X11 access for your containers (see "Allowing X connections from containers" section below).
 
 - On Windows: install and run an X server such as VcXsrv: https://github.com/marchaesen/vcxsrv/releases
 
