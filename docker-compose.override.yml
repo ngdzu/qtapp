@@ -1,0 +1,19 @@
+services:
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Mount local source for iterative development
+    volumes:
+      - .:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - DISPLAY=host.docker.internal:0
+      - QT_X11_NO_MITSHM=1
+      - LIBGL_ALWAYS_INDIRECT=1
+    stdin_open: true
+    tty: true
+    # Build from the mounted source and run the app. This runs every start —
+    # for faster iteration you can `docker compose exec app-dev bash` and run
+    # build commands manually.
+    command: bash -lc "mkdir -p /workspace/build && cd /workspace/build && cmake .. && make -j\"$(nproc)\" && ./d0"
