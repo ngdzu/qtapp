@@ -38,6 +38,13 @@ RUN apt-get update && apt-get install -y \
     qt6-tools-dev \
     qt6-tools-dev-tools \
     libqt6widgets6 \
+    qt6-qpa-plugins \
+    libxkbcommon0 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-keysyms1 \
+    libxcb-render-util0 \
+    libxcb-xinerama0 \
     x11-apps \
     && \
     apt-get clean
@@ -48,6 +55,27 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Define workspace
 WORKDIR /workspace
+
+# Stage 3: Qt runtime-only environment (minimal, for lesson containers)
+FROM ubuntu:22.04 AS qt-runtime
+
+ENV TZ=America/New_York
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apt-get update && apt-get install -y \
+    libqt6widgets6 \
+    libqt6gui6 \
+    libqt6core6 \
+    qt6-qpa-plugins \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    libxkbcommon0 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-keysyms1 \
+    libxcb-render-util0 \
+    libxcb-xinerama0 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Stage: builder — compile the application into a deterministic location
 FROM qt-dev-env AS builder

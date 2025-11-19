@@ -17,9 +17,9 @@ RUN mkdir build && cd build && \
     mkdir -p /opt/lesson01 && \
     cp qt-setup /opt/lesson01/
 
-# Runtime stage: reuse the same qt-dev-env base
-# This keeps runtime dependencies minimal since Qt libs are already there
-FROM qtapp-qt-dev-env:latest AS runtime
+# Runtime stage: use minimal qt-runtime base
+# This keeps runtime dependencies minimal - only Qt libs, no dev tools
+FROM qtapp-qt-runtime:latest AS runtime
 
 WORKDIR /opt/lesson01
 
