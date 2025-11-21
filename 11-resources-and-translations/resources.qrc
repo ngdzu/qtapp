@@ -1,0 +1,8 @@
+<RCC version="1.0">
+    <qresource prefix="/images">
+        <file>qt-logo.png</file>
+    </qresource>
+    <qresource prefix="/styles">
+        <file>app.qss</file>
+    </qresource>
+</RCC>
