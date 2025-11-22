@@ -2,59 +2,78 @@
 
 This lesson demonstrates Qt's standard dialog classes (QFileDialog, QMessageBox, QInputDialog, QColorDialog) and custom dialog creation, including modal vs. modeless behavior.
 
-## Prerequisites
+## Building and Running
 
-**For GUI Applications on macOS:** You need to configure X11 forwarding to display the Qt application window from the Docker container.
+### One-Time Setup
 
-1. Install XQuartz:
-```bash
-brew install --cask xquartz
-```
+These steps only need to be done once per machine.
 
-2. Start XQuartz and enable network connections:
-   - Open XQuartz
-   - Go to Preferences → Security
-   - Check "Allow connections from network clients"
-   - Restart XQuartz
+#### 1. Install X11 Server
 
-3. Allow connections from localhost:
-```bash
-xhost + localhost
-```
+**For macOS users:**
+- Install XQuartz: `brew install --cask xquartz`
+- Start XQuartz and enable "Allow connections from network clients" in Preferences > Security
 
-## Building
+**For Linux users:**
+- X11 should be available by default
 
-First, ensure the shared base image is built:
+#### 2. Build the shared Qt base images
+
+From the **root directory** of the repository:
 
 ```bash
-cd /Users/dustinwind/Development/Qt/qtapp
-docker build --target qt-runtime -t qtapp-qt-runtime:latest .
+docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .
+docker build --target qt-runtime-nano -t qtapp-qt-runtime-nano:latest .
 ```
 
-Then build the lesson image:
+> **Note:** The dev environment is ~1.33 GB (used only for building) and the runtime is ~242 MB. All lessons share these base images, so each individual lesson only adds ~16 KB (just the executable). This keeps total storage minimal even with 28 lessons!
+
+#### 3. Grant X11 access to Docker containers
+
+From the **root directory** of the repository:
 
 ```bash
-cd 07-dialogs-and-windows
-docker build -t qt-lesson-07 .
+./scripts/xhost-allow-for-compose.sh allow
 ```
 
-## Running
+> **Note:** This disables X11 access control to allow Docker containers to display GUI applications. Run this once per session (after reboot, you'll need to run it again). To revoke access later, run `./scripts/xhost-allow-for-compose.sh revoke`.
+
+### Build and Run This Lesson
+
+#### Step 1: Build this lesson's image
+
+From the **lesson directory** (`07-dialogs-and-windows`):
+
+```bash
+docker build -t qtapp-lesson07:latest .
+```
+
+#### Step 2: Run the application
 
 **On macOS:**
 
 ```bash
-docker run --rm -e DISPLAY=host.docker.internal:0 \
-  -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
-  qt-lesson-07
+docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qtapp-lesson07:latest
 ```
 
 **On Linux:**
 
 ```bash
-docker run --rm -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
-  qt-lesson-07
+docker run --rm \
+    -e DISPLAY=$DISPLAY \
+    -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    qtapp-lesson07:latest
+```
+
+### Alternative: Build locally (requires Qt 6 installed)
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+./lesson07-dialogs
 ```
 
 ## Expected Behavior
