@@ -2,42 +2,78 @@
 
 This lesson demonstrates Qt's layout management system: QHBoxLayout, QVBoxLayout, and QGridLayout for creating responsive user interfaces.
 
-## Prerequisites
+## Building and Running
 
-This lesson requires X11 for GUI display. Make sure you have:
-- **macOS**: XQuartz installed and running
-- **Linux**: X server running (usually default)
+### One-Time Setup
 
-## Building the Lesson
+These steps only need to be done once per machine.
 
-From the root directory of the repository, ensure the shared Qt base images are built:
+#### 1. Install X11 Server
+
+**For macOS users:**
+- Install XQuartz: `brew install --cask xquartz`
+- Start XQuartz and enable "Allow connections from network clients" in Preferences > Security
+
+**For Linux users:**
+- X11 should be available by default
+
+#### 2. Build the shared Qt base images
+
+From the **root directory** of the repository:
 
 ```bash
 docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .
-docker build --target qt-runtime -t qtapp-qt-runtime:latest .
+docker build --target qt-runtime-nano -t qtapp-qt-runtime-nano:latest .
 ```
 
-Then navigate to the lesson directory and build the lesson image:
+> **Note:** The dev environment is ~1.33 GB (used only for building) and the runtime is ~242 MB. All lessons share these base images, so each individual lesson only adds ~16 KB (just the executable). This keeps total storage minimal even with 28 lessons!
+
+#### 3. Grant X11 access to Docker containers
+
+From the **root directory** of the repository:
 
 ```bash
-cd 04-layouts-and-containers
-docker build -t qt-lesson-04 .
+./scripts/xhost-allow-for-compose.sh allow
 ```
 
-## Running the Application
+> **Note:** This disables X11 access control to allow Docker containers to display GUI applications. Run this once per session (after reboot, you'll need to run it again). To revoke access later, run `./scripts/xhost-allow-for-compose.sh revoke`.
 
-### macOS
+### Build and Run This Lesson
 
-Make sure XQuartz is running, then:
+#### Step 1: Build this lesson's image
+
+From the **lesson directory** (`04-layouts-and-containers`):
 
 ```bash
-docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qt-lesson-04
+docker build -t qtapp-lesson04:latest .
 ```
 
-### Linux
+#### Step 2: Run the application
+
+**On macOS:**
 
 ```bash
-docker run --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix qt-lesson-04
+docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qtapp-lesson04:latest
+```
+
+**On Linux:**
+
+```bash
+docker run --rm \
+    -e DISPLAY=$DISPLAY \
+    -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    qtapp-lesson04:latest
+```
+
+### Alternative: Build locally (requires Qt 6 installed)
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+./layouts-and-containers
 ```
 
 ## What to Expect

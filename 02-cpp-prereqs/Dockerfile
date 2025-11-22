@@ -13,8 +13,8 @@ RUN mkdir build && cd build && \
     mkdir -p /opt/lesson02 && \
     cp cpp-prereqs /opt/lesson02/
 
-# Runtime stage: use minimal qt-runtime base
-FROM qtapp-qt-runtime:latest AS runtime
+# Runtime stage: use minimal qt-runtime-nano base
+FROM qtapp-qt-runtime-nano:latest AS runtime
 
 WORKDIR /opt/lesson02
 

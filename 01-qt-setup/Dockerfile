@@ -1,8 +1,7 @@
-# Lesson 1 Dockerfile - reuses qtapp base image to minimize size
-# This assumes the qtapp base image (qt-dev-env stage) is available locally
+# Lesson 1 Dockerfile - reuses qtapp base images to minimize size
+# This assumes qtapp-qt-dev-env and qtapp-qt-runtime base images are available locally
 
-# Use the qt-dev-env stage from the root qtapp project as our base
-# This provides Qt 6, CMake, and all build tools already installed
+# Builder stage: use qt-dev-env which has development tools
 FROM qtapp-qt-dev-env:latest AS builder
 
 WORKDIR /lesson
@@ -10,16 +9,15 @@ WORKDIR /lesson
 # Copy only lesson source files
 COPY CMakeLists.txt main.cpp ./
 
-# Configure and build with CMake (using make for consistency with base image)
+# Configure and build with CMake
 RUN mkdir build && cd build && \
     cmake .. -DCMAKE_BUILD_TYPE=Release && \
     cmake --build . && \
     mkdir -p /opt/lesson01 && \
     cp qt-setup /opt/lesson01/
 
-# Runtime stage: use minimal qt-runtime base
-# This keeps runtime dependencies minimal - only Qt libs, no dev tools
-FROM qtapp-qt-runtime:latest AS runtime
+# Runtime stage: use nano runtime (aggressively optimized)
+FROM qtapp-qt-runtime-nano:latest AS runtime
 
 WORKDIR /opt/lesson01
 

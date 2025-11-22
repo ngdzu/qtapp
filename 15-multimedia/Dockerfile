@@ -1,4 +1,7 @@
-FROM qtapp-qt-dev-env:latest AS builder
+FROM qtapp-qt-runtime:latest AS builder
+RUN apt-get update && apt-get install -y \
+    qt6-multimedia-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /lesson
 COPY . ./
 RUN mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build . && cmake --install .

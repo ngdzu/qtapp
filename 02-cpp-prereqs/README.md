@@ -4,43 +4,37 @@ This lesson demonstrates modern C++ features commonly used in Qt: RAII, smart po
 
 ## Building and Running
 
-### Option 1: Build and run inside Docker (recommended)
+### One-Time Setup
 
-**Step 1: Build the shared Qt base image** (only needed once)
+These steps only need to be done once per machine.
 
-From the root directory of the repository, run:
+#### 1. Build the shared Qt base images
+
+From the **root directory** of the repository:
 
 ```bash
 docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .
+docker build --target qt-runtime-nano -t qtapp-qt-runtime-nano:latest .
 ```
 
-**Step 2: Build the lesson image** (reuses the shared base)
+> **Note:** The dev environment is ~1.33 GB (used only for building) and the runtime is ~242 MB. All lessons share these base images, so each individual lesson only adds ~16 KB (just the executable). This keeps total storage minimal even with 28 lessons!
 
-From the lesson directory:
+### Build and Run This Lesson
+
+#### Step 1: Build this lesson's image
+
+From the **lesson directory** (`02-cpp-prereqs`):
 
 ```bash
-cd 02-cpp-prereqs
-docker build -t qt-lesson-02 .
+docker build -t qtapp-lesson02:latest .
 ```
 
-> **Note:** The lesson image shares ~987 MB of layers with the base image, so actual disk usage for this lesson is only ~352 MB.
-
-**Run the application**
+#### Step 2: Run the application
 
 This is a console application, so no X11 setup is needed:
 
 ```bash
-docker run --rm qt-lesson-02
-```
-
-### Option 2: Build locally (requires Qt 6 installed)
-
-```bash
-mkdir build
-cd build
-cmake ..
-cmake --build .
-./cpp-prereqs
+docker run --rm qtapp-lesson02:latest
 ```
 
 ## What You'll See

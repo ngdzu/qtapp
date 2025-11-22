@@ -2,51 +2,68 @@
 
 This lesson demonstrates the fundamentals of Qt Widgets: creating a main window with QPushButton and QLabel, and understanding the event loop.
 
-## Prerequisites
+## Building and Running
 
-This lesson requires X11 for GUI display. Make sure you have:
-- **macOS**: XQuartz installed and running
-- **Linux**: X server running (usually default)
+### One-Time Setup
 
-Before running the container, enable X11 access by running the helper script from the root directory of the repository:
+These steps only need to be done once per machine.
 
-```bash
-../scripts/xhost-allow-for-compose.sh app allow
-```
+#### 1. Install X11 Server
 
-This grants the container permission to display GUI windows on your screen.
+**For macOS users:**
+- Install XQuartz: `brew install --cask xquartz`
+- Start XQuartz and enable "Allow connections from network clients" in Preferences > Security
 
-## Building the Lesson
+**For Linux users:**
+- X11 should be available by default
 
-From the root directory of the repository, ensure the shared Qt base image is built:
+#### 2. Build the shared Qt base images
+
+From the **root directory** of the repository:
 
 ```bash
 docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .
+docker build --target qt-runtime-nano -t qtapp-qt-runtime-nano:latest .
 ```
 
-Then navigate to the lesson directory and build the lesson image:
+> **Note:** The dev environment is ~1.33 GB (used only for building) and the runtime is ~242 MB. All lessons share these base images, so each individual lesson only adds ~16 KB (just the executable). This keeps total storage minimal even with 28 lessons!
+
+#### 3. Grant X11 access to Docker containers
+
+From the **root directory** of the repository:
 
 ```bash
-cd 03-widgets-basics
-docker build -t qt-lesson-03 .
+./scripts/xhost-allow-for-compose.sh allow
 ```
 
-## Running the Application
+> **Note:** This disables X11 access control to allow Docker containers to display GUI applications. Run this once per session (after reboot, you'll need to run it again). To revoke access later, run `./scripts/xhost-allow-for-compose.sh revoke`.
 
-### macOS
+### Build and Run This Lesson
 
-Make sure XQuartz is running, then:
+#### Step 1: Build this lesson's image
+
+From the **lesson directory** (`03-widgets-basics`):
 
 ```bash
-docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qt-lesson-03
+docker build -t qtapp-lesson03:latest .
 ```
 
-Note: You may see some GL library warnings - these are cosmetic and don't affect functionality.
+#### Step 2: Run the application
 
-### Linux
+**On macOS:**
 
 ```bash
-docker run --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix qt-lesson-03
+docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qtapp-lesson03:latest
+```
+
+**On Linux:**
+
+```bash
+docker run --rm \
+    -e DISPLAY=$DISPLAY \
+    -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    qtapp-lesson03:latest
 ```
 
 ## What to Expect
@@ -57,9 +74,7 @@ A window titled "Qt Widgets Basics" will appear with:
 
 Each time you click the button, the label updates to show the number of clicks (Clicks: 1, Clicks: 2, etc.).
 
-## Building Locally (without Docker)
-
-If you have Qt 6 installed on your system:
+### Alternative: Build locally (requires Qt 6 installed)
 
 ```bash
 mkdir build
@@ -67,14 +82,6 @@ cd build
 cmake ..
 cmake --build .
 ./widgets-basics
-```
-
-## Cleanup
-
-After you're done, revoke X11 access:
-
-```bash
-../scripts/xhost-allow-for-compose.sh app revoke
 ```
 
 ## Learning Objectives
