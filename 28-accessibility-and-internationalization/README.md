@@ -1,45 +1,84 @@
 # Lesson 28: Accessibility and Internationalization
 
-This lesson demonstrates Qt's accessibility and internationalization (i18n) features. The demo shows how to make applications accessible to users with disabilities and translatable to multiple languages. Students learn about tr(), QTranslator, QLocale, accessible names, keyboard navigation, and right-to-left (RTL) layout support.
+This lesson demonstrates Qt's accessibility and internationalization (i18n) features for making applications accessible to users with disabilities and translatable to multiple languages.
 
-## Prerequisites
+## Building and Running
 
-For GUI applications on macOS, you need to set up X11 forwarding:
-1. Install XQuartz: `brew install --cask xquartz`
-2. Start XQuartz and enable "Allow connections from network clients" in Preferences > Security
-3. Run: `xhost + localhost`
+### One-Time Setup
 
-## Building
+These steps only need to be done once per machine.
 
-First, ensure the base images are built:
+#### 1. Install X11 Server
+
+**For macOS users:**
+- Install XQuartz: `brew install --cask xquartz`
+- Start XQuartz and enable "Allow connections from network clients" in Preferences > Security
+
+**For Linux users:**
+- X11 should be available by default
+
+#### 2. Build the shared Qt base images
+
+From the **root directory** of the repository:
 
 ```bash
 docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .
-docker build --target qt-runtime -t qtapp-qt-runtime:latest .
+docker build --target qt-runtime-nano -t qtapp-qt-runtime-nano:latest .
 ```
 
-Then build this lesson:
+> **Note:** The dev environment is ~1.33 GB (used only for building) and the runtime is ~242 MB. All lessons share these base images, so each individual lesson only adds ~16 KB (just the executable). This keeps total storage minimal even with 28 lessons!
+
+#### 3. Grant X11 access to Docker containers
+
+From the **root directory** of the repository:
 
 ```bash
-cd 28-accessibility-and-internationalization
-docker build -t qt-lesson-28 .
+./scripts/xhost-allow-for-compose.sh allow
 ```
 
-## Running
+> **Note:** This disables X11 access control to allow Docker containers to display GUI applications. Run this once per session (after reboot, you'll need to run it again). To revoke access later, run `./scripts/xhost-allow-for-compose.sh revoke`.
 
-### macOS
+### Build and Run This Lesson
+
+#### Step 1: Build this lesson's image
+
+From the **lesson directory** (`28-accessibility-and-internationalization`):
+
 ```bash
-docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qt-lesson-28
+docker build -t qtapp-lesson28:latest .
 ```
 
-### Linux
+#### Step 2: Run the application
+
+**On macOS:**
+
 ```bash
-docker run --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix qt-lesson-28
+docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qtapp-lesson28:latest
 ```
 
-## Expected Behavior
+**On Linux:**
 
-The application displays a comprehensive demo of accessibility and internationalization features:
+```bash
+docker run --rm \
+    -e DISPLAY=$DISPLAY \
+    -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    qtapp-lesson28:latest
+```
+
+### Alternative: Build locally (requires Qt 6 installed)
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+./lesson28
+```
+
+## What You'll See
+
+A comprehensive accessibility and internationalization demonstration with tabbed interface:
 
 **Main Window:**
 - Title showing current lesson topic
@@ -98,6 +137,46 @@ The application displays a comprehensive demo of accessibility and international
 **RTL Support Tab:**
 - Current layout direction indicator (LTR or RTL)
 - List of RTL languages (Arabic, Hebrew, Persian, Urdu)
+- How Qt automatically mirrors layouts for RTL languages
+- QHBoxLayout becomes right-to-left
+- Icons and text alignment adjust automatically
+
+Click language buttons to see translations and locale formatting change dynamically!
+
+> **Note:** You may see harmless GL warnings in the console (like "failed to load driver: swrast"). These can be safely ignored - the application runs perfectly without hardware acceleration.
+
+## Requirements
+
+- **Qt Modules:** Qt6::Widgets, Qt6::Core
+- **CMake:** 3.16 or higher
+- **C++ Standard:** C++17
+- **Docker:** For containerized build (recommended)
+- **X11:** For GUI display on Linux/macOS
+
+## Learning Objectives
+
+- Using tr() to mark translatable strings in code
+- Qt's translation workflow with lupdate, Qt Linguist, and lrelease
+- Handling plural forms correctly across different languages
+- Locale-aware formatting for dates, times, numbers, and currency
+- Setting accessible names and descriptions for screen readers
+- Implementing complete keyboard navigation
+- Supporting right-to-left (RTL) languages with layout mirroring
+- QLocale for culture-specific formatting
+- QTranslator for runtime language switching
+- Accessibility best practices for inclusive applications
+- Testing applications with screen readers
+
+## Notes
+
+- The Dockerfile uses a multi-stage build: lessons use the `qt-runtime-nano` base (~242 MB) which contains only essential Qt libraries needed to run applications
+- The dev environment (`qt-dev-env`) is only needed for building and is ~1.33 GB
+- This demo simulates translations - production apps would include compiled .qm files
+- Qt automatically handles many RTL layout adjustments
+- Screen readers like NVDA (Windows), JAWS (Windows), and VoiceOver (macOS) work with Qt's accessibility API
+- For headless testing or CI environments, you can use `Xvfb` (virtual framebuffer) instead of a real X11 server
+- On Windows with Docker Desktop, use an X server like VcXsrv and set `DISPLAY=host.docker.internal:0`
+- Harmless GL/Mesa warnings about missing drivers can be ignored - the app works fine without hardware acceleration
 - What gets mirrored in RTL mode:
   - Layout direction
   - Text alignment

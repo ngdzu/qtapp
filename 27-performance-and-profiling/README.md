@@ -1,55 +1,94 @@
 # Lesson 27: Performance and Profiling
 
-This lesson demonstrates Qt performance benchmarking and profiling techniques. The demo provides interactive benchmarks for string operations, container performance, rendering optimization, and memory management patterns. Students learn to measure, analyze, and optimize Qt application performance.
+This lesson demonstrates Qt performance benchmarking and profiling techniques with interactive benchmarks for string operations, container performance, rendering optimization, and memory management.
 
-## Prerequisites
+## Building and Running
 
-For GUI applications on macOS, you need to set up X11 forwarding:
-1. Install XQuartz: `brew install --cask xquartz`
-2. Start XQuartz and enable "Allow connections from network clients" in Preferences > Security
-3. Run: `xhost + localhost`
+### One-Time Setup
 
-## Building
+These steps only need to be done once per machine.
 
-First, ensure the base images are built:
+#### 1. Install X11 Server
+
+**For macOS users:**
+- Install XQuartz: `brew install --cask xquartz`
+- Start XQuartz and enable "Allow connections from network clients" in Preferences > Security
+
+**For Linux users:**
+- X11 should be available by default
+
+#### 2. Build the shared Qt base images
+
+From the **root directory** of the repository:
 
 ```bash
 docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .
-docker build --target qt-runtime -t qtapp-qt-runtime:latest .
+docker build --target qt-runtime-nano -t qtapp-qt-runtime-nano:latest .
 ```
 
-Then build this lesson:
+> **Note:** The dev environment is ~1.33 GB (used only for building) and the runtime is ~242 MB. All lessons share these base images, so each individual lesson only adds ~16 KB (just the executable). This keeps total storage minimal even with 28 lessons!
+
+#### 3. Grant X11 access to Docker containers
+
+From the **root directory** of the repository:
 
 ```bash
-cd 27-performance-and-profiling
-docker build -t qt-lesson-27 .
+./scripts/xhost-allow-for-compose.sh allow
 ```
 
-**Important:** For realistic performance measurements, rebuild in Release mode (already configured in Dockerfile). Debug builds can be 5-20x slower than Release builds.
+> **Note:** This disables X11 access control to allow Docker containers to display GUI applications. Run this once per session (after reboot, you'll need to run it again). To revoke access later, run `./scripts/xhost-allow-for-compose.sh revoke`.
 
-## Running
+### Build and Run This Lesson
 
-### macOS
+#### Step 1: Build this lesson's image
+
+From the **lesson directory** (`27-performance-and-profiling`):
+
 ```bash
-docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qt-lesson-27
+docker build -t qtapp-lesson27:latest .
 ```
 
-### Linux
+> **Important:** For realistic performance measurements, the Dockerfile builds in Release mode. Debug builds can be 5-20x slower than Release builds.
+
+#### Step 2: Run the application
+
+**On macOS:**
+
 ```bash
-docker run --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix qt-lesson-27
+docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qtapp-lesson27:latest
 ```
 
-## Expected Behavior
+**On Linux:**
 
-The application displays a tabbed interface with interactive performance benchmarks:
+```bash
+docker run --rm \
+    -e DISPLAY=$DISPLAY \
+    -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    qtapp-lesson27:latest
+```
+
+### Alternative: Build locally (requires Qt 6 installed)
+
+```bash
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+./lesson27
+```
+
+## What You'll See
+
+A comprehensive performance benchmarking application with interactive tabbed interface:
 
 **String Performance Tab:**
 - QString construction benchmarks (10,000 iterations)
 - String concatenation without reserve() - shows performance impact of reallocations
 - String concatenation with reserve() - demonstrates pre-allocation benefits
 - QStringList join() - fastest method for building large strings
-- Shows actual timing in milliseconds and microseconds per operation
-- Displays speedup multipliers comparing optimized vs naive approaches
+- Actual timing in milliseconds and microseconds per operation
+- Speedup multipliers comparing optimized vs naive approaches
 
 **Container Performance Tab:**
 - QVector append without reserve - demonstrates reallocation overhead
@@ -59,7 +98,7 @@ The application displays a tabbed interface with interactive performance benchma
 - Implicit sharing (copy-on-write) timing:
   - Copy operation: ~nanoseconds (just reference counting)
   - Detach operation: ~milliseconds (deep copy of 100k items)
-- Shows speedup factors (e.g., reserve() can be 5-10x faster)
+- Speedup factors (e.g., reserve() can be 5-10x faster)
 
 **Rendering Performance Tab:**
 - Multiple update() calls - shows Qt's automatic coalescing
@@ -82,11 +121,21 @@ The application displays a tabbed interface with interactive performance benchma
 - Profiling tools reference (Valgrind, Instruments, Dr. Memory, AddressSanitizer)
 - Best practices checklist for memory management
 
-Each tab has a "Run Benchmarks" button to execute tests and display results. Results show actual timing data that varies by CPU but demonstrates relative performance differences.
+Each tab has a "Run Benchmarks" button to execute tests and display actual timing results!
+
+> **Note:** You may see harmless GL warnings in the console (like "failed to load driver: swrast"). These can be safely ignored - the application runs perfectly without hardware acceleration.
+
+## Requirements
+
+- **Qt Modules:** Qt6::Widgets, Qt6::Core
+- **CMake:** 3.16 or higher
+- **C++ Standard:** C++17
+- **Docker:** For containerized build (recommended)
+- **X11:** For GUI display on Linux/macOS
+- **Build Mode:** Release mode recommended for accurate benchmarks
 
 ## Learning Objectives
 
-After completing this lesson, you should understand:
 - How to use QElapsedTimer for precise performance measurements
 - The performance impact of QString operations and how to optimize them
 - When and why to use reserve() with Qt containers
@@ -97,6 +146,17 @@ After completing this lesson, you should understand:
 - The difference between Debug and Release build performance
 - How to interpret benchmark results and identify bottlenecks
 - Best practices for memory profiling and leak detection
+
+## Notes
+
+- The Dockerfile uses a multi-stage build: lessons use the `qt-runtime-nano` base (~242 MB) which contains only essential Qt libraries needed to run applications
+- The dev environment (`qt-dev-env`) is only needed for building and is ~1.33 GB
+- **Critical:** Always use Release builds for performance benchmarks - Debug builds include instrumentation that dramatically slows execution
+- Benchmark results vary by CPU but demonstrate relative performance differences
+- Qt's implicit sharing uses copy-on-write for efficient memory usage
+- For headless testing or CI environments, you can use `Xvfb` (virtual framebuffer) instead of a real X11 server
+- On Windows with Docker Desktop, use an X server like VcXsrv and set `DISPLAY=host.docker.internal:0`
+- Harmless GL/Mesa warnings about missing drivers can be ignored - the app works fine without hardware acceleration
 
 ## Performance Tips
 
