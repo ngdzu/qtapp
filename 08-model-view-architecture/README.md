@@ -2,43 +2,78 @@
 
 This lesson demonstrates Qt's Model/View architecture using QStringListModel with QListView and QStandardItemModel with QTableView.
 
-## Prerequisites
+## Building and Running
 
-**For GUI Applications on macOS:** Configure X11 forwarding.
+### One-Time Setup
 
-1. Install XQuartz: `brew install --cask xquartz`
-2. Enable network connections in XQuartz Preferences → Security
-3. Allow connections: `xhost + localhost`
+These steps only need to be done once per machine.
 
-## Building
+#### 1. Install X11 Server
 
-Build the shared base image:
+**For macOS users:**
+- Install XQuartz: `brew install --cask xquartz`
+- Start XQuartz and enable "Allow connections from network clients" in Preferences > Security
+
+**For Linux users:**
+- X11 should be available by default
+
+#### 2. Build the shared Qt base images
+
+From the **root directory** of the repository:
+
 ```bash
-cd /Users/dustinwind/Development/Qt/qtapp
-docker build --target qt-runtime -t qtapp-qt-runtime:latest .
+docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .
+docker build --target qt-runtime-nano -t qtapp-qt-runtime-nano:latest .
 ```
 
-Build lesson image:
+> **Note:** The dev environment is ~1.33 GB (used only for building) and the runtime is ~242 MB. All lessons share these base images, so each individual lesson only adds ~16 KB (just the executable). This keeps total storage minimal even with 28 lessons!
+
+#### 3. Grant X11 access to Docker containers
+
+From the **root directory** of the repository:
+
 ```bash
-cd 08-model-view-architecture
-docker build -t qt-lesson-08 .
+./scripts/xhost-allow-for-compose.sh allow
 ```
 
-## Running
+> **Note:** This disables X11 access control to allow Docker containers to display GUI applications. Run this once per session (after reboot, you'll need to run it again). To revoke access later, run `./scripts/xhost-allow-for-compose.sh revoke`.
 
-**macOS:**
+### Build and Run This Lesson
+
+#### Step 1: Build this lesson's image
+
+From the **lesson directory** (`08-model-view-architecture`):
+
 ```bash
-docker run --rm -e DISPLAY=host.docker.internal:0 \
-  -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
-  qt-lesson-08
+docker build -t qtapp-lesson08:latest .
 ```
 
-**Linux:**
+#### Step 2: Run the application
+
+**On macOS:**
+
 ```bash
-docker run --rm -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
-  qt-lesson-08
+docker run --rm -e DISPLAY=host.docker.internal:0 -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" qtapp-lesson08:latest
+```
+
+**On Linux:**
+
+```bash
+docker run --rm \
+    -e DISPLAY=$DISPLAY \
+    -e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    qtapp-lesson08:latest
+```
+
+### Alternative: Build locally (requires Qt 6 installed)
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+./lesson08-modelview
 ```
 
 ## Expected Behavior
