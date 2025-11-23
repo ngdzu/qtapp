@@ -1,0 +1,31 @@
+services:
+  sensor-simulator:
+    image: qtapp-sensor-simulator:local
+    build:
+      context: ./sensor-simulator
+      dockerfile: Dockerfile
+    container_name: qt-sensor-sim
+    restart: "no"
+    ports:
+      - "9002:9002"
+    environment:
+      # Use host X11 on macOS with XQuartz. Set `USE_HOST_X=1` to instruct the
+      # container to use the provided `DISPLAY` instead of starting a virtual X server.
+      - USE_HOST_X=1
+      # On macOS Docker, `host.docker.internal` resolves to the host machine.
+      # XQuartz typically listens on display :0 — set DISPLAY accordingly.
+      - DISPLAY=host.docker.internal:0
+      - QT_X11_NO_MITSHM=1
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - QT_QUICK_BACKEND=software
+    # Do not mount /tmp/.X11-unix on Docker for Mac. We use TCP display to XQuartz.
+    # Helpful for interactive debugging; override with command or use 'docker compose run --service-ports'
+    tty: true
+    stdin_open: true
+
+# Top-level secret declaration: do NOT commit a file with sensitive passwords.
+# Create the file locally at ./secrets/vnc_password.txt (ignored by git) or use
+# `docker secret create vnc_password ./secrets/vnc_password.txt` when using swarm.
+secrets:
+  vnc_password:
+    file: ./secrets/vnc_password.txt

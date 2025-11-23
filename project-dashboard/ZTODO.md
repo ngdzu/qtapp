@@ -1,3 +1,5 @@
+
+
 ## Sequential Tasks (must be done in order)
 
 - [ ] Create project scaffolding and repo checklist
@@ -66,6 +68,36 @@
   - What: Implement a test-only `DeviceSimulator` capable of generating vitals, ECG waveform samples, pleth waveform, and simulated events (arrhythmia, motion artifact) for UI demos.
   - Why: Provides deterministic input for UI, controller, and integration tests.
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
+
+- [ ] Implement `WebSocketDeviceSimulatorAdapter` (IDeviceSimulator)
+  - What: Implement an adapter `WebSocketDeviceSimulatorAdapter` that implements `IDeviceSimulator` and connects to `sensor-simulator` (`ws://localhost:9002`). Adapter should translate incoming JSON messages into `PacketCallback` invocations and provide optional control commands to the simulator.
+  - Why: The device should depend only on `IDeviceSimulator`; this adapter lets the device run without hardware by connecting to the simulator.
+  - Acceptance: `WebSocketDeviceSimulatorAdapter` builds and passes a unit test where a mocked websocket delivers a `vitals` JSON and the adapter invokes the registered `PacketCallback` with equivalent JSON.
+  - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
+
+- [ ] Add factory and configuration for selecting simulator implementation
+  - What: Add `DeviceSimulatorFactory::Create()` which returns either an in-process `MockDeviceSimulator` for unit tests or `WebSocketDeviceSimulatorAdapter` for local dev based on a config option / CMake define or runtime flag.
+  - Why: Keeps device code decoupled from transport; simplifies CI and developer workflows.
+  - Acceptance: Device main can call `auto sim = DeviceSimulatorFactory::Create(config)` and receive a valid `IDeviceSimulator*` for use.
+  - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
+
+ - [ ] Sensor-simulator (WebSocket sensor stream + QML UI)
+  - What: Provide a Qt Quick (QML + C++) sensor simulator in `project-dashboard/sensor-simulator/` that streams sensor data to the device over a WebSocket (default `ws://localhost:9002`) and exposes a `Simulator` `QObject` to QML. UI must have buttons to trigger `critical`, `warning`, and `notification` events and a `Play Demo` timeline. Provide a `Dockerfile` for quick containerized runs and instructions to run locally (X11 / XQuartz notes).
+  - Why: This component supplies simulated sensor data to the device app during development and testing without requiring hardware.
+  - Acceptance: `project-dashboard/sensor-simulator` builds; connecting a client to `ws://localhost:9002` receives periodic `vitals` + `waveform` JSON messages; clicking UI buttons emits signals and sends `alarm`/`notification` messages to connected clients.
+  - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
+
+ - [ ] Integrate Sensor-simulator into top-level build
+  - What: Ensure the top-level `CMakeLists.txt` adds `add_subdirectory(project-dashboard/sensor-simulator)` so the simulator builds with the repository and can be built in CI.
+  - Why: Makes it easy to build the simulator in automation and to run smoke tests.
+  - Acceptance: `cmake ..` at repo root configures the simulator target.
+  - Prompt: `project-dashboard/prompt/21-e2e-containerized-harness.md`  (When finished: mark this checklist item done.)
+
+ - [ ] Containerized acceptance tests for simulator
+  - What: Add `docker-compose.simulator.yml` that runs `central-server-simulator` and the `sensor-simulator` (headless or with virtual display) to exercise basic scenarios.
+  - Why: Enables repeatable E2E smoke tests in CI.
+  - Acceptance: `docker-compose -f docker-compose.simulator.yml up --build` brings up server + simulator and runs a smoke script.
+  - Prompt: `project-dashboard/prompt/21-e2e-containerized-harness.md`  (When finished: mark this checklist item done.)
 
 - [ ] Central server simulator (mTLS later)
   - What: Create `central-server-simulator/` with a simple REST endpoint `POST /api/telemetry` that can accept JSON and returns ack. Implement toggles to simulate network failures and delays.
@@ -633,4 +665,13 @@ Action notes:
 - File paths: create `doc/interfaces/*.md` for each interface and `doc/interfaces/Controllers.md`.
 - Deliverables per interface doc: responsibilities, signatures, example code paths, tests list, and a short sequence diagram (Mermaid) where helpful.
 - Prioritization: start with `IDatabaseManager`, `INetworkManager`, `IAlarmManager`, `IAuthenticationService`, then controllers.
+
+
+## ZTODO (Low Priority)
+
+- [ ] Investigate `QCoreApplication::quit()` not exiting the app reliably
+  - What: In `project-dashboard/sensor-simulator/Simulator.cpp` we observed cases where calling `QCoreApplication::quit()` did not terminate the process inside the container. A temporary fallback (`std::exit(0)`) was added to `Simulator::quitApp()` to guarantee container termination.
+  - Why: This is likely due to threads or blocking operations preventing the Qt event loop from exiting, or cleanup tasks stalling. Investigate thread lifecycles, pending timers, and long-running blocking work that might keep the event loop alive. Once resolved, remove the `std::exit(0)` fallback and ensure graceful shutdown and proper resource cleanup.
+  - Priority: Low — leave for later investigation after higher-priority tasks are completed.
+  - Acceptance: `QCoreApplication::quit()` cleanly returns control from `app.exec()` and the process exits without needing `std::exit(0)`; update `Simulator::quitApp()` to remove forced exit.
 
