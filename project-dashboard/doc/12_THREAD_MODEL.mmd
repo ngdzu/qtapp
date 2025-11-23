@@ -1,0 +1,57 @@
+flowchart TB
+%% Simplified node labels (removed -D/-C suffixes). Groups reduce implied thread count.
+
+%% Legend (color => thread grouping) - placed at top so it appears above the diagram
+subgraph Legend[Legend]
+    L1["UI (Main Thread) - Red"]
+    L2["RT Processing (Sensor I/O + Signal Proc) - Orange"]
+    L3["DB Writer & Logger - Green"]
+    L4["Network / Archiver - Blue"]
+    L5["Analytics Worker Pool - Purple"]
+    L6["Watchdog - Gray"]
+end
+style L1 fill:#ffd6d6,stroke:#b30000
+style L2 fill:#ffe6cc,stroke:#b36000
+style L3 fill:#e6ffea,stroke:#0a8a0a
+style L4 fill:#e6f0ff,stroke:#0a53a8
+style L5 fill:#f0e6ff,stroke:#7a3bff
+style L6 fill:#f2f2f2,stroke:#666666
+
+%% Diagram nodes (below the legend)
+UI[Main UI Thread]
+SensorIO[Sensor I/O]
+SignalProc[Signal Processor]
+AlarmMgr[Alarm Manager]
+DBWriter[DB Writer & Logger]
+Network[Network Manager]
+Archiver[Archiver]
+Analytics[Analytics Worker Pool]
+Watchdog[Watchdog]
+
+%% Data / control flows
+SensorIO --> SignalProc
+SignalProc --> AlarmMgr
+SignalProc --> DBWriter
+SignalProc --> Analytics
+AlarmMgr --> UI
+AlarmMgr --> DBWriter
+DBWriter --> Watchdog
+Network --> DBWriter
+Archiver --> DBWriter
+UI --> AlarmMgr
+UI --> Network
+
+SignalProc --> Watchdog
+AlarmMgr --> Watchdog
+Network --> Watchdog
+
+%% Coloring to match legend groups
+style UI fill:#ffd6d6,stroke:#b30000,stroke-width:1px
+style SensorIO fill:#ffe6cc,stroke:#b36000,stroke-width:1px
+style SignalProc fill:#ffe6cc,stroke:#b36000,stroke-width:1px
+style AlarmMgr fill:#ffe6cc,stroke:#b36000,stroke-width:1px
+style DBWriter fill:#e6ffea,stroke:#0a8a0a,stroke-width:1px
+style Network fill:#e6f0ff,stroke:#0a53a8,stroke-width:1px
+style Archiver fill:#e6f0ff,stroke:#0a53a8,stroke-width:1px
+style Analytics fill:#f0e6ff,stroke:#7a3bff,stroke-width:1px
+style Watchdog fill:#f2f2f2,stroke:#666666,stroke-width:1px

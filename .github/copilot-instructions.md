@@ -161,6 +161,12 @@ Before considering a lesson complete, verify:
 - Rebuild base images when updating Qt dependencies: `docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .` and `docker build --target qt-runtime -t qtapp-qt-runtime:latest .`
 - Test lesson builds regularly to ensure compatibility
 - Document any deviations from standard patterns in the lesson README
+ - When modifying Mermaid diagrams (files with `.mmd`), render them to SVG and verify there are no parser errors: run the mermaid CLI and check the terminal output, then fix any errors before committing. Example:
+
+   ```bash
+   npx @mermaid-js/mermaid-cli -i doc/12_THREAD_MODEL.mmd -o doc/12_THREAD_MODEL.svg
+   ```
+   Ensure the command exits without errors and the generated `*.svg` is valid.
 
 ## Current Status
 

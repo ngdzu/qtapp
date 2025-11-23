@@ -1,47 +1,49 @@
 graph TD
     subgraph Device Application
         subgraph C++ Backend
-            direction LR
-            subgraph Core Services
-                DeviceSimulator[Device Simulator]
-                AlarmManager[Alarm Manager]
-                NetworkManager[Network Manager]
-                DatabaseManager[Database Manager]
-                PatientManager[Patient Manager]
-                SettingsManager[Settings Manager]
-                AuthenticationService[Authentication Service]
-                LogService[Log Service]
-                DataArchiver[Data Archiver]
+            direction TB
+            subgraph UI Controllers
+                direction LR
+                DashboardController[Dashboard<br/>Controller]
+                AlarmController[Alarm<br/>Controller]
+                TrendsController[Trends<br/>Controller]
+                SystemController[System<br/>Controller]
+                PatientController[Patient<br/>Controller]
+                SettingsController[Settings<br/>Controller]
+                NotificationController[Notification<br/>Controller]
             end
 
-            subgraph UI Controllers
-                DashboardController[Dashboard Controller]
-                AlarmController[Alarm Controller]
-                TrendsController[Trends Controller]
-                SystemController[System Controller]
-                PatientController[Patient Controller]
-                SettingsController[Settings Controller]
-                NotificationController[Notification Controller]
+            subgraph Core Services
+                direction LR
+                DeviceSimulator[Device<br/>Simulator]
+                AlarmManager[Alarm<br/>Manager]
+                NetworkManager[Network<br/>Manager]
+                DatabaseManager[Database<br/>Manager]
+                PatientManager[Patient<br/>Manager]
+                SettingsManager[Settings<br/>Manager]
+                AuthenticationService[Authentication<br/>Service]
+                LogService[Log<br/>Service]
+                DataArchiver[Data<br/>Archiver]
             end
 
             CoreServices -- Data --> UIControllers
         end
 
         subgraph QML Frontend
-            direction LR
+            direction TB
             MainQML[Main.qml]
             subgraph Views
-                DashboardView[Dashboard View]
-                TrendsView[Trends View]
-                SettingsView[Settings View]
-                DiagnosticsView[Diagnostics View]
-                LoginView[Login View]
+                DashboardView[Dashboard<br/>View]
+                TrendsView[Trends<br/>View]
+                SettingsView[Settings<br/>View]
+                DiagnosticsView[Diagnostics<br/>View]
+                LoginView[Login<br/>View]
             end
             subgraph Components
-                StatCard[Stat Card]
-                PatientBanner[Patient Banner]
-                AlarmIndicator[Alarm Indicator]
-                NotificationBell[Notification Bell]
+                StatCard[Stat<br/>Card]
+                PatientBanner[Patient<br/>Banner]
+                AlarmIndicator[Alarm<br/>Indicator]
+                NotificationBell[Notification<br/>Bell]
                 Sidebar[Sidebar]
                 TopBar[TopBar]
             end
