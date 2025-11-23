@@ -1,0 +1,48 @@
+erDiagram
+    patients {
+        TEXT patient_id PK
+        TEXT name
+        INTEGER age
+        TEXT allergies
+    }
+
+    vitals {
+        INTEGER id PK "AUTOINCREMENT"
+        INTEGER timestamp
+        TEXT patient_id FK
+        REAL heart_rate
+        REAL spo2
+        REAL respiration_rate
+        BOOLEAN is_synced "default false"
+    }
+
+    alarms {
+        INTEGER alarm_id PK
+        TEXT patient_id FK
+        INTEGER start_time
+        INTEGER end_time
+        TEXT alarm_type
+        TEXT priority
+        TEXT status
+    }
+
+    snapshots {
+        INTEGER snapshot_id PK
+        TEXT patient_id FK
+        INTEGER capture_time
+        TEXT waveform_type
+        BLOB data
+    }
+
+    annotations {
+        INTEGER annotation_id PK
+        INTEGER snapshot_id FK
+        TEXT author
+        TEXT note
+        INTEGER creation_time
+    }
+
+    patients ||--o{ vitals : has
+    patients ||--o{ alarms : has
+    patients ||--o{ snapshots : has
+    snapshots ||--o{ annotations : has

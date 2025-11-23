@@ -39,3 +39,7 @@ Thumbs.db
 # Ignore user-specific files
 *.user
 *.user.*
+
+
+# others
+project-dashboard/vibelink-remote-builder

@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/qml/Main.qml</file>
+        <file>resources/qml/components/StatCard.qml</file>
+        <file>resources/qml/components/SparkLine.qml</file>
+    </qresource>
+</RCC>

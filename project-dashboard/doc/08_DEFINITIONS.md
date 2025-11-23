@@ -1,0 +1,95 @@
+# Definitions and Terminologies
+
+This document provides a glossary of key terms and terminologies used within the Medical Device Dashboard project.
+
+## A
+
+*   **AlarmManager:** A C++ backend class responsible for monitoring physiological and technical data, detecting alarm conditions, and managing the state and history of alarms.
+*   **AuthenticationService:** A C++ backend class handling user login, session management, and role-based access control for the device.
+
+## C
+
+*   **CA (Certificate Authority):** A trusted entity that issues digital certificates. In mTLS, the CA signs both server and client certificates.
+*   **CMake:** An open-source, cross-platform family of tools designed to build, test and package software. Used as the build system for the Qt application.
+*   **Critical Alarm (P1):** The highest priority alarm, indicating an immediate threat to patient life or device integrity, requiring urgent intervention.
+
+## D
+
+*   **DashboardController:** A C++ QObject-based controller that exposes real-time vital signs and device status data to the QML frontend for display on the main dashboard view.
+*   **DatabaseManager:** A C++ backend class responsible for managing the local encrypted SQLite database, including data storage, retrieval, and encryption.
+*   **DataArchiver:** A C++ backend class responsible for handling the archival of historical data from the local database, typically data older than a defined retention policy.
+*   **DeviceSimulator:** A C++ backend class that generates realistic, simulated patient vital signs and device operational data for testing and demonstration purposes.
+*   **Diagnostics View:** A QML view displaying system logs and providing controls for simulation parameters or remote commands.
+*   **Docker:** A platform that uses OS-level virtualization to deliver software in packages called containers. Used for consistent development and deployment environments.
+
+## E
+
+*   **ECG (Electrocardiogram):** A measurement of the electrical activity of the heart. Displayed as a waveform on the dashboard.
+*   **Encryption at Rest:** The practice of encrypting data when it is stored on a physical medium (e.g., the device's local storage).
+*   **Encryption in Transit:** The practice of encrypting data as it is being transmitted over a network.
+
+## H
+
+*   **High Alarm (P2):** A high priority alarm indicating a potential threat to patient life or device integrity if not addressed promptly.
+*   **HTTPS:** Hypertext Transfer Protocol Secure. An extension of HTTP that uses TLS to encrypt communication over a computer network.
+
+## I
+
+*   **i18n (Internationalization):** The process of designing a software application so that it can be adapted to various languages and regions without engineering changes.
+*   **Infusion Pump (TCI):** Target Controlled Infusion pump. A medical device that delivers fluids, medication, or nutrients into a patient's circulatory system.
+*   **IoT (Internet of Things):** A network of physical objects embedded with sensors, software, and other technologies for the purpose of connecting and exchanging data with other devices and systems over the internet.
+
+## L
+
+*   **LogService:** A C++ backend class providing a centralized mechanism for generating and managing application log messages.
+*   **Low Alarm (P4):** The lowest priority alarm, typically informational or advisory, requiring no direct intervention.
+
+## M
+
+*   **Medium Alarm (P3):** A medium priority alarm requiring awareness and follow-up, but not immediate intervention.
+*   **mTLS (Mutual TLS):** Mutual Transport Layer Security. A two-way authentication process where both the client (device) and the server authenticate each other using digital certificates.
+
+## N
+
+*   **NetworkManager:** A C++ backend class responsible for managing network connectivity, secure data transmission (mTLS) to the central server, and handling connection status.
+*   **NotificationController:** A C++ QObject-based controller that exposes non-critical informational and warning messages to the QML notification system.
+*   **Notification System:** A UI component (bell icon with badge) for displaying non-critical informational messages and warnings.
+
+## P
+
+*   **Patient Banner:** A persistent UI element in the header displaying critical patient identification and safety information.
+*   **PatientController:** A C++ QObject-based controller that exposes current patient data to the QML frontend.
+*   **PatientManager:** A C++ backend class managing patient-specific data and profiles.
+*   **PI (Perfusion Index):** A numerical value that indicates the pulsatile blood flow in peripheral tissues.
+*   **Predictive Analytics:** Simulated feature that generates a risk score for potential adverse events based on current and historical patient data.
+*   **PVC (Premature Ventricular Contraction):** An extra, abnormal heartbeat that begins in the ventricles.
+
+## Q
+
+*   **QML (Qt Modeling Language):** A declarative language for building highly dynamic, custom user interfaces. Used for the frontend of the application.
+*   **Qt:** A cross-platform application development framework for C++ and QML.
+*   **QObject:** The base class of all Qt objects, providing the signal/slot mechanism for inter-object communication.
+*   **QSslConfiguration:** A Qt class used to configure SSL/TLS settings for network connections, including client certificates for mTLS.
+
+## R
+
+*   **RR (Respiration Rate):** The number of breaths a person takes per minute.
+
+## S
+
+*   **SettingsController:** A C++ QObject-based controller that exposes configurable device settings to the QML frontend and handles updates.
+*   **SettingsManager:** A C++ backend class managing device configuration settings and user preferences.
+*   **Sidebar:** A collapsible navigation panel on the left side of the UI.
+*   **SpO2 (Peripheral Oxygen Saturation):** A measure of the oxygen level in the blood.
+*   **SQLCipher:** An open-source extension to SQLite that provides transparent 256-bit AES encryption for database files.
+*   **SQLite:** A C-language library that implements a small, fast, self-contained, high-reliability, full-featured, SQL database engine. Used for local data persistence.
+*   **Stat Card:** A reusable QML component on the dashboard displaying a primary metric, secondary metrics, and a visualization for a specific vital sign or device status.
+*   **SystemController:** A C++ QObject-based controller handling system-wide states like navigation, global alerts, and connection status.
+
+## T
+
+*   **Telemetry Data:** Data collected from the medical device (vitals, alarms, status) and transmitted to a central server.
+*   **TLS (Transport Layer Security):** A cryptographic protocol designed to provide communications security over a computer network.
+*   **TopBar:** The header section of the UI, displaying connection status, notifications, system version, and clock.
+*   **TrendsController:** A C++ QObject-based controller that provides historical data for plotting in the Trends View.
+*   **Trends View:** A QML view dedicated to displaying historical vital sign data over selectable time ranges.

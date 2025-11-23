@@ -1,0 +1,45 @@
+graph TD
+    subgraph "1. Application Main State"
+        A[Startup] --> B{Initialize};
+        B --> C{Check Auth};
+        C -- No --> D[Login Screen];
+        C -- Yes --> E[Monitoring];
+        D -- OK --> E;
+        E --> F[Settings];
+        F --> E;
+    end
+
+    subgraph "2. Network Connection"
+        NetA[Disconnected] --> NetB{Attempt};
+        NetB --> NetC[Connecting];
+        NetC -- OK --> NetD[Connected];
+        NetC -- Fail --> NetA;
+        NetD -- Error --> NetE[Reconnecting];
+        NetE -- OK --> NetD;
+        NetE -- Fail --> NetA;
+    end
+
+    subgraph "3. Alarm Lifecycle"
+        AlmA[Normal] --> AlmB{Condition Met};
+        AlmB --> AlmC[Active Unack];
+        AlmC -- Ack --> AlmD[Active Ack];
+        AlmC -- Silence --> AlmE[Silenced];
+        AlmE -- Timeout --> AlmC;
+        AlmD -- Cleared --> AlmA;
+        AlmE -- Cleared --> AlmA;
+    end
+
+    subgraph "4. User Authentication"
+        AuthA[Logged Out] --> AuthB[PIN Entry];
+        AuthB -- OK --> AuthC[Logged In];
+        AuthB -- Fail --> AuthB;
+        AuthC -- Logout --> AuthA;
+    end
+
+    subgraph "5. Infusion Pump"
+        PumpA[Idle] --> PumpB{Start};
+        PumpB --> PumpC[Infusing];
+        PumpC -- Stop --> PumpA;
+        PumpC -- Occlusion --> PumpD[Alarm];
+        PumpD -- Clear --> PumpC;
+    end

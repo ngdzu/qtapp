@@ -1,0 +1,14 @@
+graph TD
+    subgraph Device
+        A[DeviceSimulator] --> B(In-Memory Buffer);
+        B --> C{SQLite Database};
+        C -- "SELECT unsynced data (with IDs)" --> D[NetworkManager];
+    end
+
+    subgraph Server
+        E[Central Server API];
+    end
+
+    D -- "POST /api/telemetry (batch with IDs)" --> E;
+    E -- "200 OK + {processed_ids: [id1, id2]}" --> D;
+    D -- "UPDATE vitals SET is_synced=1 WHERE id IN (processed_ids)" --> C;

@@ -1,0 +1,61 @@
+graph TD
+    subgraph Device Application
+        subgraph C++ Backend
+            direction LR
+            subgraph Core Services
+                DeviceSimulator[Device Simulator]
+                AlarmManager[Alarm Manager]
+                NetworkManager[Network Manager]
+                DatabaseManager[Database Manager]
+                PatientManager[Patient Manager]
+                SettingsManager[Settings Manager]
+                AuthenticationService[Authentication Service]
+                LogService[Log Service]
+                DataArchiver[Data Archiver]
+            end
+
+            subgraph UI Controllers
+                DashboardController[Dashboard Controller]
+                AlarmController[Alarm Controller]
+                TrendsController[Trends Controller]
+                SystemController[System Controller]
+                PatientController[Patient Controller]
+                SettingsController[Settings Controller]
+                NotificationController[Notification Controller]
+            end
+
+            CoreServices -- Data --> UIControllers
+        end
+
+        subgraph QML Frontend
+            direction LR
+            MainQML[Main.qml]
+            subgraph Views
+                DashboardView[Dashboard View]
+                TrendsView[Trends View]
+                SettingsView[Settings View]
+                DiagnosticsView[Diagnostics View]
+                LoginView[Login View]
+            end
+            subgraph Components
+                StatCard[Stat Card]
+                PatientBanner[Patient Banner]
+                AlarmIndicator[Alarm Indicator]
+                NotificationBell[Notification Bell]
+                Sidebar[Sidebar]
+                TopBar[TopBar]
+            end
+        end
+
+        UIControllers -- Properties & Signals/Slots --> MainQML
+        MainQML --> Views
+        Views --> Components
+    end
+
+    subgraph External
+        CentralServer[Simulated Central Server]
+    end
+
+    NetworkManager -- mTLS / HTTPS --> CentralServer
+    DatabaseManager -- Encrypted SQL --> LocalStorage[(Local SQLite DB)]
+    LogService -- Logs --> DiagnosticsView

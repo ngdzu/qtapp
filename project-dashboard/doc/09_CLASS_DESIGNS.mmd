@@ -1,0 +1,124 @@
+classDiagram
+    class QObject
+    class DeviceSimulator
+    class AlarmManager
+    class NetworkManager
+    class DatabaseManager
+    class PatientManager
+    class SettingsManager
+    class AuthenticationService
+    class LogService
+    class DataArchiver
+    class DashboardController
+    class AlarmController
+    class SystemController
+    class PatientController
+    class SettingsController
+    class TrendsController
+    class NotificationController
+
+    class DeviceSimulator {
+        +start()
+        +stop()
+        +newData()
+    }
+    class AlarmManager {
+        +processData()
+        +acknowledgeAlarm()
+        +silenceAlarm()
+        +alarmStateChanged()
+    }
+    class NetworkManager {
+        +connectToServer()
+        +sendTelemetry(data: TelemetryData): List<int> "returns processed IDs"
+        +configure()
+    }
+    class DatabaseManager {
+        +open()
+        +saveData()
+        +getHistoricalData()
+        +getUnsyncedData(): List<Map<String, Any>> "returns rows with IDs"
+        +markDataAsSynced(ids: List<int>)
+        +cleanupOldData()
+    }
+    class PatientManager {
+        +loadPatient()
+        +getCurrentPatient()
+        +patientChanged()
+    }
+    class SettingsManager {
+        +loadSettings()
+        +saveSettings()
+        +getValue()
+        +setValue()
+    }
+    class AuthenticationService {
+        +login()
+        +logout()
+        +getCurrentRole()
+    }
+    class LogService {
+        +logInfo()
+        +logWarning()
+        +logError()
+    }
+    class DataArchiver {
+        +archiveData()
+    }
+    class DashboardController {
+        +onNewData()
+    }
+    class AlarmController {
+        +onAlarmStateChanged()
+        +acknowledge()
+        +silence()
+    }
+    class SystemController {
+        +onConnectionStatusChanged()
+        +navigateTo()
+        +powerOff()
+    }
+    class PatientController {
+        +onPatientChanged()
+    }
+    class SettingsController {
+        +updateSetting()
+        +resetToDefaults()
+        +onSettingsChanged()
+    }
+    class TrendsController {
+        +loadTrends()
+    }
+    class NotificationController {
+        +addNotification()
+        +dismissNotification()
+        +clearAll()
+    }
+
+    QObject <|-- DeviceSimulator
+    QObject <|-- AlarmManager
+    QObject <|-- NetworkManager
+    QObject <|-- DatabaseManager
+    QObject <|-- PatientManager
+    QObject <|-- SettingsManager
+    QObject <|-- AuthenticationService
+    QObject <|-- LogService
+    QObject <|-- DataArchiver
+    QObject <|-- DashboardController
+    QObject <|-- AlarmController
+    QObject <|-- SystemController
+    QObject <|-- PatientController
+    QObject <|-- SettingsController
+    QObject <|-- TrendsController
+    QObject <|-- NotificationController
+
+    DeviceSimulator ..> DashboardController
+    DeviceSimulator ..> AlarmManager
+    DeviceSimulator ..> DatabaseManager
+    AlarmManager ..> AlarmController
+    NetworkManager ..> SystemController
+    NetworkManager ..> DatabaseManager : "gets unsynced data"
+    PatientManager ..> PatientController
+    SettingsManager ..> SettingsController
+    LogService ..> NotificationController
+    DatabaseManager ..> TrendsController
