@@ -1,0 +1,32 @@
+---
+alwaysApply: true
+---
+# Common Patterns
+
+## GUI Applications
+- Use `QApplication`.
+- Document X11 prerequisites in README.
+- Provide macOS (`DISPLAY=host.docker.internal:0`) and Linux (`-v /tmp/.X11-unix:/tmp/.X11-unix`) run examples.
+- Suppress GL noise: `-e QT_LOGGING_RULES="*.debug=false;qt.qpa.*=false"`.
+
+## Console Applications
+- Use `QCoreApplication`.
+- No X11 instructions necessary.
+- Provide streamlined run commands.
+
+## CMake Template
+```cmake
+cmake_minimum_required(VERSION 3.16)
+project(lesson-name VERSION 1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
+
+find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
+
+add_executable(executable-name main.cpp)
+target_link_libraries(executable-name PRIVATE Qt6::Core Qt6::Widgets)
+
+install(TARGETS executable-name RUNTIME DESTINATION /opt/lesson##)
+```

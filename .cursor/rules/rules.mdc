@@ -1,0 +1,16 @@
+---
+alwaysApply: true
+---
+# Qt Learning Course – Rule Index
+
+The detailed rules have been split into topic-specific files to reduce token usage. Each file in `.cursor/rules/` with the `alwaysApply` front-matter is loaded automatically. Refer to:
+
+- `project_overview.mdc`
+- `lesson_structure.mdc`
+- `docker_architecture.mdc`
+- `code_style.mdc`
+- `lesson_progression.mdc`
+- `common_patterns.mdc`
+- `quality_checklist.mdc`
+- `maintenance_notes.mdc`
+- `qml_guidelines.mdc`

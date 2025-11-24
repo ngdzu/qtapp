@@ -1,0 +1,11 @@
+---
+appliesTo:
+  - "**/*.qml"
+  - "**/*.qmltypes"
+  - "project-dashboard/scripts/capture_screenshot.sh"
+  - "project-dashboard"
+---
+# QML Editing Guidelines
+
+- After editing any QML file, run the associated screenshot/build script to validate the UI.
+- For the sensor simulator, run `project-dashboard/scripts/capture_screenshot.sh` (from within `project-dashboard/`). It rebuilds the container, launches the app headlessly, and refreshes `project-dashboard/sensor-simulator/resources/screenshot.png`.

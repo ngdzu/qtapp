@@ -1,0 +1,8 @@
+---
+alwaysApply: true
+---
+# Lesson Progression
+
+1. **Beginner (01–07)** – Qt setup, C++ prerequisites, widgets, layouts, signals/slots, events, dialogs.
+2. **Intermediate (08–21)** – Model/View, resources, Qt Quick/QML, graphics, multimedia, networking, threading, SQL, serialization, styling, animations.
+3. **Advanced (22–28)** – OpenGL, plugins, testing, deployment, CI/CD, performance, accessibility/i18n.

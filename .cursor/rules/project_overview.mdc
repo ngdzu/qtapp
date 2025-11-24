@@ -1,0 +1,6 @@
+---
+alwaysApply: true
+---
+# Project Overview
+
+This is a lesson-based Qt learning course where each lesson is a self-contained folder that can be built and run inside a Docker container. The course covers Qt 6 development from beginner to advanced topics with a hands-on focus.

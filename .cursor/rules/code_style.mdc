@@ -1,0 +1,16 @@
+---
+alwaysApply: true
+---
+# Code Style Guidelines
+
+## C++ & Qt
+- Target C++17, modern idioms, and Qt 6 APIs.
+- Favor new-style signals/slots: `QObject::connect(&obj, &Class::signal, lambda)`.
+- Leverage parent-child ownership instead of manual deletes.
+- Keep examples focused—avoid unnecessary complexity.
+
+## Documentation
+- Write clear, concise explanations for C++ devs new to Qt.
+- Explain the “why”, not just “how”.
+- Reference official Qt docs when useful.
+- Highlight common pitfalls and how to avoid them.

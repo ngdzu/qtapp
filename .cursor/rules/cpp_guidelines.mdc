@@ -1,0 +1,20 @@
+---
+appliesTo:
+  - "**/*.cpp"
+  - "**/*.cxx"
+  - "**/*.cc"
+  - "**/*.h"
+  - "**/*.hpp"
+  - "src/**/*.cpp"
+  - "src/**/*.h"
+---
+# C++ Implementation Guidelines
+
+- Target C++17 throughout the project and enable warnings-as-errors when possible.
+- Favor RAII: wrap ownership in smart pointers (`std::unique_ptr`, `std::shared_ptr`) or rely on Qt’s parent/child relationships.
+- Prefer `const` correctness and `[[nodiscard]]` for functions returning values that must be handled.
+- Avoid raw `new`/`delete`; if dynamic allocation is required, encapsulate it in helpers or use stack-based objects.
+- Keep translation units focused; each `.cpp` should correspond to a single class or cohesive feature.
+- Use `#pragma once` in headers and keep include order: own header, project headers, Qt headers, then STL/system.
+- For Qt signal-slot connections, prefer function/lambda overloads with context objects to prevent leaks.
+- Document tricky logic with concise comments explaining the “why,” not the “what.”

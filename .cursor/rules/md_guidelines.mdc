@@ -1,0 +1,12 @@
+---
+appliesTo:
+  - "**/*.md"
+  - "**/*.mdx"
+---
+# Markdown Guidelines
+
+- Keep Markdown syntax valid: verify headers, lists, code fences, and tables render correctly.
+- For tables, ensure each row has the same number of `|` separators and include an alignment row (`| --- |` etc.).
+- Avoid trailing whitespace inside table cells; leave a blank line before and after tables and large code blocks for readability.
+- Use fenced code blocks with language identifiers (e.g., ```cpp) and ensure code samples compile or at least type-check.
+- When adding complex sections (callouts, nested lists), preview the file (e.g., via VS Code Markdown preview) to confirm formatting.
