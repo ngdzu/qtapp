@@ -10,3 +10,4 @@ appliesTo:
 - Avoid trailing whitespace inside table cells; leave a blank line before and after tables and large code blocks for readability.
 - Use fenced code blocks with language identifiers (e.g., ```cpp) and ensure code samples compile or at least type-check.
 - When adding complex sections (callouts, nested lists), preview the file (e.g., via VS Code Markdown preview) to confirm formatting.
+- **Do not include comments in shell/bash code blocks** - comments make it difficult to copy and paste commands. Instead, write explanatory text outside the code block before or after it.
