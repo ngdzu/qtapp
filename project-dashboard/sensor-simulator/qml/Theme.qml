@@ -2,25 +2,28 @@ pragma Singleton
 import QtQuick 2.15
 
 QtObject {
-    // Color Palette - Backgrounds
-    readonly property color background: "#09090b"           // slate-950
-    readonly property color backgroundSecondary: "#0b0f12"   // darker slate
-    readonly property color cardBackground: "#0f1720"       // slate-900
-    readonly property color cardBackgroundSecondary: "#111827" // slate-800
-    readonly property color border: "#27272a"                // slate-800 border
+    // Color Palette - Backgrounds (matching Tailwind slate colors exactly)
+    readonly property color background: "#020617"           // slate-950 (exact from React)
+    readonly property color backgroundSecondary: "#0f172a"  // slate-900
+    readonly property color cardBackground: "#0f172a"       // slate-900
+    readonly property color cardBackgroundSecondary: "#1e293b" // slate-800
+    readonly property color border: "#1e293b"                // slate-800 border
     
-    // Color Palette - Text
-    readonly property color textPrimary: "#e6eef0"          // slate-200
-    readonly property color textSecondary: "#9ca3af"         // slate-500
-    readonly property color textMuted: "#9ca3af"            // slate-500
+    // Color Palette - Text (matching Tailwind exactly)
+    readonly property color textPrimary: "#e2e8f0"          // slate-200
+    readonly property color textSecondary: "#94a3b8"       // slate-400
+    readonly property color textMuted: "#64748b"           // slate-500
+    readonly property color textMutedDark: "#475569"       // slate-600
     
-    // Color Palette - Accents
+    // Color Palette - Accents (matching Tailwind exactly)
     readonly property color accentEmerald: "#10b981"        // emerald-500
+    readonly property color accentEmeraldLight: "#34d399"    // emerald-400
     readonly property color accentSky: "#38bdf8"            // sky-400
     readonly property color accentAmber: "#fbbf24"          // amber-400
-    readonly property color accentIndigo: "#6366f1"          // indigo-500
-    readonly property color accentRed: "#ef4444"             // red-500
-    readonly property color accentOrange: "#f59e0b"         // orange-500
+    readonly property color accentIndigo: "#4f46e5"         // indigo-600
+    readonly property color accentRed: "#ef4444"            // red-500
+    readonly property color accentRedLight: "#f87171"        // red-400
+    readonly property color accentOrange: "#fb923c"          // orange-400
     
     // Color Palette - Semantic
     readonly property color success: accentEmerald
@@ -29,27 +32,29 @@ QtObject {
     readonly property color info: accentSky
     readonly property color primary: accentIndigo
     
-    // Typography
-    readonly property string fontFamily: "Inter, Roboto, -apple-system, sans-serif"
-    readonly property string fontFamilyMono: "Monaco, 'Courier New', monospace"
+    // Typography - Matching React reference (Inter + JetBrains Mono)
+    readonly property string fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    readonly property string fontFamilyMono: "'JetBrains Mono', 'JetBrainsMono', 'Monaco', 'Courier New', monospace"
     
-    readonly property int fontSizeXs: 10
-    readonly property int fontSizeSm: 11
-    readonly property int fontSizeBase: 12
-    readonly property int fontSizeMd: 14
-    readonly property int fontSizeLg: 16
-    readonly property int fontSizeXl: 18
-    readonly property int fontSize2xl: 20
-    readonly property int fontSize3xl: 24
-    readonly property int fontSize4xl: 42
-    readonly property int fontSize5xl: 48
+    // Font sizes matching Tailwind (React reference)
+    readonly property int fontSizeXs: 12        // text-xs (0.75rem)
+    readonly property int fontSizeSm: 14         // text-sm (0.875rem)
+    readonly property int fontSizeBase: 12       // text-xs base
+    readonly property int fontSizeMd: 14         // text-sm
+    readonly property int fontSizeLg: 16         // text-base
+    readonly property int fontSizeXl: 20        // text-xl (1.25rem)
+    readonly property int fontSize2xl: 20       // text-xl
+    readonly property int fontSize3xl: 24       // text-2xl
+    readonly property int fontSize4xl: 48        // text-5xl (3rem) for vital values
+    readonly property int fontSize5xl: 48       // text-5xl
+    readonly property int fontSize10px: 10       // text-[10px] custom
     
-    // Spacing
-    readonly property int spacingXs: 4
-    readonly property int spacingSm: 8
-    readonly property int spacingMd: 12
-    readonly property int spacingLg: 16
-    readonly property int spacingXl: 24
+    // Spacing (matching Tailwind spacing scale exactly)
+    readonly property int spacingXs: 4      // gap-1, space-y-1
+    readonly property int spacingSm: 8      // gap-2, p-2
+    readonly property int spacingMd: 12     // gap-3, p-3
+    readonly property int spacingLg: 16     // gap-4, p-4
+    readonly property int spacingXl: 24     // gap-6, mb-6
     readonly property int spacing2xl: 32
     
     // Border Radius

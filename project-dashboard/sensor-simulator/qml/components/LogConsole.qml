@@ -8,8 +8,10 @@ Rectangle {
     
     property alias logModel: logView.model
     property string filterLevel: "All"
+    property bool isPaused: false
     
     signal clearRequested()
+    signal togglePause()
     
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -23,138 +25,172 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        // Header
+        // Header - matching React reference
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: Theme.logHeaderHeight
-            color: Theme.colorWithOpacity(Theme.background, 0.2)
+            color: Theme.cardBackground
+            border.width: 0
             
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: Theme.spacingMd
-                spacing: Theme.spacingMd
+                anchors.margins: Theme.spacingLg
+                spacing: Theme.spacingSm
                 
-                Text {
-                    text: "Telemetry Stream"
-                    color: Theme.textPrimary
-                    font.bold: true
-                    font.pixelSize: Theme.fontSizeBase
-                }
-                
-                Rectangle {
-                    width: Theme.eventBadgeWidth
-                    height: Theme.eventBadgeHeight
-                    radius: Theme.eventBadgeRadius
-                    color: Theme.cardBackgroundSecondary
+                // Terminal icon + Title
+                Row {
+                    spacing: Theme.spacingSm
+                    Image {
+                        id: terminalIcon
+                        source: "qrc:/qml/icons/terminal.svg"
+                        width: 18
+                        height: 18
+                        sourceSize.width: 18
+                        sourceSize.height: 18
+                        fillMode: Image.PreserveAspectFit
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                     Text {
-                        anchors.centerIn: parent
-                        text: logView.count + " events"
-                        color: Theme.textMuted
-                        font.pixelSize: Theme.fontSizeXs
-                        font.family: Theme.fontFamilyMono
+                        text: "Telemetry Stream"
+                        color: Theme.textPrimary
+                        font.bold: true
+                        font.pixelSize: Theme.fontSizeBase
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Rectangle {
+                        width: 60
+                        height: 20
+                        radius: 10
+                        color: Theme.cardBackgroundSecondary
+                        anchors.verticalCenter: parent.verticalCenter
+                        Text {
+                            anchors.centerIn: parent
+                            text: logView.count + " events"
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.fontSizeXs
+                            font.family: Theme.fontFamilyMono
+                        }
                     }
                 }
                 
                 Item { Layout.fillWidth: true }
                 
-                Text {
-                    text: "Filter:"
-                    color: Theme.textMuted
-                    font.pixelSize: Theme.fontSizeBase
-                }
-                
-                ComboBox {
-                    id: filterCombo
-                    Layout.preferredWidth: Theme.comboBoxWidth
-                    Layout.preferredHeight: Theme.comboBoxHeight
-                    model: ["All", "Critical", "Warning", "Info", "Debug"]
-                    onCurrentTextChanged: root.filterLevel = currentText
+                // Pause/Play button
+                Button {
+                    Layout.preferredWidth: 32
+                    Layout.preferredHeight: 32
+                    onClicked: root.togglePause()
                     
                     background: Rectangle {
-                        color: Theme.cardBackgroundSecondary
-                        border.color: Theme.border
-                        radius: Theme.radiusSm
+                        color: root.isPaused ? Theme.colorWithOpacity(Theme.accentAmber, 0.1) : "transparent"
+                        radius: Theme.radiusLg
+                        border.width: 0
                     }
                     
-                    contentItem: Text {
-                        text: filterCombo.displayText
-                        color: Theme.textPrimary
-                        font.pixelSize: Theme.fontSizeBase
-                        font.family: Theme.fontFamilyMono
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: Theme.spacingSm
-                        rightPadding: filterCombo.indicator.width + filterCombo.spacing
+                    contentItem: Image {
+                        anchors.centerIn: parent
+                        source: root.isPaused ? "qrc:/qml/icons/play.svg" : "qrc:/qml/icons/pause.svg"
+                        width: 16
+                        height: 16
+                        sourceSize.width: 16
+                        sourceSize.height: 16
+                        fillMode: Image.PreserveAspectFit
+                    }
+                }
+                
+                // Clear button (trash icon)
+                Button {
+                    Layout.preferredWidth: 32
+                    Layout.preferredHeight: 32
+                    onClicked: root.clearRequested()
+                    
+                    background: Rectangle {
+                        color: "transparent"
+                        radius: Theme.radiusLg
+                        border.width: 0
                     }
                     
-                    indicator: Canvas {
-                        id: indicatorCanvas
-                        x: filterCombo.width - width - Theme.spacingSm
-                        y: filterCombo.topPadding + (filterCombo.availableHeight - height) / 2
-                        width: Theme.comboBoxIndicatorWidth
-                        height: Theme.comboBoxIndicatorHeight
-                        contextType: "2d"
-                        
-                        onPaint: {
-                            var ctx = getContext("2d")
-                            ctx.reset()
-                            ctx.strokeStyle = Theme.textPrimary
-                            ctx.fillStyle = Theme.textPrimary
-                            ctx.lineWidth = 1.5
-                            ctx.beginPath()
-                            ctx.moveTo(0, 0)
-                            ctx.lineTo(width / 2, height)
-                            ctx.lineTo(width, 0)
-                            ctx.closePath()
-                            ctx.fill()
-                        }
+                    contentItem: Image {
+                        anchors.centerIn: parent
+                        source: "qrc:/qml/icons/trash-2.svg"
+                        width: 16
+                        height: 16
+                        sourceSize.width: 16
+                        sourceSize.height: 16
+                        fillMode: Image.PreserveAspectFit
                     }
-                    
-                    popup: Popup {
-                        y: filterCombo.height
-                        width: filterCombo.width
-                        implicitHeight: contentItem.implicitHeight
-                        padding: Theme.spacingXs
-                        
-                        contentItem: ListView {
-                            clip: true
-                            implicitHeight: contentHeight
-                            model: filterCombo.popup.visible ? filterCombo.delegateModel : null
-                            currentIndex: filterCombo.highlightedIndex
-                            
-                            ScrollIndicator.vertical: ScrollIndicator { }
-                        }
-                        
-                        background: Rectangle {
-                            color: Theme.cardBackground
-                            border.color: Theme.border
-                            radius: Theme.radiusSm
-                        }
-                    }
-                    
-                    delegate: ItemDelegate {
-                        width: filterCombo.width
+                }
+            }
+            
+            Rectangle {
+                anchors.bottom: parent.bottom
+                width: parent.width
+                height: Theme.dividerHeight
+                color: Theme.border
+            }
+        }
+        
+        // Filter Bar - matching React reference
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 40
+            color: Theme.colorWithOpacity(Theme.cardBackground, 0.5)
+            border.width: 0
+            
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Theme.spacingSm
+                spacing: Theme.spacingSm
+                
+                Image {
+                    id: filterIcon
+                    source: "qrc:/qml/icons/filter.svg" // Need manual download
+                    width: 14
+                    height: 14
+                    sourceSize.width: 14
+                    sourceSize.height: 14
+                    Layout.leftMargin: Theme.spacingSm
+                    visible: false // Use emoji until filter.svg is downloaded
+                }
+                Text {
+                    text: "🔽"
+                    color: Theme.textMuted
+                    font.pixelSize: Theme.fontSizeXs
+                    Layout.leftMargin: Theme.spacingSm
+                }
+                
+                Repeater {
+                    model: ["ALL", "CRITICAL", "WARNING", "INTERNAL", "INFO"]
+                    Button {
                         text: modelData
+                        Layout.preferredHeight: 24
+                        Layout.preferredWidth: implicitWidth + Theme.spacingMd
                         
                         background: Rectangle {
-                            color: parent.hovered ? Theme.cardBackgroundSecondary : "transparent"
-                            radius: Theme.radiusXs
+                            color: root.filterLevel.toUpperCase() === modelData ? Theme.cardBackgroundSecondary : "transparent"
+                            radius: 9999
+                            border.width: 0
                         }
                         
                         contentItem: Text {
                             text: modelData
-                            color: Theme.textPrimary
-                            font.pixelSize: Theme.fontSizeBase
-                            font.family: Theme.fontFamilyMono
+                            color: root.filterLevel.toUpperCase() === modelData ? "white" : Theme.textMuted
+                            horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
-                            leftPadding: Theme.spacingSm
+                            font.pixelSize: Theme.fontSizeXs
+                            font.bold: root.filterLevel.toUpperCase() === modelData
+                        }
+                        
+                        onClicked: {
+                            var level = ""
+                            if (modelData === "ALL") level = "All"
+                            else if (modelData === "CRITICAL") level = "Critical"
+                            else if (modelData === "WARNING") level = "Warning"
+                            else if (modelData === "INTERNAL") level = "Internal"
+                            else if (modelData === "INFO") level = "Info"
+                            if (level !== "") root.filterLevel = level
                         }
                     }
-                }
-                
-                ReusableButton {
-                    text: "Clear"
-                    Layout.preferredHeight: Theme.buttonHeightSm
-                    onClicked: root.clearRequested()
                 }
             }
             
@@ -190,20 +226,55 @@ Rectangle {
                 }
             }
             
-            ListView {
-                id: logView
+            // Console Output - matching React reference
+            Item {
                 anchors.fill: parent
-                anchors.margins: Theme.spacingSm
-                model: ListModel {}
-                spacing: Theme.spacingXs
-                clip: true
                 
-                delegate: LogEntry {
-                    width: logView.width
-                    logTime: time
-                    logLevel: level
-                    logMessage: message
-                    isVisible: root.filterLevel === "All" || root.filterLevel === level
+                ListView {
+                    id: logView
+                    anchors.fill: parent
+                    anchors.margins: Theme.spacingSm
+                    model: ListModel {}
+                    spacing: Theme.spacingXs
+                    clip: true
+                    
+                    delegate: LogEntry {
+                        width: logView.width
+                        logTime: time
+                        logLevel: level
+                        logMessage: message
+                        isVisible: root.filterLevel === "All" || 
+                                  (root.filterLevel === "Critical" && level === "Critical") ||
+                                  (root.filterLevel === "Warning" && level === "Warning") ||
+                                  (root.filterLevel === "Internal" && level === "Internal") ||
+                                  (root.filterLevel === "Info" && (level === "Info" || level === "Debug"))
+                    }
+                }
+                
+                // Empty state - matching React reference
+                Column {
+                    anchors.centerIn: parent
+                    visible: logView.count === 0
+                    spacing: Theme.spacingSm
+                    
+                    Image {
+                        id: emptyTerminalIcon
+                        source: "qrc:/qml/icons/terminal.svg"
+                        width: 32
+                        height: 32
+                        sourceSize.width: 32
+                        sourceSize.height: 32
+                        opacity: 0.2
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    
+                    Text {
+                        text: "Waiting for data stream..."
+                        color: Theme.textMutedDark
+                        font.pixelSize: Theme.fontSizeBase
+                        font.family: Theme.fontFamilyMono
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
                 }
             }
         }

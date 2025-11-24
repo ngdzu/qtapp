@@ -16,11 +16,11 @@ RowLayout {
         Layout.fillWidth: true
         Layout.minimumWidth: Theme.vitalCardMinWidth
         Layout.preferredHeight: Theme.vitalCardHeight
-        label: "HEART RATE"
+        label: "Heart Rate"
         value: root.heartRate
         unit: "BPM"
-        accentColor: Theme.accentEmerald
-        icon: "⚡"
+        accentColor: Theme.accentEmeraldLight
+        iconSource: "activity"
     }
     
     // SpO2 Card
@@ -28,11 +28,11 @@ RowLayout {
         Layout.fillWidth: true
         Layout.minimumWidth: Theme.vitalCardMinWidth
         Layout.preferredHeight: Theme.vitalCardHeight
-        label: "SPO2"
+        label: "SpO2"
         value: root.spo2
         unit: "%"
         accentColor: Theme.accentSky
-        icon: "💧"
+        iconSource: "droplets"
     }
     
     // Resp Rate Card
@@ -40,11 +40,11 @@ RowLayout {
         Layout.fillWidth: true
         Layout.minimumWidth: Theme.vitalCardMinWidth
         Layout.preferredHeight: Theme.vitalCardHeight
-        label: "RESP RATE"
+        label: "Resp Rate"
         value: root.respRate
         unit: "RPM"
         accentColor: Theme.accentAmber
-        icon: "🌬"
+        iconSource: "wind"
     }
 }
 

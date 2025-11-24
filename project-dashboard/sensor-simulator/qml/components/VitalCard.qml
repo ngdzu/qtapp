@@ -9,29 +9,74 @@ Rectangle {
     property int value: 0
     property string unit: ""
     property color accentColor: Theme.accentEmerald
-    property string icon: ""
+    property string icon: "" // Deprecated - use iconSource instead
+    property string iconSource: ""
     
     color: Theme.cardBackground
     radius: Theme.radiusXl
     border.color: Theme.border
+    border.width: Theme.dividerHeight
+    
+    function getColoredIconSource() {
+        if (!root.iconSource) return ""
+        // Use pre-colored SVG files based on iconSource name
+        if (root.iconSource === "activity") {
+            return "qrc:/qml/icons/activity-green.svg"
+        } else if (root.iconSource === "droplets") {
+            return "qrc:/qml/icons/droplets-blue.svg"
+        } else if (root.iconSource === "wind") {
+            return "qrc:/qml/icons/wind-yellow.svg"
+        }
+        // Fallback to original
+        return "qrc:/qml/icons/" + root.iconSource + ".svg"
+    }
+    
+    // Icon in top-right corner (opacity-10) - colored background icon
+    Image {
+        id: bgIcon
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: Theme.spacingLg
+        source: getColoredIconSource()
+        width: Theme.iconSize
+        height: Theme.iconSize
+        sourceSize.width: Theme.iconSize
+        sourceSize.height: Theme.iconSize
+        fillMode: Image.PreserveAspectFit
+        visible: root.iconSource !== ""
+        opacity: 0.1
+    }
     
     Column {
         anchors.fill: parent
-        anchors.margins: Theme.cardPadding
+        anchors.margins: Theme.spacingLg
         spacing: Theme.spacingSm
         
+        // Label row with icon
         Row {
             spacing: Theme.spacingSm
             width: parent.width
-            Text {
-                text: root.label
-                color: Theme.textMuted
-                font.pixelSize: Theme.fontSizeSm
-                font.bold: true
+            // Colored SVG icon - use pre-colored SVG files
+            Image {
+                id: iconImg
+                source: root.getColoredIconSource()
+                width: Theme.iconSize
+                height: Theme.iconSize
+                sourceSize.width: Theme.iconSize
+                sourceSize.height: Theme.iconSize
+                fillMode: Image.PreserveAspectFit
+                visible: root.iconSource !== ""
             }
-            Item { width: parent.width - parent.children[0].width - parent.spacing }
+            Text {
+                text: root.label.toUpperCase()
+                color: Theme.textSecondary
+                font.pixelSize: Theme.fontSizeXs
+                font.bold: true
+                font.letterSpacing: 1
+            }
         }
         
+        // Value row
         Row {
             spacing: Theme.spacingSm
             Text {
@@ -44,10 +89,10 @@ Rectangle {
             Text {
                 text: root.unit
                 color: Theme.textMuted
-                font.pixelSize: Theme.fontSizeMd
-                verticalAlignment: Text.AlignBottom
+                font.pixelSize: Theme.fontSizeSm
+                font.bold: false
                 anchors.baseline: parent.children[0].baseline
-                anchors.baselineOffset: -8
+                anchors.baselineOffset: 0
             }
         }
     }

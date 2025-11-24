@@ -26,16 +26,18 @@ Rectangle {
         anchors.margins: Theme.spacingLg
         spacing: Theme.spacingLg
         
-        // Scenarios Section
+        // Scenarios Section - matching React reference
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingMd
+            spacing: 0
             
             Text {
-                text: "Scenarios"
+                text: "SCENARIOS"
                 color: Theme.textMuted
-                font.pixelSize: Theme.fontSizeBase
+                font.pixelSize: Theme.fontSizeXs
                 font.bold: true
+                font.letterSpacing: 2
+                Layout.bottomMargin: Theme.spacingMd
             }
             
             Button {
@@ -47,41 +49,63 @@ Rectangle {
                 onClicked: root.playDemo()
                 
                 background: Rectangle {
-                    color: demoButton.enabled ? Theme.primary : Theme.cardBackgroundSecondary
+                    color: demoButton.enabled ? Theme.accentIndigo : Theme.cardBackgroundSecondary
                     radius: Theme.radiusLg
-                    border.color: demoButton.enabled ? Theme.primary : Theme.border
-                    border.width: demoButton.enabled ? 0 : 1
+                    border.width: 0
                 }
                 
-                contentItem: Text {
-                    text: demoButton.text
-                    color: demoButton.enabled ? "white" : Theme.textMuted
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: Theme.fontSizeMd
-                    font.bold: true
+                contentItem: Row {
+                    spacing: Theme.spacingSm
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    Image {
+                        id: playCircleIcon
+                        source: "qrc:/qml/icons/play-circle.svg"
+                        width: 18
+                        height: 18
+                        sourceSize.width: 18
+                        sourceSize.height: 18
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: false // Use emoji until play-circle.svg is downloaded
+                    }
+                    Text {
+                        text: "▶"
+                        color: demoButton.enabled ? "white" : Theme.textMuted
+                        font.pixelSize: Theme.fontSizeSm
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: demoButton.text
+                        color: demoButton.enabled ? "white" : Theme.textMuted
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.pixelSize: Theme.fontSizeSm
+                        font.bold: true
+                    }
                 }
             }
             
             Text {
                 text: "Sequence: Critical → Notify → Warning"
                 color: Theme.textMuted
-                font.pixelSize: Theme.fontSizeSm
+                font.pixelSize: Theme.fontSize10px
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
+                Layout.topMargin: Theme.spacingSm
             }
         }
         
-        // Manual Events Section
+        // Manual Events Section - matching React reference
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingMd
+            spacing: 0
             
             Text {
-                text: "Manual Events"
+                text: "MANUAL EVENTS"
                 color: Theme.textMuted
-                font.pixelSize: Theme.fontSizeBase
+                font.pixelSize: Theme.fontSizeXs
                 font.bold: true
+                font.letterSpacing: 2
+                Layout.bottomMargin: Theme.spacingMd
             }
             
             ColumnLayout {
@@ -92,7 +116,7 @@ Rectangle {
                 EventButton {
                     label: "Trigger Critical"
                     subtitle: "Code Blue Alarm"
-                    accentColor: Theme.accentRed
+                    accentColor: Theme.accentRedLight
                     onClicked: root.triggerCritical()
                 }
                 
@@ -131,23 +155,23 @@ Rectangle {
                 Text {
                     text: "DEVICE STATUS"
                     color: Theme.textMuted
-                    font.pixelSize: Theme.fontSizeSm
+                    font.pixelSize: Theme.fontSizeXs
                     font.family: Theme.fontFamilyMono
                 }
                 Item { Layout.fillWidth: true }
                 Row {
-                    spacing: Theme.spacingXs
+                    spacing: 6
                     Rectangle {
-                        width: Theme.statusDotSize
-                        height: Theme.statusDotSize
-                        radius: Theme.statusDotRadius
+                        width: 6
+                        height: 6
+                        radius: 3
                         color: Theme.accentEmerald
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Text {
                         text: "ONLINE"
                         color: Theme.textPrimary
-                        font.pixelSize: Theme.fontSizeSm
+                        font.pixelSize: Theme.fontSizeXs
                         font.family: Theme.fontFamilyMono
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -157,28 +181,29 @@ Rectangle {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Theme.systemInfoHeight
-                color: Theme.backgroundSecondary
+                color: Theme.background
                 radius: Theme.radiusMd
                 border.color: Theme.border
+                border.width: Theme.dividerHeight
                 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: Theme.spacingSm
+                    anchors.margins: Theme.spacingMd
                     spacing: Theme.spacingXs
                     
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
                             text: "Proto:"
-                            color: Theme.textMuted
-                            font.pixelSize: Theme.fontSizeXs
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.fontSize10px
                             font.family: Theme.fontFamilyMono
                         }
                         Item { Layout.fillWidth: true }
                         Text {
                             text: "v2.1 (JSON)"
                             color: Theme.textPrimary
-                            font.pixelSize: Theme.fontSizeXs
+                            font.pixelSize: Theme.fontSize10px
                             font.family: Theme.fontFamilyMono
                         }
                     }
@@ -187,15 +212,15 @@ Rectangle {
                         Layout.fillWidth: true
                         Text {
                             text: "Rate:"
-                            color: Theme.textMuted
-                            font.pixelSize: Theme.fontSizeXs
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.fontSize10px
                             font.family: Theme.fontFamilyMono
                         }
                         Item { Layout.fillWidth: true }
                         Text {
                             text: "5 Hz"
                             color: Theme.textPrimary
-                            font.pixelSize: Theme.fontSizeXs
+                            font.pixelSize: Theme.fontSize10px
                             font.family: Theme.fontFamilyMono
                         }
                     }
@@ -204,17 +229,17 @@ Rectangle {
                         Layout.fillWidth: true
                         Text {
                             text: "Mode:"
-                            color: Theme.textMuted
-                            font.pixelSize: Theme.fontSizeXs
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.fontSize10px
                             font.family: Theme.fontFamilyMono
                         }
                         Item { Layout.fillWidth: true }
                         Text {
                             text: "Interactive"
-                            color: Theme.primary
-                            font.pixelSize: Theme.fontSizeXs
+                            color: Theme.accentIndigo
+                            font.pixelSize: Theme.fontSize10px
                             font.family: Theme.fontFamilyMono
-                            font.bold: true
+                            font.bold: false
                         }
                     }
                 }

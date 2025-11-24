@@ -11,6 +11,7 @@ Rectangle {
     color: Theme.colorWithOpacity(Theme.cardBackground, 0.5)
     radius: Theme.radiusXl
     border.color: Theme.border
+    border.width: Theme.dividerHeight
     
     ColumnLayout {
         anchors.fill: parent
@@ -18,9 +19,9 @@ Rectangle {
         spacing: Theme.spacingSm
         
         Text {
-            text: "DEBUG OUTPUT"
-            color: Theme.textSecondary
-            font.pixelSize: Theme.fontSizeXs
+            text: "Debug Output"
+            color: Theme.textMutedDark
+            font.pixelSize: Theme.fontSize10px
             font.bold: true
             font.letterSpacing: 2
             Layout.bottomMargin: Theme.spacingSm
@@ -40,28 +41,28 @@ Rectangle {
             Text {
                 text: "Initialized graphics context... OK"
                 color: Theme.textMuted
-                font.pixelSize: Theme.fontSizeXs
+                font.pixelSize: Theme.fontSize10px
                 font.family: Theme.fontFamilyMono
             }
             
             Text {
                 text: "Loaded waveform profiles... OK"
                 color: Theme.textMuted
-                font.pixelSize: Theme.fontSizeXs
+                font.pixelSize: Theme.fontSize10px
                 font.family: Theme.fontFamilyMono
             }
             
             Text {
                 text: "Audio engine... STARTED"
                 color: Theme.textMuted
-                font.pixelSize: Theme.fontSizeXs
+                font.pixelSize: Theme.fontSize10px
                 font.family: Theme.fontFamilyMono
             }
             
             Text {
                 text: "Transport layer... LISTENING (5Hz)"
                 color: Theme.textMuted
-                font.pixelSize: Theme.fontSizeXs
+                font.pixelSize: Theme.fontSize10px
                 font.family: Theme.fontFamilyMono
             }
         }

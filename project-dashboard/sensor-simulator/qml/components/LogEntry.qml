@@ -15,45 +15,44 @@ Rectangle {
     color: "transparent"
     visible: root.isVisible
     
-    RowLayout {
+    Column {
         anchors.fill: parent
-        spacing: Theme.spacingMd
+        anchors.margins: Theme.spacingSm
+        spacing: Theme.spacingXs
         
-        // Time
-        Text {
-            text: root.logTime
-            color: Theme.textMuted
-            font.pixelSize: Theme.fontSizeSm
-            font.family: Theme.fontFamilyMono
-            Layout.preferredWidth: Theme.logTimeWidth
-        }
-        
-        // Level Badge
-        Rectangle {
-            Layout.preferredWidth: Theme.logBadgeWidth
-            Layout.preferredHeight: Theme.logBadgeHeight
-            radius: Theme.radiusXs
-            color: getLevelBgColor(root.logLevel)
-            border.color: getLevelBorderColor(root.logLevel)
-            border.width: 1
+        // Header row with type and timestamp
+        RowLayout {
+            width: parent.width
+            spacing: Theme.spacingSm
             
             Text {
-                anchors.centerIn: parent
-                text: root.logLevel
+                text: root.logLevel.toUpperCase()
                 color: getLevelTextColor(root.logLevel)
-                font.pixelSize: Theme.fontSizeXs
+                font.pixelSize: Theme.fontSize10px
                 font.bold: true
+                font.letterSpacing: 1
+            }
+            
+            Item { Layout.fillWidth: true }
+            
+            Text {
+                text: root.logTime
+                color: Theme.textMuted
+                font.pixelSize: Theme.fontSize10px
+                font.family: Theme.fontFamilyMono
+                opacity: 0.7
             }
         }
         
         // Message
         Text {
+            width: parent.width
             text: root.logMessage
             color: Theme.textPrimary
-            font.pixelSize: Theme.fontSizeBase
+            font.pixelSize: Theme.fontSizeXs
             font.family: Theme.fontFamilyMono
-            Layout.fillWidth: true
-            elide: Text.ElideRight
+            wrapMode: Text.Wrap
+            opacity: 0.9
         }
     }
     
@@ -61,7 +60,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        width: Theme.logIndicatorWidth
+        width: 2
         color: root.logLevel ? getLevelTextColor(root.logLevel) : Theme.textMuted
     }
     

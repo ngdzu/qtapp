@@ -24,6 +24,7 @@ Window {
     property string filterLevel: "All"
     property int logRetention: 50
     property int messageCounter: 0
+    property bool isPaused: false
 
     // Live vitals populated from the Simulator C++ backend
     property int hr: 72
@@ -40,17 +41,33 @@ Window {
         while (m.count > window.logRetention) m.remove(0)
     }
 
-    // Main layout
+    // Main layout - matching React reference
     Rectangle {
         anchors.fill: parent
-        color: Theme.backgroundSecondary
+        color: Theme.background
 
-        // Top bar
-        TopBar {
-            id: topBar
+        // Top bar with border-bottom
+        Item {
+            id: headerContainer
             anchors.top: parent.top
-            lastEventText: window.lastEventText
-            lastEventColor: window.lastEventColor
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: topBar.height + divider.height
+            
+            TopBar {
+                id: topBar
+                anchors.top: parent.top
+                lastEventText: window.lastEventText
+                lastEventColor: window.lastEventColor
+            }
+            
+                Rectangle {
+                id: divider
+                anchors.top: topBar.bottom
+                width: parent.width
+                height: Theme.dividerHeight
+                color: Theme.border
+            }
         }
 
         // Modal overlay (dim the app when any dialog is visible)
@@ -62,13 +79,16 @@ Window {
             z: 998
         }
 
-        RowLayout {
-            anchors.top: topBar.bottom
+            RowLayout {
+            anchors.top: headerContainer.bottom
+            anchors.topMargin: Theme.spacingXl
             anchors.left: parent.left
+            anchors.leftMargin: Theme.spacingLg
             anchors.right: parent.right
+            anchors.rightMargin: Theme.spacingLg
             anchors.bottom: parent.bottom
-            spacing: Theme.spacingMd
-            anchors.margins: Theme.spacingMd
+            anchors.bottomMargin: Theme.spacingLg
+            spacing: Theme.spacingXl
 
             // Left column (controls) - 1/4 width
             ColumnLayout {
@@ -117,9 +137,13 @@ Window {
                 LogConsole {
                     id: logConsole
                     filterLevel: window.filterLevel
+                    isPaused: window.isPaused
                     onClearRequested: {
                         logConsole.logModel.clear()
                         window.messageCounter = 0
+                    }
+                    onTogglePause: {
+                        window.isPaused = !window.isPaused
                     }
                 }
             }
@@ -127,8 +151,8 @@ Window {
     }
 
     // Last event state (for TopBar)
-    property string lastEventText: "-- No events --"
-    property color lastEventColor: Theme.textMuted
+    property string lastEventText: "-- No events captured --"
+    property color lastEventColor: Theme.textMutedDark
 
     Connections {
         target: simulator
@@ -160,7 +184,6 @@ Window {
     // Exit confirmation dialog
     ExitDialog {
         id: exitDialog
-        parent: window
         onExitConfirmed: simulator.quitApp()
     }
 

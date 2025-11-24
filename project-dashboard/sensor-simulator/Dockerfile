@@ -23,6 +23,8 @@ WORKDIR /opt/sensor-simulator
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libqt6websockets6 \
+    libqt6svg6 \
+    libqt6svgwidgets6 \
     xvfb \
     x11vnc \
     libgl1-mesa-dri \
@@ -38,4 +40,6 @@ ENV LIBGL_ALWAYS_SOFTWARE=1
 COPY --from=builder /opt/sensor-simulator/sensor_simulator .
 # Also copy QML files (fallback load) into runtime image
 COPY --from=builder /workspace/qml ./qml
+# Ensure icons directory is copied
+COPY --from=builder /workspace/qml/icons ./qml/icons
 CMD ["./sensor_simulator"]

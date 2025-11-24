@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import QtQuick.Layouts 1.12
 import qml 1.0
 
 Rectangle {
@@ -61,22 +62,24 @@ Rectangle {
         }
     }
     
-    // Header
-    Row {
+    // Header - matching React reference
+    RowLayout {
         id: header
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: Theme.spacingMd
+        anchors.margins: Theme.spacingLg
         spacing: Theme.spacingSm
         
         Text {
-            text: "LEAD II"
+            text: "Lead II"
             color: Theme.accentEmerald
             font.pixelSize: Theme.fontSizeXs
             font.bold: true
             font.letterSpacing: 2
         }
+        
+        Item { Layout.fillWidth: true }
         
         Text {
             text: "250 Hz / 25 mm/s"
