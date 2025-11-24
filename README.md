@@ -16,7 +16,7 @@ Perfect for C++ developers new to Qt, or anyone wanting to build cross-platform 
 
 ## Real-World Project Example 🏥
 
-Beyond the structured lessons, this course includes a **complete real-world project** in the `project-dashboard` directory: a **Medical Device Dashboard** with a sensor simulator. This production-quality example demonstrates:
+Beyond the structured lessons, this course includes a **complete real-world project** in the [`project-dashboard`](project-dashboard/README.md) directory: a **Medical Device Dashboard** with a sensor simulator. This production-quality example demonstrates:
 
 - **Complex QML UI** - Modern, responsive interface with custom components, theming, and real-time data visualization
 - **WebSocket Communication** - Real-time telemetry streaming between simulator and dashboard

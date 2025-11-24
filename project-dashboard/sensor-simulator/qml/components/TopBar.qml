@@ -51,7 +51,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
                 Text {
-                    text: "Qt-Style Telemetry Simulator"
+                    text: "Telemetry Simulator"
                     color: "white"
                     font.pixelSize: Theme.fontSizeXl
                     font.bold: true

@@ -1,11 +1,11 @@
 
 # Sensor Simulator
 
-Sensor Simulator is a Qt-based application that simulates medical device sensors and streams JSON telemetry over WebSocket. The UI is designed to match the `qt-style-telemetry-simulator` React application exactly, providing a consistent development experience.
+Sensor Simulator is a Qt-based application that simulates medical device sensors and streams JSON telemetry over WebSocket.
 
 ## Description
 
-The simulator exposes a WebSocket server and a modern QML UI (title: "Qt-Style Telemetry Simulator") that provides:
+The simulator exposes a WebSocket server and a modern QML UI (title: "Telemetry Simulator") that provides:
 
 - **Real-time Vitals Display**: Heart Rate, SpO2, and Respiration Rate cards with live updates
 - **ECG Waveform Visualization**: Real-time ECG Lead II waveform with PQRST complex generation
@@ -76,7 +76,6 @@ The simulator sends JSON messages with the following structure:
 
 ## Notes
 
-- The UI matches the React `qt-style-telemetry-simulator` design exactly
 - Waveform data is generated using a synthetic ECG algorithm that produces realistic PQRST complexes
 - All UI components use the same color scheme and styling as the reference React app
 
