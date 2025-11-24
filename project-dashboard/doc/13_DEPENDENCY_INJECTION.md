@@ -1,6 +1,6 @@
-# Dependency Injection Options for Qt/C++ Medical Device Dashboard
+# Dependency Injection Options for Qt/C++ Z Monitor
 
-This document evaluates dependency-injection (DI) frameworks and patterns for the Qt/C++ Medical Device Dashboard project and recommends an approach.
+This document evaluates dependency-injection (DI) frameworks and patterns for the Qt/C++ Z Monitor project and recommends an approach.
 
 Context and goals
 - Medium-sized Qt6/C++ project with many services (DatabaseManager, NetworkManager, AlarmManager, DataArchiver, SignalProcessor, AnalyticsPool, UI Controllers).

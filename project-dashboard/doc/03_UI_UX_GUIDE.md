@@ -1,6 +1,6 @@
-# UI/UX Guide: Medical Device Dashboard
+# UI/UX Guide: Z Monitor
 
-This document outlines the visual design, layout, and user interaction principles for the Medical Device Dashboard.
+This document outlines the visual design, layout, and user interaction principles for the Z Monitor.
 
 ## 1. Visual Design Principles
 

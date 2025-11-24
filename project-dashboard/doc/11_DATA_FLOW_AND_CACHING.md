@@ -1,6 +1,6 @@
 # Data Flow and Caching Strategy
 
-This document outlines the lifecycle of data within the Medical Device Dashboard, from generation to on-device caching and synchronization with the central server.
+This document outlines the lifecycle of data within the Z Monitor, from generation to on-device caching and synchronization with the central server.
 
 ## 1. Data Flow Diagram
 

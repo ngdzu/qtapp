@@ -1,4 +1,4 @@
-Decision: Create a docker-compose test harness (`docker-compose.test.yml`) that brings up a headless device app and the server simulator for scripted E2E scenarios.
+Decision: Create a docker-compose test harness (`docker-compose.test.yml`) that brings up a headless Z Monitor and the server simulator for scripted E2E scenarios.
 
 Context: Useful for CI integration tests; compose should be lightweight and time-bounded.
 

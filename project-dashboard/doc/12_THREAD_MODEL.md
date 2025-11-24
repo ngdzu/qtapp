@@ -1,7 +1,7 @@
 """markdown
 # Thread Model and Low-Latency Architecture
 
-This document specifies the threading model, communication channels, latency targets, and implementation constraints for the Medical Device Dashboard. It explains how components should be partitioned across threads, which synchronization primitives to use, and measurable performance requirements to achieve a low-latency, safe, and predictable system.
+This document specifies the threading model, communication channels, latency targets, and implementation constraints for the Z Monitor. It explains how components should be partitioned across threads, which synchronization primitives to use, and measurable performance requirements to achieve a low-latency, safe, and predictable system.
 
 Purpose
 - Provide an unambiguous thread-affinity architecture for core subsystems (data acquisition, signal processing, alarms, DB persistence, networking, UI).
@@ -270,7 +270,7 @@ Checklist for implementers
 - [ ] Add tracing hooks for latency measurement.
 - [ ] Document thread affinity and set thread priorities in startup config.
 
-This document is intended to be a precise reference for developers and QA to implement and validate the low-latency, multi-threaded architecture of the Medical Device Dashboard.
+This document is intended to be a precise reference for developers and QA to implement and validate the low-latency, multi-threaded architecture of the Z Monitor.
 
 If you want, I can also:
 - produce a small reference implementation (C++/Qt) with a `SensorSimulator` thread, `SignalProcessor` thread, and `DBWriter` thread connected by an SPSC ring buffer, plus a simple latency measurement harness; OR

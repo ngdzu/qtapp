@@ -1,8 +1,8 @@
-# Project Overview: Medical Device Dashboard
+# Project Overview: Z Monitor
 
 ## 1. Introduction
 
-This document provides a high-level overview of the Medical Device Dashboard project. The project is a simulation of a modern, real-time patient monitoring system designed for an embedded touch-screen device.
+This document provides a high-level overview of the Z Monitor project. The Z Monitor is a modern, real-time patient monitoring system designed for an embedded touch-screen device.
 
 The core purpose is to create a sophisticated, near-realistic application that demonstrates best practices in software architecture, UI/UX design, security, and system-level integration using Qt/C++ and QML.
 

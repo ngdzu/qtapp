@@ -1,6 +1,6 @@
 # Security Design
 
-This document details the security architecture for the Medical Device Dashboard, covering data in transit, data at rest, and authentication.
+This document details the security architecture for the Z Monitor, covering data in transit, data at rest, and authentication.
 
 ## 1. Guiding Principles
 

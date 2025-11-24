@@ -1,6 +1,6 @@
 # Developer Setup Guide
 
-This document provides instructions for setting up the development environment, building the Medical Device Dashboard application, and running its components.
+This document provides instructions for setting up the development environment, building the Z Monitor application, and running its components.
 
 ## 1. Prerequisites
 
@@ -56,7 +56,7 @@ The project is designed for containerized development using `devcontainer.json` 
     ```
     This will give you a shell inside the container with all Qt dependencies installed.
 
-## 4. Building the Medical Device Dashboard Application
+## 4. Building the Z Monitor Application
 
 These steps are performed *inside* the development container or a system with Qt 6 installed.
 
@@ -122,8 +122,8 @@ The simulated server is a Python application.
 ## 6. Running the Complete System
 
 1.  Start the simulated central server (as described in Section 5).
-2.  Run the Medical Device Dashboard application (as described in Section 4).
-3.  Ensure the device application is configured to connect to the correct server address and port, and that it can access its client certificates.
+2.  Run the Z Monitor application (as described in Section 4).
+3.  Ensure the Z Monitor is configured to connect to the correct server address and port, and that it can access its client certificates.
 
 ## 7. Database Encryption (SQLCipher)
 

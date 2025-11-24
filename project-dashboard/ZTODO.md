@@ -77,13 +77,13 @@
 
 - [ ] Add factory and configuration for selecting simulator implementation
   - What: Add `DeviceSimulatorFactory::Create()` which returns either an in-process `MockDeviceSimulator` for unit tests or `WebSocketDeviceSimulatorAdapter` for local dev based on a config option / CMake define or runtime flag.
-  - Why: Keeps device code decoupled from transport; simplifies CI and developer workflows.
+  - Why: Keeps Z Monitor code decoupled from transport; simplifies CI and developer workflows.
   - Acceptance: Device main can call `auto sim = DeviceSimulatorFactory::Create(config)` and receive a valid `IDeviceSimulator*` for use.
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
 
  - [x] Sensor-simulator (WebSocket sensor stream + QML UI)
   - What: Provide a Qt Quick (QML + C++) sensor simulator in `project-dashboard/sensor-simulator/` that streams sensor data to the device over a WebSocket (default `ws://localhost:9002`) and exposes a `Simulator` `QObject` to QML. UI must have buttons to trigger `critical`, `warning`, and `notification` events and a `Play Demo` timeline. Provide a `Dockerfile` for quick containerized runs and instructions to run locally (X11 / XQuartz notes).
-  - Why: This component supplies simulated sensor data to the device app during development and testing without requiring hardware.
+  - Why: This component supplies simulated sensor data to the Z Monitor during development and testing without requiring hardware.
   - Acceptance: `project-dashboard/sensor-simulator` builds; connecting a client to `ws://localhost:9002` receives periodic `vitals` + `waveform` JSON messages; clicking UI buttons emits signals and sends `alarm`/`notification` messages to connected clients.
   - Status: ✅ **COMPLETED** - Added real-time ECG waveform visualization with PQRST complex generation. Enhanced log console with filters, pause functionality, and improved styling. All features implemented and tested.
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
@@ -156,7 +156,7 @@
   - Prompt: `project-dashboard/prompt/20-render-mermaid-script-ci.md`  (When finished: mark this checklist item done.)
 
 - [ ] Add E2E containerized test harness
-  - What: Compose the device app (headless) and the server simulator in docker-compose test environment and run basic E2E scenarios.
+  - What: Compose the Z Monitor (headless) and the server simulator in docker-compose test environment and run basic E2E scenarios.
   - Why: Validates connectivity, DB writes, and archival behavior in a reproducible environment.
   - Prompt: `project-dashboard/prompt/21-e2e-containerized-harness.md`  (When finished: mark this checklist item done.)
 
@@ -469,7 +469,7 @@ Action notes:
   - Why: Prevents malformed diagrams from being committed (we had parser issues earlier).
 
 - [ ] 1. Add E2E containerized test harness
-  - What: Compose the device app (headless) and the server simulator in docker-compose test environment and run basic E2E scenarios.
+  - What: Compose the Z Monitor (headless) and the server simulator in docker-compose test environment and run basic E2E scenarios.
   - Why: Validates connectivity, DB writes, and archival behavior in a reproducible environment.
 
 

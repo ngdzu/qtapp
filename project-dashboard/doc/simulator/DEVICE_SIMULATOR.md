@@ -2,7 +2,7 @@
 
 Purpose
 -------
-This document describes the device-side and server-side simulator architecture used for development, UI demos, and end-to-end testing. The simulator is intended to produce realistic, timestamped vitals and waveform data that the device application can consume in realtime or in accelerated playback for CI.
+This document describes the device-side and server-side simulator architecture used for development, UI demos, and end-to-end testing. The simulator is intended to produce realistic, timestamped vitals and waveform data that the Z Monitor can consume in realtime or in accelerated playback for CI.
 
 Goals
 -----

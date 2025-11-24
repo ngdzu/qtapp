@@ -1,6 +1,6 @@
 # Software Architecture
 
-This document details the software architecture of the Medical Device Dashboard, which is based on a clean separation between the C++ backend and the QML frontend.
+This document details the software architecture of the Z Monitor, which is based on a clean separation between the C++ backend and the QML frontend.
 
 ## 1. High-Level Architecture Diagram
 

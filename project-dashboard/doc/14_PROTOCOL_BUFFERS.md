@@ -1,6 +1,6 @@
-# Protocol Buffers (protobuf) Guidance for Medical Device Dashboard
+# Protocol Buffers (protobuf) Guidance for Z Monitor
 
-This document describes when and how to use Protocol Buffers in the Medical Device Dashboard project. It covers choices (protoc, protobuf-lite, nanopb), schema and versioning rules, in-process vs IPC vs network usage, CMake integration, gRPC recommendations, storage/archival patterns, testing and CI guidance, and an incremental migration plan.
+This document describes when and how to use Protocol Buffers in the Z Monitor project. It covers choices (protoc, protobuf-lite, nanopb), schema and versioning rules, in-process vs IPC vs network usage, CMake integration, gRPC recommendations, storage/archival patterns, testing and CI guidance, and an incremental migration plan.
 
 Generated: 2025-11-23
 

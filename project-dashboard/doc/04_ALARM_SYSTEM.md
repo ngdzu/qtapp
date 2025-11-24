@@ -1,6 +1,6 @@
 # Alarm System Design
 
-This document details the design and behavior of the comprehensive alarm system within the Medical Device Dashboard.
+This document details the design and behavior of the comprehensive alarm system within the Z Monitor.
 
 ## 1. Alarm Priorities
 

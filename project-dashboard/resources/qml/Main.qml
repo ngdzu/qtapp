@@ -7,7 +7,7 @@ Window {
     width: 1024
     height: 768
     visible: true
-    title: "Medical Device Dashboard"
+    title: "Z Monitor"
     color: "#09090b" // Zinc-950
 
     GridLayout {

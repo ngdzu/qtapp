@@ -1,6 +1,10 @@
 # Definitions and Terminologies
 
-This document provides a glossary of key terms and terminologies used within the Medical Device Dashboard project.
+This document provides a glossary of key terms and terminologies used within the Z Monitor project.
+
+## Z
+
+*   **Z Monitor:** The primary medical device application that reads data from sensors and attached devices, displays real-time patient vital signs, manages alarms, and securely transmits telemetry data to a central server. The Z Monitor is a patient monitoring system designed for embedded touch-screen devices, providing continuous monitoring of hemodynamic, respiratory, and infusion pump data. It features a modern QML-based UI, encrypted local data storage, secure mTLS communication, and comprehensive alarm management.
 
 ## A
 
@@ -88,7 +92,7 @@ This document provides a glossary of key terms and terminologies used within the
 
 ## T
 
-*   **Telemetry Data:** Data collected from the medical device (vitals, alarms, status) and transmitted to a central server.
+*   **Telemetry Data:** Data collected from the Z Monitor (vitals, alarms, status) and transmitted to a central server.
 *   **TLS (Transport Layer Security):** A cryptographic protocol designed to provide communications security over a computer network.
 *   **TopBar:** The header section of the UI, displaying connection status, notifications, system version, and clock.
 *   **TrendsController:** A C++ QObject-based controller that provides historical data for plotting in the Trends View.

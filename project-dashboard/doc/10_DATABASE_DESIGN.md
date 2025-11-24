@@ -1,10 +1,10 @@
 # Database Design
 
-This document outlines the design of the local SQLite database used by the Medical Device Dashboard application. It includes required tables, schema enhancements, indices, retention and archival policy, encryption and key management guidance, API payload extensions, and testing/sizing recommendations.
+This document outlines the design of the local SQLite database used by the Z Monitor application. It includes required tables, schema enhancements, indices, retention and archival policy, encryption and key management guidance, API payload extensions, and testing/sizing recommendations.
 
 ## 1. Purpose
 
-This document enumerates the tables, columns, indices and operational behavior necessary to meet the functional, safety, audit, and security requirements of the Medical Device Dashboard. It is intended to be consumed by developers implementing `DatabaseManager`, `DataArchiver`, and by test engineers creating validation plans.
+This document enumerates the tables, columns, indices and operational behavior necessary to meet the functional, safety, audit, and security requirements of the Z Monitor. It is intended to be consumed by developers implementing `DatabaseManager`, `DataArchiver`, and by test engineers creating validation plans.
 
 ## 2. Required Tables (DDL-ready descriptions)
 

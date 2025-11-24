@@ -1,6 +1,17 @@
-# Medical Device Dashboard
+# Z Monitor
 
-A modern, real-time dashboard for a medical device, built with Qt 6 and QML.
+A modern, real-time patient monitoring system that reads data from sensors and attached devices, built with Qt 6 and QML.
+
+## What is Z Monitor?
+
+**Z Monitor** is a patient monitoring device application that:
+- Reads real-time data from medical sensors (ECG, SpO2, respiration, infusion pumps)
+- Displays vital signs and waveforms on an embedded touch-screen interface
+- Manages multi-level alarms and notifications for clinical staff
+- Securely transmits telemetry data to a central monitoring server
+- Stores encrypted patient data locally with archival capabilities
+
+The Z Monitor is designed for embedded touch-screen devices (8-inch, 1280x800 resolution) and provides continuous patient monitoring with modern UI/UX, comprehensive alarm management, and enterprise-grade security.
 
 ## Overview
 
@@ -72,6 +83,8 @@ macOS note: running the container with `DISPLAY=host.docker.internal:0` requires
 
 ## Project Structure
 
+- `z-monitor/`: The Z Monitor application code (main medical device application)
+- `sensor-simulator/`: WebSocket-based sensor simulator for development and testing
 - `src/core`: Backend logic and data simulation.
 - `src/ui`: QML integration and controllers.
 - `resources/qml`: UI definitions.

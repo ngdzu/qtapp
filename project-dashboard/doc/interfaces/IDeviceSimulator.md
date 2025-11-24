@@ -2,7 +2,7 @@
 
 Purpose
 -------
-This document defines the C++ interface expected by the Qt device app for a local in-process or out-of-process simulator adapter. The interface is intended to be small, testable, and usable by both production code and unit tests to inject telemetry events and waveform chunks.
+This document defines the C++ interface expected by the Z Monitor for a local in-process or out-of-process simulator adapter. The interface is intended to be small, testable, and usable by both production code and unit tests to inject telemetry events and waveform chunks.
 
 Design Goals
 ------------

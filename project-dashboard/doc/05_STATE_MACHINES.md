@@ -1,6 +1,6 @@
 # State Machine Designs
 
-This document outlines the state machine designs for key components and application flows within the Medical Device Dashboard.
+This document outlines the state machine designs for key components and application flows within the Z Monitor.
 
 [View all State Machine Diagrams (interactive)](./05_STATE_MACHINES.mmd)
 

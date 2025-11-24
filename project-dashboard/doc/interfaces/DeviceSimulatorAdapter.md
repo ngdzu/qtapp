@@ -2,13 +2,13 @@
 
 Purpose
 -------
-This document specifies a small adapter that implements the `IDeviceSimulator` contract by connecting to the out-of-process `sensor-simulator` over WebSocket. The device application should only depend on the `IDeviceSimulator` interface; the adapter bridges the network transport and the interface.
+This document specifies a small adapter that implements the `IDeviceSimulator` contract by connecting to the out-of-process `sensor-simulator` over WebSocket. The Z Monitor should only depend on the `IDeviceSimulator` interface; the adapter bridges the network transport and the interface.
 
 When to use
 -----------
 - Development machines without hardware sensors.
 - Automated UI or integration tests that require deterministic sensor streams.
-- Local demos where the device app should consume sensor data but not know about the simulator transport.
+- Local demos where the Z Monitor should consume sensor data but not know about the simulator transport.
 
 Responsibilities
 ----------------
@@ -58,7 +58,7 @@ Failure & backpressure
 Acceptance tests
 ----------------
 - Unit test: mock `QWebSocket` to push known `vitals` and verify `PacketCallback` is invoked with matching JSON.
-- Integration test: run `project-dashboard/sensor-simulator` locally and verify adapter connects, receives a `vitals` message within N seconds, and that the device app receives the same.
+- Integration test: run `project-dashboard/sensor-simulator` locally and verify adapter connects, receives a `vitals` message within N seconds, and that the Z Monitor receives the same.
 
 Notes
 -----

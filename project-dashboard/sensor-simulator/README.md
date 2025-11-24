@@ -1,7 +1,7 @@
 
 # Sensor Simulator
 
-Sensor Simulator is a Qt-based application that simulates medical device sensors and streams JSON telemetry over WebSocket.
+Sensor Simulator is a Qt-based application that simulates sensors for the Z Monitor and streams JSON telemetry over WebSocket.
 
 ## Description
 
