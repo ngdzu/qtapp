@@ -4,6 +4,7 @@
 #include <QJsonDocument>
 #include <QDateTime>
 #include <QDebug>
+#include <QtGlobal>
 #include <QRandomGenerator>
 #include <QCoreApplication>
 #include <QMetaObject>
@@ -49,7 +50,8 @@ void Simulator::startServer(quint16 port)
     m_server = new QWebSocketServer(QStringLiteral("SensorSimulator"), QWebSocketServer::NonSecureMode, this);
     if (m_server->listen(QHostAddress::Any, port))
     {
-        qDebug() << "SensorSimulator: listening on port" << port;
+        if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+            qDebug() << "SensorSimulator: listening on port" << port;
         connect(m_server, &QWebSocketServer::newConnection, this, &Simulator::onNewConnection);
     }
     else
@@ -64,12 +66,14 @@ void Simulator::onNewConnection()
     m_clients.insert(socket);
     connect(socket, &QWebSocket::textMessageReceived, this, &Simulator::onTextMessageReceived);
     connect(socket, &QWebSocket::disconnected, this, &Simulator::onClientDisconnected);
-    qDebug() << "SensorSimulator: client connected";
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+        qDebug() << "SensorSimulator: client connected";
 }
 
 void Simulator::onTextMessageReceived(const QString &message)
 {
-    qDebug() << "SensorSimulator: received message:" << message;
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+        qDebug() << "SensorSimulator: received message:" << message;
     // For now, ignore control messages from clients
 }
 
@@ -80,12 +84,44 @@ void Simulator::onClientDisconnected()
     {
         m_clients.remove(socket);
         socket->deleteLater();
-        qDebug() << "SensorSimulator: client disconnected";
+        if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+            qDebug() << "SensorSimulator: client disconnected";
     }
 }
 
 void Simulator::sendTelemetry()
 {
+    // Simulate realistic vital signs fluctuation
+    // Heart Rate: Random walk between 60-100
+    int deltaHr = QRandomGenerator::global()->bounded(3) - 1; // -1, 0, +1
+    m_hr += deltaHr;
+    if (m_hr < 60)
+        m_hr = 60;
+    if (m_hr > 100)
+        m_hr = 100;
+
+    // SpO2: Mostly stable 95-100, occasional drop
+    if (QRandomGenerator::global()->bounded(10) == 0)
+    {
+        int deltaSpo2 = QRandomGenerator::global()->bounded(3) - 1;
+        m_spo2 += deltaSpo2;
+        if (m_spo2 < 95)
+            m_spo2 = 95;
+        if (m_spo2 > 100)
+            m_spo2 = 100;
+    }
+
+    // Resp Rate: 12-20
+    if (QRandomGenerator::global()->bounded(20) == 0)
+    {
+        int deltaRr = QRandomGenerator::global()->bounded(3) - 1;
+        m_rr += deltaRr;
+        if (m_rr < 12)
+            m_rr = 12;
+        if (m_rr > 20)
+            m_rr = 20;
+    }
+
     QJsonObject packet;
     packet["type"] = "vitals";
     packet["timestamp_ms"] = static_cast<qint64>(QDateTime::currentMSecsSinceEpoch());
@@ -110,18 +146,26 @@ void Simulator::sendTelemetry()
     QJsonDocument doc(packet);
     QString text = QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
 
+    // Also print to stdout so container logs show the changing vitals for debugging
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+        qDebug() << "Telemetry: hr=" << m_hr << "spo2=" << m_spo2 << "rr=" << m_rr << "(clients=" << m_clients.size() << ")";
+
+    // Notify QML/UI directly so vitals display can update in real time
+    emit vitalsUpdated(m_hr, m_spo2, m_rr);
+
     for (QWebSocket *client : qAsConst(m_clients))
     {
         client->sendTextMessage(text);
     }
 
-    // Emit a debug/info log for UI visibility
+    // Emit a debug/info log for UI visibility (also used by QML)
     emit logEmitted("Debug", QString("Sent telemetry: hr=%1 spo2=%2 rr=%3").arg(m_hr).arg(m_spo2).arg(m_rr));
 }
 
 void Simulator::triggerCritical()
 {
-    qDebug() << "Simulator: triggerCritical";
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+        qDebug() << "Simulator: triggerCritical";
     emit alarmTriggered("Critical");
     emit logEmitted("Critical", "Critical alarm triggered");
 
@@ -137,7 +181,8 @@ void Simulator::triggerCritical()
 
 void Simulator::triggerWarning()
 {
-    qDebug() << "Simulator: triggerWarning";
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+        qDebug() << "Simulator: triggerWarning";
     emit alarmTriggered("Warning");
     emit logEmitted("Warning", "Warning alarm triggered");
     QJsonObject msg;
@@ -152,7 +197,8 @@ void Simulator::triggerWarning()
 
 void Simulator::triggerNotification(const QString &text)
 {
-    qDebug() << "Simulator: triggerNotification" << text;
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+        qDebug() << "Simulator: triggerNotification" << text;
     emit notification(text);
     QJsonObject msg;
     msg["type"] = "notification";
@@ -177,7 +223,8 @@ void Simulator::playDemo()
 
 void Simulator::quitApp()
 {
-    qDebug() << "Simulator: quitApp() invoked from QML";
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+        qDebug() << "Simulator: quitApp() invoked from QML";
     // Ask Qt to quit normally
     QCoreApplication::quit();
     // Fallback: if the Qt event loop doesn't exit (containerized environment
@@ -187,7 +234,8 @@ void Simulator::quitApp()
 
 void Simulator::requestQuit()
 {
-    qDebug() << "Simulator: requestQuit() invoked from QML - emitting quitRequested()";
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+        qDebug() << "Simulator: requestQuit() invoked from QML - emitting quitRequested()";
     emit quitRequested();
     // Ensure the application quit is invoked on the main (GUI) thread.
     // Use a queued invocation in case this method is called from another thread.

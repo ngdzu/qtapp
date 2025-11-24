@@ -1,5 +1,7 @@
 <RCC version="1.0">
   <qresource prefix="/qml">
-    <file>qml/Main.qml</file>
+    <!-- Use alias so runtime resource path is qrc:/qml/Main.qml
+         while the source file remains at qml/Main.qml on disk. -->
+    <file alias="Main.qml">qml/Main.qml</file>
   </qresource>
 </RCC>

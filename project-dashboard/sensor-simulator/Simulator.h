@@ -25,6 +25,8 @@ public:
 signals:
     void alarmTriggered(const QString &level);
     void notification(const QString &text);
+    // Emitted when vitals are generated each telemetry tick
+    void vitalsUpdated(int hr, int spo2, int rr);
     // General structured log emitted for UI and tests: level is one of "Critical","Warning","Info","Debug"
     void logEmitted(const QString &level, const QString &text);
     // Emitted when UI requests the app to quit; connect to QCoreApplication::quit() in main()

@@ -7,10 +7,14 @@
 #include <QCoreApplication>
 #include <QUrl>
 #include <QQmlComponent>
+#include <QQuickStyle>
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+
+    // Use Qt Quick Controls Material style for a modern look
+    QQuickStyle::setStyle("Material");
 
     Simulator simulator;
     simulator.startServer(9002); // start WebSocket server for device connections

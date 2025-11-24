@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 COMPONENTS Quick WebSockets REQUIRED)
+find_package(Qt6 COMPONENTS Quick WebSockets QuickControls2 REQUIRED)
 
 qt_add_executable(sensor_simulator
     main.cpp
@@ -16,6 +16,6 @@ qt_add_executable(sensor_simulator
     qml.qrc
 )
 
-target_link_libraries(sensor_simulator PRIVATE Qt6::Quick Qt6::WebSockets)
+target_link_libraries(sensor_simulator PRIVATE Qt6::Quick Qt6::WebSockets Qt6::QuickControls2)
 
 install(TARGETS sensor_simulator RUNTIME DESTINATION /opt/sensor-simulator)

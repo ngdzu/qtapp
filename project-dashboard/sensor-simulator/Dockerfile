@@ -25,7 +25,14 @@ RUN apt-get update \
     libqt6websockets6 \
     xvfb \
     x11vnc \
+    libgl1-mesa-dri \
+    libgl1-mesa-glx \
+    libegl1-mesa \
     && rm -rf /var/lib/apt/lists/* || true
+
+# Force software GL by default so containers running on macOS with XQuartz
+# use Mesa's software rasterizer (swrast) instead of relying on host GPU.
+ENV LIBGL_ALWAYS_SOFTWARE=1
 
 # Copy the installed executable from the builder
 COPY --from=builder /opt/sensor-simulator/sensor_simulator .

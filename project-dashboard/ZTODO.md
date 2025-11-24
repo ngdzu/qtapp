@@ -675,3 +675,8 @@ Action notes:
   - Priority: Low — leave for later investigation after higher-priority tasks are completed.
   - Acceptance: `QCoreApplication::quit()` cleanly returns control from `app.exec()` and the process exits without needing `std::exit(0)`; update `Simulator::quitApp()` to remove forced exit.
 
+- [x] Improve simulator UI: show last 50 messages with larger font and richer fields
+  - What: Updated `project-dashboard/sensor-simulator/qml/Main.qml` to present the last 50 messages, showing time, message id, sensor/source, level, and message text with larger font sizes.
+  - Why: Improves readability and usability during demos and manual testing.
+  - Acceptance: The simulator UI lists up to 50 most-recent messages and is easier to read; README updated to note the change.
+

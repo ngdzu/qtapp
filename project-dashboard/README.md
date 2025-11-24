@@ -41,6 +41,35 @@ docker run -it --rm \
     project-dashboard
 ```
 
+### Docker Compose (simulator)
+
+You can start the simulator and related services using Docker Compose. From the `project-dashboard` directory run:
+
+```bash
+docker compose -f docker-compose.simulator.yml up --build
+```
+
+This will build the image(s) and start the simulator service defined in `docker-compose.simulator.yml`. The simulator opens a WebSocket at `ws://localhost:9002` by default (verify the compose file if you have custom port mappings).
+
+If you prefer to run the container for GUI inspection using an in-container X server and VNC (useful when host X11 fails), run the preview command shown below — it starts `Xvfb` and `x11vnc` inside the container and maps VNC to host port `15900`:
+
+```bash
+# Preview run (Xvfb + x11vnc); connect with a VNC client to localhost:15900
+docker run -d --rm -p 9003:9002 -p 15900:5900 --name qt-sim-preview qtapp-sensor-simulator:local \
+    sh -c "Xvfb :99 -screen 0 1280x800x24 & x11vnc -display :99 -nopw -forever -shared -rfbport 5900 & DISPLAY=:99 ./sensor_simulator"
+```
+
+macOS note: running the container with `DISPLAY=host.docker.internal:0` requires a working X server on the host (XQuartz). If the GUI fails to initialize due to OpenGL/RHI errors, try one of the following:
+
+- Enable indirect GLX in XQuartz and restart it:
+    ```bash
+    defaults write org.macosforge.xquartz.X11 enable_iglx -bool true
+    # then restart XQuartz
+    ```
+- Allow local X11 connections from the host: `xhost +localhost` (run in a terminal where XQuartz is running).
+- If host X11 still fails, use the preview VNC approach above.
+
+
 ## Project Structure
 
 - `src/core`: Backend logic and data simulation.
