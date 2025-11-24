@@ -9,6 +9,8 @@
 #include <QCoreApplication>
 #include <QMetaObject>
 #include <cstdlib>
+#include <cmath>
+#include <QVariant>
 
 Simulator::Simulator(QObject *parent)
     : QObject(parent)
@@ -89,38 +91,63 @@ void Simulator::onClientDisconnected()
     }
 }
 
+// Helper function for random walk (Brownian motion)
+static double randomWalk(double value, double min, double max, double step)
+{
+    double change = (QRandomGenerator::global()->generateDouble() - 0.5) * step;
+    double newValue = value + change;
+    return qBound(min, newValue, max);
+}
+
+// Generate synthetic ECG data (PQRST complex approximation)
+static QVariantList generateECGChunk(int samples, double &phase, int heartRate)
+{
+    QVariantList values;
+    constexpr int SAMPLE_RATE = 250; // Hz
+    const double beatPeriod = 60.0 / heartRate; // seconds per beat
+    const double samplesPerBeat = SAMPLE_RATE * beatPeriod;
+    
+    for (int i = 0; i < samples; i++)
+    {
+        const double t = phase / samplesPerBeat; // 0 to 1 progress through beat
+        
+        // Synthetic ECG function (approximate PQRST complex)
+        double y = 0;
+        
+        // Baseline noise
+        y += (QRandomGenerator::global()->generateDouble() - 0.5) * 5;
+        
+        // P wave
+        y += 10 * std::exp(-std::pow((t - 0.2) * 20, 2));
+        
+        // QRS Complex
+        y -= 10 * std::exp(-std::pow((t - 0.45) * 50, 2)); // Q
+        y += 100 * std::exp(-std::pow((t - 0.5) * 100, 2)); // R peak
+        y -= 15 * std::exp(-std::pow((t - 0.55) * 50, 2)); // S
+        
+        // T wave
+        y += 15 * std::exp(-std::pow((t - 0.8) * 15, 2));
+        
+        values.append(qRound(y));
+        
+        phase++;
+        if (phase >= samplesPerBeat)
+        {
+            phase = 0;
+        }
+    }
+    return values;
+}
+
 void Simulator::sendTelemetry()
 {
-    // Simulate realistic vital signs fluctuation
-    // Heart Rate: Random walk between 60-100
-    int deltaHr = QRandomGenerator::global()->bounded(3) - 1; // -1, 0, +1
-    m_hr += deltaHr;
-    if (m_hr < 60)
-        m_hr = 60;
-    if (m_hr > 100)
-        m_hr = 100;
+    // Simulate realistic vital signs fluctuation using random walk
+    m_hr = qRound(randomWalk(m_hr, 50, 160, 2));
+    m_spo2 = qRound(randomWalk(m_spo2, 85, 100, 0.5));
+    m_rr = qRound(randomWalk(m_rr, 8, 30, 0.5));
 
-    // SpO2: Mostly stable 95-100, occasional drop
-    if (QRandomGenerator::global()->bounded(10) == 0)
-    {
-        int deltaSpo2 = QRandomGenerator::global()->bounded(3) - 1;
-        m_spo2 += deltaSpo2;
-        if (m_spo2 < 95)
-            m_spo2 = 95;
-        if (m_spo2 > 100)
-            m_spo2 = 100;
-    }
-
-    // Resp Rate: 12-20
-    if (QRandomGenerator::global()->bounded(20) == 0)
-    {
-        int deltaRr = QRandomGenerator::global()->bounded(3) - 1;
-        m_rr += deltaRr;
-        if (m_rr < 12)
-            m_rr = 12;
-        if (m_rr > 20)
-            m_rr = 20;
-    }
+    // Generate ECG waveform chunk
+    QVariantList waveformSamples = generateECGChunk(SAMPLES_PER_PACKET, m_ecgPhase, m_hr);
 
     QJsonObject packet;
     packet["type"] = "vitals";
@@ -129,16 +156,15 @@ void Simulator::sendTelemetry()
     packet["spo2"] = m_spo2;
     packet["rr"] = m_rr;
 
-    // simple waveform chunk (small sample set)
+    // Waveform chunk for WebSocket clients
     QJsonObject waveform;
     waveform["channel"] = "ecg";
-    waveform["sample_rate"] = 250;
+    waveform["sample_rate"] = SAMPLE_RATE;
     waveform["start_timestamp_ms"] = static_cast<qint64>(QDateTime::currentMSecsSinceEpoch());
     QJsonArray values;
-    for (int i = 0; i < 40; ++i)
+    for (const QVariant &sample : waveformSamples)
     {
-        double v = 1000.0 * sin((m_telemetryTimer.interval() + i) * 0.1) + (static_cast<int>(QRandomGenerator::global()->bounded(50)) - 25);
-        values.append(static_cast<int>(v));
+        values.append(sample.toInt());
     }
     waveform["values"] = values;
     packet["waveform"] = waveform;
@@ -152,6 +178,9 @@ void Simulator::sendTelemetry()
 
     // Notify QML/UI directly so vitals display can update in real time
     emit vitalsUpdated(m_hr, m_spo2, m_rr);
+    
+    // Emit waveform data for real-time visualization
+    emit waveformUpdated(waveformSamples);
 
     for (QWebSocket *client : qAsConst(m_clients))
     {

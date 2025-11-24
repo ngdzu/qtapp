@@ -81,10 +81,11 @@
   - Acceptance: Device main can call `auto sim = DeviceSimulatorFactory::Create(config)` and receive a valid `IDeviceSimulator*` for use.
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
 
- - [ ] Sensor-simulator (WebSocket sensor stream + QML UI)
+ - [x] Sensor-simulator (WebSocket sensor stream + QML UI)
   - What: Provide a Qt Quick (QML + C++) sensor simulator in `project-dashboard/sensor-simulator/` that streams sensor data to the device over a WebSocket (default `ws://localhost:9002`) and exposes a `Simulator` `QObject` to QML. UI must have buttons to trigger `critical`, `warning`, and `notification` events and a `Play Demo` timeline. Provide a `Dockerfile` for quick containerized runs and instructions to run locally (X11 / XQuartz notes).
   - Why: This component supplies simulated sensor data to the device app during development and testing without requiring hardware.
   - Acceptance: `project-dashboard/sensor-simulator` builds; connecting a client to `ws://localhost:9002` receives periodic `vitals` + `waveform` JSON messages; clicking UI buttons emits signals and sends `alarm`/`notification` messages to connected clients.
+  - Status: ✅ **COMPLETED** - UI redesigned to match `qt-style-telemetry-simulator` React app exactly. Added real-time ECG waveform visualization with PQRST complex generation. Enhanced log console with filters, pause functionality, and improved styling. All features implemented and tested.
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
 
  - [ ] Integrate Sensor-simulator into top-level build

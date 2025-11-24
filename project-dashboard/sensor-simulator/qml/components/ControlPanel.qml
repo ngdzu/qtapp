@@ -1,0 +1,225 @@
+import QtQuick 2.15
+import QtQuick.Layouts 1.12
+import QtQuick.Controls 2.15
+import qml 1.0
+
+Rectangle {
+    id: root
+    
+    signal triggerCritical()
+    signal triggerWarning()
+    signal triggerNotification()
+    signal playDemo()
+    
+    property bool isDemoRunning: false
+    
+    Layout.fillWidth: true
+    Layout.preferredHeight: contentCol.implicitHeight + (Theme.spacingLg * 2)
+    
+    color: Theme.cardBackground
+    radius: Theme.radiusXl
+    border.color: Theme.border
+    
+    ColumnLayout {
+        id: contentCol
+        anchors.fill: parent
+        anchors.margins: Theme.spacingLg
+        spacing: Theme.spacingLg
+        
+        // Scenarios Section
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Theme.spacingMd
+            
+            Text {
+                text: "Scenarios"
+                color: Theme.textMuted
+                font.pixelSize: Theme.fontSizeBase
+                font.bold: true
+            }
+            
+            Button {
+                id: demoButton
+                text: root.isDemoRunning ? "Running Demo..." : "Play Demo"
+                enabled: !root.isDemoRunning
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.buttonHeight
+                onClicked: root.playDemo()
+                
+                background: Rectangle {
+                    color: demoButton.enabled ? Theme.primary : Theme.cardBackgroundSecondary
+                    radius: Theme.radiusLg
+                    border.color: demoButton.enabled ? Theme.primary : Theme.border
+                    border.width: demoButton.enabled ? 0 : 1
+                }
+                
+                contentItem: Text {
+                    text: demoButton.text
+                    color: demoButton.enabled ? "white" : Theme.textMuted
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.pixelSize: Theme.fontSizeMd
+                    font.bold: true
+                }
+            }
+            
+            Text {
+                text: "Sequence: Critical → Notify → Warning"
+                color: Theme.textMuted
+                font.pixelSize: Theme.fontSizeSm
+                horizontalAlignment: Text.AlignHCenter
+                Layout.fillWidth: true
+            }
+        }
+        
+        // Manual Events Section
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Theme.spacingMd
+            
+            Text {
+                text: "Manual Events"
+                color: Theme.textMuted
+                font.pixelSize: Theme.fontSizeBase
+                font.bold: true
+            }
+            
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spacingSm
+                
+                // Critical Button
+                EventButton {
+                    label: "Trigger Critical"
+                    subtitle: "Code Blue Alarm"
+                    accentColor: Theme.accentRed
+                    onClicked: root.triggerCritical()
+                }
+                
+                // Warning Button
+                EventButton {
+                    label: "Trigger Warning"
+                    subtitle: "Sensor Check"
+                    accentColor: Theme.accentOrange
+                    onClicked: root.triggerWarning()
+                }
+                
+                // Notification Button
+                EventButton {
+                    label: "Notify"
+                    subtitle: "General Alert"
+                    accentColor: Theme.accentSky
+                    onClicked: root.triggerNotification()
+                }
+            }
+        }
+        
+        // System Info Section
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.topMargin: Theme.spacingMd
+            height: Theme.dividerHeight
+            color: Theme.border
+        }
+        
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Theme.spacingSm
+            
+            RowLayout {
+                Layout.fillWidth: true
+                Text {
+                    text: "DEVICE STATUS"
+                    color: Theme.textMuted
+                    font.pixelSize: Theme.fontSizeSm
+                    font.family: Theme.fontFamilyMono
+                }
+                Item { Layout.fillWidth: true }
+                Row {
+                    spacing: Theme.spacingXs
+                    Rectangle {
+                        width: Theme.statusDotSize
+                        height: Theme.statusDotSize
+                        radius: Theme.statusDotRadius
+                        color: Theme.accentEmerald
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: "ONLINE"
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.fontSizeSm
+                        font.family: Theme.fontFamilyMono
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+            
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.systemInfoHeight
+                color: Theme.backgroundSecondary
+                radius: Theme.radiusMd
+                border.color: Theme.border
+                
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: Theme.spacingSm
+                    spacing: Theme.spacingXs
+                    
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: "Proto:"
+                            color: Theme.textMuted
+                            font.pixelSize: Theme.fontSizeXs
+                            font.family: Theme.fontFamilyMono
+                        }
+                        Item { Layout.fillWidth: true }
+                        Text {
+                            text: "v2.1 (JSON)"
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.fontSizeXs
+                            font.family: Theme.fontFamilyMono
+                        }
+                    }
+                    
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: "Rate:"
+                            color: Theme.textMuted
+                            font.pixelSize: Theme.fontSizeXs
+                            font.family: Theme.fontFamilyMono
+                        }
+                        Item { Layout.fillWidth: true }
+                        Text {
+                            text: "5 Hz"
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.fontSizeXs
+                            font.family: Theme.fontFamilyMono
+                        }
+                    }
+                    
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: "Mode:"
+                            color: Theme.textMuted
+                            font.pixelSize: Theme.fontSizeXs
+                            font.family: Theme.fontFamilyMono
+                        }
+                        Item { Layout.fillWidth: true }
+                        Text {
+                            text: "Interactive"
+                            color: Theme.primary
+                            font.pixelSize: Theme.fontSizeXs
+                            font.family: Theme.fontFamilyMono
+                            font.bold: true
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

@@ -1,7 +1,23 @@
 <RCC version="1.0">
   <qresource prefix="/qml">
-    <!-- Use alias so runtime resource path is qrc:/qml/Main.qml
-         while the source file remains at qml/Main.qml on disk. -->
+    <!-- Main application -->
     <file alias="Main.qml">qml/Main.qml</file>
+    
+    <!-- Theme singleton -->
+    <file alias="Theme.qml">qml/Theme.qml</file>
+    <file alias="qmldir">qml/qmldir</file>
+    
+    <!-- Components -->
+    <file alias="components/TopBar.qml">qml/components/TopBar.qml</file>
+    <file alias="components/VitalsDisplay.qml">qml/components/VitalsDisplay.qml</file>
+    <file alias="components/VitalCard.qml">qml/components/VitalCard.qml</file>
+    <file alias="components/ControlPanel.qml">qml/components/ControlPanel.qml</file>
+    <file alias="components/EventButton.qml">qml/components/EventButton.qml</file>
+    <file alias="components/LogConsole.qml">qml/components/LogConsole.qml</file>
+    <file alias="components/LogEntry.qml">qml/components/LogEntry.qml</file>
+    <file alias="components/ExitDialog.qml">qml/components/ExitDialog.qml</file>
+    <file alias="components/WaveformChart.qml">qml/components/WaveformChart.qml</file>
+    <file alias="components/DebugOutput.qml">qml/components/DebugOutput.qml</file>
+    <file alias="components/ReusableButton.qml">qml/components/ReusableButton.qml</file>
   </qresource>
 </RCC>
