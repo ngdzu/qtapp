@@ -14,6 +14,20 @@ This comprehensive course takes you from zero to Qt hero through **28 carefully 
 
 Perfect for C++ developers new to Qt, or anyone wanting to build cross-platform desktop applications with a professional framework.
 
+## Real-World Project Example 🏥
+
+Beyond the structured lessons, this course includes a **complete real-world project** in the `project-dashboard` directory: a **Medical Device Dashboard** with a sensor simulator. This production-quality example demonstrates:
+
+- **Complex QML UI** - Modern, responsive interface with custom components, theming, and real-time data visualization
+- **WebSocket Communication** - Real-time telemetry streaming between simulator and dashboard
+- **Advanced Qt Features** - Custom drawing with Canvas, state management, event handling, and more
+- **Professional Architecture** - Component-based design, singleton patterns, resource management
+- **Docker-Based Development** - Full containerized build and deployment setup
+
+![Sensor Simulator Screenshot](project-dashboard/sensor-simulator/resources/screenshot.png)
+
+This project showcases how capable Qt and QML are for building sophisticated, production-ready applications. Explore the codebase to see real-world patterns, best practices, and how all the concepts from the lessons come together in a complete application.
+
 ## Getting Started 🏁
 
 Ready to start learning? Navigate to the **01-qt-setup** folder and follow the instructions in its `README.md`. 
