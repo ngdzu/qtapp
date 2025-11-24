@@ -6,8 +6,9 @@ appliesTo:
 # Mermaid Diagram Guidelines
 
 - After editing any Mermaid (`*.mmd`) file, regenerate the corresponding SVG so reviewers can see the rendered output.
-- Use the project’s standard command (run from repo root):
+- Use the project's standard command (run from repo root):
   ```bash
   npx @mermaid-js/mermaid-cli -i <path/to/diagram>.mmd -o <path/to/diagram>.svg
   ```
 - Replace `<path/to/diagram>` with the actual file you changed and check the CLI output for parsing errors. Commit both the `.mmd` and updated `.svg`.
+- **Successfully generating the SVG confirms that the Mermaid syntax is correct** - if the command completes without errors, the diagram syntax is valid.
