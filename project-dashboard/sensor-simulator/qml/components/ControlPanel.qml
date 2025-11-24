@@ -59,18 +59,11 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     Image {
                         id: playCircleIcon
-                        source: "qrc:/qml/icons/play-circle.svg"
+                        source: "qrc:/qml/icons/circle-play.svg"
                         width: 18
                         height: 18
                         sourceSize.width: 18
                         sourceSize.height: 18
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: false // Use emoji until play-circle.svg is downloaded
-                    }
-                    Text {
-                        text: "▶"
-                        color: demoButton.enabled ? "white" : Theme.textMuted
-                        font.pixelSize: Theme.fontSizeSm
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Text {

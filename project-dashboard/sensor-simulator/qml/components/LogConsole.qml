@@ -144,18 +144,11 @@ Rectangle {
                 
                 Image {
                     id: filterIcon
-                    source: "qrc:/qml/icons/filter.svg" // Need manual download
+                    source: "qrc:/qml/icons/funnel-muted.svg"
                     width: 14
                     height: 14
                     sourceSize.width: 14
                     sourceSize.height: 14
-                    Layout.leftMargin: Theme.spacingSm
-                    visible: false // Use emoji until filter.svg is downloaded
-                }
-                Text {
-                    text: "🔽"
-                    color: Theme.textMuted
-                    font.pixelSize: Theme.fontSizeXs
                     Layout.leftMargin: Theme.spacingSm
                 }
                 

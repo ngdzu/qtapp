@@ -87,7 +87,7 @@ Button {
     }
     
     function getIconSource() {
-        if (root.accentColor === Theme.accentRedLight) return "qrc:/qml/icons/alert-triangle.svg" // Need manual download
+        if (root.accentColor === Theme.accentRedLight) return "qrc:/qml/icons/triangle-alert.svg"
         if (root.accentColor === Theme.accentOrange) return "qrc:/qml/icons/shield-alert.svg"
         return "qrc:/qml/icons/bell.svg"
     }

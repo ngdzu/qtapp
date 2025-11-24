@@ -20,9 +20,6 @@
     <file alias="components/DebugOutput.qml">qml/components/DebugOutput.qml</file>
     <file alias="components/ReusableButton.qml">qml/components/ReusableButton.qml</file>
     
-    <!-- Utils -->
-    <file alias="utils/ColoredSvgImage.qml">qml/utils/ColoredSvgImage.qml</file>
-    
     <!-- Icons -->
     <file alias="icons/activity.svg">qml/icons/activity.svg</file>
     <file alias="icons/activity-green.svg">qml/icons/activity-green.svg</file>
@@ -36,5 +33,10 @@
     <file alias="icons/play.svg">qml/icons/play.svg</file>
     <file alias="icons/shield-alert.svg">qml/icons/shield-alert.svg</file>
     <file alias="icons/trash-2.svg">qml/icons/trash-2.svg</file>
+    <file alias="icons/trash-2-muted.svg">qml/icons/trash-2-muted.svg</file>
+    <file alias="icons/circle-play.svg">qml/icons/circle-play.svg</file>
+    <file alias="icons/funnel.svg">qml/icons/funnel.svg</file>
+    <file alias="icons/funnel-muted.svg">qml/icons/funnel-muted.svg</file>
+    <file alias="icons/triangle-alert.svg">qml/icons/triangle-alert.svg</file>
   </qresource>
 </RCC>
