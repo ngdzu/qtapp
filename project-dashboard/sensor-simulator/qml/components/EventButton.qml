@@ -11,7 +11,11 @@ Button {
     property color accentColor: Theme.accentEmerald
     
     Layout.fillWidth: true
-    Layout.preferredHeight: Theme.buttonHeight
+    Layout.preferredHeight: Theme.buttonHeightXl
+    leftPadding: Theme.spacingLg
+    rightPadding: Theme.spacingLg
+    topPadding: Theme.spacingMd
+    bottomPadding: Theme.spacingMd
     
     background: Rectangle {
         // Matching React: bg-red-950/30 border border-red-900/50
@@ -33,55 +37,65 @@ Button {
         return Theme.colorWithOpacity(Theme.accentSky, 0.2) // sky-900/50
     }
     
-    contentItem: Row {
-        spacing: Theme.spacingMd
-        anchors.left: parent.left
-        anchors.leftMargin: Theme.spacingLg
-        anchors.verticalCenter: parent.verticalCenter
-        
-        // Icon in rounded circle - matching React: p-2 bg-red-500/10 rounded-full
-        Rectangle {
-            width: 36
-            height: 36
-            radius: 18
-            color: Theme.colorWithOpacity(root.accentColor, 0.1)
+    contentItem: Item {
+        anchors.fill: parent
+        anchors.leftMargin: root.leftPadding
+        anchors.rightMargin: root.rightPadding
+        anchors.topMargin: root.topPadding
+        anchors.bottomMargin: root.bottomPadding
+
+        Row {
+            id: buttonContent
+            spacing: Theme.spacingMd
             anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
             
-            Image {
-                id: eventIcon
-                anchors.centerIn: parent
-                source: getIconSource()
-                width: 18
-                height: 18
-                sourceSize.width: 18
-                sourceSize.height: 18
-                fillMode: Image.PreserveAspectFit
-                visible: getIconSource() !== "" && status === Image.Ready
+            // Icon in rounded circle - matching React: p-2 bg-red-500/10 rounded-full
+            Rectangle {
+                id: iconBadge
+                width: 36
+                height: 36
+                radius: 18
+                color: Theme.colorWithOpacity(root.accentColor, 0.1)
+                anchors.verticalCenter: parent.verticalCenter
+                
+                Image {
+                    id: eventIcon
+                    anchors.centerIn: parent
+                    source: getIconSource()
+                    width: 18
+                    height: 18
+                    sourceSize.width: 18
+                    sourceSize.height: 18
+                    fillMode: Image.PreserveAspectFit
+                    visible: getIconSource() !== "" && status === Image.Ready
+                }
+                
+                Text {
+                    anchors.centerIn: parent
+                    text: getIconText()
+                    color: root.accentColor
+                    font.pixelSize: Theme.iconSizeSm
+                    visible: getIconSource() === ""
+                }
             }
             
-            Text {
-                anchors.centerIn: parent
-                text: getIconText()
-                color: root.accentColor
-                font.pixelSize: Theme.iconSizeSm
-                visible: getIconSource() === ""
-            }
-        }
-        
-        Column {
-            spacing: 0
-            anchors.verticalCenter: parent.verticalCenter
-            Text {
-                text: root.label
-                color: root.accentColor
-                font.pixelSize: Theme.fontSizeSm
-                font.bold: true
-            }
-            Text {
-                text: root.subtitle
-                color: Theme.textMuted
-                font.pixelSize: Theme.fontSize10px
-                opacity: 0.6
+            Column {
+                id: labelColumn
+                spacing: 0
+                anchors.verticalCenter: parent.verticalCenter
+                Text {
+                    text: root.label
+                    color: root.accentColor
+                    font.pixelSize: Theme.fontSizeSm
+                    font.bold: true
+                }
+                Text {
+                    text: root.subtitle
+                    color: Theme.textMuted
+                    font.pixelSize: Theme.fontSize10px
+                    opacity: 0.6
+                }
             }
         }
     }

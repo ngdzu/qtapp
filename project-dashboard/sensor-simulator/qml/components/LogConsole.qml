@@ -156,8 +156,12 @@ Rectangle {
                     model: ["ALL", "CRITICAL", "WARNING", "INTERNAL", "INFO"]
                     Button {
                         text: modelData
-                        Layout.preferredHeight: 24
-                        Layout.preferredWidth: implicitWidth + Theme.spacingMd
+                        Layout.preferredHeight: Theme.filterChipHeight
+                        Layout.preferredWidth: implicitWidth
+                        leftPadding: Theme.spacingMd
+                        rightPadding: Theme.spacingMd
+                        topPadding: Theme.spacingSm
+                        bottomPadding: Theme.spacingSm
                         
                         background: Rectangle {
                             color: root.filterLevel.toUpperCase() === modelData ? Theme.cardBackgroundSecondary : "transparent"
@@ -165,13 +169,19 @@ Rectangle {
                             border.width: 0
                         }
                         
-                        contentItem: Text {
-                            text: modelData
-                            color: root.filterLevel.toUpperCase() === modelData ? "white" : Theme.textMuted
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            font.pixelSize: Theme.fontSizeXs
-                            font.bold: root.filterLevel.toUpperCase() === modelData
+                        contentItem: Item {
+                            implicitWidth: filterLabel.implicitWidth
+                            implicitHeight: filterLabel.implicitHeight
+                            Text {
+                                id: filterLabel
+                                anchors.centerIn: parent
+                                text: modelData
+                                color: root.filterLevel.toUpperCase() === modelData ? "white" : Theme.textMuted
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font.pixelSize: Theme.fontSizeXs
+                                font.bold: root.filterLevel.toUpperCase() === modelData
+                            }
                         }
                         
                         onClicked: {

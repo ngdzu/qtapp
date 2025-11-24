@@ -88,6 +88,10 @@ Dialog {
                             text: "Yes"
                             Layout.preferredWidth: Theme.dialogButtonWidth
                             Layout.preferredHeight: Theme.buttonHeight
+                            leftPadding: Theme.spacingLg
+                            rightPadding: Theme.spacingLg
+                            topPadding: Theme.spacingSm
+                            bottomPadding: Theme.spacingSm
                             onClicked: {
                                 yesButton.enabled = false
                                 root.close()
@@ -103,6 +107,11 @@ Dialog {
                             }
                             
                             contentItem: Text {
+                                anchors.fill: parent
+                                anchors.leftMargin: yesButton.leftPadding
+                                anchors.rightMargin: yesButton.rightPadding
+                                anchors.topMargin: yesButton.topPadding
+                                anchors.bottomMargin: yesButton.bottomPadding
                                 text: yesButton.text
                                 color: Theme.textPrimary
                                 horizontalAlignment: Text.AlignHCenter
@@ -117,6 +126,10 @@ Dialog {
                             text: "No"
                             Layout.preferredWidth: Theme.dialogButtonWidth
                             Layout.preferredHeight: Theme.buttonHeight
+                            leftPadding: Theme.spacingLg
+                            rightPadding: Theme.spacingLg
+                            topPadding: Theme.spacingSm
+                            bottomPadding: Theme.spacingSm
                             onClicked: root.close()
                             
                             background: Rectangle {
@@ -128,6 +141,11 @@ Dialog {
                             }
                             
                             contentItem: Text {
+                                anchors.fill: parent
+                                anchors.leftMargin: noButton.leftPadding
+                                anchors.rightMargin: noButton.rightPadding
+                                anchors.topMargin: noButton.topPadding
+                                anchors.bottomMargin: noButton.bottomPadding
                                 text: noButton.text
                                 color: Theme.textPrimary
                                 horizontalAlignment: Text.AlignHCenter

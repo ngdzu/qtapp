@@ -45,7 +45,11 @@ Rectangle {
                 text: root.isDemoRunning ? "Running Demo..." : "Play Demo"
                 enabled: !root.isDemoRunning
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.buttonHeight
+                Layout.preferredHeight: Theme.buttonHeightXl
+                leftPadding: Theme.spacingLg
+                rightPadding: Theme.spacingXl
+                topPadding: Theme.spacingMd
+                bottomPadding: Theme.spacingMd
                 onClicked: root.playDemo()
                 
                 background: Rectangle {
@@ -54,25 +58,33 @@ Rectangle {
                     border.width: 0
                 }
                 
-                contentItem: Row {
-                    spacing: Theme.spacingSm
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    Image {
-                        id: playCircleIcon
-                        source: "qrc:/qml/icons/circle-play.svg"
-                        width: 18
-                        height: 18
-                        sourceSize.width: 18
-                        sourceSize.height: 18
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Text {
-                        text: demoButton.text
-                        color: demoButton.enabled ? "white" : Theme.textMuted
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: Theme.fontSizeSm
-                        font.bold: true
+                contentItem: Item {
+                    anchors.fill: parent
+                    anchors.leftMargin: demoButton.leftPadding
+                    anchors.rightMargin: demoButton.rightPadding
+                    anchors.topMargin: demoButton.topPadding
+                    anchors.bottomMargin: demoButton.bottomPadding
+
+                    Row {
+                        spacing: Theme.spacingSm
+                        anchors.centerIn: parent
+                        Image {
+                            id: playCircleIcon
+                            source: "qrc:/qml/icons/circle-play.svg"
+                            width: 18
+                            height: 18
+                            sourceSize.width: 18
+                            sourceSize.height: 18
+                        }
+                        Text {
+                            id: demoText
+                            text: demoButton.text
+                            color: demoButton.enabled ? "white" : Theme.textMuted
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.pixelSize: Theme.fontSizeSm
+                            font.bold: true
+                        }
                     }
                 }
             }

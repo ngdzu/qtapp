@@ -14,8 +14,12 @@ Button {
     property int fontSize: Theme.fontSizeBase
 
     // sensible defaults so it behaves like previous buttons
-    Layout.preferredWidth: Math.max(80, implicitWidth + (Theme.spacingMd * 2))
-    Layout.preferredHeight: Theme.buttonHeightSm
+    leftPadding: Theme.spacingLg
+    rightPadding: Theme.spacingLg
+    topPadding: Theme.spacingSm
+    bottomPadding: Theme.spacingSm
+    Layout.preferredWidth: Math.max(80, implicitWidth)
+    Layout.preferredHeight: Math.max(Theme.buttonHeightSm, implicitHeight)
 
     // Use Button's default text centering - just style the background
     background: Rectangle {
@@ -28,11 +32,18 @@ Button {
 
     // Minimal contentItem override - preserve Button's default alignment behavior
     contentItem: Text {
+        anchors.fill: parent
+        anchors.leftMargin: root.leftPadding
+        anchors.rightMargin: root.rightPadding
+        anchors.topMargin: root.topPadding
+        anchors.bottomMargin: root.bottomPadding
         text: root.text
         color: root.textColor
         font.pixelSize: root.fontSize
         font.bold: true
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
+        wrapMode: Text.NoWrap
+        elide: Text.ElideRight
     }
 }

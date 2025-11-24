@@ -66,6 +66,8 @@ QtObject {
     // Sizes
     readonly property int headerHeight: 56
     readonly property int buttonHeight: 44
+    readonly property int buttonHeightLg: 52
+    readonly property int buttonHeightXl: 56
     readonly property int buttonHeightSm: 36
     readonly property int buttonHeightXs: 30
     readonly property int cardPadding: 16
@@ -87,6 +89,7 @@ QtObject {
     readonly property int eventBadgeWidth: 60
     readonly property int eventBadgeHeight: 20
     readonly property int eventBadgeRadius: 10
+    readonly property int filterChipHeight: 32
     readonly property int statusDotSize: 6
     readonly property int statusDotRadius: 3
     readonly property int eventIconSize: 32
