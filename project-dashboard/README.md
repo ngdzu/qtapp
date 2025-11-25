@@ -85,6 +85,7 @@ Comprehensive documentation is available in the `doc/` directory:
 - Threading model
 - API specifications (auto-generated from code)
 - API documentation generation guide
+- Project structure reference (`doc/27_PROJECT_STRUCTURE.md`)
 - And more
 
 ### API Documentation

@@ -29,6 +29,8 @@ Before you begin, ensure you have the following installed:
     └── certs/               # Server certificate and trusted CA
 ```
 
+> For a full repository map (including prompts, scripts, and auxiliary projects) see `doc/27_PROJECT_STRUCTURE.md`.
+
 ## 3. Setting up the Development Environment
 
 ### 3.1. Clone the Repository
