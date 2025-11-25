@@ -107,3 +107,15 @@ This document provides a glossary of key terms and terminologies used within the
 *   **TopBar:** The header section of the UI, displaying connection status, notifications, system version, and clock.
 *   **TrendsController:** A C++ QObject-based controller that provides historical data for plotting in the Trends View.
 *   **Trends View:** A QML view dedicated to displaying historical vital sign data over selectable time ranges.
+
+## U
+
+*   **User Session:** A temporary authenticated session for a logged-in user, with configurable timeout (default: 30 minutes of inactivity).
+
+## V
+
+*   **Vitals Data:** Time-series physiological measurements (heart rate, SpO2, respiration rate, etc.) stored in the `vitals` table with configurable retention policy (default: 7 days).
+
+## W
+
+*   **Watchdog:** A lightweight monitoring component that detects system failures and triggers recovery procedures.

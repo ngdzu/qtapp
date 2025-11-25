@@ -35,6 +35,28 @@ This document details the security architecture for the Z Monitor, covering data
         -   **Clinician:** Can access monitoring, alarm management, and basic settings.
         -   **Technician:** Has all Clinician privileges, plus access to advanced settings like device calibration and diagnostics.
     -   **Backend:** The `AuthenticationService` in C++ is responsible for verifying the PIN and managing the active user's role and session.
+    
+    **PIN Storage and Security:**
+    -   **Hashing:** PINs are hashed using SHA-256 with a per-user salt (stored in `users` table)
+    -   **PIN Complexity:** Minimum 4 digits, maximum 8 digits (configurable via settings)
+    -   **Storage:** Hashed PINs stored in `users.pin_hash` column, salts stored in `users.salt` column
+    -   **Never store plaintext PINs** in database or logs
+    
+    **Brute Force Protection:**
+    -   **Lockout Policy:** 5 failed login attempts → 15-minute account lockout
+    -   **Exponential Backoff:** Lockout duration doubles after each violation (15 min → 30 min → 60 min)
+    -   **Permanent Lockout:** After 10 failed attempts, account requires administrator unlock
+    -   **Audit Logging:** All failed login attempts logged to `security_audit_log` with severity "warning"
+    -   **Rate Limiting:** Maximum 1 login attempt per 2 seconds per IP/device
+    
+    **Session Management:**
+    -   **Session Timeout:** 30 minutes of inactivity (configurable via settings, range: 15-60 minutes)
+    -   **Session Refresh:** Automatic refresh on any user activity, manual refresh available via UI
+    -   **Concurrent Sessions:** Single active session per user (new login invalidates previous session)
+    -   **Session Tokens:** Cryptographically secure session tokens (UUID v4 + timestamp + HMAC)
+    -   **Session Storage:** Active sessions stored in memory, session tokens validated on each request
+    -   **Logout:** Explicit logout clears session, automatic logout on timeout
+    -   **Session Audit:** All login/logout events logged to `security_audit_log`
 
 ## 4. Encryption at Rest
 
@@ -43,6 +65,24 @@ This document details the security architecture for the Z Monitor, covering data
     -   **Technology:** The project will use **SQLCipher**, a widely-used open-source extension to SQLite that provides transparent 256-bit AES encryption of database files.
     -   **Backend:** The `DatabaseManager` class will be responsible for managing the connection to the encrypted database, including handling the encryption key.
     -   **Key Management:** The encryption key for the database must be stored securely, for instance, in a hardware-backed keystore if available on the target device. For simulation, it can be a hardcoded value or stored in a configuration file with restricted permissions.
+    
+    **Key Storage:**
+    -   **Development:** Encryption key stored in `resources/config/db.key` with file permissions 600 (read/write owner only)
+    -   **Production:** Hardware-backed keystore (HSM) or secure element preferred, fallback to OS keystore
+    -   **Key File:** Never commit key files to version control (added to `.gitignore`)
+    -   **Key Derivation:** For development, key can be derived using PBKDF2 with 100,000 iterations and device-specific salt
+    
+    **Key Rotation:**
+    -   **Process:** Key rotation requires re-encrypting entire database
+    -   **Procedure:**
+        1. Generate new encryption key
+        2. Create new encrypted database with new key
+        3. Copy all data from old database to new database (decrypt with old key, encrypt with new key)
+        4. Verify data integrity
+        5. Replace old database with new database
+        6. Securely erase old database and old key
+    -   **Frequency:** Key rotation recommended annually or after security incidents
+    -   **Backup:** Backup database before key rotation
 
 ## 5. Certificate & Key Provisioning
 
@@ -75,7 +115,7 @@ The Z Monitor implements a comprehensive security architecture for transmitting 
   - Client certificate must be signed by trusted CA
   - Certificate chain validation
   - Certificate expiration checking
-  - Certificate revocation list (CRL) checking (optional, for production)
+  - Certificate revocation list (CRL) checking (**mandatory for production**, optional for development/testing)
 
 #### Layer 2: Application-Level Authentication
 - **Device Identity:** Each device has a unique client certificate with device ID embedded in Subject Alternative Name (SAN)
@@ -92,8 +132,9 @@ The Z Monitor implements a comprehensive security architecture for transmitting 
   - Signature computed over: deviceId + timestamp + payload hash
   - Signature included in request header: `X-Device-Signature`
 - **Timestamp Validation:** Server validates timestamps to prevent replay attacks
-  - Clock skew tolerance: ±5 minutes
+  - Clock skew tolerance: ±1 minute for production, ±5 minutes for development/testing
   - Replay window: 1 minute (reject duplicate timestamps within window)
+  - **Clock Synchronization:** NTP synchronization required in production to maintain accurate timestamps
 
 #### Layer 4: Payload Encryption (Optional, for Extra Sensitive Data)
 - **Field-Level Encryption:** Critical PHI fields can be encrypted within the payload
@@ -310,3 +351,107 @@ Comprehensive security testing includes:
   - Certificate extraction attempts
   - Key extraction attempts
   - DoS attack resistance
+
+## 7. Secure Boot and Firmware Integrity
+
+### 7.1. Secure Boot Process
+
+-   **Requirement:** Device must verify firmware integrity before execution to prevent tampering and ensure only authorized firmware runs.
+-   **Implementation:**
+    -   **Bootloader Verification:** Bootloader verifies firmware signature using device's public key
+    -   **Firmware Signature:** Firmware signed with manufacturer's private key during build process
+    -   **Signature Validation:** SHA-256 hash of firmware verified against signature
+    -   **Boot Failure:** If verification fails, device enters safe mode and alerts administrator
+
+### 7.2. Firmware Integrity Checks
+
+-   **On Boot:** Complete firmware integrity check using SHA-256 checksums
+-   **Runtime Checks:** Periodic integrity checks of critical firmware components
+-   **Checksum Storage:** Firmware checksums stored in secure, read-only storage
+-   **Tamper Detection:** Hardware tamper detection (if available) triggers immediate security event
+
+### 7.3. Firmware Update Security
+
+-   **Update Verification:** All firmware updates must be digitally signed
+-   **Update Process:**
+    1. Download firmware update package
+    2. Verify digital signature of update package
+    3. Verify checksum of update package
+    4. Install update in isolated partition
+    5. Verify installed firmware integrity
+    6. Switch to new firmware partition
+    7. Rollback on verification failure
+-   **Rollback Capability:** Automatic rollback to previous firmware version on update failure
+-   **Update Audit:** All firmware updates logged to `security_audit_log`
+
+## 8. Tamper Detection and Response
+
+### 8.1. Physical Tamper Detection
+
+-   **Hardware Tamper Switches:** If available, hardware tamper switches detect physical access
+-   **Enclosure Monitoring:** Sensors detect unauthorized enclosure opening
+-   **Response:** Immediate security event, device lockout, alert to central server
+
+### 8.2. Software Tamper Detection
+
+-   **Certificate Validation:** Continuous validation of device certificates
+-   **File Integrity:** Periodic checksum verification of critical system files
+-   **Configuration Validation:** Validation of configuration files against known good state
+-   **Anomaly Detection:** Detection of unexpected system behavior or configuration changes
+
+### 8.3. Tamper Response
+
+-   **Immediate Actions:**
+    - Log security event to `security_audit_log` with severity "critical"
+    - Lock device (require administrator unlock)
+    - Alert central server immediately
+    - Disable network connectivity (optional, configurable)
+-   **Recovery:** Tamper lockout requires administrator intervention and security review
+
+## 9. Secure Erase and Decommissioning
+
+### 9.1. Secure Erase Procedure
+
+-   **Requirement:** All patient data and cryptographic materials must be securely erased before device decommissioning.
+-   **Process:**
+    1. Revoke device certificate (add to CRL)
+    2. Securely erase database (multi-pass overwrite with random data)
+    3. Securely erase certificates and private keys
+    4. Securely erase configuration files
+    5. Verify erasure (read back to confirm overwrite)
+    6. Log decommissioning event to `security_audit_log`
+-   **Erasure Standard:** NIST 800-88 compliant (3-pass overwrite minimum)
+-   **Verification:** Cryptographic verification of successful erasure
+
+### 9.2. Decommissioning Audit
+
+-   **Complete Audit Trail:** All decommissioning steps logged with timestamps
+-   **Certificate Revocation:** Device certificate revoked and added to CRL
+-   **Server Notification:** Central server notified of device decommissioning
+-   **Documentation:** Decommissioning certificate generated for compliance
+
+## 10. Incident Response Procedures
+
+### 10.1. Security Incident Classification
+
+-   **Critical:** Immediate threat to patient safety or data breach (e.g., tamper detection, certificate compromise)
+-   **High:** Significant security violation (e.g., unauthorized access, failed authentication after lockout)
+-   **Medium:** Suspicious activity (e.g., multiple failed login attempts, unusual network activity)
+-   **Low:** Informational security events (e.g., certificate expiration warnings, rate limit warnings)
+
+### 10.2. Incident Response Steps
+
+1. **Detection:** Automatic detection via security audit logging and monitoring
+2. **Classification:** Automatic classification based on event type and severity
+3. **Notification:** Automatic notification to security team for Critical/High incidents
+4. **Containment:** Automatic containment actions (device lockout, network disconnect) for Critical incidents
+5. **Investigation:** Security team investigates incident using audit logs
+6. **Remediation:** Remediation steps based on incident type
+7. **Documentation:** Complete incident report logged to `security_audit_log`
+8. **Recovery:** Recovery procedures to restore normal operation
+
+### 10.3. Incident Logging
+
+-   **All Incidents:** Logged to `security_audit_log` with full details
+-   **Incident Reports:** Detailed reports available for compliance and forensics
+-   **Retention:** Incident logs retained for 90 days minimum (configurable)

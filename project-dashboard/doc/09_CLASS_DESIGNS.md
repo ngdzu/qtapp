@@ -90,16 +90,24 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `certificateValidationFailed(const QString& reason)`: Emitted when certificate validation fails
 
 ### 2.4. DatabaseManager
-**Responsibility:** Manages encrypted SQLite database for local data persistence.
+**Responsibility:** Manages encrypted SQLite database for local data persistence, backup, and restore operations.
 
 **Key Properties:**
 - `database`: QSqlDatabase instance with SQLCipher encryption
+- `encryptionKey`: Database encryption key (loaded from secure storage)
+- `backupLocation`: Location for database backups
 
 **Key Methods:**
 - `open(const QString& path, const QString& password)`: Opens encrypted database
 - `saveData(const PatientData& data)`: Stores patient data
 - `getHistoricalData(QDateTime start, QDateTime end)`: Retrieves historical data for trends
 - `cleanupOldData(int retentionDays)`: Removes data older than retention policy
+- `backupDatabase(const QString& backupPath)`: Creates encrypted backup of database
+- `restoreDatabase(const QString& backupPath, const QString& password)`: Restores database from backup
+- `rotateEncryptionKey(const QString& newKey)`: Rotates database encryption key (re-encrypts all data)
+- `verifyDataIntegrity()`: Verifies database integrity using checksums
+- `getDatabaseSize()`: Returns current database size in bytes
+- `getBackupList()`: Returns list of available backups with timestamps
 
 ### 2.5. PatientManager
 **Responsibility:** Manages patient context, including identification and safety information.
@@ -150,20 +158,40 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `settingsChanged()`: Emitted when settings are modified
 
 ### 2.7. AuthenticationService
-**Responsibility:** Handles user authentication and role-based access control.
+**Responsibility:** Handles user authentication, role-based access control, and session management with brute force protection.
 
 **Key Properties:**
 - `currentUser`: Currently logged-in user
 - `currentRole`: Current user role (Clinician, Technician)
+- `sessionTimeout`: Session timeout in minutes (default: 30, configurable)
+- `lastActivityTime`: Timestamp of last user activity for session timeout
+- `failedAttempts`: Map of user ID to failed login attempt count
+- `lockoutUntil`: Map of user ID to lockout expiration timestamp
 
 **Key Methods:**
-- `login(const QString& pin)`: Authenticates user with PIN
-- `logout()`: Logs out current user
+- `login(const QString& userId, const QString& pin)`: Authenticates user with PIN, implements brute force protection
+- `logout()`: Logs out current user and clears session
 - `getCurrentRole()`: Returns current user's role
+- `refreshSession()`: Refreshes session timeout on user activity
+- `checkSessionTimeout()`: Checks if session has expired, logs out if expired
+- `isAccountLocked(const QString& userId)`: Checks if account is locked due to failed attempts
+- `getRemainingLockoutTime(const QString& userId)`: Returns remaining lockout time in seconds
+- `unlockAccount(const QString& userId)`: Unlocks account (requires administrator role)
+- `changePin(const QString& userId, const QString& oldPin, const QString& newPin)`: Changes user PIN
+- `validatePinComplexity(const QString& pin)`: Validates PIN meets complexity requirements
+
+**Security Features:**
+- **PIN Hashing:** SHA-256 with per-user salt
+- **Brute Force Protection:** 5 failed attempts → 15-minute lockout, exponential backoff
+- **Session Management:** 30-minute timeout, automatic refresh on activity
+- **Audit Logging:** All authentication events logged to `security_audit_log`
 
 **Signals:**
 - `userLoggedIn(const QString& user, UserRole role)`: Emitted on successful login
 - `userLoggedOut()`: Emitted when user logs out
+- `sessionExpired()`: Emitted when session times out
+- `accountLocked(const QString& userId)`: Emitted when account is locked
+- `loginFailed(const QString& userId, int remainingAttempts)`: Emitted on failed login
 
 ### 2.8. LogService
 **Responsibility:** Provides centralized logging mechanism for the application.

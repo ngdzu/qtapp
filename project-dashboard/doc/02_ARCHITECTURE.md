@@ -24,8 +24,13 @@ The backend is responsible for all business logic, data processing, and communic
     -   `IPatientLookupService`: Interface for looking up patient information from external systems. Implementations include network-based lookup (production) and mock lookup (testing).
     -   `SettingsManager`: Handles device configuration settings and user preferences, including Device ID, Bed ID, and measurement unit preferences (metric/imperial).
     -   `AuthenticationService`: Manages user login, session, and role-based access control.
-    -   `LogService`: Provides a centralized logging mechanism for the application, emitting messages that can be displayed in the Diagnostics View.
+    -   `LogService`: Provides a centralized logging mechanism for the application, emitting messages that can be displayed in the Diagnostics View. Implements log rotation and management.
     -   `DataArchiver`: Handles the archival of old data from the local database.
+    -   `BackupManager`: Manages automated database backups, backup verification, and restore operations.
+    -   `FirmwareManager`: Handles firmware updates, verification, and rollback capabilities.
+    -   `HealthMonitor`: Monitors device health metrics (CPU, memory, disk, temperature) and generates health reports.
+    -   `ClockSyncService`: Manages NTP synchronization and clock drift detection.
+    -   `DeviceRegistrationService`: Handles initial device registration with central server and re-registration after factory reset.
 
 -   **UI Controllers:** These `QObject`-based classes act as a bridge between the Core Services and the QML frontend. They expose data and functionality to QML via properties, signals, and slots.
     -   `DashboardController`: Exposes real-time vital signs and device status for the Dashboard View.

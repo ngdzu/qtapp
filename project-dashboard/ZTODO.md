@@ -136,10 +136,11 @@
 
 ## Security & Certificates (ordered but distinct)
 
-- [ ] Define security architecture and provisioning plan
+- [x] Define security architecture and provisioning plan
   - What: Finalize how device certificates will be provisioned, where certs are stored in `resources/certs/`, and the CA trust model. Document in `doc/06_SECURITY.md`.
   - Why: Security design must be agreed before writing any cert-generation scripts.
   - Note: Comprehensive certificate provisioning guide with step-by-step instructions and workflow diagrams is available in `doc/15_CERTIFICATE_PROVISIONING.md` and `doc/15_CERTIFICATE_PROVISIONING.mmd`. This includes CA setup, device certificate generation, installation, validation, renewal, and revocation processes.
+  - Note: Security documentation has been enhanced with detailed authentication, session management, secure boot, tamper detection, and incident response procedures. See `doc/16_DOCUMENTATION_IMPROVEMENTS.md` for complete list of improvements.
   - Prompt: `project-dashboard/prompt/14-security-architecture-provisioning.md`  (When finished: mark this checklist item done.)
 
 - [ ] Add scripts for CA + cert generation (after infra agreed)
@@ -186,6 +187,7 @@
   - What: Implement full security architecture for telemetry and sensor data transmission including: certificate management and validation, digital signatures on payloads, timestamp/nonce for replay prevention, rate limiting, circuit breaker pattern, and security audit logging.
   - Why: Ensures secure, authenticated, and auditable transmission of sensitive patient data to central server.
   - Files: `src/core/NetworkManager.cpp/h`, `src/core/CertificateManager.cpp/h`, `src/core/SecurityAuditLogger.cpp/h`, update `DatabaseManager` for security audit log storage.
+  - Note: CRL checking is **mandatory for production** (not optional). Clock skew tolerance is ±1 minute for production, ±5 minutes for development. See `doc/06_SECURITY.md` section 6 for detailed requirements.
   - Security Features:
     - Certificate lifecycle management (validation, expiration checking, revocation)
     - Digital signatures (ECDSA or RSA) on all telemetry payloads
@@ -436,8 +438,18 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual bool HasRole(const UserId &user, Role r) const = 0;`
     - `virtual CurrentUserInfo GetCurrentUser() const = 0;`
     - `virtual Result ChangePin(const UserId &, const std::string &oldPin, const std::string &newPin) = 0;`
+    - `virtual void RefreshSession() = 0;` (refresh session timeout on activity)
+    - `virtual bool CheckSessionTimeout() = 0;` (check if session expired)
+    - `virtual bool IsAccountLocked(const UserId &user) = 0;` (check lockout status)
+    - `virtual int GetRemainingLockoutTime(const UserId &user) = 0;` (seconds until unlock)
+    - `virtual Result UnlockAccount(const UserId &user) = 0;` (requires admin role)
   - Example code path: user enters PIN in `LoginView.qml` -> `AuthenticationService::AuthenticatePin` -> on success emit `OnAuthStateChanged` -> `SystemController` transitions to logged-in state and updates UI.
-  - Security notes: PINs must be stored hashed + salted; consider hardware-backed key storage on target platforms; rate-limit attempts to mitigate brute force.
+  - Security notes: 
+    - PINs must be stored hashed (SHA-256) + salted (per-user salt)
+    - Brute force protection: 5 failed attempts → 15-minute lockout, exponential backoff
+    - Session timeout: 30 minutes of inactivity (configurable)
+    - All authentication events logged to `security_audit_log`
+    - Consider hardware-backed key storage on target platforms
   - Tests to write: correct/incorrect PIN, lockout behavior, role checks.
 
 - [ ] `doc/interfaces/IArchiver.md`

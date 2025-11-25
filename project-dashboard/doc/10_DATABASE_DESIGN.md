@@ -406,7 +406,16 @@ Note: The `device_id` column in `vitals` should reference the `deviceId` setting
 
 ## 4. Retention, Archival and Cleanup
 
-- Retention: default 7 days for `vitals`, `device_events`, `predictive_scores` (configurable via `SettingsManager`).
+**Data Retention Policies:**
+- **Vitals data:** 7 days (configurable via `SettingsManager`, default: 7 days)
+- **Alarm history:** 90 days (configurable, default: 90 days)
+- **Security audit log:** 90 days minimum (configurable, default: 90 days, required for compliance)
+- **Device events:** 30 days (configurable, default: 30 days)
+- **Patient data:** Until patient discharge + 30 days (configurable, default: 30 days after discharge)
+- **Notifications:** 7 days (configurable, default: 7 days)
+- **Predictive scores:** 7 days (configurable, default: 7 days)
+
+**Archival Process:**
 - Archival: `DataArchiver::archiveData(cutoff_ts)` exports data older than cutoff into an archive file or remote store, creates an `archival_jobs` entry and, on success, deletes original rows inside a transaction.
 
 Example transactional archive pattern:
