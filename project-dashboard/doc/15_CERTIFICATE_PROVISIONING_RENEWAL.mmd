@@ -1,0 +1,36 @@
+sequenceDiagram
+    participant Device as Z Monitor Device
+    participant Admin as Administrator
+    participant CA as Certificate Authority
+    participant Server as Central Server
+    participant DB as Database
+
+    Note over Device,DB: Certificate Renewal Workflow (Zero Downtime)
+
+    rect rgb(240, 255, 240)
+        Note over Device,CA: Phase 1: Renewal Preparation
+        Device->>Device: 1. Monitor certificate expiration<br/>(Alert 30 days before)
+        Device->>Admin: 2. Send expiration warning
+        Admin->>CA: 3. Generate new device certificate<br/>(Follow provisioning steps 6-11)
+        CA-->>Admin: New certificate (device_${DEVICE_ID}_new.crt)
+    end
+
+    rect rgb(255, 248, 240)
+        Note over Admin,Device: Phase 2: Parallel Installation
+        Admin->>Device: 4. Install new certificate alongside old<br/>(device_${DEVICE_ID}_new.crt)
+        Device->>Device: 5. Verify new certificate validity
+        Device->>Device: 6. Test connection with new certificate<br/>(in test mode)
+        Device->>DB: 7. Register new certificate in database<br/>(status: pending_activation)
+    end
+
+    rect rgb(240, 248, 255)
+        Note over Device,Server: Phase 3: Seamless Switchover
+        Device->>Device: 8. Switch to new certificate<br/>(Update configuration)
+        Device->>Server: 9. Reconnect with new certificate
+        Server->>Server: 10. Validate new certificate
+        Server-->>Device: 11. Connection established
+        Device->>DB: 12. Mark old certificate as expired
+        Device->>DB: 13. Activate new certificate<br/>(status: active)
+        Device->>Device: 14. Remove old certificate files<br/>(after grace period)
+    end
+

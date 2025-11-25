@@ -1,0 +1,65 @@
+sequenceDiagram
+    participant Admin as Administrator
+    participant CA as Certificate Authority
+    participant Device as Z Monitor Device
+    participant Server as Central Server
+    participant DB as Database
+
+    Note over Admin,DB: Initial Certificate Provisioning Workflow
+
+    rect rgb(240, 248, 255)
+        Note over Admin,CA: Phase 1: CA Setup
+        Admin->>CA: 1. Create CA directory structure
+        Admin->>CA: 2. Generate CA private key (4096-bit RSA)
+        Admin->>CA: 3. Create CA self-signed certificate
+        Admin->>CA: 4. Verify CA certificate
+        CA-->>Admin: CA certificate ready (ca.crt)
+    end
+
+    rect rgb(240, 255, 240)
+        Note over Admin,CA: Phase 2: Device Certificate Generation
+        Admin->>Admin: 5. Collect device information<br/>(Device ID, Serial, Org details)
+        Admin->>CA: 6. Generate device private key (2048-bit RSA)
+        CA-->>Admin: device_${DEVICE_ID}.key (encrypted)
+        Admin->>CA: 7. Create Certificate Signing Request (CSR)<br/>with device ID in SAN
+        CA-->>Admin: device_${DEVICE_ID}.csr
+        Admin->>CA: 8. Sign CSR with CA private key
+        CA->>CA: Validate CSR<br/>Check device ID<br/>Apply extensions
+        CA-->>Admin: device_${DEVICE_ID}.crt (signed certificate)
+        Admin->>Admin: 9. Verify certificate chain
+        Admin->>Admin: 10. Extract device ID from certificate
+        Admin->>Admin: 11. Create certificate bundle
+    end
+
+    rect rgb(255, 248, 240)
+        Note over Admin,Device: Phase 3: Certificate Installation
+        Admin->>Device: 12. Create secure cert directory<br/>(/opt/z-monitor/certs, 700 permissions)
+        Admin->>Device: 13. Transfer certificates securely<br/>(SCP/USB/Provisioning API)
+        Device->>Device: 14. Set file permissions<br/>(keys: 600, certs: 644)
+        Device->>Device: 15. Verify file integrity (SHA256)
+        Device->>Device: 16. Update device configuration<br/>(certificate paths)
+        Device->>DB: 17. Register certificate in database<br/>(serial, subject, expiration, fingerprint)
+        DB-->>Device: Certificate registered
+    end
+
+    rect rgb(255, 240, 240)
+        Note over Device,Server: Phase 4: Certificate Validation
+        Device->>Device: 18. On startup: Load certificates
+        Device->>Device: 19. Validate certificate expiration
+        Device->>Device: 20. Verify CA signature
+        Device->>Device: 21. Extract device ID from certificate
+        Device->>Device: 22. Compare with settings device ID
+        Device->>Device: 23. Check CRL (if available)
+        Device->>DB: 24. Update last validation timestamp
+        Device->>Server: 25. Initiate mTLS connection
+        Server->>Server: 26. Request client certificate
+        Device->>Server: 27. Send client certificate
+        Server->>Server: 28. Verify certificate chain
+        Server->>Server: 29. Extract device ID from certificate
+        Server->>Server: 30. Check device registration
+        Server->>Server: 31. Verify certificate not revoked
+        Server-->>Device: 32. mTLS handshake complete
+        Device->>Server: 33. Send telemetry data (signed)
+        Server-->>Device: 34. Acknowledge receipt
+    end
+

@@ -25,11 +25,12 @@
   - Prompt: `project-dashboard/prompt/03-create-unit-test-harness.md`  (When finished: mark this checklist item done.)
 
 - [ ] Design database schema + write migration SQLs
-  - What: Finalize DDL for tables: `patients`, `vitals`, `ecg_samples`, `pleth_samples`, `alarms`, `system_events`, `settings`, `users`. Add indices, retention metadata table, and `archival_queue`.
+  - What: Finalize DDL for tables: `patients`, `vitals`, `ecg_samples`, `pleth_samples`, `alarms`, `system_events`, `settings`, `users`, `certificates`, `security_audit_log`. Add indices, retention metadata table, and `archival_queue`.
   - Why: Deterministic schema is required before implementing `DatabaseManager` and `TrendsController`.
   - Files: `doc/migrations/0001_initial.sql`, `doc/migrations/0002_add_indices.sql`, `doc/10_DATABASE_DESIGN.md` update, ERD SVG in `doc/`.
   - Note: The `settings` table must support `deviceId`, `bedId`, `measurementUnit`, `serverUrl`, and `useMockServer` configuration options. See `doc/10_DATABASE_DESIGN.md` for the settings table schema.
   - Note: The `patients` table serves as a cache for patient lookups. Add `last_lookup_at` and `lookup_source` columns to track when patient data was retrieved from external systems. See `doc/10_DATABASE_DESIGN.md` for details.
+  - Note: The `certificates` table must track certificate lifecycle including expiration, revocation, and validation status. The `security_audit_log` table must store all security-relevant events for audit and compliance. See `doc/10_DATABASE_DESIGN.md` for detailed schemas.
   - Prompt: `project-dashboard/prompt/04-design-db-schema-migrations.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement DatabaseManager spike (in-memory + SQLCipher plan)
@@ -117,6 +118,7 @@
   - Why: Enables local end-to-end testing of networking flows.
   - Note: Add optional `GET /api/patients/{patientId}` endpoint for patient lookup to support `IPatientLookupService` integration. This endpoint should return patient demographics in JSON format.
   - Note: Server URL should be configurable through `SettingsManager` (default: "https://localhost:8443"). The `NetworkManager` should use `ITelemetryServer` interface, allowing for `MockTelemetryServer` implementation that swallows data for testing without requiring server infrastructure.
+  - Note: Server must implement mTLS, validate client certificates, verify digital signatures on payloads, check timestamps for replay prevention, and enforce rate limiting. See `doc/06_SECURITY.md` section 6.7 for server-side security requirements.
   - Prompt: `project-dashboard/prompt/12-central-server-simulator.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement mockable logging and LogService binding to QML
@@ -137,18 +139,63 @@
 - [ ] Define security architecture and provisioning plan
   - What: Finalize how device certificates will be provisioned, where certs are stored in `resources/certs/`, and the CA trust model. Document in `doc/06_SECURITY.md`.
   - Why: Security design must be agreed before writing any cert-generation scripts.
+  - Note: Comprehensive certificate provisioning guide with step-by-step instructions and workflow diagrams is available in `doc/15_CERTIFICATE_PROVISIONING.md` and `doc/15_CERTIFICATE_PROVISIONING.mmd`. This includes CA setup, device certificate generation, installation, validation, renewal, and revocation processes.
   - Prompt: `project-dashboard/prompt/14-security-architecture-provisioning.md`  (When finished: mark this checklist item done.)
 
 - [ ] Add scripts for CA + cert generation (after infra agreed)
   - What: Create `scripts/generate-selfsigned-certs.sh` that generates CA, server, and client certs for local testing. Include instructions for converting to PKCS12 if needed.
   - Why: Provides reproducible certs for simulator and device tests. NOTE: create *after* the previous task is approved.
   - Files: `scripts/generate-selfsigned-certs.sh`, `central-server-simulator/certs/README.md`.
+  - Note: Script should follow the step-by-step process documented in `doc/15_CERTIFICATE_PROVISIONING.md`. Include options for: CA creation, device certificate generation with device ID in SAN, certificate bundle creation, and PKCS12 export. Reference workflow diagrams in `doc/15_CERTIFICATE_PROVISIONING.mmd` for process flow.
   - Prompt: `project-dashboard/prompt/15-generate-selfsigned-certs-script.md`  (When finished: mark this checklist item done.)
+
+- [ ] Create automated certificate provisioning script
+  - What: Create comprehensive automation script `scripts/provision-device-certificate.sh` that automates the complete certificate provisioning workflow for devices. Script should handle CA setup (if needed), device certificate generation, validation, and optionally installation/transfer to device.
+  - Why: Automates the manual certificate provisioning process documented in `doc/15_CERTIFICATE_PROVISIONING.md`, reducing human error and ensuring consistent certificate generation across all devices.
+  - Files: `scripts/provision-device-certificate.sh`, `scripts/cert-utils.sh` (helper functions), `scripts/cert-config.conf` (configuration template).
+  - Features:
+    - Interactive and non-interactive modes (for CI/CD)
+    - CA setup automation (create CA if it doesn't exist)
+    - Device certificate generation with device ID binding in SAN
+    - Certificate validation (expiration, chain verification, device ID extraction)
+    - Certificate bundle creation (cert + CA cert)
+    - Optional PKCS12 export
+    - Certificate installation to device (via SCP, USB path, or provisioning API)
+    - Database registration (if device database accessible)
+    - Support for batch provisioning (multiple devices)
+    - Certificate renewal automation (generate new cert, parallel installation)
+    - Certificate revocation support (update CRL)
+  - Configuration:
+    - Device ID, serial number, organization details
+    - Certificate validity period (default: 365 days)
+    - Key size (CA: 4096-bit, Device: 2048-bit)
+    - Output directory and file naming conventions
+    - Device transfer method (SCP, USB, API)
+  - Acceptance: Script successfully provisions certificates following the workflow in `doc/15_CERTIFICATE_PROVISIONING.md`. Generated certificates pass validation, device ID is correctly embedded in SAN, and certificates can be installed on devices. Script includes error handling, logging, and dry-run mode.
+  - Tests: Unit tests for certificate generation, validation, device ID extraction. Integration tests for complete provisioning workflow. Verify certificates work with mTLS connections.
+  - Prompt: `project-dashboard/prompt/15b-automated-certificate-provisioning.md`  (When finished: mark this checklist item done.)
 
 - [ ] mTLS integration spike for NetworkManager
   - What: Implement a small C++ example that configures `QSslConfiguration` with the generated client cert and validates handshake against the simulator using mutual auth.
   - Why: Confirms approach works on target platforms before full NetworkManager implementation.
+  - Note: Must include certificate validation (expiration, revocation, device ID match), TLS 1.2+ enforcement, strong cipher suites, and basic security audit logging. See `doc/06_SECURITY.md` section 6 for comprehensive security requirements.
+  - Note: Follow certificate provisioning steps in `doc/15_CERTIFICATE_PROVISIONING.md` to generate test certificates. Use workflow diagrams in `doc/15_CERTIFICATE_PROVISIONING.mmd` as reference for certificate lifecycle.
   - Prompt: `project-dashboard/prompt/16-mtls-integration-spike.md`  (When finished: mark this checklist item done.)
+
+- [ ] Implement comprehensive security for data transmission
+  - What: Implement full security architecture for telemetry and sensor data transmission including: certificate management and validation, digital signatures on payloads, timestamp/nonce for replay prevention, rate limiting, circuit breaker pattern, and security audit logging.
+  - Why: Ensures secure, authenticated, and auditable transmission of sensitive patient data to central server.
+  - Files: `src/core/NetworkManager.cpp/h`, `src/core/CertificateManager.cpp/h`, `src/core/SecurityAuditLogger.cpp/h`, update `DatabaseManager` for security audit log storage.
+  - Security Features:
+    - Certificate lifecycle management (validation, expiration checking, revocation)
+    - Digital signatures (ECDSA or RSA) on all telemetry payloads
+    - Replay attack prevention (timestamp validation, nonce)
+    - Rate limiting (60 requests/minute, configurable)
+    - Circuit breaker for repeated failures
+    - Security audit logging to `security_audit_log` table
+  - Acceptance: All telemetry data is signed and validated, certificates are checked on startup and periodically, security events are logged, rate limiting prevents abuse, and connection failures trigger circuit breaker.
+  - Tests: Certificate validation tests, signature verification tests, replay attack prevention tests, rate limiting tests, audit log verification tests.
+  - Prompt: `project-dashboard/prompt/16b-comprehensive-security-implementation.md`  (When finished: mark this checklist item done.)
 
 
 ## Database Encryption & Archival (dependent)
@@ -290,10 +337,11 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual void SetRetryPolicy(const RetryPolicy &p) = 0;`
     - `virtual void SetServerUrl(const QString& url) = 0;`
     - `virtual QString GetServerUrl() const = 0;`
-  - Error semantics: surface transient vs permanent errors (e.g., `CERT_INVALID`, `TLS_HANDSHAKE_FAILED`, `NETWORK_UNREACHABLE`).
-  - Example code path: `DeviceSimulator` emits vitals -> `DashboardController` enqueues to `IDatabaseManager` and asks `INetworkManager` to send batched telemetry via `ITelemetryServer`; on failure, `INetworkManager` persists unsent batches to disk via `IDatabaseManager` archival queue.
-  - Tests to write: configurable failures, backoff timing behavior, SSL config validation, acknowledgment handling, server URL configuration, mock server integration.
-  - Note: Interface documentation exists at `doc/interfaces/ITelemetryServer.md`.
+  - Security features: Certificate validation (expiration, revocation, device ID match), digital signatures on payloads, replay prevention (timestamp/nonce), rate limiting, circuit breaker, security audit logging.
+  - Error semantics: surface transient vs permanent errors (e.g., `CERT_INVALID`, `CERT_EXPIRED`, `CERT_REVOKED`, `TLS_HANDSHAKE_FAILED`, `NETWORK_UNREACHABLE`, `RATE_LIMIT_EXCEEDED`).
+  - Example code path: `DeviceSimulator` emits vitals -> `DashboardController` enqueues to `IDatabaseManager` and asks `INetworkManager` to send batched telemetry via `ITelemetryServer`; `NetworkManager` validates certificate, signs payload, sends with mTLS; on failure, `INetworkManager` persists unsent batches to disk via `IDatabaseManager` archival queue and logs security event to `security_audit_log`.
+  - Tests to write: configurable failures, backoff timing behavior, SSL config validation, acknowledgment handling, server URL configuration, mock server integration, certificate validation, signature verification, replay prevention, rate limiting, audit logging.
+  - Note: Interface documentation exists at `doc/interfaces/ITelemetryServer.md`. See `doc/06_SECURITY.md` section 6 for comprehensive security architecture.
 
 - [ ] `doc/interfaces/ITelemetryServer.md`
   - Purpose: Interface for sending telemetry data and sensor data to a central monitoring server. Abstracts server communication to support multiple implementations (production, mock, file-based).

@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant Device as Z Monitor Device
+    participant NetworkMgr as NetworkManager
+    participant TelemetryServer as ITelemetryServer
+    participant Server as Central Server
+    participant DB as Database
+
+    Note over Device,DB: Secure Data Transmission with Certificate Validation
+
+    Device->>NetworkMgr: 1. SendTelemetry(telemetryData)
+    NetworkMgr->>NetworkMgr: 2. Validate certificate (if not done)
+    NetworkMgr->>NetworkMgr: 3. Create digital signature<br/>(Sign: deviceId + timestamp + payload)
+    NetworkMgr->>NetworkMgr: 4. Add signature and nonce to payload
+    NetworkMgr->>TelemetryServer: 5. SendTelemetryAsync(signedData)
+    TelemetryServer->>Server: 6. Initiate mTLS connection
+    Server->>Server: 7. Request client certificate
+    TelemetryServer->>Server: 8. Send client certificate
+    Server->>Server: 9. Verify certificate chain
+    Server->>Server: 10. Extract device ID from certificate
+    Server->>Server: 11. Check device registration
+    Server->>Server: 12. Verify certificate not revoked
+    alt Certificate validation fails
+        Server-->>TelemetryServer: 13a. Reject connection
+        TelemetryServer->>DB: Log security event: Certificate validation failed
+        TelemetryServer-->>NetworkMgr: Connection failed
+    else Certificate validation succeeds
+        Server-->>TelemetryServer: 13b. mTLS handshake complete
+        TelemetryServer->>Server: 14. Send signed telemetry payload
+        Server->>Server: 15. Verify digital signature
+        Server->>Server: 16. Validate timestamp (replay prevention)
+        alt Signature invalid or replay detected
+            Server->>DB: Log security event: Invalid signature/replay
+            Server-->>TelemetryServer: Reject payload
+        else Signature valid and timestamp fresh
+            Server->>Server: 17. Process telemetry data
+            Server->>DB: Store telemetry data
+            Server-->>TelemetryServer: 18. Acknowledge receipt (with processed IDs)
+            TelemetryServer->>DB: Log security event: Successful transmission
+            TelemetryServer-->>NetworkMgr: Transmission successful
+            NetworkMgr->>DB: Mark data as synced
+        end
+    end
+

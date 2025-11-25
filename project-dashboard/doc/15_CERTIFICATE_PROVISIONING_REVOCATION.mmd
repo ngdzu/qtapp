@@ -1,0 +1,35 @@
+sequenceDiagram
+    participant Admin as Administrator
+    participant CA as Certificate Authority
+    participant Device as Z Monitor Device
+    participant Server as Central Server
+    participant DB as Database
+
+    Note over Admin,DB: Certificate Revocation Workflow
+
+    rect rgb(255, 240, 240)
+        Note over Admin,CA: Phase 1: Revocation Decision
+        Admin->>Admin: 1. Identify compromised/decommissioned device
+        Admin->>CA: 2. Revoke certificate<br/>(openssl ca -revoke)
+        CA->>CA: 3. Update certificate database<br/>(Mark as revoked)
+        CA->>CA: 4. Generate updated CRL<br/>(Certificate Revocation List)
+        CA-->>Admin: Updated CRL (crl.pem)
+    end
+
+    rect rgb(255, 248, 240)
+        Note over Admin,Server: Phase 2: CRL Distribution
+        Admin->>Server: 5. Distribute CRL to server
+        Server->>Server: 6. Update CRL cache
+        Admin->>Device: 7. Distribute CRL to all devices<br/>(if devices check CRL)
+    end
+
+    rect rgb(240, 240, 255)
+        Note over Device,Server: Phase 3: Revocation Enforcement
+        Device->>Server: 8. Attempt connection with revoked certificate
+        Server->>Server: 9. Check certificate against CRL
+        Server->>Server: 10. Certificate found in CRL
+        Server-->>Device: 11. Reject connection<br/>(Certificate revoked)
+        Device->>DB: 12. Update certificate status<br/>(status: revoked)
+        Device->>Device: 13. Log security event<br/>(security_audit_log)
+    end
+

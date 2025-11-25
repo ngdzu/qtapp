@@ -105,6 +105,14 @@ The simulated server is a Python application.
 
 4.  **Generate Certificates (for mTLS):**
     For development, you'll need to generate self-signed certificates. A script for this should be provided (e.g., `generate_certs.sh` in `central-server-simulator/certs/`).
+    
+    **Detailed Instructions:** See [Certificate Provisioning Guide](../doc/15_CERTIFICATE_PROVISIONING.md) for comprehensive step-by-step instructions on:
+    - Creating a Certificate Authority (CA)
+    - Generating device certificates with device ID binding
+    - Installing certificates on devices
+    - Certificate validation and verification
+    
+    **Quick Start:**
     ```bash
     ./certs/generate_certs.sh
     ```
@@ -112,6 +120,8 @@ The simulated server is a Python application.
     -   `ca.crt` (Certificate Authority)
     -   `server.crt`, `server.key` (for the server)
     -   `client.crt`, `client.key` (for the device)
+    
+    **Workflow Diagrams:** See [Certificate Provisioning Workflow](../doc/15_CERTIFICATE_PROVISIONING.mmd) for visual sequence diagrams of the complete certificate lifecycle.
 
 5.  **Run the Server:**
     ```bash

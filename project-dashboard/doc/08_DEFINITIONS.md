@@ -61,7 +61,7 @@ This document provides a glossary of key terms and terminologies used within the
 
 ## N
 
-*   **NetworkManager:** A C++ backend class responsible for managing network connectivity, secure data transmission (mTLS) to the central server, and handling connection status. Integrates with `ITelemetryServer` interface for server communication and supports configurable server URLs.
+*   **NetworkManager:** A C++ backend class responsible for managing network connectivity, secure data transmission (mTLS) to the central server, and handling connection status. Integrates with `ITelemetryServer` interface for server communication and supports configurable server URLs. Implements comprehensive security measures including certificate validation, digital signatures, rate limiting, and security audit logging.
 *   **ITelemetryServer:** An interface for sending telemetry data and sensor data to a central monitoring server. Supports multiple implementations: `NetworkTelemetryServer` (production), `MockTelemetryServer` (testing/development), and `FileTelemetryServer` (offline testing).
 *   **MockTelemetryServer:** A test implementation of `ITelemetryServer` that swallows all data without sending to a real server. Used for unit testing and development when server infrastructure is not available.
 *   **NotificationController:** A C++ QObject-based controller that exposes non-critical informational and warning messages to the QML notification system.
@@ -90,6 +90,7 @@ This document provides a glossary of key terms and terminologies used within the
 
 ## S
 
+*   **Security Audit Log:** Immutable audit trail stored in `security_audit_log` table for all security-relevant events including authentication, connections, certificate operations, and data transmission events. Used for compliance, forensics, and security monitoring.
 *   **SettingsController:** A C++ QObject-based controller that exposes configurable device settings to the QML frontend and handles updates.
 *   **SettingsManager:** A C++ backend class managing device configuration settings and user preferences.
 *   **Sidebar:** A collapsible navigation panel on the left side of the UI.

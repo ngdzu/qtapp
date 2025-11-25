@@ -34,6 +34,11 @@ public:
     virtual void SetServerUrl(const QString& url) = 0;
     virtual QString GetServerUrl() const = 0;
     
+    // Security configuration
+    virtual void SetSslConfiguration(const QSslConfiguration& config) = 0;
+    virtual QSslConfiguration GetSslConfiguration() const = 0;
+    virtual bool ValidateCertificates() = 0;  // Validates client cert, checks expiration, CRL
+    
     // Connection management
     virtual bool Connect() = 0;
     virtual void Disconnect() = 0;
@@ -79,6 +84,8 @@ struct TelemetryData {
     QList<Alarm> alarms;
     QList<InfusionEvent> infusionEvents;
     QList<PredictiveScore> predictiveScores;
+    QString signature;  // Digital signature for data integrity
+    QString nonce;  // Nonce for replay attack prevention
 };
 
 struct SensorData {
@@ -260,13 +267,38 @@ Server URL should be configurable through `SettingsManager`:
 
 ## Security Considerations
 
+### Transport Security
 - Server URL must use HTTPS (except for mock/local testing)
 - mTLS must be enforced for production servers
+- TLS 1.2 minimum, TLS 1.3 preferred
+- Strong cipher suites only (ECDHE-RSA-AES256-GCM-SHA384 or better)
 - Server certificates must be validated
 - Client certificates must be properly configured
-- Server URL changes should be logged for audit
-- Consider rate limiting to prevent abuse
-- Sensitive data in telemetry must be encrypted in transit
+- Certificate expiration and revocation checking
+
+### Authentication
+- Device identity verified via client certificate
+- Certificate must match device ID in settings
+- Optional JWT token-based authentication after mTLS handshake
+- Token refresh before expiration
+
+### Data Integrity
+- Each payload digitally signed (ECDSA or RSA)
+- Signature computed over deviceId + timestamp + payload hash
+- Timestamp validation to prevent replay attacks
+- Clock skew tolerance: ±5 minutes
+- Replay window: 1 minute
+
+### Additional Security Measures
+- Rate limiting: 60 requests per minute (configurable)
+- Exponential backoff on failures
+- Circuit breaker pattern for repeated failures
+- Certificate pinning (optional, for additional MITM protection)
+- Field-level encryption for sensitive PHI (optional)
+- Security audit logging for all security events
+- Server URL changes logged for audit
+- Private key encryption at rest
+- Secure memory handling for keys
 
 ## Development/Testing Mode
 

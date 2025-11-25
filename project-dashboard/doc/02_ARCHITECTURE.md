@@ -17,7 +17,7 @@ The backend is responsible for all business logic, data processing, and communic
 -   **Core Services:** These classes manage the application's state and perform key tasks. They have no knowledge of the UI.
     -   `DeviceSimulator`: Generates realistic, simulated patient vital signs and device data.
     -   `AlarmManager`: Monitors data from the simulator, determines if alarm conditions are met, and manages the state of each alarm (e.g., Active, Silenced).
-    -   `NetworkManager`: Manages the secure connection (mTLS) to the central server and handles the transmission of telemetry data. Uses `ITelemetryServer` interface for server communication, supporting configurable server URLs and mock server implementations for testing.
+    -   `NetworkManager`: Manages the secure connection (mTLS) to the central server and handles the transmission of telemetry data. Uses `ITelemetryServer` interface for server communication, supporting configurable server URLs and mock server implementations for testing. Implements comprehensive security including certificate validation, data signing, rate limiting, and security audit logging.
     -   `ITelemetryServer`: Interface for server communication. Implementations include `NetworkTelemetryServer` (production), `MockTelemetryServer` (testing/development), and `FileTelemetryServer` (offline testing).
     -   `DatabaseManager`: Manages the encrypted SQLite database for storing historical trend data and logs.
     -   `PatientManager`: Manages patient context, including loading/saving patient profiles and current patient data. Integrates with `IPatientLookupService` to retrieve patient information from external systems (HIS/EHR) by patient ID.

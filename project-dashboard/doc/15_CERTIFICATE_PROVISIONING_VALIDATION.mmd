@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant Device as Z Monitor Device
+    participant NetworkMgr as NetworkManager
+    participant CertMgr as CertificateManager
+    participant TelemetryServer as ITelemetryServer
+    participant Server as Central Server
+    participant DB as Database
+
+    Note over Device,DB: Certificate Validation on Device Startup
+
+    Device->>CertMgr: 1. LoadCertificate(deviceId)
+    CertMgr->>CertMgr: 2. Read certificate file<br/>(device_${DEVICE_ID}.crt)
+    CertMgr->>CertMgr: 3. Read private key file<br/>(device_${DEVICE_ID}.key)
+    CertMgr->>CertMgr: 4. Read CA certificate<br/>(ca.crt)
+    CertMgr->>CertMgr: 5. Check certificate expiration
+    alt Certificate expired
+        CertMgr->>DB: Log error: Certificate expired
+        CertMgr-->>Device: Validation failed
+    else Certificate valid
+        CertMgr->>CertMgr: 6. Verify CA signature
+        alt Invalid signature
+            CertMgr->>DB: Log error: Invalid CA signature
+            CertMgr-->>Device: Validation failed
+        else Valid signature
+            CertMgr->>CertMgr: 7. Extract device ID from SAN
+            CertMgr->>CertMgr: 8. Compare with settings device ID
+            alt Device ID mismatch
+                CertMgr->>DB: Log error: Device ID mismatch
+                CertMgr-->>Device: Validation failed
+            else Device ID matches
+                CertMgr->>CertMgr: 9. Check CRL (if available)
+                alt Certificate revoked
+                    CertMgr->>DB: Log error: Certificate revoked
+                    CertMgr-->>Device: Validation failed
+                else Certificate not revoked
+                    CertMgr->>DB: 10. Update last validation timestamp
+                    CertMgr-->>Device: Validation successful
+                    Device->>NetworkMgr: 11. Configure SSL with validated certificate
+                end
+            end
+        end
+    end
+

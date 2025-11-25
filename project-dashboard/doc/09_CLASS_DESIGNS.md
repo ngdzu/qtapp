@@ -45,29 +45,49 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `alarmStateChanged(const QList<Alarm>& activeAlarms)`: Emitted when alarm state changes
 
 ### 2.3. NetworkManager
-**Responsibility:** Manages secure network connectivity to the central server using mTLS. Integrates with `ITelemetryServer` interface for server communication.
+**Responsibility:** Manages secure network connectivity to the central server using mTLS. Integrates with `ITelemetryServer` interface for server communication. Implements comprehensive security measures including certificate validation, data signing, and audit logging.
 
 **Key Properties:**
 - `currentStatus`: Current connection status (Connected, Connecting, Disconnected)
 - `sslConfig`: SSL/TLS configuration including client certificates
 - `serverUrl`: Configurable server URL (from SettingsManager)
+- `clientCertificate`: Device client certificate for mTLS
+- `clientPrivateKey`: Device private key for mTLS
+- `caCertificate`: CA certificate for server verification
 
 **Key Methods:**
-- `connectToServer()`: Initiates connection to central server using configured server URL
-- `sendTelemetry(const TelemetryData& data)`: Transmits data to server via `ITelemetryServer`
-- `sendSensorData(const SensorData& data)`: Transmits sensor data to server
+- `connectToServer()`: Initiates connection to central server using configured server URL and mTLS
+- `sendTelemetry(const TelemetryData& data)`: Transmits data to server via `ITelemetryServer` with digital signature
+- `sendSensorData(const SensorData& data)`: Transmits sensor data to server with digital signature
 - `configure(const QSslConfiguration& sslConfig)`: Configures mTLS settings
 - `setServerUrl(const QString& url)`: Updates server URL and reconnects if needed
 - `getServerUrl()`: Returns current server URL
+- `validateCertificates()`: Validates client certificate (expiration, revocation, device ID match)
+- `loadCertificates()`: Loads certificates from secure storage
+- `signPayload(const QByteArray& data)`: Creates digital signature for data integrity
+- `checkCertificateRevocation()`: Checks certificate revocation list (CRL)
+
+**Security Features:**
+- **mTLS:** Mutual TLS with client and server certificate validation
+- **Certificate Management:** Validates certificates on startup, checks expiration and revocation
+- **Data Signing:** Digital signatures on all telemetry payloads (ECDSA or RSA)
+- **Replay Prevention:** Timestamp validation with nonce
+- **Rate Limiting:** Client-side rate limiting (60 requests/minute)
+- **Circuit Breaker:** Prevents resource exhaustion on repeated failures
+- **Audit Logging:** Logs all security events to `security_audit_log` table
 
 **Dependencies:**
 - `ITelemetryServer`: Interface for server communication (NetworkTelemetryServer, MockTelemetryServer, etc.)
 - `SettingsManager`: For retrieving and storing server URL configuration
+- `DatabaseManager`: For certificate tracking and security audit logging
+- `LogService`: For security event logging
 
 **Signals:**
 - `connectionStatusChanged(ConnectionStatus status)`: Emitted when connection status changes
 - `telemetrySent(const TelemetryData& data, const ServerResponse& response)`: Emitted when telemetry is successfully sent
 - `telemetrySendFailed(const TelemetryData& data, const QString& error)`: Emitted when telemetry send fails
+- `certificateExpiring(const QSslCertificate& cert, int daysRemaining)`: Emitted when certificate is expiring soon
+- `certificateValidationFailed(const QString& reason)`: Emitted when certificate validation fails
 
 ### 2.4. DatabaseManager
 **Responsibility:** Manages encrypted SQLite database for local data persistence.

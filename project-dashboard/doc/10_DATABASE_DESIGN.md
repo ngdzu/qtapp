@@ -249,7 +249,7 @@ Recommended default settings:
 - `useMockServer`: Boolean flag to use mock server for testing/development ("true" or "false", default: "false")
 
 ### `audit_log`
-Immutable audit trail for critical actions.
+Immutable audit trail for critical user actions (patient assignments, settings changes, etc.). For security-specific events, see `security_audit_log`.
 
 Sample DDL:
 
@@ -264,8 +264,10 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 ```
 
+**Note:** Security-related events (authentication, connections, certificate operations) are logged in `security_audit_log` table for better categorization and compliance.
+
 ### `certificates`
-Certificate metadata for installed device/server certs (no private keys stored).
+Certificate metadata for installed device/server certs (no private keys stored). Tracks certificate lifecycle, validation, and revocation status.
 
 Sample DDL:
 
@@ -274,11 +276,84 @@ CREATE TABLE IF NOT EXISTS certificates (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	device_id TEXT NOT NULL,
 	cert_serial TEXT NOT NULL,
+	cert_subject TEXT NULL,
+	cert_issuer TEXT NULL,
 	issued_at INTEGER NULL,
 	expires_at INTEGER NULL,
-	status TEXT NULL
+	status TEXT NOT NULL,
+	last_validated_at INTEGER NULL,
+	revocation_reason TEXT NULL,
+	revoked_at INTEGER NULL,
+	cert_fingerprint TEXT NULL,
+	created_at INTEGER NOT NULL
 );
 ```
+
+**Usage Notes:**
+- `device_id`: Device identifier this certificate belongs to
+- `cert_serial`: Certificate serial number (unique identifier)
+- `cert_subject`: Certificate subject (CN, O, etc.)
+- `cert_issuer`: Certificate issuer (CA information)
+- `status`: Certificate status ("active", "expired", "revoked", "pending_renewal")
+- `last_validated_at`: Timestamp of last successful certificate validation
+- `revocation_reason`: Reason for revocation if revoked (e.g., "compromised", "key_rotation")
+- `revoked_at`: Timestamp when certificate was revoked
+- `cert_fingerprint`: SHA-256 fingerprint of certificate for quick lookup
+
+**Recommended index:**
+```sql
+CREATE INDEX IF NOT EXISTS idx_certificates_device_status ON certificates(device_id, status);
+CREATE INDEX IF NOT EXISTS idx_certificates_expires ON certificates(expires_at) WHERE status = 'active';
+```
+
+### `security_audit_log`
+Stores security-relevant events for audit, forensics, and compliance. Immutable audit trail.
+
+Sample DDL:
+
+```sql
+CREATE TABLE IF NOT EXISTS security_audit_log (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	timestamp INTEGER NOT NULL,
+	event_type TEXT NOT NULL,
+	severity TEXT NOT NULL,
+	device_id TEXT NULL,
+	user_id TEXT NULL,
+	source_ip TEXT NULL,
+	event_category TEXT NOT NULL,
+	success BOOLEAN NOT NULL,
+	details TEXT NULL,
+	error_code TEXT NULL,
+	error_message TEXT NULL
+);
+```
+
+**Event Categories:**
+- `authentication`: Login attempts, certificate validation, token operations
+- `connection`: mTLS handshakes, connection establishment, disconnections
+- `data_transmission`: Telemetry sends, sensor data sends, transmission failures
+- `certificate`: Certificate validation, renewal, revocation events
+- `authorization`: Access control violations, permission checks
+- `security_config`: Security setting changes, certificate updates
+
+**Severity Levels:**
+- `info`: Informational events (successful operations)
+- `warning`: Suspicious but non-critical events (rate limit warnings)
+- `error`: Failed operations (authentication failures)
+- `critical`: Security violations (certificate revocation, unauthorized access)
+
+**Recommended indices:**
+```sql
+CREATE INDEX IF NOT EXISTS idx_security_audit_timestamp ON security_audit_log(timestamp);
+CREATE INDEX IF NOT EXISTS idx_security_audit_category ON security_audit_log(event_category, timestamp);
+CREATE INDEX IF NOT EXISTS idx_security_audit_device ON security_audit_log(device_id, timestamp);
+```
+
+**Usage Notes:**
+- All security events should be logged immediately (no batching)
+- Logs are append-only (never updated or deleted)
+- Retention policy: 90 days (configurable)
+- Critical events may trigger alerts/notifications
 
 ### `archival_jobs`
 Tracks archival/export jobs and their status.
