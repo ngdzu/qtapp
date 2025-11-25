@@ -11,9 +11,14 @@ This document provides a glossary of key terms and terminologies used within the
 *   **AlarmManager:** A C++ backend class responsible for monitoring physiological and technical data, detecting alarm conditions, and managing the state and history of alarms.
 *   **AuthenticationService:** A C++ backend class handling user login, session management, and role-based access control for the device.
 
+## A
+
+*   **ADT (Admission, Discharge, Transfer):** Hospital workflow for managing patient assignments to devices. The Z Monitor implements ADT workflow where patients are admitted to devices, creating an association between device and patient. See `doc/19_ADT_WORKFLOW.md` for complete workflow documentation.
+*   **Admission Modal:** A specialized UI component for admitting patients to the device. Supports three admission methods: Manual Entry (type MRN/name), Barcode Scan (scan patient wristband), and Central Station Push (automatic admission from HIS/EHR).
+
 ## B
 
-*   **Bed ID:** Identifier for the bed or room location where the Z Monitor device is deployed. Used for patient context, location tracking, and associating device telemetry with specific clinical locations. Configurable through the Settings View.
+*   **Bed Location:** Current bed/room assignment for a patient (e.g., "ICU-4B"). Part of the Patient object and managed through the ADT workflow. Previously called "Bed ID" but now separated from device configuration.
 
 ## C
 
@@ -26,7 +31,8 @@ This document provides a glossary of key terms and terminologies used within the
 *   **DashboardController:** A C++ QObject-based controller that exposes real-time vital signs and device status data to the QML frontend for display on the main dashboard view.
 *   **DatabaseManager:** A C++ backend class responsible for managing the local encrypted SQLite database, including data storage, retrieval, and encryption.
 *   **DataArchiver:** A C++ backend class responsible for handling the archival of historical data from the local database, typically data older than a defined retention policy.
-*   **Device ID:** A unique identifier assigned to each Z Monitor device, used for device identification, telemetry transmission, and tracking in the central monitoring system. Configurable through the Settings View.
+*   **Device ID:** A unique identifier assigned to each Z Monitor device, used for device identification in telemetry transmission and tracking in the central monitoring system. Configurable through the Settings View.
+*   **Device Label:** A static device identifier/asset tag (e.g., "ICU-MON-04") that serves as the fixed technical identifier for the device itself. Separate from patient assignment and rarely changes. Displayed in Settings View (read-only for most users, editable by Technician role).
 *   **DeviceSimulator:** A C++ backend class that generates realistic, simulated patient vital signs and device operational data for testing and demonstration purposes.
 *   **Diagnostics View:** A QML view displaying system logs and providing controls for simulation parameters or remote commands.
 *   **Docker:** A platform that uses OS-level virtualization to deliver software in packages called containers. Used for consistent development and deployment environments.
@@ -70,10 +76,12 @@ This document provides a glossary of key terms and terminologies used within the
 ## P
 
 *   **Pairing Code:** A time-limited, one-time-use code (format: XXX-XXX-XXX) used for device provisioning. Generated cryptographically and expires after 10 minutes. See `doc/17_DEVICE_PROVISIONING.md` for details.
-*   **Patient Banner:** A persistent UI element in the header displaying critical patient identification and safety information. Tappable to open Patient Assignment View when no patient is assigned.
-*   **PatientController:** A C++ QObject-based controller that exposes current patient data to the QML frontend and provides patient lookup functionality via `lookupPatientById()`.
-*   **PatientManager:** A C++ backend class managing patient-specific data and profiles. Integrates with `IPatientLookupService` to retrieve patient information from external systems.
-*   **IPatientLookupService:** An interface for looking up patient information from external systems (HIS/EHR) by patient ID. Supports both synchronous and asynchronous lookup patterns.
+*   **Patient:** An object representing a patient being monitored, containing MRN, name, DOB, sex, allergies, and bed location. Managed through the ADT workflow.
+*   **Patient Admission:** The process of associating a patient with a device, creating a monitoring session. Supports three methods: Manual Entry, Barcode Scan, and Central Station Push. See `doc/19_ADT_WORKFLOW.md` for details.
+*   **Patient Banner:** A persistent UI element in the header displaying critical patient identification and safety information. When patient is admitted, shows patient name prominently, MRN, bed location, and allergies. When no patient is admitted, shows "DISCHARGED / STANDBY" status. Tappable to open Admission Modal when no patient is assigned.
+*   **PatientController:** A C++ QObject-based controller that exposes current patient data to the QML frontend and provides patient admission/discharge functionality via `admitPatient()` and `dischargePatient()`.
+*   **PatientManager:** A C++ backend class managing patient-specific data, profiles, and ADT workflow (admission, discharge, transfer). Integrates with `IPatientLookupService` to retrieve patient information from external systems.
+*   **IPatientLookupService:** An interface for looking up patient information from external systems (HIS/EHR) by patient ID or MRN. Supports both synchronous and asynchronous lookup patterns.
 *   **PI (Perfusion Index):** A numerical value that indicates the pulsatile blood flow in peripheral tissues.
 *   **Predictive Analytics:** Simulated feature that generates a risk score for potential adverse events based on current and historical patient data.
 *   **Provisioning:** The process of securely configuring a device with server URL, certificates, and mTLS keys through a QR code-based pairing workflow. Replaces manual network configuration. See `doc/17_DEVICE_PROVISIONING.md` for complete workflow.

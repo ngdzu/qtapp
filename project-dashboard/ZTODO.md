@@ -2,6 +2,21 @@
 
 ## Sequential Tasks (must be done in order)
 
+- [ ] Refactor Settings: Remove Bed ID, Add Device Label and ADT Workflow
+  - What: Remove `bedId` setting from SettingsManager and SettingsController. Add `deviceLabel` setting (static device identifier/asset tag). Update PatientManager to support ADT workflow with admission/discharge methods. Update database schema to add `admission_events` table and enhance `patients` table with ADT columns (bed_location, admitted_at, discharged_at, admission_source, device_label).
+  - Why: Aligns device configuration with hospital ADT workflows. Separates device identity (Device Label) from patient assignment (Bed Location in Patient object). Enables proper patient lifecycle management.
+  - Files: `src/core/SettingsManager.cpp/h`, `src/ui/SettingsController.cpp/h`, `src/core/PatientManager.cpp/h`, `doc/migrations/0003_adt_workflow.sql`, update `doc/10_DATABASE_DESIGN.md`.
+  - Changes:
+    - Remove `bedId` from settings table and SettingsManager
+    - Add `deviceLabel` to settings (static asset tag, e.g., "ICU-MON-04")
+    - Add `admission_events` table for audit trail
+    - Enhance `patients` table with ADT columns
+    - Update PatientManager with `admitPatient()`, `dischargePatient()`, `transferPatient()` methods
+    - Update PatientController with admission state properties and methods
+  - Acceptance: Settings no longer contains `bedId`, `deviceLabel` is displayed in Settings View, PatientManager supports ADT workflow, admission events are logged to database.
+  - Documentation: See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow specification.
+  - Prompt: `project-dashboard/prompt/08a-refactor-settings-adt.md`  (When finished: mark this checklist item done.)
+
 - [ ] Create project scaffolding and repo checklist
   - What: Ensure `project-dashboard/` contains the canonical folders: `src/`, `resources/`, `doc/`, `proto/`, `openapi/`, `tests/`, `central-server-simulator/` and `doc/migrations/`.
   - Why: Provides a stable structure to place interfaces, tests, and docs.
@@ -56,8 +71,8 @@
   - What: Create `DashboardController`, `AlarmController`, `SystemController`, `PatientController`, `SettingsController`, `TrendsController`, `NotificationController` as QObject-derived classes exposing Q_PROPERTY and basic signals. Do not implement heavy logic yet.
   - Why: QML UI can be wired to properties and tested for binding behavior early.
   - Files: `src/ui/*.cpp/h` and `resources/qml/Main.qml` with placeholder components.
-  - Note: `SettingsController` must expose `deviceId`, `bedId`, `measurementUnit`, `serverUrl`, and `useMockServer` as Q_PROPERTY for Device Configuration and Network Settings sections in Settings View.
-  - Note: `PatientController` must expose `lookupPatientById()` as Q_INVOKABLE method and `isLookingUp`, `lookupError` as Q_PROPERTY for patient lookup functionality.
+  - Note: `SettingsController` must expose `deviceId`, `deviceLabel`, `measurementUnit`, `serverUrl`, and `useMockServer` as Q_PROPERTY. `bedId` has been removed - bed location is now part of Patient object managed through ADT workflow.
+  - Note: `PatientController` must expose `admitPatient()`, `dischargePatient()`, `openAdmissionModal()`, `scanBarcode()` as Q_INVOKABLE methods and `admissionState`, `isAdmitted`, `bedLocation`, `admittedAt` as Q_PROPERTY for ADT workflow. See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow specification.
   - Prompt: `project-dashboard/prompt/08-controller-skeletons-qml-stubs.md`  (When finished: mark this checklist item done.)
 
 ## Testing & Quality Foundations
@@ -106,12 +121,12 @@
 ## Parallel Tasks (can be done concurrently)
 
 - [ ] QML UI skeleton and components
-  - What: Implement `Main.qml`, `Sidebar.qml`, `TopBar.qml`, `StatCard.qml`, `PatientBanner.qml`, and placeholder `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView, PatientAssignmentView).
+  - What: Implement `Main.qml`, `Sidebar.qml`, `TopBar.qml`, `StatCard.qml`, `PatientBanner.qml`, and placeholder `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView, AdmissionModal).
   - Why: Visual scaffolding enables early UX validation and manual QA.
   - Acceptance: QML app boots and displays placeholders at `1280x800`.
-  - Note: `SettingsView.qml` must include Device Configuration section with inputs for Device ID, Bed ID, and Measurement Unit dropdown (metric/imperial). See `doc/03_UI_UX_GUIDE.md` section 4.4 for specifications.
-  - Note: `PatientAssignmentView.qml` must provide patient ID input, lookup button, loading indicator, patient preview, and error display. See `doc/03_UI_UX_GUIDE.md` section 4.5 for specifications.
-  - Note: `PatientBanner.qml` should be tappable to open Patient Assignment View when no patient is assigned.
+  - Note: `SettingsView.qml` must include Device Configuration section with Device Label (read-only display), Device ID input, and Measurement Unit dropdown (metric/imperial). Bed ID has been removed - bed location is now part of Patient object. See `doc/03_UI_UX_GUIDE.md` section 4.4 for specifications.
+  - Note: `AdmissionModal.qml` must provide admission method selection (Manual Entry, Barcode Scan, Central Station), patient lookup, patient preview with bed location override, and admission confirmation. See `doc/03_UI_UX_GUIDE.md` section 4.5 and `doc/19_ADT_WORKFLOW.md` for specifications.
+  - Note: `PatientBanner.qml` must display patient name prominently when admitted, or "DISCHARGED / STANDBY" when no patient is admitted. Should be tappable to open Admission Modal when no patient is assigned. See `doc/03_UI_UX_GUIDE.md` section 5.1 for specifications.
   - Prompt: `project-dashboard/prompt/09-qml-ui-skeleton.md`  (When finished: mark this checklist item done.)
 
 - [ ] Alarm UI & animation prototypes (QML)

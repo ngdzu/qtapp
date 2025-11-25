@@ -31,11 +31,21 @@ CREATE TABLE IF NOT EXISTS patients (
 ```
 
 **Usage Notes:**
-- `patient_id`: Primary identifier used for patient lookups
-- `mrn`: Medical Record Number, alternative lookup key
-- `room`: Current room/bed assignment (may be updated from external system)
+- `patient_id`: Primary identifier used for patient lookups (typically MRN)
+- `mrn`: Medical Record Number, primary patient identifier in hospital systems
+- `room`: Current room/bed assignment (may be updated from external system or overridden during admission)
 - `last_lookup_at`: Timestamp of last successful lookup from external system (NULL if never looked up)
 - `lookup_source`: Source of patient data ("local", "his", "ehr", etc.) for audit purposes
+
+**ADT Workflow Enhancements:**
+The `patients` table should be enhanced with additional columns for ADT workflow:
+- `bed_location`: Current bed/room assignment (e.g., "ICU-4B") - part of Patient object
+- `admitted_at`: Timestamp when patient was admitted to device (NULL if not currently admitted)
+- `discharged_at`: Timestamp when patient was discharged (NULL if currently admitted)
+- `admission_source`: Source of admission ("manual", "barcode", "central_station")
+- `device_label`: Device identifier that admitted this patient (e.g., "ICU-MON-04")
+
+See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow documentation.
 
 **Lookup Flow:**
 1. When `PatientManager::loadPatientById(id)` is called, it first checks the local `patients` table
@@ -242,11 +252,13 @@ CREATE TABLE IF NOT EXISTS settings (
 ```
 
 Recommended default settings:
-- `deviceId`: Unique device identifier (e.g., "ZM-001")
-- `bedId`: Bed/room location identifier (e.g., "ICU-3B")
+- `deviceId`: Unique device identifier for telemetry transmission (e.g., "ZM-001")
+- `deviceLabel`: Static device identifier/asset tag (e.g., "ICU-MON-04") - fixed technical identifier, separate from patient assignment
 - `measurementUnit`: Measurement system preference ("metric" or "imperial")
 - `serverUrl`: Central server URL for telemetry transmission (e.g., "https://monitoring.hospital.com:8443", default: "https://localhost:8443")
 - `useMockServer`: Boolean flag to use mock server for testing/development ("true" or "false", default: "false")
+
+**Note:** `bedId` setting has been removed. Bed location is now part of the Patient object and managed through the ADT (Admission, Discharge, Transfer) workflow. See `doc/19_ADT_WORKFLOW.md` for details.
 
 ### `audit_log`
 Immutable audit trail for critical user actions (patient assignments, settings changes, etc.). For security-specific events, see `security_audit_log`.
@@ -372,6 +384,44 @@ CREATE TABLE IF NOT EXISTS archival_jobs (
 );
 ```
 
+### `admission_events`
+Tracks patient admission, discharge, and transfer events for audit and compliance. Part of the ADT (Admission, Discharge, Transfer) workflow.
+
+Sample DDL:
+
+```sql
+CREATE TABLE IF NOT EXISTS admission_events (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	timestamp INTEGER NOT NULL,
+	event_type TEXT NOT NULL,
+	patient_mrn TEXT NOT NULL,
+	patient_name TEXT NULL,
+	device_label TEXT NOT NULL,
+	bed_location TEXT NULL,
+	admission_source TEXT NULL,
+	user_id TEXT NULL,
+	details TEXT NULL
+);
+```
+
+**Usage Notes:**
+- `event_type`: Type of event ("admission", "discharge", "transfer")
+- `patient_mrn`: Medical Record Number of the patient
+- `device_label`: Device identifier/asset tag that performed the action
+- `bed_location`: Bed/room location associated with the event
+- `admission_source`: Source of admission ("manual", "barcode", "central_station", "transfer")
+- `user_id`: Clinician/Technician who performed the action (NULL if automated)
+- `details`: Additional event details in JSON format (optional)
+
+**Recommended indices:**
+```sql
+CREATE INDEX IF NOT EXISTS idx_admission_events_patient ON admission_events(patient_mrn, timestamp);
+CREATE INDEX IF NOT EXISTS idx_admission_events_device ON admission_events(device_label, timestamp);
+CREATE INDEX IF NOT EXISTS idx_admission_events_type ON admission_events(event_type, timestamp);
+```
+
+**ADT Workflow:** See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow documentation.
+
 ### `db_encryption_meta`
 Stores metadata about the DB encryption key and algorithm (not the key itself).
 
@@ -467,6 +517,58 @@ When updating an existing schema, prefer these steps:
 1. Create new tables/columns with `IF NOT EXISTS` or `ALTER TABLE ADD COLUMN`.
 2. Backfill data in small batches inside transactions.
 3. Add indices after backfill to avoid excessive index maintenance during migration.
+
+### 9.1. ADT Workflow Migration
+
+**Migration from Bed ID to ADT Workflow:**
+
+1. **Create `admission_events` table:**
+   ```sql
+   CREATE TABLE IF NOT EXISTS admission_events (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       timestamp INTEGER NOT NULL,
+       event_type TEXT NOT NULL,
+       patient_mrn TEXT NOT NULL,
+       patient_name TEXT NULL,
+       device_label TEXT NOT NULL,
+       bed_location TEXT NULL,
+       admission_source TEXT NULL,
+       user_id TEXT NULL,
+       details TEXT NULL
+   );
+   ```
+
+2. **Enhance `patients` table with ADT columns:**
+   ```sql
+   ALTER TABLE patients ADD COLUMN bed_location TEXT NULL;
+   ALTER TABLE patients ADD COLUMN admitted_at INTEGER NULL;
+   ALTER TABLE patients ADD COLUMN discharged_at INTEGER NULL;
+   ALTER TABLE patients ADD COLUMN admission_source TEXT NULL;
+   ALTER TABLE patients ADD COLUMN device_label TEXT NULL;
+   ```
+
+3. **Migrate `bedId` setting to `deviceLabel`:**
+   ```sql
+   -- Extract bedId value and create deviceLabel
+   INSERT INTO settings (key, value, updated_at)
+   SELECT 'deviceLabel', value, strftime('%s', 'now')
+   FROM settings WHERE key = 'bedId';
+   
+   -- Remove bedId setting
+   DELETE FROM settings WHERE key = 'bedId';
+   ```
+
+4. **Backfill existing patient data (if any):**
+   - If patients table has records with `room` column, migrate to `bed_location`
+   - Set `admission_source` to 'migration' for existing records
+
+5. **Create indices:**
+   ```sql
+   CREATE INDEX IF NOT EXISTS idx_admission_events_patient ON admission_events(patient_mrn, timestamp);
+   CREATE INDEX IF NOT EXISTS idx_admission_events_device ON admission_events(device_label, timestamp);
+   ```
+
+See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow documentation.
 
 ## 10. Next Steps
 

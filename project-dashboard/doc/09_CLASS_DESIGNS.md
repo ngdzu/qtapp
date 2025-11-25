@@ -110,27 +110,37 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `getBackupList()`: Returns list of available backups with timestamps
 
 ### 2.5. PatientManager
-**Responsibility:** Manages patient context, including identification and safety information.
+**Responsibility:** Manages patient context, admission/discharge workflow, and patient lifecycle. Implements ADT (Admission, Discharge, Transfer) workflow aligned with hospital information systems.
 
 **Key Properties:**
-- `patientId`: Unique patient identifier
-- `patientName`: Patient full name
-- `patientAge`: Patient age
-- `allergies`: List of known patient allergies
+- `currentPatient`: Current patient object (includes MRN, name, DOB, sex, allergies, bedLocation)
+- `admissionState`: Current admission state (NotAdmitted, Admitted, Discharged)
+- `admittedAt`: Timestamp of current admission (QDateTime, NULL if not admitted)
+- `deviceLabel`: Static device identifier/asset tag (e.g., "ICU-MON-04")
 
 **Key Methods:**
 - `loadPatient(const QString& id)`: Loads patient profile from local database
 - `loadPatientById(const QString& id)`: Looks up patient by ID, first checking local database, then using `IPatientLookupService` if not found locally
-- `setCurrentPatient(const PatientInfo& info)`: Sets the current patient context
+- `admitPatient(const PatientInfo& info, const QString& admissionSource)`: Admits patient to device (admissionSource: "manual", "barcode", "central_station")
+- `dischargePatient(const QString& mrn)`: Discharges patient from device
+- `transferPatient(const QString& mrn, const QString& targetDevice)`: Transfers patient to another device
+- `getCurrentAdmission()`: Returns current admission information
+- `isPatientAdmitted()`: Returns whether a patient is currently admitted
+- `getAdmissionHistory(const QString& mrn)`: Returns admission/discharge history for patient
+- `setCurrentPatient(const PatientInfo& info)`: Sets the current patient context (deprecated, use admitPatient)
 - `getCurrentPatient()`: Returns current patient data
-- `clearCurrentPatient()`: Clears the current patient context
+- `clearCurrentPatient()`: Clears the current patient context (deprecated, use dischargePatient)
 
 **Dependencies:**
 - `IPatientLookupService`: Interface for looking up patient information from external systems (HIS/EHR)
-- `DatabaseManager`: For local patient data storage and retrieval
+- `DatabaseManager`: For local patient data storage and retrieval, admission events logging
 
 **Signals:**
 - `patientChanged(const Patient& patient)`: Emitted when patient context changes
+- `patientAdmitted(const Patient& patient, const QString& admissionSource)`: Emitted when patient is admitted
+- `patientDischarged(const QString& mrn)`: Emitted when patient is discharged
+- `patientTransferred(const QString& mrn, const QString& targetDevice)`: Emitted when patient is transferred
+- `admissionStateChanged(AdmissionState state)`: Emitted when admission state changes
 - `patientLookupStarted(const QString& patientId)`: Emitted when patient lookup begins
 - `patientLookupCompleted(const PatientInfo& info)`: Emitted when patient lookup succeeds
 - `patientLookupFailed(const QString& patientId, const QString& error)`: Emitted when patient lookup fails
@@ -148,11 +158,13 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `setValue(const QString& key, const QVariant& value)`: Updates a setting
 
 **Configuration Settings:**
-- `deviceId`: Unique identifier for the monitoring device (QString)
-- `bedId`: Identifier for the bed/room location (QString)
+- `deviceId`: Unique identifier for the monitoring device used for telemetry transmission (QString)
+- `deviceLabel`: Static device identifier/asset tag (e.g., "ICU-MON-04") - fixed technical identifier, separate from patient assignment (QString)
 - `measurementUnit`: System preference for metric or imperial units (QString: "metric" or "imperial")
 - `serverUrl`: Central server URL for telemetry transmission (QString, default: "https://localhost:8443")
 - `useMockServer`: Boolean flag to use mock server for testing/development (bool, default: false)
+
+**Note:** `bedId` setting has been removed. Bed location is now part of the Patient object and managed through the ADT workflow. See `doc/19_ADT_WORKFLOW.md` for details.
 
 **Signals:**
 - `settingsChanged()`: Emitted when settings are modified
@@ -265,22 +277,35 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `onConnectionStatusChanged(NetworkManager::ConnectionStatus status)`: Updates connection status
 
 ### 3.4. PatientController
-**Responsibility:** Exposes patient information to the Patient Banner and related UI, and provides patient lookup functionality.
+**Responsibility:** Exposes patient information to the Patient Banner and related UI, and provides patient admission/discharge functionality.
 
 **Properties (Q_PROPERTY):**
-- `patientId`: Patient identifier
-- `patientName`: Patient name
-- `patientAge`: Patient age
-- `allergies`: List of allergies
+- `mrn`: Medical Record Number (QString, read-only)
+- `patientName`: Patient name (QString, read-only)
+- `patientAge`: Patient age (int, read-only)
+- `dateOfBirth`: Patient date of birth (QDate, read-only)
+- `sex`: Patient sex (QString, read-only)
+- `allergies`: List of allergies (QStringList, read-only)
+- `bedLocation`: Current patient's bed location (QString, read-only)
+- `admissionState`: Current admission state (enum: NotAdmitted, Admitted, Discharged)
+- `isAdmitted`: Whether patient is currently admitted (bool, read-only)
+- `admittedAt`: Timestamp of admission (QDateTime, read-only)
 - `isLookingUp`: Boolean indicating if a patient lookup is in progress
 - `lookupError`: Last error message from patient lookup (empty if no error)
 
 **Q_INVOKABLE Methods:**
-- `lookupPatientById(const QString& patientId)`: Initiates patient lookup by ID (asynchronous)
-- `clearPatient()`: Clears the current patient context
+- `openAdmissionModal()`: Opens admission modal for admitting a patient
+- `admitPatient(const QString& mrn, const QString& admissionSource)`: Admits patient (admissionSource: "manual", "barcode", "central_station")
+- `dischargePatient()`: Discharges current patient (requires confirmation)
+- `scanBarcode()`: Initiates barcode scanning for admission
+- `lookupPatientById(const QString& patientId)`: Initiates patient lookup by ID (asynchronous, used by admission workflow)
+- `clearPatient()`: Clears the current patient context (deprecated, use dischargePatient)
 
 **Slots:**
 - `onPatientChanged(const Patient& patient)`: Updates UI when patient changes
+- `onPatientAdmitted(const Patient& patient, const QString& admissionSource)`: Updates UI when patient is admitted
+- `onPatientDischarged(const QString& mrn)`: Updates UI when patient is discharged
+- `onAdmissionStateChanged(AdmissionState state)`: Updates UI when admission state changes
 - `onPatientLookupStarted(const QString& patientId)`: Updates UI when lookup begins
 - `onPatientLookupCompleted(const PatientInfo& info)`: Updates UI when lookup succeeds
 - `onPatientLookupFailed(const QString& patientId, const QString& error)`: Updates UI when lookup fails
@@ -290,9 +315,11 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 
 **Properties (Q_PROPERTY):**
 - `allSettings`: Map of all configurable settings
-- `deviceId`: Device identifier (QString, read/write)
-- `bedId`: Bed/room location identifier (QString, read/write)
+- `deviceId`: Device identifier for telemetry transmission (QString, read/write)
+- `deviceLabel`: Static device identifier/asset tag (QString, read-only for most users, read/write for Technician role)
 - `measurementUnit`: Measurement unit preference (QString: "metric" or "imperial", read/write)
+
+**Note:** `bedId` property has been removed. Bed location is now managed through Patient object and ADT workflow.
 
 **Q_INVOKABLE Methods:**
 - `updateSetting(const QString& key, const QVariant& value)`: Updates a setting from UI

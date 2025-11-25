@@ -100,9 +100,16 @@ The application adheres to a consistent layout across all main views.
 -   **Layout:** Organized into sections (Device Configuration, Alarms, Display, Sound, Network).
 -   **Controls:**
     -   **Device Configuration:**
-        -   **Device ID:** Text input for unique device identifier (e.g., "ZM-001"). Used for device identification and telemetry transmission.
-        -   **Bed ID:** Text input for bed/room location identifier (e.g., "ICU-3B"). Used for patient context and location tracking.
+        -   **Device Label:** Display of static device identifier/asset tag (e.g., "ICU-MON-04"). Read-only for most users, editable by Technician role. This is the fixed technical identifier for the device itself, separate from patient assignment.
+        -   **Device ID:** Text input for unique device identifier used for telemetry transmission (e.g., "ZM-001"). Used for device identification in server communication.
         -   **Measurement Unit:** Dropdown or toggle for selecting measurement system preference ("Metric" or "Imperial"). Affects display of vital signs, temperatures, and infusion rates throughout the application.
+    -   **Patient Management (New Section):**
+        -   **Current Patient Status:** Display of current patient information if admitted, or "No Patient Admitted" if in standby
+        -   **Admission Actions:**
+            -   "Admit Patient" button (opens Admission Modal)
+            -   "Discharge Patient" button (if patient admitted, requires confirmation)
+            -   "Transfer Patient" button (if patient admitted, requires Technician role)
+        -   **Patient History:** Link to view admission/discharge history for current or previous patients
     -   **Alarm Limits:** Number inputs or sliders for setting upper/lower thresholds for each vital sign.
     -   **Display Settings:** Brightness slider, Day/Night theme toggle.
     -   **Sound Settings:** Alarm volume slider, test alarm button.
@@ -131,26 +138,65 @@ The application adheres to a consistent layout across all main views.
 -   **Actions:** Save/Reset buttons for applying or reverting changes.
 -   **Access Control:** Device Configuration settings require Technician role for modification.
 
-### 4.5. Patient Assignment View / Quick Patient Lookup
+### 4.5. Admission Modal (Patient Admission Workflow)
 
--   **Purpose:** Quick patient assignment by entering patient ID for automatic lookup from external systems.
--   **Layout:** Modal overlay or dedicated view accessible from Patient Banner or Settings.
+-   **Purpose:** Admit a patient to the device using one of three methods: Manual Entry, Barcode Scan, or Central Station Push.
+-   **Layout:** Modal overlay accessible from Patient Banner (when no patient admitted) or Settings → Patient Management.
 -   **Components:**
-    -   **Patient ID Input:** Text field or barcode scanner input for patient ID or MRN.
-    -   **Lookup Button:** Triggers asynchronous patient lookup via `IPatientLookupService`.
-    -   **Loading Indicator:** Shows "Looking up patient..." during lookup operation.
-    -   **Patient Preview:** Displays retrieved patient information (name, DOB, allergies) for confirmation before assignment.
-    -   **Assign Button:** Confirms and assigns the patient to the current device.
-    -   **Error Display:** Shows error message if lookup fails (patient not found, network error, etc.).
+    -   **Admission Method Selection:**
+        -   Radio buttons or tabs: "Manual Entry", "Barcode Scan", "Central Station"
+    -   **Manual Entry Section:**
+        -   **MRN/Name Input:** Text field for entering MRN or patient name
+        -   **Lookup Button:** Triggers asynchronous patient lookup via `IPatientLookupService`
+        -   **Loading Indicator:** Shows "Looking up patient..." during lookup operation
+    -   **Barcode Scanner Section:**
+        -   **Camera View:** Live camera feed for barcode scanning
+        -   **Scan Indicator:** Visual feedback when barcode is detected
+        -   **Automatic Lookup:** Automatically extracts MRN and looks up patient
+    -   **Patient Preview:**
+        -   Displays retrieved patient information:
+            -   Name (prominent)
+            -   MRN
+            -   Date of Birth
+            -   Sex
+            -   Allergies (highlighted if present)
+            -   Bed Location (editable, can override HIS assignment)
+    -   **Action Buttons:**
+        -   "Admit Patient" (confirms admission, creates patient association)
+        -   "Cancel" (closes modal without admitting)
+    -   **Error Display:** Shows error message if lookup fails (patient not found, network error, etc.)
 -   **Behavior:**
     -   On successful lookup, patient information is displayed for confirmation
-    -   User confirms assignment, which updates `PatientManager` and `PatientController`
-    -   Patient data is cached locally in `patients` table for future use
+    -   Clinician can override bed location if different from HIS assignment
+    -   User confirms admission, which updates `PatientManager` and creates admission record
+    -   Patient data is cached locally in `patients` table
+    -   Admission event is logged to `admission_events` and `audit_log`
     -   On failure, error message is displayed with option to retry
--   **Access:** Available to Clinician and Technician roles. May be accessible via:
-    -   Tap/click on Patient Banner when no patient is assigned
-    -   Settings View → Patient Assignment section
-    -   Quick action button in header
+-   **Access:** Available to Clinician and Technician roles. Accessible via:
+    -   Tap/click on Patient Banner when showing "DISCHARGED / STANDBY"
+    -   Settings View → Patient Management → "Admit Patient" button
+    -   Quick action button in header (when no patient admitted)
+
+### 4.6. Patient Discharge Workflow
+
+-   **Purpose:** Discharge a patient from the device when monitoring is no longer needed.
+-   **Access:** Available from Patient Banner (long press menu) or Settings → Patient Management.
+-   **Components:**
+    -   **Discharge Confirmation Dialog:**
+        -   Displays current patient information
+        -   Confirmation message: "Discharge [Patient Name] from this device?"
+        -   "Discharge" button (confirms discharge)
+        -   "Cancel" button (cancels discharge)
+    -   **Discharge Options (Optional):**
+        -   "Transfer to another device" option
+        -   "Archive patient data" option
+-   **Behavior:**
+    -   On confirmation, patient is discharged from device
+    -   Patient data is preserved for audit (retention policy applies)
+    -   Device enters "STANDBY" state
+    -   Header updates to show "DISCHARGED / STANDBY"
+    -   Discharge event is logged to `admission_events` and `audit_log`
+    -   Device is ready for next patient admission
 
 ### 4.6. Login View
 
@@ -167,15 +213,21 @@ The application adheres to a consistent layout across all main views.
 ### 5.1. PatientBanner
 
 -   **Location:** Top of header, left section.
--   **Content:**
-    -   **Patient ID:** Prominently displayed identifier.
-    -   **Patient Name:** Full name.
-    -   **Age:** Patient age.
-    -   **Allergies:** Comma-separated list, highlighted in red/orange if present.
--   **Styling:** Compact layout, high contrast text, allergy field uses warning colors.
+-   **Display States:**
+    -   **When Patient Admitted:**
+        -   **Patient Name:** Prominently displayed (large, bold font)
+        -   **MRN:** Displayed below name (smaller font, e.g., "MRN: 12345")
+        -   **Bed Location:** Displayed as badge or secondary text (e.g., "Bed: ICU-4B")
+        -   **Allergies:** Comma-separated list, highlighted in red/orange if present
+        -   **Admission Time:** Displayed (e.g., "Admitted: 2h 15m ago")
+    -   **When No Patient Admitted:**
+        -   **Status Text:** "DISCHARGED / STANDBY" (prominently displayed, large font)
+        -   **Action Hint:** "Tap to admit patient" (smaller text below status)
+-   **Styling:** Compact layout, high contrast text, allergy field uses warning colors. Patient name uses prominent styling when admitted.
 -   **Interaction:**
-    -   When no patient is assigned: Tap/click opens Patient Assignment View for quick lookup
-    -   When patient is assigned: Tap/click may open patient details or assignment change dialog
+    -   When no patient is admitted: Tap/click opens Admission Modal
+    -   When patient is admitted: Tap/click opens Patient Details view
+    -   Long press opens quick actions menu (Discharge, Transfer, View History)
 
 ### 5.2. AlarmIndicator
 
