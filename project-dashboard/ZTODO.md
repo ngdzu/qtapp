@@ -60,6 +60,48 @@
   - Note: `PatientController` must expose `lookupPatientById()` as Q_INVOKABLE method and `isLookingUp`, `lookupError` as Q_PROPERTY for patient lookup functionality.
   - Prompt: `project-dashboard/prompt/08-controller-skeletons-qml-stubs.md`  (When finished: mark this checklist item done.)
 
+## Testing & Quality Foundations
+
+- [ ] Implement unified testing workflow
+  - What: Create GoogleTest + Qt Test scaffolding under `tests/unit/`, integration suites under `tests/integration/`, E2E suites under `tests/e2e/`, and benchmark suites under `tests/benchmarks/`. Apply `ctest` labels (`unit`, `integration`, `benchmark`) and follow the process documented in `doc/18_TESTING_WORKFLOW.md`.
+  - Why: Testing groundwork must be established early to support iterative development.
+
+- [ ] Add coverage pipeline
+  - What: Enable coverage builds with `-DENABLE_COVERAGE=ON`, integrate `lcov`/`genhtml`, and enforce minimum 80% line coverage on `src/core/`. Publish reports from `build_coverage/coverage/index.html`.
+  - Why: Maintains confidence in critical code paths.
+
+- [ ] Integrate benchmarking harness
+  - What: Add Google Benchmark targets for AlarmManager, SignalProcessor, telemetry serialization, and certificate validation routines. Store results (CSV/JSON) for regression tracking.
+  - Why: Detects performance regressions early.
+
+- [ ] Automate lint/static analysis
+  - What: Extend `scripts/run_tests.sh lint` to invoke clang-format, clang-tidy, and cppcheck; gate CI on lint success.
+  - Why: Keeps codebase consistent and surfaces issues before compilation.
+
+- [ ] Add CI workflows for build + tests
+  - What: Add GitHub Actions (or preferred CI) jobs: `build`, `unit-tests`, `render-diagrams`, `integration-tests` that run the server simulator.
+  - Why: Keeps repo healthy and verifies that docs/diagrams render correctly in CI.
+  - Prompt: `project-dashboard/prompt/19-ci-workflows-build-tests.md`  (When finished: mark this checklist item done.)
+
+- [ ] Enforce testing workflow in CI
+  - What: Update CI workflows to call `./scripts/run_tests.sh all`, publish coverage + benchmark artifacts, and fail builds when thresholds/regressions occur.
+  - Why: Ensures automation matches the documented workflow.
+
+- [ ] Add mermaid render script and CI check
+  - What: Add `scripts/render-mermaid.sh` and a CI job that runs it and fails on parse errors. Document usage in `.github/copilot-instructions.md`.
+  - Why: Prevents malformed diagrams from being committed (we had parser issues earlier).
+  - Prompt: `project-dashboard/prompt/20-render-mermaid-script-ci.md`  (When finished: mark this checklist item done.)
+
+- [ ] Add E2E containerized test harness
+  - What: Compose the Z Monitor (headless) and the server simulator in docker-compose test environment and run basic E2E scenarios.
+  - Why: Validates connectivity, DB writes, and archival behavior in a reproducible environment.
+  - Prompt: `project-dashboard/prompt/21-e2e-containerized-harness.md`  (When finished: mark this checklist item done.)
+
+- [ ] Implement Archiver interface and archiving tests
+  - What: Create `IArchiver` interface and tests that show moving rows older than 7 days to an `archived_vitals` table or external archive file. Add unit tests for retention policy enforcement.
+  - Why: Archival is required by requirements; must be testable and configurable.
+  - Prompt: `project-dashboard/prompt/18-implement-archiver-interface.md`  (When finished: mark this checklist item done.)
+
 
 ## Parallel Tasks (can be done concurrently)
 
@@ -246,23 +288,6 @@
   - Why: Archival is required by requirements; must be testable and configurable.
   - Prompt: `project-dashboard/prompt/18-implement-archiver-interface.md`  (When finished: mark this checklist item done.)
 
-
-## Testing, CI & Automation (parallelizable)
-
-- [ ] Add CI workflows for build + tests
-  - What: Add GitHub Actions (or preferred CI) jobs: `build`, `unit-tests`, `render-diagrams`, `integration-tests` that run the server simulator.
-  - Why: Keeps repo healthy and verifies that docs/diagrams render correctly in CI.
-  - Prompt: `project-dashboard/prompt/19-ci-workflows-build-tests.md`  (When finished: mark this checklist item done.)
-
-- [ ] Add mermaid render script and CI check
-  - What: Add `scripts/render-mermaid.sh` and a CI job that runs it and fails on parse errors. Document usage in `.github/copilot-instructions.md`.
-  - Why: Prevents malformed diagrams from being committed (we had parser issues earlier).
-  - Prompt: `project-dashboard/prompt/20-render-mermaid-script-ci.md`  (When finished: mark this checklist item done.)
-
-- [ ] Add E2E containerized test harness
-  - What: Compose the Z Monitor (headless) and the server simulator in docker-compose test environment and run basic E2E scenarios.
-  - Why: Validates connectivity, DB writes, and archival behavior in a reproducible environment.
-  - Prompt: `project-dashboard/prompt/21-e2e-containerized-harness.md`  (When finished: mark this checklist item done.)
 
 
 ## Documentation, Compliance & Diagrams

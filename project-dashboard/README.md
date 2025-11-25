@@ -85,3 +85,16 @@ Comprehensive documentation is available in the `doc/` directory:
 - Threading model
 - API specifications
 - And more
+
+## Testing
+
+- Read the full testing workflow in `doc/18_TESTING_WORKFLOW.md`.
+- Run tests via the unified script:
+  ```bash
+  ./scripts/run_tests.sh unit         # Unit tests
+  ./scripts/run_tests.sh integration  # Integration tests
+  ./scripts/run_tests.sh e2e          # End-to-end tests
+  ./scripts/run_tests.sh coverage     # Coverage report
+  ./scripts/run_tests.sh all          # Lint + unit + integration + coverage
+  ```
+- Coverage report output: `build_coverage/coverage/index.html`.
