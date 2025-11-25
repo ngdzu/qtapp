@@ -12,7 +12,7 @@ COPY resources/ resources/
 
 # Configure, build, and install to a predictable location
 RUN mkdir build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/project-dashboard && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/z-monitor && \
     cmake --build . && \
     cmake --install .
 
@@ -20,8 +20,8 @@ RUN mkdir build && cd build && \
 # contains QML modules and Qt runtime libs to avoid duplicating installs.
 FROM qtapp-qt-qtquick:local AS runtime
 
-WORKDIR /opt/project-dashboard
+WORKDIR /opt/z-monitor
 
-COPY --from=builder /opt/project-dashboard/bin/appproject-dashboard .
+COPY --from=builder /opt/z-monitor/bin/z-monitor .
 
-CMD ["./appproject-dashboard"]
+CMD ["./z-monitor"]

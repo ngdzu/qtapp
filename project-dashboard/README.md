@@ -1,6 +1,22 @@
-# Z Monitor
+# Project Dashboard
 
-A modern, real-time patient monitoring system that reads data from sensors and attached devices, built with Qt 6 and QML.
+This repository contains the Z Monitor project - a comprehensive patient monitoring system with supporting tools and simulators.
+
+## Project Structure
+
+- **`z-monitor/`** - The Z Monitor application (main medical device application)
+  - Patient monitoring system that reads sensor data and displays vital signs
+  - See `z-monitor/README.md` for build and run instructions
+
+- **`sensor-simulator/`** - WebSocket-based sensor simulator
+  - Provides simulated sensor data for development and testing
+  - See `sensor-simulator/README.md` for details
+
+- **`doc/`** - Comprehensive project documentation
+  - Architecture, design, security, and implementation guides
+
+- **`scripts/`** - Utility scripts
+  - Screenshot capture, Mermaid diagram generation, etc.
 
 ## What is Z Monitor?
 
@@ -21,36 +37,15 @@ This project demonstrates:
 - **Architecture:** Model-View-Controller (MVC) pattern with `DashboardController`.
 - **Testing:** Mock objects for data services.
 
-## Build & Run
+## Quick Start
 
-### Prerequisites
-- Docker
-- X11 Server (for macOS/Linux GUI)
+### Building Z Monitor
 
-### Build
-```bash
-docker build -t project-dashboard .
-```
+See `z-monitor/README.md` for detailed build and run instructions.
 
-### Run (macOS)
-```bash
-# Allow X11 connections
-xhost +localhost
+### Building Sensor Simulator
 
-# Run container with Qt software rendering
-docker run -it --rm \
-    -e DISPLAY=host.docker.internal:0 \
-    -e QT_QUICK_BACKEND=software \
-    project-dashboard
-```
-
-### Run (Linux)
-```bash
-docker run -it --rm \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
-    -e DISPLAY=$DISPLAY \
-    project-dashboard
-```
+See `sensor-simulator/README.md` for detailed build and run instructions.
 
 ### Docker Compose (simulator)
 
@@ -81,10 +76,12 @@ macOS note: running the container with `DISPLAY=host.docker.internal:0` requires
 - If host X11 still fails, use the preview VNC approach above.
 
 
-## Project Structure
+## Documentation
 
-- `z-monitor/`: The Z Monitor application code (main medical device application)
-- `sensor-simulator/`: WebSocket-based sensor simulator for development and testing
-- `src/core`: Backend logic and data simulation.
-- `src/ui`: QML integration and controllers.
-- `resources/qml`: UI definitions.
+Comprehensive documentation is available in the `doc/` directory:
+- Architecture and design documents
+- Security guidelines
+- Database schema
+- Threading model
+- API specifications
+- And more
