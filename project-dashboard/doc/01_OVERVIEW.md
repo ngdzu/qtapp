@@ -35,6 +35,12 @@ The core purpose is to create a sophisticated, near-realistic application that d
 - **Predictive Analytics (Simulated):** A forward-looking feature that calculates and displays a risk score for conditions like Sepsis or Arrhythmia, providing suggestions for clinical intervention.
 - **Internationalization:** The UI is designed to be fully translatable to support global use cases.
 
+## 4. Architecture Approach
+
+- **Domain-Driven Design:** The codebase is structured into domain, application, infrastructure, and interface layers (see `doc/28_DOMAIN_DRIVEN_DESIGN.md`).
+- **Bounded Contexts:** Monitoring, Provisioning, Admission/ADT, and Security contexts each own their aggregates and repositories.
+- **Immutable Records:** Value objects such as `PatientIdentity`, `DeviceSnapshot`, and `VitalRecord` are modeled as immutable structs to reinforce business rules.
+
 ## 4. Technology Stack
 
 - **UI Framework:** Qt 6 with QML for the front-end.

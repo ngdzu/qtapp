@@ -9,7 +9,35 @@ This document provides detailed class diagrams and descriptions for the key C++ 
 This diagram provides a comprehensive overview of all major C++ classes and their relationships. Use a Mermaid-compatible viewer to zoom and pan.
 
 
-## 2. Core Service Classes
+## 2. DDD Layering Summary
+
+### 2.1. Domain Layer (new classes to introduce)
+- **PatientAggregate** – Admission lifecycle, vitals state, emits `PatientAdmitted`/`PatientDischarged` events.
+- **DeviceAggregate** – Provisioning state, credentials, firmware metadata.
+- **TelemetryBatch** – Aggregates `VitalRecord`/`AlarmSnapshot`, enforces signing/nonce requirements.
+- **Value Objects:** `PatientIdentity`, `DeviceSnapshot`, `MeasurementUnit`, `AlarmThreshold`, `BedLocation`.
+- **Domain Events:** `TelemetryQueued`, `AlarmRaised`, `ProvisioningCompleted`, `PatientTransferred`.
+- **Repositories:** `IPatientRepository`, `ITelemetryRepository`, `IAlarmRepository`, `IProvisioningRepository`.
+
+> These classes live in `z-monitor/src/domain/**` and must have zero dependencies on Qt or infrastructure code.
+
+### 2.2. Application Layer
+- **MonitoringService** – Coordinates vitals ingestion, batching, signing, handoff to infrastructure.
+- **AdmissionService** – Executes admit/discharge/transfer use cases against `PatientAggregate`.
+- **ProvisioningService** – Handles QR pairing flows, applies credential bundles.
+- **SecurityService** – Authenticates users, enforces PIN policies, issues `UserSession`.
+
+> Application services reside in `z-monitor/src/application/**` and depend on domain interfaces + repositories.
+
+### 2.3. Infrastructure Layer
+Existing classes in this document (`DeviceSimulator`, `AlarmManager`, `NetworkManager`, `DatabaseManager`, etc.) now map to infrastructure adapters implementing domain contracts. They should be moved under `z-monitor/src/infrastructure/**` (subfolders for persistence, network, provisioning, qt).
+
+### 2.4. Interface Layer
+Controllers (`DashboardController`, `PatientController`, etc.) belong in `z-monitor/src/interface/controllers/**`. They must depend only on application services, not on infrastructure classes directly.
+
+For detailed DDD guidance see `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
+
+## 3. Core Service Classes
 
 ### 2.1. DeviceSimulator
 **Responsibility:** Generates realistic simulated patient vital signs and device operational data.

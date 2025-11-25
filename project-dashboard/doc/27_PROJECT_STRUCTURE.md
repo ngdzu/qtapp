@@ -142,6 +142,7 @@ Use this tree when you need specifications, design references, or automation scr
 - **Testing:** `doc/18_TESTING_WORKFLOW.md` and `scripts/run_tests.sh`.
 - **ZTODO:** `ZTODO.md` (documentation + verification requirements).
 - **Rules:** `.cursor/rules/*.mdc` (auto-applied coding/documentation policies).
+- **DDD Guidance:** `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
 
 Use this document with the setup guide and architecture specs to stay oriented. When layout changes, update this reference and the related docs accordingly.
 

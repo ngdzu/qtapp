@@ -26,6 +26,45 @@
 
 ## Sequential Tasks (must be done in order)
 
+- [ ] Restructure `z-monitor` source tree into DDD layers
+  - What: Create `z-monitor/src/domain`, `application`, `infrastructure`, and `interface` directories. Move existing classes (core services, controllers, infrastructure adapters) into the appropriate layer. Update include paths and `CMakeLists.txt` to reflect the new structure.
+  - Why: Enforces Domain-Driven Design separation, keeps domain logic isolated from infrastructure, and prepares for aggregate/value-object implementations.
+  - Files: `z-monitor/src/**`, `z-monitor/CMakeLists.txt`, `doc/27_PROJECT_STRUCTURE.md`, `doc/02_ARCHITECTURE.md`.
+  - Steps:
+    1. Create new directories and adjust namespace structure.
+    2. Move domain-agnostic logic (e.g., patient lifecycle) into `domain/`.
+    3. Move use-case orchestration into `application/`.
+    4. Keep Qt/SQL/network adapters under `infrastructure/`.
+    5. Keep QObject controllers under `interface/controllers/`.
+  - Acceptance: Build succeeds, unit tests pass, headers include from new paths without using `..`, documentation references updated.
+  - Verification Steps:
+    - Functional: Confirm run-time behavior unchanged (device boots, UI functional).
+    - Code Quality: Lint passes, include paths clean, Doxygen builds.
+    - Documentation: Update diagrams + docs to new paths.
+    - Integration: CI pipeline green, scripts updated.
+    - Tests: All automated tests pass (`./scripts/run_tests.sh all`).
+  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` and `doc/27_PROJECT_STRUCTURE.md`.
+  - Prompt: `project-dashboard/prompt/28a-ddd-source-restructure.md` (create as needed).
+
+- [ ] Implement domain aggregates, value objects, and repositories
+  - What: Introduce `PatientAggregate`, `DeviceAggregate`, `TelemetryBatch`, domain events, and repository interfaces/value objects as defined in `doc/28_DOMAIN_DRIVEN_DESIGN.md`. Provide concrete SQLite/network implementations in infrastructure layer.
+  - Why: Moves business rules into domain layer, clarifies invariants, improves testability.
+  - Files: `z-monitor/src/domain/**`, `z-monitor/src/application/**`, `z-monitor/src/infrastructure/**`.
+  - Steps:
+    1. Define aggregates/value objects (immutable structs/classes).
+    2. Implement repositories and domain events.
+    3. Update application services to use aggregates and repositories.
+    4. Refactor controllers to call application services instead of infrastructure directly.
+  - Acceptance: Domain layer compiles without Qt dependencies; repositories provide domain interfaces; application services orchestrate use cases using new types.
+  - Verification Steps:
+    - Functional: Admission, telemetry, provisioning flows work end-to-end using new domain layer.
+    - Code Quality: Domain code free of Qt includes; Doxygen docs created for new types.
+    - Documentation: Update `doc/09_CLASS_DESIGNS.md`, `doc/28_DOMAIN_DRIVEN_DESIGN.md` with implementation status.
+    - Integration: Build/tests succeed, telemetry data matches previous schema.
+    - Tests: Unit tests for aggregates, repository implementations, application services.
+  - Documentation: `doc/28_DOMAIN_DRIVEN_DESIGN.md`, `doc/19_ADT_WORKFLOW.md`.
+  - Prompt: `project-dashboard/prompt/28b-ddd-domain-implementation.md` (create as needed).
+
 - [ ] Refactor Settings: Remove Bed ID, Add Device Label and ADT Workflow
   - What: Remove `bedId` setting from SettingsManager and SettingsController. Add `deviceLabel` setting (static device identifier/asset tag). Update PatientManager to support ADT workflow with admission/discharge methods. Update database schema to add `admission_events` table and enhance `patients` table with ADT columns (bed_location, admitted_at, discharged_at, admission_source, device_label).
   - Why: Aligns device configuration with hospital ADT workflows. Separates device identity (Device Label) from patient assignment (Bed Location in Patient object). Enables proper patient lifecycle management.

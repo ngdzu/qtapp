@@ -86,6 +86,7 @@ Comprehensive documentation is available in the `doc/` directory:
 - API specifications (auto-generated from code)
 - API documentation generation guide
 - Project structure reference (`doc/27_PROJECT_STRUCTURE.md`)
+- Domain-Driven Design strategy (`doc/28_DOMAIN_DRIVEN_DESIGN.md`)
 - And more
 
 ### API Documentation
