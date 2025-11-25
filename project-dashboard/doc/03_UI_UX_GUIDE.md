@@ -107,10 +107,27 @@ The application adheres to a consistent layout across all main views.
     -   **Display Settings:** Brightness slider, Day/Night theme toggle.
     -   **Sound Settings:** Alarm volume slider, test alarm button.
     -   **Network Settings:**
-        -   **Server URL:** Text input for central server URL (e.g., "https://monitoring.hospital.com:8443"). Must be valid HTTPS URL format.
-        -   **Use Mock Server:** Checkbox to enable mock server for testing/development (swallows data without sending to real server).
-        -   **Connection Test Button:** Tests connection to configured server URL and displays result (success/failure with error message).
-        -   **Connection Status:** Displays current connection status (Connected, Connecting, Disconnected) with visual indicator.
+        -   **Provisioning Section (Primary):**
+            -   **Provisioning Status:** Current provisioning state indicator (Not Provisioned, Ready to Pair, Pairing, Configuring, Provisioned, Error)
+            -   **QR Code Display:** Large QR code for scanning by authorized tablet (regenerated every 30 seconds)
+            -   **Pairing Code:** Human-readable pairing code (e.g., "ABC-123-XYZ") with copy button
+            -   **Expiration Timer:** Countdown showing remaining time until pairing code expires (e.g., "8:45 remaining")
+            -   **Status Message:** Descriptive message for current provisioning state
+            -   **Action Buttons:**
+                -   "Enter Provisioning Mode" (when not provisioned, requires Technician role)
+                -   "Regenerate QR Code" (when ready to pair)
+                -   "Cancel Provisioning" (to exit provisioning mode)
+                -   "Re-provision Device" (when already provisioned, requires Technician role and confirmation)
+                -   "Simulate Configuration" (development/testing only, simulates Central Station push)
+        -   **Connection Status Section (Read-Only, when provisioned):**
+            -   **Connection Status:** Connected/Disconnected indicator with visual status (green/yellow/red)
+            -   **Server URL:** Current server URL (read-only, displayed for information)
+            -   **Certificate Status:** Certificate expiration date, validation status, expiration warnings
+            -   **Last Connected:** Timestamp of last successful connection
+            -   **Connection Statistics:** Uptime, data transmitted, connection errors (if any)
+        -   **Legacy Manual Configuration (Hidden/Deprecated):**
+            -   Manual server URL and certificate inputs are removed in favor of provisioning workflow
+            -   For development/testing, "Simulate Configuration" button provides mock provisioning
 -   **Actions:** Save/Reset buttons for applying or reverting changes.
 -   **Access Control:** Device Configuration settings require Technician role for modification.
 

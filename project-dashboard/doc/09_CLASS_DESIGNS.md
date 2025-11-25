@@ -286,23 +286,98 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `onPatientLookupFailed(const QString& patientId, const QString& error)`: Updates UI when lookup fails
 
 ### 3.5. SettingsController
-**Responsibility:** Exposes device settings to the Settings View.
+**Responsibility:** Exposes device settings to the Settings View (excluding network/provisioning settings, which are handled by ProvisioningController).
 
 **Properties (Q_PROPERTY):**
 - `allSettings`: Map of all configurable settings
 - `deviceId`: Device identifier (QString, read/write)
 - `bedId`: Bed/room location identifier (QString, read/write)
 - `measurementUnit`: Measurement unit preference (QString: "metric" or "imperial", read/write)
-- `serverUrl`: Central server URL (QString, read/write)
-- `useMockServer`: Use mock server for testing (bool, read/write)
 
 **Q_INVOKABLE Methods:**
 - `updateSetting(const QString& key, const QVariant& value)`: Updates a setting from UI
 - `resetToDefaults()`: Resets all settings to factory defaults
-- `testServerConnection()`: Tests connection to configured server URL
 
 **Slots:**
 - `onSettingsChanged()`: Refreshes UI when settings change
+
+### 3.8. ProvisioningController
+**Responsibility:** Exposes device provisioning state and controls to the Network Settings View. Manages QR code-based pairing workflow.
+
+**Properties (Q_PROPERTY):**
+- `provisioningState`: Current provisioning state (enum: NotProvisioned, ReadyToPair, Pairing, Configuring, Validating, Provisioned, Error)
+- `pairingCode`: Current pairing code (QString, e.g., "ABC-123-XYZ")
+- `qrCodeData`: QR code image data for display (QByteArray)
+- `expirationTime`: Time remaining until pairing code expires in seconds (int)
+- `errorMessage`: Error message if provisioning failed (QString, empty if no error)
+- `isProvisioned`: Whether device is successfully provisioned (bool, read-only)
+- `serverUrl`: Current server URL (QString, read-only, empty if not provisioned)
+- `certificateStatus`: Certificate status information (QString, read-only)
+- `connectionStatus`: Current connection status (enum: Connected, Connecting, Disconnected)
+- `lastConnected`: Timestamp of last successful connection (QDateTime, read-only)
+
+**Q_INVOKABLE Methods:**
+- `enterProvisioningMode()`: Enters provisioning mode (requires Technician role)
+- `exitProvisioningMode()`: Exits provisioning mode
+- `regenerateQRCode()`: Generates new QR code and pairing code
+- `simulateConfiguration()`: Simulates configuration push from Central Station (development/testing only)
+- `reprovisionDevice()`: Starts re-provisioning process (requires Technician role and confirmation)
+- `cancelProvisioning()`: Cancels current provisioning operation
+
+**Dependencies:**
+- `ProvisioningService`: Core provisioning logic and state management
+- `AuthenticationService`: For role-based access control (Technician role required)
+- `NetworkManager`: For connection testing after provisioning
+- `SettingsManager`: For storing provisioned configuration
+
+**Signals:**
+- `provisioningStateChanged(ProvisioningState state)`: Emitted when provisioning state changes
+- `pairingCodeGenerated(const QString& code)`: Emitted when new pairing code is generated
+- `provisioningCompleted()`: Emitted when provisioning completes successfully
+- `provisioningFailed(const QString& error)`: Emitted when provisioning fails
+- `connectionStatusChanged(ConnectionStatus status)`: Emitted when connection status changes
+
+### 3.9. ProvisioningService
+**Responsibility:** Manages device provisioning workflow, including pairing code generation, QR code generation, configuration validation, and connection testing.
+
+**Key Properties:**
+- `currentState`: Current provisioning state
+- `pairingCode`: Current active pairing code
+- `pairingCodeExpiration`: Timestamp when pairing code expires
+- `provisionedConfig`: Current provisioned configuration (if any)
+
+**Key Methods:**
+- `enterProvisioningMode()`: Enters provisioning mode, generates initial pairing code
+- `exitProvisioningMode()`: Exits provisioning mode, clears pairing information
+- `generatePairingCode()`: Generates new cryptographically secure pairing code
+- `generateQRCode()`: Generates QR code with device information and pairing code
+- `validatePairingCode(const QString& code)`: Validates pairing code (not expired, not used)
+- `receiveConfiguration(const QByteArray& encryptedPayload)`: Receives and decrypts configuration payload
+- `validateConfiguration(const ProvisioningConfig& config)`: Validates configuration signature and structure
+- `applyConfiguration(const ProvisioningConfig& config)`: Applies configuration to device (certificates, server URL)
+- `testConnection()`: Tests connection with newly provisioned configuration
+- `clearProvisioning()`: Clears provisioning state (for factory reset or re-provisioning)
+
+**Security Features:**
+- Pairing codes expire after 10 minutes (configurable)
+- Pairing codes are one-time use (invalidated after successful pairing)
+- Configuration payload encrypted with device's public key
+- Configuration signed by Central Station (signature validated)
+- All provisioning events logged to `security_audit_log`
+
+**Dependencies:**
+- `NetworkManager`: For connection testing
+- `SettingsManager`: For storing provisioned configuration
+- `DatabaseManager`: For logging provisioning events
+- `CertificateManager`: For certificate installation and validation
+
+**Signals:**
+- `provisioningStateChanged(ProvisioningState state)`: Emitted when state changes
+- `pairingCodeGenerated(const QString& code, const QDateTime& expiresAt)`: Emitted when new code generated
+- `configurationReceived(const ProvisioningConfig& config)`: Emitted when configuration received
+- `configurationApplied()`: Emitted when configuration successfully applied
+- `provisioningCompleted()`: Emitted when provisioning completes
+- `provisioningFailed(const QString& error)`: Emitted when provisioning fails
 
 ### 3.6. TrendsController
 **Responsibility:** Provides historical data for trend visualization.

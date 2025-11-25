@@ -31,6 +31,7 @@ The backend is responsible for all business logic, data processing, and communic
     -   `HealthMonitor`: Monitors device health metrics (CPU, memory, disk, temperature) and generates health reports.
     -   `ClockSyncService`: Manages NTP synchronization and clock drift detection.
     -   `DeviceRegistrationService`: Handles initial device registration with central server and re-registration after factory reset.
+    -   `ProvisioningService`: Manages device provisioning and pairing workflow, including QR code generation, pairing code management, configuration validation, and connection testing. Replaces manual network configuration with secure QR code-based provisioning.
 
 -   **UI Controllers:** These `QObject`-based classes act as a bridge between the Core Services and the QML frontend. They expose data and functionality to QML via properties, signals, and slots.
     -   `DashboardController`: Exposes real-time vital signs and device status for the Dashboard View.
@@ -38,7 +39,8 @@ The backend is responsible for all business logic, data processing, and communic
     -   `TrendsController`: Provides historical data queried from the `DatabaseManager` for plotting in the Trends View.
     -   `SystemController`: Exposes system-wide state like connection status, navigation state, and global alerts.
     -   `PatientController`: Exposes current patient data to the Patient Banner and other patient-related UI elements. Provides patient lookup functionality via `lookupPatientById()` method for quick patient assignment by ID.
-    -   `SettingsController`: Exposes configurable settings (Device ID, Bed ID, measurement units, server URL, alarm limits, display, sound, network) to the Settings View and handles updates. Provides server connection testing functionality.
+    -   `SettingsController`: Exposes configurable settings (Device ID, Bed ID, measurement units, alarm limits, display, sound) to the Settings View and handles updates.
+    -   `ProvisioningController`: Exposes provisioning state, QR code, pairing code, and provisioning actions to the Network Settings View. Handles provisioning mode entry/exit, QR code regeneration, and simulated configuration for development.
     -   `NotificationController`: Exposes informational and warning messages to the QML notification system.
 
 ### 2.2. QML Frontend

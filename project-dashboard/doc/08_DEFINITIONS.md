@@ -69,12 +69,16 @@ This document provides a glossary of key terms and terminologies used within the
 
 ## P
 
+*   **Pairing Code:** A time-limited, one-time-use code (format: XXX-XXX-XXX) used for device provisioning. Generated cryptographically and expires after 10 minutes. See `doc/17_DEVICE_PROVISIONING.md` for details.
 *   **Patient Banner:** A persistent UI element in the header displaying critical patient identification and safety information. Tappable to open Patient Assignment View when no patient is assigned.
 *   **PatientController:** A C++ QObject-based controller that exposes current patient data to the QML frontend and provides patient lookup functionality via `lookupPatientById()`.
 *   **PatientManager:** A C++ backend class managing patient-specific data and profiles. Integrates with `IPatientLookupService` to retrieve patient information from external systems.
 *   **IPatientLookupService:** An interface for looking up patient information from external systems (HIS/EHR) by patient ID. Supports both synchronous and asynchronous lookup patterns.
 *   **PI (Perfusion Index):** A numerical value that indicates the pulsatile blood flow in peripheral tissues.
 *   **Predictive Analytics:** Simulated feature that generates a risk score for potential adverse events based on current and historical patient data.
+*   **Provisioning:** The process of securely configuring a device with server URL, certificates, and mTLS keys through a QR code-based pairing workflow. Replaces manual network configuration. See `doc/17_DEVICE_PROVISIONING.md` for complete workflow.
+*   **ProvisioningController:** A C++ QObject-based controller that exposes device provisioning state, QR code, pairing code, and provisioning actions to the Network Settings View.
+*   **ProvisioningService:** A C++ backend class that manages device provisioning workflow, including pairing code generation, QR code generation, configuration validation, and connection testing.
 *   **PVC (Premature Ventricular Contraction):** An extra, abnormal heartbeat that begins in the ventricles.
 
 ## Q

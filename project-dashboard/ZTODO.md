@@ -150,6 +150,40 @@
   - Note: Script should follow the step-by-step process documented in `doc/15_CERTIFICATE_PROVISIONING.md`. Include options for: CA creation, device certificate generation with device ID in SAN, certificate bundle creation, and PKCS12 export. Reference workflow diagrams in `doc/15_CERTIFICATE_PROVISIONING.mmd` for process flow.
   - Prompt: `project-dashboard/prompt/15-generate-selfsigned-certs-script.md`  (When finished: mark this checklist item done.)
 
+- [ ] Implement device provisioning and pairing system
+  - What: Implement QR code-based device provisioning workflow to replace manual network configuration. Includes QR code generation, pairing code management, secure configuration push, and connection testing.
+  - Why: Industry-standard approach for embedded medical devices eliminates manual certificate installation and reduces configuration errors. Provides secure, auditable device provisioning.
+  - Files: `src/core/ProvisioningService.cpp/h`, `src/controllers/ProvisioningController.cpp/h`, update `SettingsView.qml` with provisioning UI, update `NetworkManager` for provisioned configuration.
+  - Features:
+    - QR code generation with device ID, IP, pairing code, and time-limited token
+    - Pairing code generation (format: XXX-XXX-XXX, expires after 10 minutes)
+    - Secure configuration payload (encrypted with device public key, signed by Central Station)
+    - Configuration validation and application
+    - Connection testing after provisioning
+    - Re-provisioning support (change server configuration)
+    - Provisioning state machine (NotProvisioned, ReadyToPair, Pairing, Configuring, Provisioned, Error)
+    - Audit logging of all provisioning events
+    - Development mode: "Simulate Configuration" button for testing
+  - UI Components:
+    - Provisioning status indicator
+    - QR code display (regenerated every 30 seconds)
+    - Pairing code display with copy button
+    - Expiration timer countdown
+    - Status messages for each state
+    - Action buttons (Enter Provisioning Mode, Regenerate QR Code, Cancel, Re-provision)
+    - Connected status view (read-only, shows server URL, certificate status, connection stats)
+  - Security:
+    - Explicit provisioning mode activation (requires Technician role)
+    - Time-limited pairing codes (10 minutes)
+    - One-time use pairing codes
+    - Encrypted and signed configuration payloads
+    - Configuration signature validation
+    - All events logged to `security_audit_log`
+  - Acceptance: Device can be provisioned via QR code scan, configuration is securely pushed and applied, device connects to server after provisioning. Re-provisioning works correctly. All provisioning events are logged.
+  - Tests: QR code generation/validation, pairing code expiration, configuration encryption/decryption, signature validation, state machine transitions, error handling, audit logging.
+  - Documentation: See `doc/17_DEVICE_PROVISIONING.md` for complete provisioning workflow specification.
+  - Prompt: `project-dashboard/prompt/17-device-provisioning.md`  (When finished: mark this checklist item done.)
+
 - [ ] Create automated certificate provisioning script
   - What: Create comprehensive automation script `scripts/provision-device-certificate.sh` that automates the complete certificate provisioning workflow for devices. Script should handle CA setup (if needed), device certificate generation, validation, and optionally installation/transfer to device.
   - Why: Automates the manual certificate provisioning process documented in `doc/15_CERTIFICATE_PROVISIONING.md`, reducing human error and ensuring consistent certificate generation across all devices.

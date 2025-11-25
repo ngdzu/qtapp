@@ -25,6 +25,16 @@ This document details the security architecture for the Z Monitor, covering data
 -   **Implementation: Mutual TLS (mTLS)**
     -   **Device Side:** Each device will be provisioned with a unique client certificate (`.pem`) and a corresponding private key (`.key`). The `NetworkManager` will load these into its `QSslConfiguration`. The device will also have a copy of the CA certificate to verify the server's identity.
     -   **Server Side:** The server will have its own server certificate and private key. It will also be configured with the CA certificate and will be set to require and verify client certificates from incoming connections. Any connection without a valid, trusted client certificate will be rejected at the TLS handshake level.
+    
+    **Provisioning Method:**
+    -   **QR Code-Based Provisioning:** Devices are provisioned through a secure QR code-based pairing workflow (see `doc/17_DEVICE_PROVISIONING.md` for details)
+    -   **Manual Provisioning (Deprecated):** Manual certificate installation is deprecated in favor of automated provisioning
+    -   **Provisioning Security:**
+        -   Pairing codes expire after 10 minutes (configurable)
+        -   Pairing codes are one-time use (invalidated after successful pairing)
+        -   Configuration payload encrypted with device's public key
+        -   Configuration signed by Central Station (signature validated)
+        -   All provisioning events logged to `security_audit_log`
 
 ### 3.2. User-to-Device Authentication
 
