@@ -11,7 +11,7 @@ This document enumerates the tables, columns, indices and operational behavior n
 Below are the base tables we require. For each table a sample `CREATE TABLE` is included where appropriate.
 
 ### `patients`
-Stores patient demographic information.
+Stores patient demographic information. This table serves as both a local patient registry and a cache for patient information retrieved from external systems (HIS/EHR) via `IPatientLookupService`.
 
 Sample DDL:
 
@@ -23,9 +23,26 @@ CREATE TABLE IF NOT EXISTS patients (
 	sex TEXT NULL,
 	mrn TEXT NULL,
 	allergies TEXT NULL,
-	created_at INTEGER NOT NULL
+	room TEXT NULL,
+	created_at INTEGER NOT NULL,
+	last_lookup_at INTEGER NULL,
+	lookup_source TEXT NULL
 );
 ```
+
+**Usage Notes:**
+- `patient_id`: Primary identifier used for patient lookups
+- `mrn`: Medical Record Number, alternative lookup key
+- `room`: Current room/bed assignment (may be updated from external system)
+- `last_lookup_at`: Timestamp of last successful lookup from external system (NULL if never looked up)
+- `lookup_source`: Source of patient data ("local", "his", "ehr", etc.) for audit purposes
+
+**Lookup Flow:**
+1. When `PatientManager::loadPatientById(id)` is called, it first checks the local `patients` table
+2. If found locally, patient data is returned immediately
+3. If not found, `IPatientLookupService` is used to query external system
+4. On successful lookup, patient data is saved to `patients` table with `last_lookup_at` timestamp
+5. This caching reduces external system load and enables offline operation
 
 ### `vitals`
 Stores time-series physiological data (heartbeat, spo2, rr, etc). This is expected to be the largest table.
@@ -210,6 +227,27 @@ CREATE TABLE IF NOT EXISTS users (
 );
 ```
 
+### `settings`
+Stores device configuration settings and user preferences.
+
+Sample DDL:
+
+```sql
+CREATE TABLE IF NOT EXISTS settings (
+	key TEXT PRIMARY KEY,
+	value TEXT NOT NULL,
+	updated_at INTEGER NOT NULL,
+	updated_by TEXT NULL
+);
+```
+
+Recommended default settings:
+- `deviceId`: Unique device identifier (e.g., "ZM-001")
+- `bedId`: Bed/room location identifier (e.g., "ICU-3B")
+- `measurementUnit`: Measurement system preference ("metric" or "imperial")
+- `serverUrl`: Central server URL for telemetry transmission (e.g., "https://monitoring.hospital.com:8443", default: "https://localhost:8443")
+- `useMockServer`: Boolean flag to use mock server for testing/development ("true" or "false", default: "false")
+
 ### `audit_log`
 Immutable audit trail for critical actions.
 
@@ -279,6 +317,8 @@ Enhance existing `vitals`, `alarms`, `snapshots`, and `annotations` with additio
 
 `vitals` additions:
 - `uuid`, `timestamp_iso`, `device_id`, `source`, `signal_quality`, `sample_rate_hz`, `predictive_score_ref`
+
+Note: The `device_id` column in `vitals` should reference the `deviceId` setting from the `settings` table to ensure consistency across telemetry data.
 
 `alarms` additions:
 - `acknowledged_by`, `acknowledged_time`, `silenced_until`, `raw_value`, `context_snapshot_id`

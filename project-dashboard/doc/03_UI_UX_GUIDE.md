@@ -97,15 +97,45 @@ The application adheres to a consistent layout across all main views.
 
 ### 4.4. Settings View
 
--   **Layout:** Organized into sections (Alarms, Display, Sound, Network).
+-   **Layout:** Organized into sections (Device Configuration, Alarms, Display, Sound, Network).
 -   **Controls:**
+    -   **Device Configuration:**
+        -   **Device ID:** Text input for unique device identifier (e.g., "ZM-001"). Used for device identification and telemetry transmission.
+        -   **Bed ID:** Text input for bed/room location identifier (e.g., "ICU-3B"). Used for patient context and location tracking.
+        -   **Measurement Unit:** Dropdown or toggle for selecting measurement system preference ("Metric" or "Imperial"). Affects display of vital signs, temperatures, and infusion rates throughout the application.
     -   **Alarm Limits:** Number inputs or sliders for setting upper/lower thresholds for each vital sign.
     -   **Display Settings:** Brightness slider, Day/Night theme toggle.
     -   **Sound Settings:** Alarm volume slider, test alarm button.
-    -   **Network Settings:** Server URL configuration, connection test button.
+    -   **Network Settings:**
+        -   **Server URL:** Text input for central server URL (e.g., "https://monitoring.hospital.com:8443"). Must be valid HTTPS URL format.
+        -   **Use Mock Server:** Checkbox to enable mock server for testing/development (swallows data without sending to real server).
+        -   **Connection Test Button:** Tests connection to configured server URL and displays result (success/failure with error message).
+        -   **Connection Status:** Displays current connection status (Connected, Connecting, Disconnected) with visual indicator.
 -   **Actions:** Save/Reset buttons for applying or reverting changes.
+-   **Access Control:** Device Configuration settings require Technician role for modification.
 
-### 4.5. Login View
+### 4.5. Patient Assignment View / Quick Patient Lookup
+
+-   **Purpose:** Quick patient assignment by entering patient ID for automatic lookup from external systems.
+-   **Layout:** Modal overlay or dedicated view accessible from Patient Banner or Settings.
+-   **Components:**
+    -   **Patient ID Input:** Text field or barcode scanner input for patient ID or MRN.
+    -   **Lookup Button:** Triggers asynchronous patient lookup via `IPatientLookupService`.
+    -   **Loading Indicator:** Shows "Looking up patient..." during lookup operation.
+    -   **Patient Preview:** Displays retrieved patient information (name, DOB, allergies) for confirmation before assignment.
+    -   **Assign Button:** Confirms and assigns the patient to the current device.
+    -   **Error Display:** Shows error message if lookup fails (patient not found, network error, etc.).
+-   **Behavior:**
+    -   On successful lookup, patient information is displayed for confirmation
+    -   User confirms assignment, which updates `PatientManager` and `PatientController`
+    -   Patient data is cached locally in `patients` table for future use
+    -   On failure, error message is displayed with option to retry
+-   **Access:** Available to Clinician and Technician roles. May be accessible via:
+    -   Tap/click on Patient Banner when no patient is assigned
+    -   Settings View → Patient Assignment section
+    -   Quick action button in header
+
+### 4.6. Login View
 
 -   **Layout:** Centered on screen with device branding.
 -   **Components:**
@@ -126,6 +156,9 @@ The application adheres to a consistent layout across all main views.
     -   **Age:** Patient age.
     -   **Allergies:** Comma-separated list, highlighted in red/orange if present.
 -   **Styling:** Compact layout, high contrast text, allergy field uses warning colors.
+-   **Interaction:**
+    -   When no patient is assigned: Tap/click opens Patient Assignment View for quick lookup
+    -   When patient is assigned: Tap/click may open patient details or assignment change dialog
 
 ### 5.2. AlarmIndicator
 

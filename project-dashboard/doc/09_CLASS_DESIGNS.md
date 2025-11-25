@@ -45,19 +45,29 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `alarmStateChanged(const QList<Alarm>& activeAlarms)`: Emitted when alarm state changes
 
 ### 2.3. NetworkManager
-**Responsibility:** Manages secure network connectivity to the central server using mTLS.
+**Responsibility:** Manages secure network connectivity to the central server using mTLS. Integrates with `ITelemetryServer` interface for server communication.
 
 **Key Properties:**
 - `currentStatus`: Current connection status (Connected, Connecting, Disconnected)
 - `sslConfig`: SSL/TLS configuration including client certificates
+- `serverUrl`: Configurable server URL (from SettingsManager)
 
 **Key Methods:**
-- `connectToServer()`: Initiates connection to central server
-- `sendTelemetry(const TelemetryData& data)`: Transmits data to server
+- `connectToServer()`: Initiates connection to central server using configured server URL
+- `sendTelemetry(const TelemetryData& data)`: Transmits data to server via `ITelemetryServer`
+- `sendSensorData(const SensorData& data)`: Transmits sensor data to server
 - `configure(const QSslConfiguration& sslConfig)`: Configures mTLS settings
+- `setServerUrl(const QString& url)`: Updates server URL and reconnects if needed
+- `getServerUrl()`: Returns current server URL
+
+**Dependencies:**
+- `ITelemetryServer`: Interface for server communication (NetworkTelemetryServer, MockTelemetryServer, etc.)
+- `SettingsManager`: For retrieving and storing server URL configuration
 
 **Signals:**
 - `connectionStatusChanged(ConnectionStatus status)`: Emitted when connection status changes
+- `telemetrySent(const TelemetryData& data, const ServerResponse& response)`: Emitted when telemetry is successfully sent
+- `telemetrySendFailed(const TelemetryData& data, const QString& error)`: Emitted when telemetry send fails
 
 ### 2.4. DatabaseManager
 **Responsibility:** Manages encrypted SQLite database for local data persistence.
@@ -81,11 +91,21 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `allergies`: List of known patient allergies
 
 **Key Methods:**
-- `loadPatient(const QString& id)`: Loads patient profile from database
+- `loadPatient(const QString& id)`: Loads patient profile from local database
+- `loadPatientById(const QString& id)`: Looks up patient by ID, first checking local database, then using `IPatientLookupService` if not found locally
+- `setCurrentPatient(const PatientInfo& info)`: Sets the current patient context
 - `getCurrentPatient()`: Returns current patient data
+- `clearCurrentPatient()`: Clears the current patient context
+
+**Dependencies:**
+- `IPatientLookupService`: Interface for looking up patient information from external systems (HIS/EHR)
+- `DatabaseManager`: For local patient data storage and retrieval
 
 **Signals:**
 - `patientChanged(const Patient& patient)`: Emitted when patient context changes
+- `patientLookupStarted(const QString& patientId)`: Emitted when patient lookup begins
+- `patientLookupCompleted(const PatientInfo& info)`: Emitted when patient lookup succeeds
+- `patientLookupFailed(const QString& patientId, const QString& error)`: Emitted when patient lookup fails
 
 ### 2.6. SettingsManager
 **Responsibility:** Manages device configuration settings and user preferences.
@@ -98,6 +118,13 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `saveSettings()`: Persists settings to storage
 - `getValue(const QString& key)`: Retrieves a setting value
 - `setValue(const QString& key, const QVariant& value)`: Updates a setting
+
+**Configuration Settings:**
+- `deviceId`: Unique identifier for the monitoring device (QString)
+- `bedId`: Identifier for the bed/room location (QString)
+- `measurementUnit`: System preference for metric or imperial units (QString: "metric" or "imperial")
+- `serverUrl`: Central server URL for telemetry transmission (QString, default: "https://localhost:8443")
+- `useMockServer`: Boolean flag to use mock server for testing/development (bool, default: false)
 
 **Signals:**
 - `settingsChanged()`: Emitted when settings are modified
@@ -190,26 +217,41 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `onConnectionStatusChanged(NetworkManager::ConnectionStatus status)`: Updates connection status
 
 ### 3.4. PatientController
-**Responsibility:** Exposes patient information to the Patient Banner and related UI.
+**Responsibility:** Exposes patient information to the Patient Banner and related UI, and provides patient lookup functionality.
 
 **Properties (Q_PROPERTY):**
 - `patientId`: Patient identifier
 - `patientName`: Patient name
 - `patientAge`: Patient age
 - `allergies`: List of allergies
+- `isLookingUp`: Boolean indicating if a patient lookup is in progress
+- `lookupError`: Last error message from patient lookup (empty if no error)
+
+**Q_INVOKABLE Methods:**
+- `lookupPatientById(const QString& patientId)`: Initiates patient lookup by ID (asynchronous)
+- `clearPatient()`: Clears the current patient context
 
 **Slots:**
 - `onPatientChanged(const Patient& patient)`: Updates UI when patient changes
+- `onPatientLookupStarted(const QString& patientId)`: Updates UI when lookup begins
+- `onPatientLookupCompleted(const PatientInfo& info)`: Updates UI when lookup succeeds
+- `onPatientLookupFailed(const QString& patientId, const QString& error)`: Updates UI when lookup fails
 
 ### 3.5. SettingsController
 **Responsibility:** Exposes device settings to the Settings View.
 
 **Properties (Q_PROPERTY):**
 - `allSettings`: Map of all configurable settings
+- `deviceId`: Device identifier (QString, read/write)
+- `bedId`: Bed/room location identifier (QString, read/write)
+- `measurementUnit`: Measurement unit preference (QString: "metric" or "imperial", read/write)
+- `serverUrl`: Central server URL (QString, read/write)
+- `useMockServer`: Use mock server for testing (bool, read/write)
 
 **Q_INVOKABLE Methods:**
 - `updateSetting(const QString& key, const QVariant& value)`: Updates a setting from UI
 - `resetToDefaults()`: Resets all settings to factory defaults
+- `testServerConnection()`: Tests connection to configured server URL
 
 **Slots:**
 - `onSettingsChanged()`: Refreshes UI when settings change

@@ -9,21 +9,27 @@
   - Prompt: `project-dashboard/prompt/01-create-project-scaffold.md`  (When finished: mark this checklist item done.)
 
 - [ ] Define public C++ service interfaces (headers only)
-  - What: Create minimal header-only interface sketches for: `IDatabaseManager`, `INetworkManager`, `IAlarmManager`, `IDeviceSimulator`, `ISettingsManager`, `IAuthenticationService`, and `IArchiver`.
+  - What: Create minimal header-only interface sketches for: `IDatabaseManager`, `INetworkManager`, `IAlarmManager`, `IDeviceSimulator`, `ISettingsManager`, `IPatientLookupService`, `ITelemetryServer`, `IAuthenticationService`, and `IArchiver`.
   - Why: Interfaces allow test-first development (mocks) and make DI decisions easier.
   - Files: `src/core/interfaces/*.h` (one header per interface), `doc/interfaces.md` with rationale and method signatures.
+  - Note: `IPatientLookupService` interface is documented in `doc/interfaces/IPatientLookupService.md` and provides patient lookup from external systems (HIS/EHR) by patient ID.
+  - Note: `ITelemetryServer` interface is documented in `doc/interfaces/ITelemetryServer.md` and provides server communication abstraction with support for configurable server URLs and mock implementations for testing.
   - Prompt: `project-dashboard/prompt/02-define-public-interfaces.md`  (When finished: mark this checklist item done.)
 
 - [ ] Create unit test harness + mock objects
   - What: Add `tests/CMakeLists.txt`, pick test framework (recommend `GoogleTest`), add `tests/mocks/` with mock classes that implement the interfaces.
   - Why: Unit tests should drive API decisions. Mocks let you write controller tests before production implementation.
-  - Files: `tests/CMakeLists.txt`, `tests/mock_DatabaseManager.h`, `tests/mock_NetworkManager.h`, example test `tests/test_alarm_manager.cpp`.
+  - Files: `tests/CMakeLists.txt`, `tests/mock_DatabaseManager.h`, `tests/mock_NetworkManager.h`, `tests/mock_PatientLookupService.h`, `tests/mock_TelemetryServer.h`, example test `tests/test_alarm_manager.cpp`.
+  - Note: `MockPatientLookupService` should return hardcoded patient data for testing and support simulated failures.
+  - Note: `MockTelemetryServer` should swallow all data without sending to real server, return immediate success responses, and support simulated failures for testing.
   - Prompt: `project-dashboard/prompt/03-create-unit-test-harness.md`  (When finished: mark this checklist item done.)
 
 - [ ] Design database schema + write migration SQLs
   - What: Finalize DDL for tables: `patients`, `vitals`, `ecg_samples`, `pleth_samples`, `alarms`, `system_events`, `settings`, `users`. Add indices, retention metadata table, and `archival_queue`.
   - Why: Deterministic schema is required before implementing `DatabaseManager` and `TrendsController`.
   - Files: `doc/migrations/0001_initial.sql`, `doc/migrations/0002_add_indices.sql`, `doc/10_DATABASE_DESIGN.md` update, ERD SVG in `doc/`.
+  - Note: The `settings` table must support `deviceId`, `bedId`, `measurementUnit`, `serverUrl`, and `useMockServer` configuration options. See `doc/10_DATABASE_DESIGN.md` for the settings table schema.
+  - Note: The `patients` table serves as a cache for patient lookups. Add `last_lookup_at` and `lookup_source` columns to track when patient data was retrieved from external systems. See `doc/10_DATABASE_DESIGN.md` for details.
   - Prompt: `project-dashboard/prompt/04-design-db-schema-migrations.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement DatabaseManager spike (in-memory + SQLCipher plan)
@@ -42,21 +48,27 @@
   - What: Using the proto/OpenAPI, implement a mock `NetworkManager` (no TLS) that records requests and simulates server responses (200, 500, timeout). Add unit tests for retry and backoff behavior.
   - Why: Allows `SystemController`/`NotificationController` unit tests before adding mTLS plumbing.
   - Files: `tests/mock_NetworkManager.h`, `tests/network_retry_test.cpp`.
+  - Note: `NetworkManager` should use `ITelemetryServer` interface. Implement `MockTelemetryServer` that swallows data for testing.
   - Prompt: `project-dashboard/prompt/07-implement-mock-networkmanager.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement controller skeletons and QML binding stubs
   - What: Create `DashboardController`, `AlarmController`, `SystemController`, `PatientController`, `SettingsController`, `TrendsController`, `NotificationController` as QObject-derived classes exposing Q_PROPERTY and basic signals. Do not implement heavy logic yet.
   - Why: QML UI can be wired to properties and tested for binding behavior early.
   - Files: `src/ui/*.cpp/h` and `resources/qml/Main.qml` with placeholder components.
+  - Note: `SettingsController` must expose `deviceId`, `bedId`, `measurementUnit`, `serverUrl`, and `useMockServer` as Q_PROPERTY for Device Configuration and Network Settings sections in Settings View.
+  - Note: `PatientController` must expose `lookupPatientById()` as Q_INVOKABLE method and `isLookingUp`, `lookupError` as Q_PROPERTY for patient lookup functionality.
   - Prompt: `project-dashboard/prompt/08-controller-skeletons-qml-stubs.md`  (When finished: mark this checklist item done.)
 
 
 ## Parallel Tasks (can be done concurrently)
 
 - [ ] QML UI skeleton and components
-  - What: Implement `Main.qml`, `Sidebar.qml`, `TopBar.qml`, `StatCard.qml`, `PatientBanner.qml`, and placeholder `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView).
+  - What: Implement `Main.qml`, `Sidebar.qml`, `TopBar.qml`, `StatCard.qml`, `PatientBanner.qml`, and placeholder `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView, PatientAssignmentView).
   - Why: Visual scaffolding enables early UX validation and manual QA.
   - Acceptance: QML app boots and displays placeholders at `1280x800`.
+  - Note: `SettingsView.qml` must include Device Configuration section with inputs for Device ID, Bed ID, and Measurement Unit dropdown (metric/imperial). See `doc/03_UI_UX_GUIDE.md` section 4.4 for specifications.
+  - Note: `PatientAssignmentView.qml` must provide patient ID input, lookup button, loading indicator, patient preview, and error display. See `doc/03_UI_UX_GUIDE.md` section 4.5 for specifications.
+  - Note: `PatientBanner.qml` should be tappable to open Patient Assignment View when no patient is assigned.
   - Prompt: `project-dashboard/prompt/09-qml-ui-skeleton.md`  (When finished: mark this checklist item done.)
 
 - [ ] Alarm UI & animation prototypes (QML)
@@ -103,12 +115,21 @@
 - [ ] Central server simulator (mTLS later)
   - What: Create `central-server-simulator/` with a simple REST endpoint `POST /api/telemetry` that can accept JSON and returns ack. Implement toggles to simulate network failures and delays.
   - Why: Enables local end-to-end testing of networking flows.
+  - Note: Add optional `GET /api/patients/{patientId}` endpoint for patient lookup to support `IPatientLookupService` integration. This endpoint should return patient demographics in JSON format.
+  - Note: Server URL should be configurable through `SettingsManager` (default: "https://localhost:8443"). The `NetworkManager` should use `ITelemetryServer` interface, allowing for `MockTelemetryServer` implementation that swallows data for testing without requiring server infrastructure.
   - Prompt: `project-dashboard/prompt/12-central-server-simulator.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement mockable logging and LogService binding to QML
   - What: Create `LogService` that queues messages and exposes them to QML as a model for the Diagnostics view. Support different levels (Info/Warn/Error).
   - Why: Diagnostics and logs are required for debugging and QA.
   - Prompt: `project-dashboard/prompt/13-logservice-qml-model.md`  (When finished: mark this checklist item done.)
+
+- [ ] Implement PatientManager with IPatientLookupService integration
+  - What: Implement `PatientManager` to integrate with `IPatientLookupService` for patient lookups. Add `loadPatientById()` method that first checks local database, then uses lookup service if not found. Cache lookup results in local `patients` table.
+  - Why: Enables quick patient assignment by entering patient ID, with automatic lookup from external systems (HIS/EHR).
+  - Files: `src/core/PatientManager.cpp/h`, implement integration with `IPatientLookupService`, update `DatabaseManager` to support patient caching.
+  - Acceptance: `PatientManager::loadPatientById(id)` successfully looks up patient from external system and caches result locally. Unit tests with `MockPatientLookupService` verify lookup flow.
+  - Prompt: `project-dashboard/prompt/13b-patient-lookup-integration.md`  (When finished: mark this checklist item done.)
 
 
 ## Security & Certificates (ordered but distinct)
@@ -258,6 +279,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - Configure TLS/mTLS credentials from `resources/certs/`.
     - Batch telemetry messages and send using backoff & retry; surface ack/failed delivery metrics.
     - Provide health and connection state to `SystemController`.
+    - Integrate with `ITelemetryServer` interface for server communication.
   - Threading & ownership:
     - Runs worker thread(s) for network I/O or uses Qt event loop + QNetworkAccessManager on the main thread depending on platform; prefer dedicated network thread for blocking crypto ops.
   - Key API:
@@ -266,9 +288,30 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual void Disconnect() = 0;`
     - `virtual Result SendTelemetryBatch(const std::vector<TelemetryPacket>& batch, Callback ack) = 0;`
     - `virtual void SetRetryPolicy(const RetryPolicy &p) = 0;`
+    - `virtual void SetServerUrl(const QString& url) = 0;`
+    - `virtual QString GetServerUrl() const = 0;`
   - Error semantics: surface transient vs permanent errors (e.g., `CERT_INVALID`, `TLS_HANDSHAKE_FAILED`, `NETWORK_UNREACHABLE`).
-  - Example code path: `DeviceSimulator` emits vitals -> `DashboardController` enqueues to `IDatabaseManager` and asks `INetworkManager` to send batched telemetry; on failure, `INetworkManager` persists unsent batches to disk via `IDatabaseManager` archival queue.
-  - Tests to write: configurable failures, backoff timing behavior, SSL config validation, acknowledgment handling.
+  - Example code path: `DeviceSimulator` emits vitals -> `DashboardController` enqueues to `IDatabaseManager` and asks `INetworkManager` to send batched telemetry via `ITelemetryServer`; on failure, `INetworkManager` persists unsent batches to disk via `IDatabaseManager` archival queue.
+  - Tests to write: configurable failures, backoff timing behavior, SSL config validation, acknowledgment handling, server URL configuration, mock server integration.
+  - Note: Interface documentation exists at `doc/interfaces/ITelemetryServer.md`.
+
+- [ ] `doc/interfaces/ITelemetryServer.md`
+  - Purpose: Interface for sending telemetry data and sensor data to a central monitoring server. Abstracts server communication to support multiple implementations (production, mock, file-based).
+  - Responsibilities:
+    - Send telemetry data batches to the server
+    - Send sensor data to the server
+    - Handle server responses (acknowledgments, error codes)
+    - Manage connection state and health
+    - Support configurable server endpoints (URL, port, protocol)
+  - Key API:
+    - `virtual void SetServerUrl(const QString& url) = 0;`
+    - `virtual QString GetServerUrl() const = 0;`
+    - `virtual bool Connect() = 0;`
+    - `virtual void SendTelemetryAsync(const TelemetryData& data, std::function<void(const ServerResponse&)> callback) = 0;`
+    - `virtual void SendSensorDataAsync(const SensorData& data, std::function<void(const ServerResponse&)> callback) = 0;`
+  - Implementation variants: `NetworkTelemetryServer` (production), `MockTelemetryServer` (testing - swallows data), `FileTelemetryServer` (offline testing)
+  - Tests to write: connection management, telemetry/sensor data transmission, error handling, mock server behavior, server URL configuration.
+  - Note: Interface documentation exists at `doc/interfaces/ITelemetryServer.md`.
 
 - [ ] `doc/interfaces/IAlarmManager.md`
   - Purpose: Centralized alarm evaluation, escalation, history and acknowledgment logic.
@@ -300,16 +343,37 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Example code path: tests subscribe to `OnVitalsSample`, verify values drive `AlarmManager` logic.
   - Tests to write: deterministic playback matches expected triggers, event injection causes expected alarms.
 
+- [ ] `doc/interfaces/IPatientLookupService.md`
+  - Purpose: Interface for looking up patient information from external systems (HIS/EHR) by patient ID.
+  - Responsibilities:
+    - Query external patient information systems by patient ID (or MRN)
+    - Return structured patient data including demographics, allergies, and safety information
+    - Handle lookup failures gracefully (network errors, patient not found, etc.)
+    - Support both synchronous and asynchronous lookup patterns
+  - Key API:
+    - `virtual std::optional<PatientInfo> LookupPatient(const QString& patientId) = 0;` (synchronous)
+    - `virtual void LookupPatientAsync(const QString& patientId, std::function<void(const std::optional<PatientInfo>&)> callback) = 0;` (asynchronous)
+    - `virtual bool IsAvailable() const = 0;`
+    - `virtual QString GetLastError() const = 0;`
+  - Implementation variants: `MockPatientLookupService` (testing), `NetworkPatientLookupService` (production), `DatabasePatientLookupService` (fallback)
+  - Tests to write: synchronous/asynchronous lookups, error handling, concurrent lookups, integration with PatientManager.
+  - Note: Interface documentation exists at `doc/interfaces/IPatientLookupService.md`.
+
 - [ ] `doc/interfaces/ISettingsManager.md`
   - Purpose: Persistent configuration store for device settings and thresholds.
   - Responsibilities:
     - Read/write typed settings, validation, defaulting, and notification of changes.
     - Persist settings via `IDatabaseManager` or settings file.
+    - Manage device configuration: Device ID, Bed ID, and Measurement Unit (metric/imperial).
   - Key API:
     - `virtual std::optional<SettingValue> Get(const std::string &key) = 0;`
     - `virtual Result Set(const std::string &key, const SettingValue &v) = 0;`
     - `virtual void Subscribe(SettingsObserver*) = 0;`
-  - Tests to write: validation rules, persistence, migration of settings schema.
+  - Required Settings:
+    - `deviceId`: Unique device identifier (QString)
+    - `bedId`: Bed/room location identifier (QString)
+    - `measurementUnit`: Measurement system preference ("metric" or "imperial")
+  - Tests to write: validation rules, persistence, migration of settings schema, device configuration persistence.
 
 - [ ] `doc/interfaces/IAuthenticationService.md`
   - Purpose: PIN-based local authentication and role enforcement for UI actions.
@@ -354,8 +418,9 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `DashboardController` — properties: `heartRate`, `spo2`, `ecgWaveformModel`; methods: `StartMonitoring()`, `StopMonitoring()`, `RequestTrend(range)`.
     - `AlarmController` — properties: `activeAlarmsModel`, `historyModel`; methods: `AcknowledgeAlarm(id)`, `Silence(duration)`.
     - `SystemController` — properties: `connectionState`, `appVersion`, `clock`; methods: `Reboot()`, `Shutdown()`.
-    - `PatientController` — properties: `currentPatient`; methods: `LoadPatient(id)`, `ClearPatient()`.
-    - `SettingsController`, `TrendsController`, `NotificationController` — list properties and key methods; include examples of QML bindings and signal usage.
+    - `PatientController` — properties: `patientId`, `patientName`, `patientAge`, `allergies`, `isLookingUp`, `lookupError`; methods: `lookupPatientById(id)`, `clearPatient()`; include examples of QML bindings for Patient Assignment View.
+    - `SettingsController` — properties: `deviceId`, `bedId`, `measurementUnit`, `allSettings`; methods: `updateSetting(key, value)`, `resetToDefaults()`; include examples of QML bindings for Device Configuration section.
+    - `TrendsController`, `NotificationController` — list properties and key methods; include examples of QML bindings and signal usage.
   - Tests: QML binding smoke tests, property change notifications, method-call round trips.
 
 Action notes:
@@ -405,6 +470,7 @@ Action notes:
   - What: Create `DashboardController`, `AlarmController`, `SystemController`, `PatientController`, `SettingsController`, `TrendsController`, `NotificationController` as QObject-derived classes exposing Q_PROPERTY and basic signals. Do not implement heavy logic yet.
   - Why: QML UI can be wired to properties and tested for binding behavior early.
   - Files: `src/ui/*.cpp/h` and `resources/qml/Main.qml` with placeholder components.
+  - Note: `SettingsController` must expose `deviceId`, `bedId`, and `measurementUnit` as Q_PROPERTY for Device Configuration section in Settings View.
 
 
 ## Parallel Tasks (can be done concurrently)
@@ -413,6 +479,7 @@ Action notes:
   - What: Implement `Main.qml`, `Sidebar.qml`, `TopBar.qml`, `StatCard.qml`, `PatientBanner.qml`, and placeholder `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView).
   - Why: Visual scaffolding enables early UX validation and manual QA.
   - Acceptance: QML app boots and displays placeholders at `1280x800`.
+  - Note: `SettingsView.qml` must include Device Configuration section with inputs for Device ID, Bed ID, and Measurement Unit dropdown (metric/imperial). See `doc/03_UI_UX_GUIDE.md` section 4.4 for specifications.
 
 - [ ] 1. Alarm UI & animation prototypes (QML)
   - What: Prototype critical alarm full-screen flash, per-card highlight, audio stubs, and Alarm History panel in QML.
@@ -562,6 +629,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - Configure TLS/mTLS credentials from `resources/certs/`.
     - Batch telemetry messages and send using backoff & retry; surface ack/failed delivery metrics.
     - Provide health and connection state to `SystemController`.
+    - Integrate with `ITelemetryServer` interface for server communication.
   - Threading & ownership:
     - Runs worker thread(s) for network I/O or uses Qt event loop + QNetworkAccessManager on the main thread depending on platform; prefer dedicated network thread for blocking crypto ops.
   - Key API:
@@ -570,9 +638,29 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual void Disconnect() = 0;`
     - `virtual Result SendTelemetryBatch(const std::vector<TelemetryPacket>& batch, Callback ack) = 0;`
     - `virtual void SetRetryPolicy(const RetryPolicy &p) = 0;`
+    - `virtual void SetServerUrl(const QString& url) = 0;`
+    - `virtual QString GetServerUrl() const = 0;`
   - Error semantics: surface transient vs permanent errors (e.g., `CERT_INVALID`, `TLS_HANDSHAKE_FAILED`, `NETWORK_UNREACHABLE`).
-  - Example code path: `DeviceSimulator` emits vitals -> `DashboardController` enqueues to `IDatabaseManager` and asks `INetworkManager` to send batched telemetry; on failure, `INetworkManager` persists unsent batches to disk via `IDatabaseManager` archival queue.
-  - Tests to write: configurable failures, backoff timing behavior, SSL config validation, acknowledgment handling.
+  - Example code path: `DeviceSimulator` emits vitals -> `DashboardController` enqueues to `IDatabaseManager` and asks `INetworkManager` to send batched telemetry via `ITelemetryServer`; on failure, `INetworkManager` persists unsent batches to disk via `IDatabaseManager` archival queue.
+  - Tests to write: configurable failures, backoff timing behavior, SSL config validation, acknowledgment handling, server URL configuration, mock server integration.
+
+- [ ] 1. `doc/interfaces/ITelemetryServer.md`
+  - Purpose: Interface for sending telemetry data and sensor data to a central monitoring server. Abstracts server communication to support multiple implementations (production, mock, file-based).
+  - Responsibilities:
+    - Send telemetry data batches to the server
+    - Send sensor data to the server
+    - Handle server responses (acknowledgments, error codes)
+    - Manage connection state and health
+    - Support configurable server endpoints (URL, port, protocol)
+  - Key API:
+    - `virtual void SetServerUrl(const QString& url) = 0;`
+    - `virtual QString GetServerUrl() const = 0;`
+    - `virtual bool Connect() = 0;`
+    - `virtual void SendTelemetryAsync(const TelemetryData& data, std::function<void(const ServerResponse&)> callback) = 0;`
+    - `virtual void SendSensorDataAsync(const SensorData& data, std::function<void(const ServerResponse&)> callback) = 0;`
+  - Implementation variants: `NetworkTelemetryServer` (production), `MockTelemetryServer` (testing - swallows data), `FileTelemetryServer` (offline testing)
+  - Tests to write: connection management, telemetry/sensor data transmission, error handling, mock server behavior, server URL configuration.
+  - Note: Interface documentation exists at `doc/interfaces/ITelemetryServer.md`.
 
 - [ ] 1. `doc/interfaces/IAlarmManager.md`
   - Purpose: Centralized alarm evaluation, escalation, history and acknowledgment logic.
@@ -609,11 +697,16 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Responsibilities:
     - Read/write typed settings, validation, defaulting, and notification of changes.
     - Persist settings via `IDatabaseManager` or settings file.
+    - Manage device configuration: Device ID, Bed ID, and Measurement Unit (metric/imperial).
   - Key API:
     - `virtual std::optional<SettingValue> Get(const std::string &key) = 0;`
     - `virtual Result Set(const std::string &key, const SettingValue &v) = 0;`
     - `virtual void Subscribe(SettingsObserver*) = 0;`
-  - Tests to write: validation rules, persistence, migration of settings schema.
+  - Required Settings:
+    - `deviceId`: Unique device identifier (QString)
+    - `bedId`: Bed/room location identifier (QString)
+    - `measurementUnit`: Measurement system preference ("metric" or "imperial")
+  - Tests to write: validation rules, persistence, migration of settings schema, device configuration persistence.
 
 - [ ] 1. `doc/interfaces/IAuthenticationService.md`
   - Purpose: PIN-based local authentication and role enforcement for UI actions.
@@ -658,8 +751,9 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `DashboardController` — properties: `heartRate`, `spo2`, `ecgWaveformModel`; methods: `StartMonitoring()`, `StopMonitoring()`, `RequestTrend(range)`.
     - `AlarmController` — properties: `activeAlarmsModel`, `historyModel`; methods: `AcknowledgeAlarm(id)`, `Silence(duration)`.
     - `SystemController` — properties: `connectionState`, `appVersion`, `clock`; methods: `Reboot()`, `Shutdown()`.
-    - `PatientController` — properties: `currentPatient`; methods: `LoadPatient(id)`, `ClearPatient()`.
-    - `SettingsController`, `TrendsController`, `NotificationController` — list properties and key methods; include examples of QML bindings and signal usage.
+    - `PatientController` — properties: `patientId`, `patientName`, `patientAge`, `allergies`, `isLookingUp`, `lookupError`; methods: `lookupPatientById(id)`, `clearPatient()`; include examples of QML bindings for Patient Assignment View.
+    - `SettingsController` — properties: `deviceId`, `bedId`, `measurementUnit`, `allSettings`; methods: `updateSetting(key, value)`, `resetToDefaults()`; include examples of QML bindings for Device Configuration section.
+    - `TrendsController`, `NotificationController` — list properties and key methods; include examples of QML bindings and signal usage.
   - Tests: QML binding smoke tests, property change notifications, method-call round trips.
 
 Action notes:

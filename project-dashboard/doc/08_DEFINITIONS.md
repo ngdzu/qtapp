@@ -11,6 +11,10 @@ This document provides a glossary of key terms and terminologies used within the
 *   **AlarmManager:** A C++ backend class responsible for monitoring physiological and technical data, detecting alarm conditions, and managing the state and history of alarms.
 *   **AuthenticationService:** A C++ backend class handling user login, session management, and role-based access control for the device.
 
+## B
+
+*   **Bed ID:** Identifier for the bed or room location where the Z Monitor device is deployed. Used for patient context, location tracking, and associating device telemetry with specific clinical locations. Configurable through the Settings View.
+
 ## C
 
 *   **CA (Certificate Authority):** A trusted entity that issues digital certificates. In mTLS, the CA signs both server and client certificates.
@@ -22,6 +26,7 @@ This document provides a glossary of key terms and terminologies used within the
 *   **DashboardController:** A C++ QObject-based controller that exposes real-time vital signs and device status data to the QML frontend for display on the main dashboard view.
 *   **DatabaseManager:** A C++ backend class responsible for managing the local encrypted SQLite database, including data storage, retrieval, and encryption.
 *   **DataArchiver:** A C++ backend class responsible for handling the archival of historical data from the local database, typically data older than a defined retention policy.
+*   **Device ID:** A unique identifier assigned to each Z Monitor device, used for device identification, telemetry transmission, and tracking in the central monitoring system. Configurable through the Settings View.
 *   **DeviceSimulator:** A C++ backend class that generates realistic, simulated patient vital signs and device operational data for testing and demonstration purposes.
 *   **Diagnostics View:** A QML view displaying system logs and providing controls for simulation parameters or remote commands.
 *   **Docker:** A platform that uses OS-level virtualization to deliver software in packages called containers. Used for consistent development and deployment environments.
@@ -50,20 +55,24 @@ This document provides a glossary of key terms and terminologies used within the
 
 ## M
 
+*   **Measurement Unit:** System preference for displaying measurements in either metric or imperial units. Affects the display of vital signs, infusion rates, and other measured values throughout the application. Configurable through the Settings View. Options include "metric" (e.g., Celsius, milliliters) or "imperial" (e.g., Fahrenheit, fluid ounces).
 *   **Medium Alarm (P3):** A medium priority alarm requiring awareness and follow-up, but not immediate intervention.
 *   **mTLS (Mutual TLS):** Mutual Transport Layer Security. A two-way authentication process where both the client (device) and the server authenticate each other using digital certificates.
 
 ## N
 
-*   **NetworkManager:** A C++ backend class responsible for managing network connectivity, secure data transmission (mTLS) to the central server, and handling connection status.
+*   **NetworkManager:** A C++ backend class responsible for managing network connectivity, secure data transmission (mTLS) to the central server, and handling connection status. Integrates with `ITelemetryServer` interface for server communication and supports configurable server URLs.
+*   **ITelemetryServer:** An interface for sending telemetry data and sensor data to a central monitoring server. Supports multiple implementations: `NetworkTelemetryServer` (production), `MockTelemetryServer` (testing/development), and `FileTelemetryServer` (offline testing).
+*   **MockTelemetryServer:** A test implementation of `ITelemetryServer` that swallows all data without sending to a real server. Used for unit testing and development when server infrastructure is not available.
 *   **NotificationController:** A C++ QObject-based controller that exposes non-critical informational and warning messages to the QML notification system.
 *   **Notification System:** A UI component (bell icon with badge) for displaying non-critical informational messages and warnings.
 
 ## P
 
-*   **Patient Banner:** A persistent UI element in the header displaying critical patient identification and safety information.
-*   **PatientController:** A C++ QObject-based controller that exposes current patient data to the QML frontend.
-*   **PatientManager:** A C++ backend class managing patient-specific data and profiles.
+*   **Patient Banner:** A persistent UI element in the header displaying critical patient identification and safety information. Tappable to open Patient Assignment View when no patient is assigned.
+*   **PatientController:** A C++ QObject-based controller that exposes current patient data to the QML frontend and provides patient lookup functionality via `lookupPatientById()`.
+*   **PatientManager:** A C++ backend class managing patient-specific data and profiles. Integrates with `IPatientLookupService` to retrieve patient information from external systems.
+*   **IPatientLookupService:** An interface for looking up patient information from external systems (HIS/EHR) by patient ID. Supports both synchronous and asynchronous lookup patterns.
 *   **PI (Perfusion Index):** A numerical value that indicates the pulsatile blood flow in peripheral tissues.
 *   **Predictive Analytics:** Simulated feature that generates a risk score for potential adverse events based on current and historical patient data.
 *   **PVC (Premature Ventricular Contraction):** An extra, abnormal heartbeat that begins in the ventricles.
