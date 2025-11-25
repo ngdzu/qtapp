@@ -15,5 +15,6 @@ The detailed rules have been split into topic-specific files to reduce token usa
 - `maintenance_notes.mdc`
 - `documentation_maintenance.mdc`
 - `api_documentation.mdc`
+- `ztodo_verification.mdc`
 - `mermaid_guidelines.mdc`
 - `qml_guidelines.mdc`

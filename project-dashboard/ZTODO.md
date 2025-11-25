@@ -11,6 +11,17 @@
 
 **Documentation is not optional - it is a required part of every public API.**
 
+## ⚠️ CRITICAL: Verification Required
+
+**ALL ZTODO ITEMS MUST BE VERIFIED BEFORE MARKING COMPLETE.**
+
+- **Rule:** Every task must include verification steps and be verified before completion
+- **Guideline:** See `.cursor/rules/ztodo_verification.mdc` for complete verification workflow
+- **Categories:** Functional, Code Quality, Documentation, Integration, Tests
+- **Enforcement:** Tasks cannot be marked complete without passing all verification steps
+
+**Verification is not optional - it is a required part of every task completion.**
+
 ---
 
 ## Sequential Tasks (must be done in order)
@@ -27,6 +38,12 @@
     - Update PatientManager with `admitPatient()`, `dischargePatient()`, `transferPatient()` methods
     - Update PatientController with admission state properties and methods
   - Acceptance: Settings no longer contains `bedId`, `deviceLabel` is displayed in Settings View, PatientManager supports ADT workflow, admission events are logged to database.
+  - Verification Steps:
+    1. Functional: Verify `bedId` removed, `deviceLabel` works, ADT methods function correctly, admission events logged
+    2. Code Quality: Run linter, check Doxygen comments, verify no warnings
+    3. Documentation: Update `doc/10_DATABASE_DESIGN.md`, verify `doc/19_ADT_WORKFLOW.md` is accurate
+    4. Integration: Build succeeds, all tests pass, database migration works
+    5. Tests: Write unit tests for ADT methods, integration tests for workflow, verify database schema
   - Documentation: See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow specification.
   - Prompt: `project-dashboard/prompt/08a-refactor-settings-adt.md`  (When finished: mark this checklist item done.)
 
@@ -404,6 +421,12 @@
     - Documentation artifacts uploaded for review
     - Fails if too many undocumented items (>10 threshold)
   - Acceptance: Doxygen generates complete API documentation, all public APIs are documented, documentation is accessible via HTML, diagrams are generated, documentation stays synchronized with code, CI/CD workflow runs successfully.
+  - Verification Steps:
+    1. Functional: Doxygen generates docs successfully, all public APIs appear in docs, HTML is accessible, diagrams render correctly
+    2. Code Quality: Doxyfile is properly configured, no Doxygen warnings for critical items, documentation follows style
+    3. Documentation: `doc/26_API_DOCUMENTATION.md` is complete, `scripts/README_DOXYGEN.md` explains workflows, README updated
+    4. Integration: CMake `docs` target works, GitHub Actions workflow runs successfully, pre-commit hook works (optional)
+    5. Tests: Documentation coverage check passes, all links work, examples compile and run
   - Tests: Documentation coverage check (fail CI if public APIs undocumented), verify all links work, check examples compile.
   - Documentation: See `doc/26_API_DOCUMENTATION.md` for complete API documentation strategy. See `scripts/README_DOXYGEN.md` for workflow details.
   - Prompt: `project-dashboard/prompt/26-api-documentation-setup.md`  (When finished: mark this checklist item done.)
