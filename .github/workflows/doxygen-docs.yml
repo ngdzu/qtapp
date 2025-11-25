@@ -1,0 +1,125 @@
+name: Generate API Documentation
+
+on:
+  # Run on schedule (nightly at 2 AM UTC)
+  schedule:
+    - cron: '0 2 * * *'
+  # Run on push to main/master branch
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'project-dashboard/src/**'
+      - 'project-dashboard/Doxyfile'
+      - 'project-dashboard/CMakeLists.txt'
+  # Run on pull requests (optional - can be disabled if too slow)
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'project-dashboard/src/**'
+      - 'project-dashboard/Doxyfile'
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  generate-docs:
+    name: Generate Doxygen Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better documentation
+
+      - name: Install Doxygen and Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Verify Doxygen installation
+        run: |
+          doxygen --version
+          dot -V
+
+      - name: Generate API Documentation
+        working-directory: project-dashboard
+        run: |
+          # Create output directory
+          mkdir -p docs/api
+          
+          # Generate documentation
+          doxygen Doxyfile || true
+          
+          # Check if documentation was generated
+          if [ ! -d "docs/api/html" ]; then
+            echo "⚠️  Warning: Documentation generation may have failed"
+            exit 1
+          fi
+          
+          echo "✓ Documentation generated successfully"
+
+      - name: Check Documentation Coverage
+        working-directory: project-dashboard
+        run: |
+          # Count undocumented items from Doxygen warnings
+          if [ -f "docs/api/doxygen_warnings.log" ]; then
+            UNDOCUMENTED=$(grep -c "is not documented" docs/api/doxygen_warnings.log || echo "0")
+            echo "Undocumented items: $UNDOCUMENTED"
+            
+            # Fail if too many undocumented items (threshold: 10)
+            if [ "$UNDOCUMENTED" -gt 10 ]; then
+              echo "❌ Too many undocumented items ($UNDOCUMENTED). Please add Doxygen comments."
+              echo "See .cursor/rules/api_documentation.mdc for documentation requirements"
+              exit 1
+            fi
+          fi
+
+      - name: Upload Documentation Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-documentation
+          path: project-dashboard/docs/api/html
+          retention-days: 30
+
+      - name: Comment PR with Documentation Status
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Check if documentation was generated
+            const docsPath = 'project-dashboard/docs/api/html';
+            if (fs.existsSync(docsPath)) {
+              const files = fs.readdirSync(docsPath);
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `✅ API documentation generated successfully.\n\n` +
+                      `📚 Documentation includes ${files.length} files.\n\n` +
+                      `Download the documentation artifact to view locally.`
+              });
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `⚠️  API documentation generation completed with warnings.\n\n` +
+                      `Check the workflow logs for details.`
+              });
+            }
+
+      # Optional: Deploy to GitHub Pages (uncomment if desired)
+      # - name: Deploy to GitHub Pages
+      #   if: github.ref == 'refs/heads/main'
+      #   uses: peaceiris/actions-gh-pages@v3
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: project-dashboard/docs/api/html
+

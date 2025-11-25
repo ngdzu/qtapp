@@ -85,5 +85,20 @@ See `../doc/` for comprehensive documentation including:
 - Database design
 - Threading model
 - Configuration and settings
+- API documentation (auto-generated from code)
 - And more
+
+### Generating API Documentation
+
+API documentation is automatically generated from source code comments using Doxygen:
+
+```bash
+# Generate API documentation
+cmake --build build --target docs
+
+# Or directly with Doxygen
+doxygen Doxyfile
+```
+
+The generated documentation is available in `docs/api/html/`. See `doc/26_API_DOCUMENTATION.md` for complete API documentation strategy and guidelines.
 

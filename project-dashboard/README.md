@@ -83,8 +83,29 @@ Comprehensive documentation is available in the `doc/` directory:
 - Security guidelines
 - Database schema
 - Threading model
-- API specifications
+- API specifications (auto-generated from code)
+- API documentation generation guide
 - And more
+
+### API Documentation
+
+API documentation is automatically generated from source code comments using Doxygen. See `doc/26_API_DOCUMENTATION.md` for:
+- Doxygen configuration and setup
+- Comment style guidelines
+- Documentation generation workflow
+- Integration with build system
+
+**Generate API documentation locally:**
+```bash
+cd project-dashboard
+cmake --build build --target docs
+# Documentation available in docs/api/html/
+```
+
+**Automatic generation:**
+- **GitHub Actions:** Documentation is automatically generated nightly and on code changes
+- **Pre-commit hook:** Optional lightweight check for Doxygen comments (warning only, doesn't block commits)
+- **Workflow:** See `.github/workflows/doxygen-docs.yml` for CI/CD integration
 
 ## Testing
 

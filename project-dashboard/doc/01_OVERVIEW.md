@@ -43,3 +43,4 @@ The core purpose is to create a sophisticated, near-realistic application that d
 - **Database:** Encrypted SQLite via SQLCipher for local data persistence.
 - **Networking:** Qt Networking (`QNetworkAccessManager`) for secure HTTPS communication.
 - **Simulated Server:** A standalone Python (Flask/FastAPI) application.
+- **Documentation:** Doxygen for API documentation generation from source code comments.

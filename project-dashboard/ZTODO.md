@@ -1,4 +1,17 @@
+# Z Monitor Development Tasks
 
+## ⚠️ CRITICAL: API Documentation Required
+
+**ALL CODE MUST INCLUDE DOXYGEN-STYLE COMMENTS FROM THE BEGINNING.**
+
+- **Rule:** Every public class, method, property, and enum must be documented with Doxygen-style comments (`/** */`)
+- **Guideline:** See `.cursor/rules/api_documentation.mdc` for complete documentation requirements
+- **Reference:** See `doc/26_API_DOCUMENTATION.md` for API documentation strategy
+- **Enforcement:** Code reviews will reject code without proper documentation
+
+**Documentation is not optional - it is a required part of every public API.**
+
+---
 
 ## Sequential Tasks (must be done in order)
 
@@ -312,7 +325,104 @@
 
 
 
+## Software Engineering Best Practices & Design Decisions
+
+- [ ] Review and implement Error Handling Strategy
+  - What: Implement comprehensive error handling following `doc/20_ERROR_HANDLING_STRATEGY.md`, including Result<T,E> pattern, error codes, recovery strategies, and error propagation.
+  - Why: Ensures consistent, type-safe error handling across the application with proper recovery and user feedback.
+  - Files: Create `src/utils/Result.h`, update all service classes to use Result pattern, implement error codes enum, add error recovery logic.
+  - Acceptance: All operations use Result pattern or signals for error propagation, error codes are standardized, recovery strategies are implemented, errors are logged appropriately.
+  - Tests: Error handling tests, recovery tests, error propagation tests.
+  - Prompt: `project-dashboard/prompt/20-error-handling-implementation.md`  (When finished: mark this checklist item done.)
+
+- [ ] Review and implement Logging Strategy
+  - What: Implement structured logging following `doc/21_LOGGING_STRATEGY.md`, including log levels, structured context, log rotation, and performance optimization.
+  - Why: Provides comprehensive, searchable logging with appropriate performance characteristics for real-time systems.
+  - Files: Update `src/core/LogService.cpp/h`, implement log rotation, add structured context support, implement async logging.
+  - Acceptance: Logging uses structured format, log rotation works, async logging doesn't block threads, sensitive data is not logged, logs are searchable and filterable.
+  - Tests: Logging tests, rotation tests, performance tests, security tests (verify no sensitive data).
+  - Prompt: `project-dashboard/prompt/21-logging-strategy-implementation.md`  (When finished: mark this checklist item done.)
+
+- [ ] Review and implement Code Organization
+  - What: Organize code following `doc/22_CODE_ORGANIZATION.md`, including directory structure, namespace conventions, module boundaries, and dependency rules.
+  - Why: Ensures maintainable, scalable codebase with clear module boundaries and dependencies.
+  - Files: Reorganize source files if needed, add namespaces, update includes, verify module boundaries.
+  - Acceptance: Code follows directory structure, namespaces are used correctly, no circular dependencies, includes are organized, module boundaries are respected.
+  - Tests: Build system tests, dependency analysis tests.
+  - Prompt: `project-dashboard/prompt/22-code-organization-review.md`  (When finished: mark this checklist item done.)
+
+- [ ] Review and implement Memory & Resource Management
+  - What: Implement memory management following `doc/23_MEMORY_RESOURCE_MANAGEMENT.md`, including smart pointers, RAII, pre-allocation, and resource cleanup.
+  - Why: Prevents memory leaks, ensures predictable performance, and manages resources correctly.
+  - Files: Update all classes to use smart pointers, implement RAII for resources, pre-allocate buffers for real-time operations, add resource cleanup.
+  - Acceptance: No memory leaks detected, smart pointers used for dynamic memory, resources cleaned up properly, pre-allocation implemented for hot paths.
+  - Tests: Memory leak tests, resource cleanup tests, performance tests.
+  - Prompt: `project-dashboard/prompt/23-memory-management-review.md`  (When finished: mark this checklist item done.)
+
+- [ ] Review and implement Configuration Management
+  - What: Implement configuration management following `doc/24_CONFIGURATION_MANAGEMENT.md`, including validation, defaults, migration, and audit logging.
+  - Why: Ensures type-safe, validated configuration with proper defaults and migration support.
+  - Files: Update `src/core/SettingsManager.cpp/h`, implement validation, add configuration migration, implement audit logging.
+  - Acceptance: All configuration is validated, defaults are loaded, migration works, changes are audited, type-safe accessors work.
+  - Tests: Configuration validation tests, migration tests, audit logging tests.
+  - Prompt: `project-dashboard/prompt/24-configuration-management-implementation.md`  (When finished: mark this checklist item done.)
+
+- [ ] Review and implement API Versioning
+  - What: Implement API versioning following `doc/25_API_VERSIONING.md`, including version negotiation, backward compatibility, and migration support.
+  - Why: Enables API evolution while maintaining compatibility with existing clients.
+  - Files: Update `src/core/NetworkManager.cpp/h`, implement version negotiation, add API version detection, implement migration logic.
+  - Acceptance: API versioning works, backward compatibility maintained, version negotiation successful, migration guides provided.
+  - Tests: Version compatibility tests, negotiation tests, migration tests.
+  - Prompt: `project-dashboard/prompt/25-api-versioning-implementation.md`  (When finished: mark this checklist item done.)
+
 ## Documentation, Compliance & Diagrams
+
+- [ ] Set up API documentation generation with Doxygen
+  - What: Configure Doxygen to generate API documentation from source code comments. Create Doxyfile configuration, establish comment style guidelines, integrate with CMake build system, and set up documentation generation workflow.
+  - Why: Ensures API documentation stays synchronized with codebase and provides comprehensive reference for developers. Auto-generated documentation reduces maintenance burden and ensures consistency.
+  - Files: Create `project-dashboard/Doxyfile`, update `CMakeLists.txt` with Doxygen target, create `doc/26_API_DOCUMENTATION.md` with guidelines, add documentation comments to all public APIs.
+  - Configuration:
+    - Doxygen version: 1.9+ (supports modern C++ and Qt)
+    - Output format: HTML (primary), PDF (optional)
+    - Enable Qt-specific features (Q_OBJECT, Q_PROPERTY, signals/slots)
+    - Enable class diagrams and dependency graphs
+    - Configure module groups (CoreServices, Controllers, Interfaces, Models, Utils)
+  - Comment Style:
+    - Use Doxygen-style comments (`/** */`)
+    - Document all public classes, methods, parameters, return values
+    - Include examples for complex APIs
+    - Use cross-references (@see, @sa)
+    - Organize into modules using @defgroup
+  - Build Integration:
+    - Add `docs` target to CMake
+    - Generate documentation on `cmake --build build --target docs`
+    - Optionally publish to documentation server in CI/CD
+  - CI/CD Integration:
+    - ✅ Pre-commit hook: Optional lightweight check (warning only, doesn't block commits) - see `.pre-commit-config.yaml`
+    - ✅ GitHub Actions workflow: Automatic generation nightly and on code changes - see `.github/workflows/doxygen-docs.yml`
+    - Workflow runs at 2 AM UTC daily, on push to main/master, and on PRs (can be disabled if too slow)
+    - Documentation artifacts uploaded for review
+    - Fails if too many undocumented items (>10 threshold)
+  - Acceptance: Doxygen generates complete API documentation, all public APIs are documented, documentation is accessible via HTML, diagrams are generated, documentation stays synchronized with code, CI/CD workflow runs successfully.
+  - Tests: Documentation coverage check (fail CI if public APIs undocumented), verify all links work, check examples compile.
+  - Documentation: See `doc/26_API_DOCUMENTATION.md` for complete API documentation strategy. See `scripts/README_DOXYGEN.md` for workflow details.
+  - Prompt: `project-dashboard/prompt/26-api-documentation-setup.md`  (When finished: mark this checklist item done.)
+
+- [ ] Document all public APIs with Doxygen comments
+  - What: Add comprehensive Doxygen comments to all public classes, methods, properties, and enums. Ensure 100% coverage of public APIs. Include examples, cross-references, and usage notes.
+  - Why: Complete API documentation enables developers to understand and use the API effectively. Examples and cross-references improve usability.
+  - Files: Update all header files in `src/core/`, `src/controllers/`, `src/interfaces/`, `src/models/` with Doxygen comments.
+  - Coverage Requirements:
+    - All public classes: Class description, purpose, usage notes
+    - All public methods: Method description, parameters, return values, exceptions, examples
+    - All Q_PROPERTY: Property description, access notes
+    - All enums: Enum description, value descriptions
+    - All namespaces: Namespace purpose and organization
+  - Examples: Include code examples for complex APIs (NetworkManager, DatabaseManager, etc.)
+  - Cross-References: Link related classes, methods, and design documents
+  - Acceptance: 100% coverage of public APIs, all examples compile and work, all cross-references valid, documentation is clear and helpful.
+  - Tests: Run Doxygen and verify no warnings for undocumented public APIs, verify examples compile, check cross-references.
+  - Prompt: `project-dashboard/prompt/27-api-documentation-comments.md`  (When finished: mark this checklist item done.)
 
 - [ ] Update `doc/10_DATABASE_DESIGN.md` and add ERD
   - What: Consolidate the extended DDL into `doc/10_DATABASE_DESIGN.md`, include ERD and index rationale, and retention/archival notes.

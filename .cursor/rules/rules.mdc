@@ -14,5 +14,6 @@ The detailed rules have been split into topic-specific files to reduce token usa
 - `quality_checklist.mdc`
 - `maintenance_notes.mdc`
 - `documentation_maintenance.mdc`
+- `api_documentation.mdc`
 - `mermaid_guidelines.mdc`
 - `qml_guidelines.mdc`

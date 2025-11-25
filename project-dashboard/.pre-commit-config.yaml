@@ -1,0 +1,32 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+# Skip hooks: git commit --no-verify
+
+repos:
+  # Basic file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+
+  # Doxygen documentation check (lightweight - only checks for missing docs, doesn't generate)
+  - repo: local
+    hooks:
+      - id: doxygen-check
+        name: Check for Doxygen comments in public APIs
+        entry: bash -c 'scripts/pre-commit-doxygen-check.sh'
+        language: system
+        pass_filenames: true
+        files: \.(cpp|h)$
+        description: "Lightweight check for Doxygen comments in public APIs. Skips if Doxygen not installed."
+        # This hook is optional - it only warns, doesn't fail
+        # To make it required, remove the `always_run: false` line below
+        always_run: false
+        stages: [commit]
+
