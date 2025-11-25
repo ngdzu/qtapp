@@ -29,23 +29,48 @@ The data sent to the server (`/api/telemetry`) is a JSON object with the followi
 ```json
 {
   "deviceId": "DEVICE-SERIAL-001",
+  "deviceLabel": "ICU-MON-04",
+  "patientMrn": "12345",
+  "patientName": "John Doe",
+  "bedLocation": "ICU-4B",
   "timestamp": "2025-11-22T14:30:00Z",
   "vitals": [
     {
       "id": 101,
       "timestamp": "2025-11-22T14:29:58Z",
+      "patientMrn": "12345",
       "heart_rate": 78,
       "spo2": 98.5
     },
     {
       "id": 102,
       "timestamp": "2025-11-22T14:29:59Z",
+      "patientMrn": "12345",
       "heart_rate": 79,
       "spo2": 98.6
+    }
+  ],
+  "alarms": [
+    {
+      "id": 201,
+      "timestamp": "2025-11-22T14:30:00Z",
+      "patientMrn": "12345",
+      "alarmType": "high_heart_rate",
+      "priority": "high"
     }
   ]
 }
 ```
+
+**Critical Requirements:**
+- **Patient Association:** All telemetry data MUST include `patientMrn` (Medical Record Number) to associate data with the patient. This is required for:
+  - Patient data correlation on the server
+  - Compliance with healthcare data regulations
+  - Proper patient record management
+  - Audit trails and data integrity
+- **Device Identity:** `deviceId` (for telemetry routing) and `deviceLabel` (human-readable asset tag) are both included
+- **Bed Location:** `bedLocation` comes from the Patient object (not device settings) and reflects current patient assignment
+- **Standby State:** If no patient is admitted (`patientMrn` is empty), the device should not send patient telemetry data. Only device health/status data may be sent (clearly marked as non-patient data)
 
 ## 4. Server Response for Telemetry Upload
 

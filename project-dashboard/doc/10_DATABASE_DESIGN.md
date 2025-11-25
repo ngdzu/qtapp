@@ -65,8 +65,10 @@ CREATE TABLE IF NOT EXISTS vitals (
 	uuid TEXT NULL,
 	timestamp INTEGER NOT NULL,
 	timestamp_iso TEXT NULL,
-	patient_id TEXT NOT NULL,
+	patient_id TEXT NOT NULL,      -- Patient identifier (typically MRN)
+	patient_mrn TEXT NOT NULL,     -- Medical Record Number (REQUIRED for patient association)
 	device_id TEXT NULL,
+	device_label TEXT NULL,        -- Device asset tag/identifier
 	heart_rate REAL NULL,
 	spo2 REAL NULL,
 	respiration_rate REAL NULL,
@@ -77,11 +79,18 @@ CREATE TABLE IF NOT EXISTS vitals (
 );
 ```
 
+**Critical Requirements:**
+- **Patient Association:** `patient_mrn` is REQUIRED and must not be NULL. All vitals data must be associated with a patient MRN.
+- **Data Integrity:** Both `patient_id` and `patient_mrn` are stored to support different lookup patterns, but `patient_mrn` is the primary identifier for patient association.
+- **Standby State:** If no patient is admitted, vitals should not be recorded (device in STANDBY state).
+
 Recommended indices:
 
 ```sql
 CREATE INDEX IF NOT EXISTS idx_vitals_patient_time ON vitals(patient_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_vitals_mrn_time ON vitals(patient_mrn, timestamp);  -- Primary lookup by MRN
 CREATE INDEX IF NOT EXISTS idx_vitals_is_synced ON vitals(is_synced);
+CREATE INDEX IF NOT EXISTS idx_vitals_device ON vitals(device_id, timestamp);
 ```
 
 ### `alarms`
@@ -93,6 +102,7 @@ Sample DDL:
 CREATE TABLE IF NOT EXISTS alarms (
 	alarm_id INTEGER PRIMARY KEY AUTOINCREMENT,
 	patient_id TEXT NOT NULL,
+	patient_mrn TEXT NOT NULL,     -- Medical Record Number (REQUIRED for patient association)
 	start_time INTEGER NOT NULL,
 	end_time INTEGER NULL,
 	alarm_type TEXT NOT NULL,
@@ -105,6 +115,9 @@ CREATE TABLE IF NOT EXISTS alarms (
 	context_snapshot_id INTEGER NULL
 );
 ```
+
+**Critical Requirements:**
+- **Patient Association:** `patient_mrn` is REQUIRED and must not be NULL. All alarms must be associated with a patient MRN.
 
 Recommended index:
 

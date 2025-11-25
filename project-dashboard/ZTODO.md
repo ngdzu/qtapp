@@ -279,6 +279,13 @@
   - Why: Ensures secure, authenticated, and auditable transmission of sensitive patient data to central server.
   - Files: `src/core/NetworkManager.cpp/h`, `src/core/CertificateManager.cpp/h`, `src/core/SecurityAuditLogger.cpp/h`, update `DatabaseManager` for security audit log storage.
   - Note: CRL checking is **mandatory for production** (not optional). Clock skew tolerance is ±1 minute for production, ±5 minutes for development. See `doc/06_SECURITY.md` section 6 for detailed requirements.
+  - **CRITICAL - Patient Data Association:**
+    - All telemetry data MUST include patient MRN (Medical Record Number) for proper patient association
+    - `NetworkManager` must automatically retrieve current patient MRN from `PatientManager` when sending telemetry
+    - Validate that patient is admitted (`patientMrn` is not empty) before sending patient data
+    - If no patient is admitted, do not send patient telemetry data (device in STANDBY state)
+    - Each data record (vitals, alarms, etc.) must include `patientMrn` for proper association
+    - Server must validate `patientMrn` presence and validity before processing patient data
   - Security Features:
     - Certificate lifecycle management (validation, expiration checking, revocation)
     - Digital signatures (ECDSA or RSA) on all telemetry payloads
@@ -286,8 +293,8 @@
     - Rate limiting (60 requests/minute, configurable)
     - Circuit breaker for repeated failures
     - Security audit logging to `security_audit_log` table
-  - Acceptance: All telemetry data is signed and validated, certificates are checked on startup and periodically, security events are logged, rate limiting prevents abuse, and connection failures trigger circuit breaker.
-  - Tests: Certificate validation tests, signature verification tests, replay attack prevention tests, rate limiting tests, audit log verification tests.
+  - Acceptance: All telemetry data is signed and validated, certificates are checked on startup and periodically, security events are logged, rate limiting prevents abuse, connection failures trigger circuit breaker, and **all patient data includes patient MRN for proper association**.
+  - Tests: Certificate validation tests, signature verification tests, replay attack prevention tests, rate limiting tests, audit log verification tests, **patient MRN association tests** (verify MRN is included in all telemetry payloads).
   - Prompt: `project-dashboard/prompt/16b-comprehensive-security-implementation.md`  (When finished: mark this checklist item done.)
 
 

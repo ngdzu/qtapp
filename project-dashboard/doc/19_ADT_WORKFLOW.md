@@ -344,21 +344,52 @@ For existing devices with `bedId` setting:
 - Settings view updates
 - Audit log verification
 
-## 11. Benefits
+## 11. Patient Data Association in Telemetry
 
-### 11.1. Alignment with Hospital Workflows
+### 11.1. Critical Requirement
+
+**All telemetry data sent from the device MUST be associated with the patient MRN (Medical Record Number).**
+
+### 11.2. Implementation
+
+- **Automatic Inclusion:** `NetworkManager` automatically retrieves current patient MRN from `PatientManager` when sending telemetry
+- **Validation:** Before sending patient data, validates that a patient is admitted (`patientMrn` is not empty)
+- **Payload Structure:** All telemetry payloads include:
+  - `patientMrn`: Medical Record Number (REQUIRED)
+  - `patientName`: Patient name (optional, for server-side validation)
+  - `bedLocation`: Current bed location from Patient object
+- **Data Records:** Each individual data record (vitals, alarms, etc.) also includes `patientMrn` for proper association
+
+### 11.3. Standby State Handling
+
+- **No Patient Admitted:** If no patient is admitted, device should not send patient telemetry data
+- **Device Health Only:** Only device health/status data may be sent (with `patientMrn` set to empty/null, clearly marked as non-patient data)
+- **State Validation:** `NetworkManager` checks admission state before sending patient data
+
+### 11.4. Compliance and Data Integrity
+
+Patient MRN association is required for:
+- **Healthcare Regulations:** HIPAA, FDA, and other healthcare data regulations
+- **Patient Record Management:** Proper correlation of data with patient records
+- **Audit Trails:** Complete audit trail of which patient data belongs to which patient
+- **Data Analysis:** Accurate patient-specific data analysis and trending
+
+## 12. Benefits
+
+### 12.1. Alignment with Hospital Workflows
 
 - Matches standard ADT processes used in hospitals
 - Integrates with HIS/EHR systems
 - Supports barcode scanning (common in hospitals)
 
-### 11.2. Improved Data Model
+### 12.2. Improved Data Model
 
 - Separates device identity from patient assignment
 - Proper patient lifecycle management
 - Better audit trail for patient assignments
+- **Ensures all patient data is properly associated with patient MRN**
 
-### 11.3. Enhanced User Experience
+### 12.3. Enhanced User Experience
 
 - Clear visual indication of patient state
 - Prominent patient name display

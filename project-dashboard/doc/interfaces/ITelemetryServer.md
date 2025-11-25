@@ -78,7 +78,10 @@ signals:
 ```cpp
 struct TelemetryData {
     QString deviceId;
-    QString bedId;
+    QString deviceLabel;        // Static device identifier/asset tag (e.g., "ICU-MON-04")
+    QString patientMrn;         // Medical Record Number - REQUIRED for patient data association
+    QString patientName;        // Patient name (optional, for server-side validation)
+    QString bedLocation;         // Current bed/room location (from Patient object, not device setting)
     QDateTime timestamp;
     QList<VitalSign> vitals;
     QList<Alarm> alarms;
@@ -87,6 +90,11 @@ struct TelemetryData {
     QString signature;  // Digital signature for data integrity
     QString nonce;  // Nonce for replay attack prevention
 };
+```
+
+**Critical Requirement:** All telemetry data MUST include `patientMrn` to associate data with the patient. If no patient is admitted (`patientMrn` is empty), the device should either:
+- Not send telemetry data (device in STANDBY state)
+- Send device health/status data only (with `patientMrn` set to empty/null, clearly marked as non-patient data)
 
 struct SensorData {
     QString deviceId;

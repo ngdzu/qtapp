@@ -67,4 +67,4 @@ A standalone Python application that simulates a hospital's central monitoring s
 2.  **Processing:** The data is passed to the `AlarmManager` to check for alarm conditions and to the relevant UI controllers.
 3.  **UI Update:** The UI controllers emit signals (`dataChanged`) or update their properties. The QML engine detects these changes and automatically updates the bindings in the UI, causing elements like graphs and text fields to re-render with the new data.
 4.  **Data Persistence:** The `DatabaseManager` periodically writes the data to the local encrypted SQLite database.
-5.  **Remote Transmission:** The `NetworkManager` periodically sends the latest data to the central server over a secure HTTPS connection.
+5.  **Remote Transmission:** The `NetworkManager` periodically sends the latest data to the central server over a secure HTTPS connection. **CRITICAL:** All telemetry data automatically includes the current patient MRN from `PatientManager` to ensure proper patient data association. If no patient is admitted, patient telemetry data is not sent (device in STANDBY state).

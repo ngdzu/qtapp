@@ -57,8 +57,8 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 
 **Key Methods:**
 - `connectToServer()`: Initiates connection to central server using configured server URL and mTLS
-- `sendTelemetry(const TelemetryData& data)`: Transmits data to server via `ITelemetryServer` with digital signature
-- `sendSensorData(const SensorData& data)`: Transmits sensor data to server with digital signature
+- `sendTelemetry(const TelemetryData& data)`: Transmits data to server via `ITelemetryServer` with digital signature. **CRITICAL:** Automatically includes current patient MRN from `PatientManager` if patient is admitted. Validates that `patientMrn` is present before sending patient data.
+- `sendSensorData(const SensorData& data)`: Transmits sensor data to server with digital signature. **CRITICAL:** Automatically includes current patient MRN from `PatientManager` if patient is admitted. Validates that `patientMrn` is present before sending patient sensor data.
 - `configure(const QSslConfiguration& sslConfig)`: Configures mTLS settings
 - `setServerUrl(const QString& url)`: Updates server URL and reconnects if needed
 - `getServerUrl()`: Returns current server URL
@@ -66,6 +66,12 @@ This diagram provides a comprehensive overview of all major C++ classes and thei
 - `loadCertificates()`: Loads certificates from secure storage
 - `signPayload(const QByteArray& data)`: Creates digital signature for data integrity
 - `checkCertificateRevocation()`: Checks certificate revocation list (CRL)
+
+**Patient Data Association:**
+- **Automatic Patient MRN Inclusion:** When sending telemetry, `NetworkManager` automatically retrieves current patient MRN from `PatientManager` and includes it in the payload
+- **Validation:** Before sending patient data, validates that a patient is admitted (`patientMrn` is not empty)
+- **Standby State:** If no patient is admitted, only device health/status data may be sent (with `patientMrn` set to empty/null, clearly marked as non-patient data)
+- **Data Integrity:** All vitals, alarms, and sensor data include `patientMrn` to ensure proper patient association on the server
 
 **Security Features:**
 - **mTLS:** Mutual TLS with client and server certificate validation
