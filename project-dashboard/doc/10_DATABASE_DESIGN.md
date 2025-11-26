@@ -63,19 +63,20 @@ Sample DDL (core columns):
 CREATE TABLE IF NOT EXISTS vitals (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	uuid TEXT NULL,
-	timestamp INTEGER NOT NULL,
+	timestamp INTEGER NOT NULL,           -- Time data was measured/created
 	timestamp_iso TEXT NULL,
-	patient_id TEXT NOT NULL,      -- Patient identifier (typically MRN)
-	patient_mrn TEXT NOT NULL,     -- Medical Record Number (REQUIRED for patient association)
+	patient_id TEXT NOT NULL,             -- Patient identifier (typically MRN)
+	patient_mrn TEXT NOT NULL,            -- Medical Record Number (REQUIRED for patient association)
 	device_id TEXT NULL,
-	device_label TEXT NULL,        -- Device asset tag/identifier
+	device_label TEXT NULL,               -- Device asset tag/identifier
 	heart_rate REAL NULL,
 	spo2 REAL NULL,
 	respiration_rate REAL NULL,
 	signal_quality INTEGER NULL,
 	sample_rate_hz REAL NULL,
 	source TEXT NULL,
-	is_synced BOOLEAN DEFAULT 0
+	is_synced BOOLEAN DEFAULT 0,
+	batch_id TEXT NULL                    -- References telemetry_metrics.batch_id (NULL if not yet transmitted)
 );
 ```
 
@@ -84,6 +85,38 @@ CREATE TABLE IF NOT EXISTS vitals (
 - **Data Integrity:** Both `patient_id` and `patient_mrn` are stored to support different lookup patterns, but `patient_mrn` is the primary identifier for patient association.
 - **Standby State:** If no patient is admitted, vitals should not be recorded (device in STANDBY state).
 
+**Design Decision: No Timing Data in `vitals` Table**
+
+**Rationale:**
+- **Performance**: `vitals` is the **largest, hottest table** with time-series data at 100-500 Hz. Adding timing columns would slow down the critical write path and impact alarm latency.
+- **Storage Efficiency**: Most vitals are never transmitted individually (batched). Adding 9 timing columns to every row wastes storage on 90% of data.
+- **Separation of Concerns**: Clinical data (`vitals`) vs. diagnostic/performance data (timing metrics) should be separate.
+- **Query Performance**: Timing columns add index overhead and slow down clinical queries.
+
+**Instead: Use `telemetry_metrics` Table for Timing**
+
+Timing and latency tracking is done in the dedicated `telemetry_metrics` table (see below). To correlate vitals with timing:
+- Each transmitted batch gets a `batch_id` (UUID)
+- Vitals in that batch are linked via `batch_id` column (optional, nullable)
+- Query timing for a specific vital: `JOIN vitals ON telemetry_metrics.batch_id = vitals.batch_id`
+
+**Example: Correlating Vitals with Timing:**
+```sql
+-- Find vitals from slow batches (> 100ms)
+SELECT v.*, tm.end_to_end_latency_ms, tm.batch_creation_latency_ms
+FROM vitals v
+INNER JOIN telemetry_metrics tm ON v.batch_id = tm.batch_id
+WHERE tm.end_to_end_latency_ms > 100
+ORDER BY tm.end_to_end_latency_ms DESC;
+```
+
+**Benefits of This Design:**
+1. ✅ **Fast Writes**: No timing overhead on critical vitals insertion
+2. ✅ **Storage Efficient**: Timing data only for transmitted batches (~10% of vitals)
+3. ✅ **Clean Separation**: Clinical data separate from diagnostics
+4. ✅ **Better Queries**: Clinical queries unaffected by timing columns
+5. ✅ **Flexible**: Can add more timing metrics without touching `vitals` schema
+
 Recommended indices:
 
 ```sql
@@ -91,6 +124,7 @@ CREATE INDEX IF NOT EXISTS idx_vitals_patient_time ON vitals(patient_id, timesta
 CREATE INDEX IF NOT EXISTS idx_vitals_mrn_time ON vitals(patient_mrn, timestamp);  -- Primary lookup by MRN
 CREATE INDEX IF NOT EXISTS idx_vitals_is_synced ON vitals(is_synced);
 CREATE INDEX IF NOT EXISTS idx_vitals_device ON vitals(device_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_vitals_batch_id ON vitals(batch_id) WHERE batch_id IS NOT NULL;  -- For joining with telemetry_metrics
 ```
 
 ### `alarms`
@@ -434,6 +468,183 @@ CREATE INDEX IF NOT EXISTS idx_admission_events_type ON admission_events(event_t
 ```
 
 **ADT Workflow:** See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow documentation.
+
+### `telemetry_metrics`
+Stores comprehensive timing and performance metrics for telemetry transmission. This table is specifically designed for benchmarking, diagnostics, and latency analysis.
+
+Sample DDL:
+
+```sql
+CREATE TABLE IF NOT EXISTS telemetry_metrics (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	batch_id TEXT NOT NULL UNIQUE,       -- UUID identifying the telemetry batch (unique, referenced by vitals.batch_id)
+	device_id TEXT NOT NULL,
+	device_label TEXT NULL,
+	patient_mrn TEXT NULL,               -- NULL if device health/status data (no patient admitted)
+	
+	-- Timing milestones (all Unix timestamps in milliseconds)
+	data_created_at INTEGER NOT NULL,    -- Time first data point in batch was created
+	batch_created_at INTEGER NOT NULL,   -- Time batch object was created
+	signed_at INTEGER NOT NULL,          -- Time batch was signed
+	queued_for_tx_at INTEGER NOT NULL,   -- Time batch was queued for transmission
+	transmitted_at INTEGER NOT NULL,     -- Time batch was sent over network
+	server_received_at INTEGER NULL,     -- Time server received batch (from server response)
+	server_processed_at INTEGER NULL,    -- Time server finished processing (from server response)
+	server_ack_at INTEGER NULL,          -- Time server sent acknowledgment (from server response)
+	
+	-- Computed latency metrics (milliseconds)
+	batch_creation_latency_ms INTEGER NULL,    -- batch_created_at - data_created_at
+	signing_latency_ms INTEGER NULL,           -- signed_at - batch_created_at
+	queue_wait_latency_ms INTEGER NULL,        -- transmitted_at - queued_for_tx_at
+	network_latency_ms INTEGER NULL,           -- server_received_at - transmitted_at
+	server_processing_latency_ms INTEGER NULL, -- server_processed_at - server_received_at
+	end_to_end_latency_ms INTEGER NULL,        -- server_ack_at - data_created_at
+	
+	-- Batch statistics
+	record_count INTEGER NOT NULL,       -- Number of records in batch (vitals, alarms, etc.)
+	batch_size_bytes INTEGER NOT NULL,   -- Size of batch payload in bytes
+	compressed_size_bytes INTEGER NULL,  -- Size after compression (if applicable)
+	
+	-- Status and error tracking
+	status TEXT NOT NULL,                -- "success", "failed", "timeout", "retrying"
+	error_message TEXT NULL,             -- Error details if status = "failed"
+	retry_count INTEGER DEFAULT 0,       -- Number of retry attempts
+	
+	-- Performance classification
+	latency_class TEXT NULL,             -- "excellent" (<10ms), "good" (<50ms), "acceptable" (<100ms), "slow" (>100ms)
+	
+	-- Metadata
+	created_at INTEGER NOT NULL,         -- Time this metrics record was created
+	updated_at INTEGER NULL              -- Time this metrics record was last updated (for retries)
+);
+```
+
+**Usage Notes:**
+- **`batch_id`**: UUID for correlating metrics across retries and server logs. **UNIQUE** to enable foreign key relationship from `vitals.batch_id`.
+- **`patient_mrn`**: NULL indicates device health/status data (no patient admitted)
+- **Timing Milestones**: Capture every stage of telemetry pipeline for bottleneck analysis
+- **Computed Metrics**: Pre-computed for fast queries; updated via triggers or application code
+- **`latency_class`**: Human-readable classification for quick filtering
+
+**Relationship with `vitals` Table:**
+- Each batch contains multiple vitals records
+- `vitals.batch_id` references `telemetry_metrics.batch_id` (nullable, only set when transmitted)
+- This enables correlation: "Which vitals were in the slow batch?"
+- Keeps timing data **separate** from clinical data for performance
+
+**Use Cases:**
+1. **Real-Time Monitoring**: Dashboard showing current P95 latencies
+2. **Alerting**: Trigger alerts if P95 exceeds thresholds (e.g., 100ms)
+3. **Bottleneck Detection**: Identify if delays are in signing, network, or server processing
+4. **Capacity Planning**: Analyze batch sizes and transmission rates
+5. **Compliance Reporting**: Generate latency reports for regulatory audits
+6. **A/B Testing**: Compare performance before/after code changes
+
+**Example Queries:**
+
+```sql
+-- Real-time P95 latency (last hour)
+SELECT 
+    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY end_to_end_latency_ms) as p95_latency_ms,
+    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY network_latency_ms) as p95_network_ms,
+    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY server_processing_latency_ms) as p95_server_ms,
+    AVG(batch_size_bytes) as avg_batch_size,
+    COUNT(*) as total_batches,
+    SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful,
+    SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+FROM telemetry_metrics
+WHERE created_at > (strftime('%s', 'now') - 3600) * 1000;
+
+-- Identify slow batches (outliers)
+SELECT 
+    batch_id, 
+    device_id, 
+    patient_mrn,
+    end_to_end_latency_ms,
+    network_latency_ms,
+    server_processing_latency_ms,
+    batch_size_bytes,
+    record_count
+FROM telemetry_metrics
+WHERE end_to_end_latency_ms > 100
+  AND created_at > (strftime('%s', 'now') - 86400) * 1000
+ORDER BY end_to_end_latency_ms DESC
+LIMIT 50;
+
+-- Performance trends over time (hourly buckets for last 24 hours)
+SELECT 
+    strftime('%Y-%m-%d %H:00:00', created_at / 1000, 'unixepoch') as hour,
+    AVG(end_to_end_latency_ms) as avg_latency,
+    MIN(end_to_end_latency_ms) as min_latency,
+    MAX(end_to_end_latency_ms) as max_latency,
+    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY end_to_end_latency_ms) as p95_latency,
+    COUNT(*) as batch_count,
+    SUM(batch_size_bytes) as total_bytes,
+    SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as success_rate
+FROM telemetry_metrics
+WHERE created_at > (strftime('%s', 'now') - 86400) * 1000
+GROUP BY hour
+ORDER BY hour;
+
+-- Latency breakdown by stage (where is the bottleneck?)
+SELECT 
+    AVG(batch_creation_latency_ms) as avg_batch_creation_ms,
+    AVG(signing_latency_ms) as avg_signing_ms,
+    AVG(queue_wait_latency_ms) as avg_queue_wait_ms,
+    AVG(network_latency_ms) as avg_network_ms,
+    AVG(server_processing_latency_ms) as avg_server_processing_ms,
+    COUNT(*) as sample_count
+FROM telemetry_metrics
+WHERE created_at > (strftime('%s', 'now') - 3600) * 1000
+  AND status = 'success';
+
+-- Performance by latency class (distribution)
+SELECT 
+    latency_class,
+    COUNT(*) as count,
+    COUNT(*) * 100.0 / (SELECT COUNT(*) FROM telemetry_metrics) as percentage,
+    AVG(end_to_end_latency_ms) as avg_latency_ms
+FROM telemetry_metrics
+WHERE created_at > (strftime('%s', 'now') - 86400) * 1000
+GROUP BY latency_class
+ORDER BY avg_latency_ms;
+```
+
+**Recommended Indices:**
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_telemetry_metrics_batch ON telemetry_metrics(batch_id);
+CREATE INDEX IF NOT EXISTS idx_telemetry_metrics_device ON telemetry_metrics(device_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_telemetry_metrics_patient ON telemetry_metrics(patient_mrn, created_at);
+CREATE INDEX IF NOT EXISTS idx_telemetry_metrics_status ON telemetry_metrics(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_telemetry_metrics_latency ON telemetry_metrics(end_to_end_latency_ms) WHERE end_to_end_latency_ms IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_telemetry_metrics_latency_class ON telemetry_metrics(latency_class, created_at);
+CREATE INDEX IF NOT EXISTS idx_telemetry_metrics_created_at ON telemetry_metrics(created_at);
+```
+
+**Retention Policy:**
+- Keep detailed metrics for 90 days
+- Archive aggregated statistics (hourly/daily) for 1 year
+- Critical for compliance audits and performance analysis
+
+**Trigger for Automatic Latency Classification:**
+
+```sql
+CREATE TRIGGER IF NOT EXISTS trg_telemetry_metrics_classify
+AFTER INSERT ON telemetry_metrics
+FOR EACH ROW
+WHEN NEW.end_to_end_latency_ms IS NOT NULL
+BEGIN
+    UPDATE telemetry_metrics
+    SET latency_class = CASE
+        WHEN NEW.end_to_end_latency_ms < 10 THEN 'excellent'
+        WHEN NEW.end_to_end_latency_ms < 50 THEN 'good'
+        WHEN NEW.end_to_end_latency_ms < 100 THEN 'acceptable'
+        ELSE 'slow'
+    END
+    WHERE id = NEW.id;
+END;
+```
 
 ### `db_encryption_meta`
 Stores metadata about the DB encryption key and algorithm (not the key itself).

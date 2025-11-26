@@ -85,15 +85,16 @@ For detailed DDD guidance see `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
 
 **Key Methods:**
 - `connectToServer()`: Initiates connection to central server using configured server URL and mTLS
-- `sendTelemetry(const TelemetryData& data)`: Transmits data to server via `ITelemetryServer` with digital signature. **CRITICAL:** Automatically includes current patient MRN from `PatientManager` if patient is admitted. Validates that `patientMrn` is present before sending patient data.
-- `sendSensorData(const SensorData& data)`: Transmits sensor data to server with digital signature. **CRITICAL:** Automatically includes current patient MRN from `PatientManager` if patient is admitted. Validates that `patientMrn` is present before sending patient sensor data.
+- `sendTelemetry(const TelemetryData& data)`: Transmits data to server via `ITelemetryServer` with digital signature. **CRITICAL:** Automatically includes current patient MRN from `PatientManager` if patient is admitted. Validates that `patientMrn` is present before sending patient data. **TIMING:** Records timing milestones at every stage (batch creation, signing, queuing, transmission, server receipt) to `telemetry_metrics` table for latency analysis.
+- `sendSensorData(const SensorData& data)`: Transmits sensor data to server with digital signature. **CRITICAL:** Automatically includes current patient MRN from `PatientManager` if patient is admitted. Validates that `patientMrn` is present before sending patient sensor data. **TIMING:** Records timing metrics similar to `sendTelemetry()`.
 - `configure(const QSslConfiguration& sslConfig)`: Configures mTLS settings
 - `setServerUrl(const QString& url)`: Updates server URL and reconnects if needed
 - `getServerUrl()`: Returns current server URL
 - `validateCertificates()`: Validates client certificate (expiration, revocation, device ID match)
 - `loadCertificates()`: Loads certificates from secure storage
-- `signPayload(const QByteArray& data)`: Creates digital signature for data integrity
+- `signPayload(const QByteArray& data)`: Creates digital signature for data integrity. **TIMING:** Records signing timestamp for latency analysis.
 - `checkCertificateRevocation()`: Checks certificate revocation list (CRL)
+- `recordTelemetryMetrics(const TelemetryMetrics& metrics)`: Records telemetry timing metrics to `telemetry_metrics` table for benchmarking and diagnostics
 
 **Patient Data Association:**
 - **Automatic Patient MRN Inclusion:** When sending telemetry, `NetworkManager` automatically retrieves current patient MRN from `PatientManager` and includes it in the payload
@@ -116,12 +117,80 @@ For detailed DDD guidance see `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
 - `DatabaseManager`: For certificate tracking and security audit logging
 - `LogService`: For security event logging
 
+**Timing and Performance Tracking:**
+
+The `NetworkManager` tracks comprehensive timing metrics for every telemetry transmission:
+
+```cpp
+struct TelemetryMetrics {
+    QString batchId;                    // UUID for batch correlation
+    QString deviceId;
+    QString patientMrn;                 // NULL if no patient admitted
+    
+    // Timing milestones (Unix milliseconds)
+    qint64 dataCreatedAt;               // First data point creation time
+    qint64 batchCreatedAt;              // Batch object creation time
+    qint64 signedAt;                    // Batch signed time
+    qint64 queuedForTxAt;               // Queued for transmission time
+    qint64 transmittedAt;               // Sent over network time
+    qint64 serverReceivedAt;            // Server receipt time (from response)
+    qint64 serverProcessedAt;           // Server processing complete (from response)
+    qint64 serverAckAt;                 // Server ACK sent time (from response)
+    
+    // Batch statistics
+    int recordCount;                    // Number of records in batch
+    int batchSizeBytes;                 // Payload size in bytes
+    int compressedSizeBytes;            // Compressed size (if applicable)
+    
+    // Status
+    QString status;                     // "success", "failed", "timeout", "retrying"
+    QString errorMessage;               // Error details if failed
+    int retryCount;                     // Number of retry attempts
+};
+```
+
+**Recording Flow:**
+1. **Batch Creation**: Record `dataCreatedAt` (oldest data in batch) and `batchCreatedAt` (QDateTime::currentMSecsSinceEpoch())
+2. **Signing**: Record `signedAt` after `signPayload()` completes
+3. **Queueing**: Record `queuedForTxAt` when batch is enqueued to network thread
+4. **Transmission**: Record `transmittedAt` when `QNetworkReply` sends data
+5. **Server Response**: Parse `serverReceivedAt`, `serverProcessedAt`, `serverAckAt` from server JSON response
+6. **Persist Metrics**: Call `recordTelemetryMetrics()` to save to `telemetry_metrics` table
+
+**Server Response Format:**
+```json
+{
+    "status": "success",
+    "batchId": "550e8400-e29b-41d4-a716-446655440000",
+    "receivedAt": 1701385200123,      // Unix ms when server received
+    "processedAt": 1701385200145,     // Unix ms when processing complete
+    "ackAt": 1701385200150,           // Unix ms when ACK sent
+    "recordsProcessed": 42
+}
+```
+
+**Latency Calculation (Automatic):**
+- `batch_creation_latency_ms = batchCreatedAt - dataCreatedAt`
+- `signing_latency_ms = signedAt - batchCreatedAt`
+- `queue_wait_latency_ms = transmittedAt - queuedForTxAt`
+- `network_latency_ms = serverReceivedAt - transmittedAt`
+- `server_processing_latency_ms = serverProcessedAt - serverReceivedAt`
+- `end_to_end_latency_ms = serverAckAt - dataCreatedAt`
+
+**Use Cases:**
+1. **Alarm Latency Compliance**: Verify P95 end-to-end latency < 100ms
+2. **Bottleneck Detection**: Identify if delays are in signing, network, or server
+3. **Performance Monitoring**: Real-time dashboard showing current latencies
+4. **Capacity Planning**: Analyze batch sizes and transmission rates
+5. **Diagnostics**: Troubleshoot slow transmissions with detailed timing breakdown
+
 **Signals:**
 - `connectionStatusChanged(ConnectionStatus status)`: Emitted when connection status changes
-- `telemetrySent(const TelemetryData& data, const ServerResponse& response)`: Emitted when telemetry is successfully sent
+- `telemetrySent(const TelemetryData& data, const ServerResponse& response)`: Emitted when telemetry is successfully sent. **Response includes server timing information.**
 - `telemetrySendFailed(const TelemetryData& data, const QString& error)`: Emitted when telemetry send fails
 - `certificateExpiring(const QSslCertificate& cert, int daysRemaining)`: Emitted when certificate is expiring soon
 - `certificateValidationFailed(const QString& reason)`: Emitted when certificate validation fails
+- `telemetryMetricsRecorded(const TelemetryMetrics& metrics)`: Emitted when timing metrics are recorded (for diagnostics UI)
 
 ### 2.4. DatabaseManager
 **Responsibility:** Manages encrypted SQLite database for local data persistence, backup, and restore operations.
