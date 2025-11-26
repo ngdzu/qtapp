@@ -474,6 +474,55 @@
   - Tests: Run Doxygen and verify no warnings for undocumented public APIs, verify examples compile, check cross-references.
   - Prompt: `project-dashboard/prompt/27-api-documentation-comments.md`  (When finished: mark this checklist item done.)
 
+- [ ] Maintain System Components Reference (doc/29_SYSTEM_COMPONENTS.md)
+  - What: Keep `doc/29_SYSTEM_COMPONENTS.md` synchronized with the codebase. When adding/removing/refactoring components, update the component inventory, interaction diagram, and component count.
+  - Why: Provides a single authoritative source of truth for all system components (98 total across all layers). Prevents discrepancies between documentation and implementation.
+  - Files: `doc/29_SYSTEM_COMPONENTS.md`, `doc/29_SYSTEM_COMPONENTS.mmd`, `doc/29_SYSTEM_COMPONENTS.svg`, related architecture/design docs.
+  - When to Update:
+    - Adding new aggregates, services, controllers, repositories, or UI components
+    - Removing or deprecating components
+    - Refactoring (moving components between layers)
+    - Changing component interactions or dependencies
+  - Update Steps:
+    1. Update component tables in `doc/29_SYSTEM_COMPONENTS.md` (section 2-5)
+    2. Update component count summary (section 8)
+    3. Update interaction diagram in `doc/29_SYSTEM_COMPONENTS.mmd` (section 6)
+    4. Regenerate SVG: `npx @mermaid-js/mermaid-cli -i doc/29_SYSTEM_COMPONENTS.mmd -o doc/29_SYSTEM_COMPONENTS.svg`
+    5. Update cross-references in `doc/02_ARCHITECTURE.md`, `doc/09_CLASS_DESIGNS.md`
+  - Acceptance: Component list matches implemented code, diagram is accurate, SVG renders correctly, component count is correct, no discrepancies with architecture/design docs.
+  - Verification Steps:
+    1. Functional: All listed components exist in codebase or are documented as planned/deprecated
+    2. Code Quality: Diagram syntax valid (SVG generates without errors)
+    3. Documentation: Cross-references in other docs are updated
+    4. Integration: Component interactions match actual dependencies
+    5. Tests: Manual verification or script to compare doc vs. codebase
+  - Prompt: `project-dashboard/prompt/29-maintain-component-reference.md`  (When finished: mark this checklist item done.)
+
+- [ ] Maintain Thread Model (doc/12_THREAD_MODEL.md)
+  - What: Keep `doc/12_THREAD_MODEL.md` synchronized with system components and thread assignments. When adding/removing components or changing thread topology, update the service-to-thread mapping, thread diagrams, and component counts per thread.
+  - Why: Ensures all 98 components are correctly assigned to threads. Prevents ambiguity about which thread a service runs on. Critical for performance optimization and debugging.
+  - Files: `doc/12_THREAD_MODEL.md`, `doc/12_THREAD_MODEL.mmd`, `doc/12_THREAD_MODEL.svg`, `doc/29_SYSTEM_COMPONENTS.md`.
+  - When to Update:
+    - Adding new services, adapters, or infrastructure components
+    - Changing thread topology (e.g., splitting RT thread, adding worker pools)
+    - Moving components between threads for performance optimization
+    - Adding new communication patterns (queues, signals)
+  - Update Steps:
+    1. Update service-to-thread mapping tables in `doc/12_THREAD_MODEL.md` (section 4)
+    2. Update thread mapping summary (section 5)
+    3. Update thread topology diagram in `doc/12_THREAD_MODEL.mmd`
+    4. Regenerate SVG: `npx @mermaid-js/mermaid-cli -i doc/12_THREAD_MODEL.mmd -o doc/12_THREAD_MODEL.svg`
+    5. Verify total component count matches `doc/29_SYSTEM_COMPONENTS.md` (98 components)
+    6. Update cross-references in `doc/02_ARCHITECTURE.md`
+  - Acceptance: All 98 components are assigned to threads, thread topology matches implementation, SVG renders correctly, component counts are correct, latency targets are documented.
+  - Verification Steps:
+    1. Functional: Thread assignments match actual implementation (verify with code)
+    2. Code Quality: Diagram syntax valid (SVG generates without errors)
+    3. Documentation: Total component count matches System Components Reference (98)
+    4. Integration: Communication patterns (queues, signals) match implementation
+    5. Tests: Performance tests validate latency targets
+  - Prompt: `project-dashboard/prompt/12-maintain-thread-model.md`  (When finished: mark this checklist item done.)
+
 - [ ] Update `doc/10_DATABASE_DESIGN.md` and add ERD
   - What: Consolidate the extended DDL into `doc/10_DATABASE_DESIGN.md`, include ERD and index rationale, and retention/archival notes.
   - Prompt: `project-dashboard/prompt/22-update-db-design-erd.md`  (When finished: mark this checklist item done.)

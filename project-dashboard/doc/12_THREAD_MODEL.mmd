@@ -1,57 +1,83 @@
 flowchart TB
-%% Simplified node labels (removed -D/-C suffixes). Groups reduce implied thread count.
+  subgraph UIThread[Main / UI Thread - Qt Event Loop]
+    UI[QML Views & Controllers<br/>28 components]
+  end
 
-%% Legend (color => thread grouping) - placed at top so it appears above the diagram
-subgraph Legend[Legend]
-    L1["UI (Main Thread) - Red"]
-    L2["RT Processing (Sensor I/O + Signal Proc) - Orange"]
-    L3["DB Writer & Logger - Green"]
-    L4["Network / Archiver - Blue"]
-    L5["Analytics Worker Pool - Purple"]
-    L6["Watchdog - Gray"]
-end
-style L1 fill:#ffd6d6,stroke:#b30000
-style L2 fill:#ffe6cc,stroke:#b36000
-style L3 fill:#e6ffea,stroke:#0a8a0a
-style L4 fill:#e6f0ff,stroke:#0a53a8
-style L5 fill:#f0e6ff,stroke:#7a3bff
-style L6 fill:#f2f2f2,stroke:#666666
+  subgraph RTThread[Real-Time Processing Thread - High Priority]
+    DeviceSim[DeviceSimulator]
+    MonitorSvc[MonitoringService]
+    PatientAgg[PatientAggregate]
+    TelemetryBatch[TelemetryBatch]
+    AlarmAgg[AlarmAggregate]
+  end
 
-%% Diagram nodes (below the legend)
-UI[Main UI Thread]
-SensorIO[Sensor I/O]
-SignalProc[Signal Processor]
-AlarmMgr[Alarm Manager]
-DBWriter[DB Writer & Logger]
-Network[Network Manager]
-Archiver[Archiver]
-Analytics[Analytics Worker Pool]
-Watchdog[Watchdog]
+  subgraph AppThread[Application Services - Normal Priority<br/>may co-locate with RT]
+    AdmissionSvc[AdmissionService]
+    ProvisionSvc[ProvisioningService]
+    SecuritySvc[SecurityService]
+  end
 
-%% Data / control flows
-SensorIO --> SignalProc
-SignalProc --> AlarmMgr
-SignalProc --> DBWriter
-SignalProc --> Analytics
-AlarmMgr --> UI
-AlarmMgr --> DBWriter
-DBWriter --> Watchdog
-Network --> DBWriter
-Archiver --> DBWriter
-UI --> AlarmMgr
-UI --> Network
+  subgraph DBThread[Database I/O Thread - Single Writer]
+    DBManager[DatabaseManager]
+    Repos[6 SQLite Repositories]
+    LogSvc[LogService]
+    ArchiveSvc[DataArchiveService]
+  end
 
-SignalProc --> Watchdog
-AlarmMgr --> Watchdog
-Network --> Watchdog
+  subgraph NetThread[Network I/O Thread]
+    NetTelem[NetworkTelemetryServer]
+    HISLookup[HIS/EHR Patient Lookup]
+    CentralClient[CentralStationClient]
+    CertMgr[CertificateManager]
+    EncSvc[EncryptionService]
+    SigSvc[SignatureService]
+  end
 
-%% Coloring to match legend groups
-style UI fill:#ffd6d6,stroke:#b30000,stroke-width:1px
-style SensorIO fill:#ffe6cc,stroke:#b36000,stroke-width:1px
-style SignalProc fill:#ffe6cc,stroke:#b36000,stroke-width:1px
-style AlarmMgr fill:#ffe6cc,stroke:#b36000,stroke-width:1px
-style DBWriter fill:#e6ffea,stroke:#0a8a0a,stroke-width:1px
-style Network fill:#e6f0ff,stroke:#0a53a8,stroke-width:1px
-style Archiver fill:#e6f0ff,stroke:#0a53a8,stroke-width:1px
-style Analytics fill:#f0e6ff,stroke:#7a3bff,stroke-width:1px
-style Watchdog fill:#f2f2f2,stroke:#666666,stroke-width:1px
+  subgraph BgThread[Background Tasks Thread - Low Priority]
+    FirmwareSvc[FirmwareUpdateService]
+    BackupSvc[BackupService]
+    HealthMon[HealthMonitor]
+    ClockSync[ClockSyncService]
+    Watchdog[WatchdogService]
+    QRGen[QRCodeGenerator]
+  end
+
+  DeviceSim -->|SPSC ring buffer<br/>vitals samples| MonitorSvc
+  MonitorSvc -->|update state| PatientAgg
+  MonitorSvc -->|create batch| TelemetryBatch
+  MonitorSvc -->|evaluate rules| AlarmAgg
+  AlarmAgg -->|Qt::QueuedConnection<br/>alarm events| UI
+  MonitorSvc -->|Qt::QueuedConnection<br/>vitals updates| UI
+  TelemetryBatch -->|MPSC queue<br/>batched writes| DBThread
+  TelemetryBatch -->|Queue<br/>telemetry submission| NetThread
+
+  UI -->|Queued calls<br/>admission requests| AdmissionSvc
+  UI -->|Queued calls<br/>provisioning| ProvisionSvc
+  UI -->|Queued calls<br/>login/auth| SecuritySvc
+
+  AdmissionSvc -->|Repository calls<br/>via queue| DBThread
+  ProvisionSvc -->|Repository calls<br/>via queue| DBThread
+  SecuritySvc -->|Repository calls<br/>via queue| DBThread
+
+  NetTelem -->|HTTPS/mTLS| ExternalServer[Central Server]
+  HISLookup -->|HTTPS| ExternalHIS[HIS/EHR]
+  CentralClient -->|HTTPS| ExternalStation[Central Station]
+
+  BgThread -->|Scheduled tasks| DBThread
+  Watchdog -->|Monitor heartbeats| RTThread
+  Watchdog -->|Monitor heartbeats| DBThread
+  Watchdog -->|Monitor heartbeats| NetThread
+
+  classDef uiClass fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+  classDef rtClass fill:#ffccbc,stroke:#d84315,stroke-width:2px
+  classDef appClass fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+  classDef dbClass fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+  classDef netClass fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+  classDef bgClass fill:#b0bec5,stroke:#37474f,stroke-width:2px
+
+  class UIThread uiClass
+  class RTThread rtClass
+  class AppThread appClass
+  class DBThread dbClass
+  class NetThread netClass
+  class BgThread bgClass

@@ -1,342 +1,1334 @@
-"""markdown
 # Thread Model and Low-Latency Architecture
 
 This document specifies the threading model, communication channels, latency targets, and implementation constraints for the Z Monitor. It explains how components should be partitioned across threads, which synchronization primitives to use, and measurable performance requirements to achieve a low-latency, safe, and predictable system.
 
-Purpose
-- Provide an unambiguous thread-affinity architecture for core subsystems (data acquisition, signal processing, alarms, DB persistence, networking, UI).
-- Define low-latency requirements and measurable targets.
-- Explain implementation patterns (QThread, lock-free queues, atomic synchronization, event loops) and platform considerations.
-
-Audience
-- Backend and firmware engineers implementing `DatabaseManager`, `SignalProcessor`, `AlarmManager`, `NetworkManager`.
-- QA/performance engineers who will validate latency, jitter and throughput.
-
-Overview (logical components)
-- Sensor / Device I/O: reads raw telemetry (waveforms, samples) from serial, USB, BLE or IPC.
-- Signal Processor: filters, derivatives, beat detection, simple analytics, predictive-score preprocessor.
-- Alarm Manager: evaluates alarm rules, escalation, debouncing and acknowledgement handling.
-- DB Writer (DatabaseManager): batched persistence of events, vitals and snapshots.
-- Network Sync (NetworkManager): secure mTLS synchronization, retries and conflict handling.
-- UI (Qt GUI main thread): rendering, user interaction, patient context and alarm overlay.
-- Archiver / Background: on-demand or scheduled archival and restore tasks.
-- Logger / Audit: persistent audit logging and secure local logs.
-
-Are boxes threads?
- - Short answer: No — boxes in the diagram are logical services/components, not necessarily 1:1 OS threads.
- - Rationale: the diagram shows component boundaries and data flows. Each box represents a service with a well-defined responsibility and API. Whether a service runs in its own thread, shares a thread with other services, or is implemented as a thread-pool worker depends on platform resources, expected load (sampling rates, number of patients), and real-time guarantees.
-
-When to give a service its own thread
- - High-frequency I/O or processing: services that handle continuous streams (waveforms at hundreds of Hz) should have a dedicated thread or a bounded set of threads to avoid contention and jitter.
- - Blocking I/O or long syscalls: network sync, file export/archival, or blocking device reads should not execute on the UI thread and are good candidates for separate threads.
- - Serialized single-writer resources: SQLite writes are easiest when funneled through a single DB-writer thread to avoid write-lock contention.
-
-When to colocate services on the same thread
- - Low-throughput or infrequent tasks: logger flushers, occasional archiver callbacks, or a low-rate network health check can be placed in the same background thread.
- - Tight memory/CPU budgets: on very constrained hardware, you may combine Alarm Manager and Signal Processor into a single real-time thread if budgeted carefully (but measure latency).
-
-Recommended thread-service mappings (examples)
- - Minimal / very constrained (1 CPU core, embedded)
-   - Main UI Thread (Qt event loop)
-   - RT Processing Thread: Sensor I/O + Signal Processor + Alarm Manager (single real-time thread)
-   - DB/Network/Logger Background Thread (batching duties)
-   - Watchdog (lightweight timer on UI or background)
-   - Notes: combine services but carefully pre-allocate buffers and test for P99 latency under load.
-
- - Typical embedded/mobile (2 cores)
-   - Main UI Thread
-   - Sensor I/O + Signal Processor (dedicated real-time thread)
-   - DB Writer (single) + Logger (same background thread)
-   - Network Sync (separate thread)
-   - Watchdog / Archiver (low-priority background)
-
- - Multi-core / desktop (4+ cores)
-   - Main UI Thread
-   - One or more Signal Processor threads (scale with sensors/patients)
-   - Sensor I/O threads (one per fast device or grouped by bus)
-   - Alarm Manager (separate thread)
-   - DB Writer (single)
-   - Network Sync (separate)
-   - Archiver and Logger (separate or pooled background threads)
-
-Sizing guidance & decision heuristics
- - Estimate per-sample processing time: measure the time to process one sample (microseconds). Multiply by expected sample rate to compute CPU load.
- - Budgeting: reserve 10-20% CPU headroom for OS, GUI, and unexpected spikes.
- - If sample processing consumes > 40-50% of a CPU core, give it a dedicated core/thread.
- - For each thread, estimate worst-case latency and backlog: if queues can grow beyond safe memory limits, split the service across threads or add worker pool.
-
-Thread count sanity check
- - Ten logical boxes does not mandate ten OS threads. For a small device you typically run 3–5 threads (UI, RT processing, DB writer, network, background). For larger systems you may map each service to its own thread if CPU/cores and memory allow.
-
-Example mapping table (summary)
- - UI: Main thread (must be main) — priority default
- - Sensor I/O: dedicated or grouped thread(s) — high priority
- - Signal Processor: dedicated thread(s) — real-time/high priority
- - Alarm Manager: colocate with Signal Processor (if light) or separate — high priority
- - DB Writer: single background thread — I/O priority
- - Network Sync: background thread — normal priority
- - Logger: background thread (or co-located with DB writer) — low priority
- - Archiver: background thread — low priority
- - Watchdog: lightweight timer on UI or background — low priority
-
-Implementation checklist (practical steps)
- - Start with a conservative mapping: UI, RT processing (I/O+processing), DB writer, network/logger background.
- - Measure CPU, latency, and queue depth under representative loads.
- - If processing or I/O saturates a core, split services into separate threads or add worker threads.
- - Use per-thread priorities and CPU affinity on multi-core devices to isolate real-time threads.
- - Add watchdogs and queue-depth alarms early to detect backpressure.
-
-Decision flow (quick):
- 1. Is the service handling high-frequency data (>50 Hz) or real-time constraints? If yes → prefer dedicated thread.
- 2. Does it perform blocking I/O or long-running CPU work? If yes → separate thread.
- 3. If neither, consider co-locating with a low-priority background thread.
-
-Decision Rationale (why some services are co-located)
------------------------------------------------
-This section explains specific placement choices shown in the diagram (for example, why `Network` and `Archiver` were co-located in earlier diagrams), and provides clear trade-offs for other threads.
-
-- Network + Archiver (co-located rationale):
-  - Work type: Both are largely background I/O tasks that perform non-real-time work (uploads, downloads, file moves, compression, and scheduled exports).
-  - Latency sensitivity: Neither operation is on the real-time alarm path. They tolerate batching, backoff, and retries without affecting alarm handling or UI responsiveness.
-  - Resource sharing: They often share TLS configuration, HTTP client state, retry/backoff logic and may access the same DB/archive files. Co-locating avoids frequent cross-thread handoffs for small jobs.
-  - Constrained systems: On devices with very limited cores, combining them reduces thread count and synchronization complexity which simplifies scheduling and lowers context-switch overhead.
-  - Trade-offs: Co-location is only advisable when archive tasks are lightweight (small files or infrequent), and when network activity won't block long-running CPU work (e.g., heavy compression). If archiving compresses/encrypts large blobs or network sends are very frequent/large, they should be separated.
-
-- Database Writer (separate by default):
-  - Rationale: SQLite (even with WAL) benefits from a single writer to avoid contention and simplify transactional semantics. Keeping DB writes on a dedicated thread prevents unpredictable pauses in real-time processing caused by synchronous disk flushes.
-  - Trade-offs: If DB writes are extremely light and device is single-threaded, DB writer can be co-located with a background thread, but be cautious about commit latency for critical alarms.
-
-- Signal Processor & Sensor I/O (dedicated / co-located depending on load):
-  - Rationale: These are on the hot path. They must minimize jitter and allocations. In many cases Sensor I/O (device reads) feeds a dedicated Signal Processor thread via an SPSC ring buffer for deterministic handoff.
-  - Trade-offs: On very constrained hardware you may colocate Sensor I/O + Signal Processor in the same real-time thread to reduce inter-thread signaling latency; however, this increases the risk that long-running processing will delay new reads — so measure carefully.
-
-- Alarm Manager (co-locate or separate):
-  - Rationale: If alarm rule evaluation is lightweight, it can live alongside the Signal Processor (to keep evaluation deterministic and avoid queueing latency). If rules reference heavier analytics, keep Alarm Manager separate and have it consume pre-computed scores from the analytics pool.
-  - Trade-offs: Co-location reduces messaging overhead but may increase worst-case latency during bursts of processing.
-
-- Logger / Audit (background, often co-located with DB writer):
-  - Rationale: Audit logs are append-only and low priority. Co-locating with the DB writer enables transactional writes consistent with events and reduces concurrency complexity.
-  - Trade-offs: For extremely high-volume trace logs, a separate logger or a batching compression worker is preferable.
-
-- Watchdog and Observability (lightweight, can be co-located):
-  - Rationale: Watchdog can run as a lightweight timer on the UI or a background thread; it only needs periodic heartbeats and should not be high priority.
-
-Guidelines to decide whether to split a co-located pair
-- If either service starts consuming > 25–40% of the CPU budget on that thread, split it out.
-- If either service performs heavy CPU work (compression, encryption, large serialization), offload that work to a worker pool or separate thread.
-- If failure of one service should not impact the other (isolation requirement), put them on separate threads/processes.
-- If you need different thread priorities or QoS classes (e.g., Network should be low-priority, but Archiver must immediately persist data), separate them.
-
-Applying this to the diagram
-- The diagram groups services by recommended QoS and typical placement: UI and RT processing are high-priority, DB writer is dedicated, Network/Archiver/Logger are low-priority background services that may be co-located on constrained devices.
-- If you plan to deploy to multi-core systems, prefer splitting Network and Archiver so you can tune each independently. On small embedded targets, start with co-location and monitor metrics (queue depth, CPU utilization, latency) to determine if splitting is necessary.
-
-
-
-Thread Topology (recommended)
-
-ASCII Diagram
-
-Main/UI Thread (Qt)
-  │
-  ├─(queued signals / polling)→ UI updates, user actions
-  │
-Sensor I/O Thread(s) [one per fast I/O source]
-  ├─(lock-free ring buffer)→ Signal Processor Thread(s)
-
-Signal Processor Thread(s) [real-time priority]
-  ├─(lock-free queue)→ Alarm Manager Thread
-  ├─(lock-free batch queue)→ DB Writer Thread
-  └─(optional)→ Predictive Analytics Worker Pool (lower priority)
-
-Alarm Manager Thread
-  ├─(queued signals)→ Main/UI Thread (Qt::QueuedConnection)
-  ├─(enqueue)→ notifications table via DB Writer Thread
-
-DB Writer Thread (single writer)
-  ├─(batched writes)→ SQLite (SQLCipher) I/O
-
-Network Sync Thread
-  ├─(TLS handshake & upload)→ remote server
-
-Archiver Thread (background)
-
-Logger Thread (append-only)
-
-Principles and rationale
-- Clear ownership: each subsystem owns data structures it mutates. Pass immutable copies or pre-allocated buffers to consumers.
-- Minimize shared mutable state across threads. Prefer message passing (queues) over locks in the hot path.
-- Use one dedicated DB writer thread to avoid SQLite concurrency pitfalls and to batch writes for IOPS efficiency.
-- Keep the UI (Qt main thread) free of blocking operations — use queued signals to update UI state.
-- Prefer single-producer single-consumer (SPSC) lock-free ring buffers for waveform/sample streaming.
-- Use worker pools for heavy CPU work (analytics) with tunable concurrency to avoid starving real-time processing threads.
-
-Thread responsibilities and constraints
-
-Main / UI Thread
-- Responsibilities: render UI, handle user gestures, show alarms/notifications, manage QObject lifetimes for UI controllers.
-- Constraints: do not perform blocking I/O or heavy processing. Keep frame render budget under 16ms (for 60Hz) or 33ms (for 30Hz). Use `Qt::QueuedConnection` for cross-thread signals to avoid re-entrancy.
-
-Sensor I/O Thread(s)
-- Responsibilities: read device packets, deserialize frames, push raw samples into ring buffers.
-- Constraints: must have minimal jitter. Avoid heap allocations in the read loop; reuse buffers. If I/O blocking is expected, use OS-level blocking reads but isolate in thread.
-- Implementation notes: use non-blocking/interrupt-driven I/O where available; set thread priority higher than default.
-
-Signal Processor Thread(s)
-- Responsibilities: apply digital filters, compute heart rate, detect beats, compute derived metrics, short-term aggregates, and produce alarm-candidates.
-- Constraints: soft real-time behavior. Use SPSC queues to accept raw samples. Avoid locks during inner loops. Use pre-allocated FIR/IIR buffers. If SIMD is available, utilize it.
-- Real-time priority: on Linux embedded devices prefer SCHED_FIFO with careful CPU budgeting. On macOS, real-time scheduling is limited — prefer QoS or thread priority APIs. Always test for starvation.
-
-Alarm Manager Thread
-- Responsibilities: evaluate alarm rules, deduplicate and debounce alarms, produce UI events and persistent alarm records.
-- Constraints: maintain deterministic rule evaluation order. Avoid expensive computations here; offload heavy scoring to analytics pool.
-
-DB Writer Thread
-- Responsibilities: collect batched records (vitals, alarms, snapshots, infusion_events, notifications) and perform transactional writes to the encrypted SQLite DB.
-- Constraints: single writer affinity to avoid SQLite write locks. Use prepared statements and transactions; batch commits (e.g., every 100 records or 200ms) to minimize I/O overhead.
-- Durability: ensure audit_log and critical alarm events flushed with higher priority (option to force commit for critical events).
-
-Network Sync Thread
-- Responsibilities: manage TLS connections, perform uploads of batched telemetry, download server ack lists, handle retries and exponential backoff.
-- Constraints: network operations may block; keep them off real-time threads. Perform TLS handshake once and reuse connections if possible. Use `TCP_NODELAY` for low-latency small packets.
-
-Archiver / Background Thread(s)
-- Responsibilities: move old data to archive, run DB compaction, perform long-running export tasks.
-- Constraints: low priority background tasks. Throttle resource usage to avoid impacting real-time threads.
-
-Logger Thread
-- Responsibilities: append-only logging for audit and trace events. Flush critical entries periodically or on demand.
-- Constraints: use pre-allocated buffers for log messages in hot path and a background flusher to disk.
-
-Communication patterns and primitives
-- Lock-free SPSC ring buffers: waveform samples and high-frequency telemetry (avoid mutex in hot path).
-- MPSC queues or lock-free queues: multiple producers (processing workers) can push to DB writer or logger.
-- Atomics and sequence counters: use atomic indices and sequence counters to detect overwrites in ring buffers.
-- Queued signals (Qt::QueuedConnection): for safe cross-thread UI updates between worker threads and main thread.
-- Direct connections (Qt::DirectConnection) should only be used when the caller guarantees same-thread context.
-- Mutexes only for low-frequency control paths, not for per-sample processing.
-
-Memory & allocation rules
-- Pre-allocate all real-time buffers at startup.
-- Avoid heap allocations in Sensor I/O and Signal Processor threads; use object pools / slab allocators when required.
-- Use small fixed-size message structs for queue passing and avoid JSON serialization on hot paths. Serialize to compact binary or pre-allocated buffers.
-
-Latency and jitter targets (suggested, tuneable)
-- Sensor read -> sample enqueued: < 1 ms (depends on hardware)
-- Sample enqueued -> processed (derived metrics available): < 5 ms
-- Alarm detection to UI visible: < 50 ms (most cases); critical alarms should be prioritized
-- DB write latency (per-batch): < 200 ms for background batched writes; immediate flush for critical alarm writes should complete < 100 ms
-- Network upload latency: depends on network; keep local ack semantics so UI does not wait on network.
-
-Real-time safety and watchdogs
-- Add a watchdog thread that checks heartbeat timestamps from each critical thread (Sensor I/O, Signal Processor, Alarm Manager, DB Writer). If heartbeat missing for configurable threshold, escalate (log, show UI error, attempt restart of the thread or subsystem).
-- Monitor queue depths for ring buffers and alert when thresholds are crossed to avoid unbounded backlog.
-
-Performance measurement and observability
-- Instrument with timestamped events for:
-  - sample read
-  - processing start/end
-  - alarm detected
-  - DB enqueue and DB commit
-  - network enqueue and send
-- Collect histograms for latency and jitter; fail CI if P99 exceeds thresholds.
-- Use platform tracing tools: Instruments (macOS), perf or LTTng (Linux), or custom binary trace logs.
-
-Platform-specific notes
-- Linux (embedded): use pthread APIs to set `SCHED_FIFO` for processing threads when necessary. Set CPU affinity on high-frequency threads to dedicated cores where possible.
-- macOS: real-time scheduling is constrained; use thread QoS classes (e.g., QOS_CLASS_USER_INTERACTIVE) and test for priority inversion. Avoid SCHED_FIFO unless platform allows and entitlements are set.
-- Windows: use `SetThreadPriority()` and Multimedia Class Scheduler Service (MMCSS) for audio-like real-time threads.
-
-Concurrency pitfalls and mitigations
-- Priority inversion: avoid long-held locks in low-priority threads. Use lock-free primitives in hot paths.
-- Starvation: don't set all background threads to real-time priority. Reserve CPUs for processing threads.
-- Deadlocks: prohibit cross-thread blocking waits that can lead to deadlock; prefer asynchronous callbacks.
-
-Code-level guidance
-- QThread usage: create a QObject worker, moveToThread(thread), start the thread's event loop, and communicate with signals/slots (queued) for control messages.
-- Ring buffer libraries: consider `folly::ProducerConsumerQueue`, `boost::lockfree::spsc_queue`, or small custom SPSC ring buffer tuned for cache-line size.
-- For SQLite writes: use WAL mode (`PRAGMA journal_mode=WAL`) and tuned `PRAGMA synchronous = NORMAL` (or FULL for strict durability) depending on regulatory constraints.
-
-Acceptance criteria and tests
-- Unit tests for thread-safety (stress tests with high data rates).
-- Integration tests that feed waveform at max expected sampling rates for extended periods while measuring CPU, memory, latency and queue backpressure.
-- Performance gate: P99 sample->alarm latency < 100ms under nominal load; user to approve final thresholds.
-
-Checklist for implementers
-- [ ] Define exact sampling budgets and expected max sample rates per device.
-- [ ] Implement SPSC ring buffer for waveform streaming.
-- [ ] Implement single DB writer with batched transactions.
-- [ ] Add watchdog monitoring and queue-depth alerts.
-- [ ] Add tracing hooks for latency measurement.
-- [ ] Document thread affinity and set thread priorities in startup config.
-
-This document is intended to be a precise reference for developers and QA to implement and validate the low-latency, multi-threaded architecture of the Z Monitor.
-
-If you want, I can also:
-- produce a small reference implementation (C++/Qt) with a `SensorSimulator` thread, `SignalProcessor` thread, and `DBWriter` thread connected by an SPSC ring buffer, plus a simple latency measurement harness; OR
-- generate a PNG sequence or Mermaid diagram for integration into the docs.
+> **📋 Related Documents:**
+> - [System Components Reference (doc/29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - Complete list of all 98 system components
+> - [Architecture (doc/02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and data flow
+> - [DDD Strategy (doc/28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - Domain-Driven Design principles
 
 ---
-Generated: 2025-11-23
 
-## Diagram
+## 1. Purpose
 
-A Mermaid version of the thread model diagram is included in the repository: `doc/12_THREAD_MODEL.mmd`.
+- Provide an unambiguous thread-affinity architecture for all system components (infrastructure adapters, application services, domain aggregates, UI controllers)
+- Define low-latency requirements and measurable targets
+- Explain implementation patterns (QThread, lock-free queues, atomic synchronization, event loops) and platform considerations
+- Map all 98 system components to specific threads
 
-Inline Mermaid (renderers that support Mermaid will show the diagram):
+## 2. Audience
 
-```mermaid
-flowchart LR
-  subgraph UIThread[Main / UI Thread (Qt)]
-    UI[UI Renderer & Controllers]
-  end
+- Backend and firmware engineers implementing infrastructure adapters, application services, and domain logic
+- QA/performance engineers who will validate latency, jitter and throughput
 
-  subgraph SensorIO[Sensor I/O Threads]
-    S1[Sensor I/O (fast)]
-    S2[Sensor I/O (slow/aux)]
-  end
+---
 
-  subgraph SignalProc[Signal Processor(s) (RT)]
-    SP1[Signal Processor]
-    SPpool[Predictive Analytics Pool]
-  end
+## 3. Thread Architecture Overview
 
-  subgraph AlarmMgr[Alarm Manager]
-    AM[Alarm Manager]
-  end
+### 3.1 Key Principle: Services ≠ Threads
 
-  subgraph DBWriter[DB Writer]
-    DB[Database Writer (single)]
-  end
+**Critical Understanding:** The 98 components documented in `doc/29_SYSTEM_COMPONENTS.md` are **logical services**, not OS threads. Many components run on the **same thread** for efficiency.
 
-  subgraph Network[Network Sync]
-    NET[Network Manager (mTLS)]
-  end
+- **Rationale:** Thread boundaries are determined by:
+  - Real-time requirements (high-frequency data processing)
+  - Blocking I/O operations
+  - Resource contention (e.g., single SQLite writer)
+  - CPU/memory constraints
 
-  subgraph Archiver[Archiver / Background]
-    ARC[Archiver]
-  end
+### 3.2 Modules: Groups of Services on Same Thread
 
-  subgraph Logger[Logger]
-    LOG[Audit Logger]
-  end
+**Definition:** A **module** is a logical grouping of multiple services/components that execute on the same OS thread and share the same event loop.
 
-  S1 -->|SPSC ring buffer| SP1
-  S2 -->|SPSC ring buffer| SP1
-  SP1 -->|lock-free queue (alarms)| AM
-  SP1 -->|batch queue (vitals)| DB
-  SP1 -->|work items| SPpool
-  AM -->|queued signals (Qt::QueuedConnection)| UI
-  AM -->|enqueue| DB
-  DB -->|WAL writes / transactions| LOG
-  NET -->|ack lists| DB
-  ARC -->|archive jobs| DB
-  UI -->|user actions| AM
-  UI -->|config / control| NET
+**Example Modules:**
+- **Database Module** (Database I/O Thread):
+  - `DatabaseManager` + 6 `SQLiteRepository` implementations + `LogService` + `DataArchiveService`
+  - All share a single thread with one Qt event loop
+  
+- **Network Module** (Network I/O Thread):
+  - `NetworkTelemetryServer` + `CertificateManager` + `EncryptionService` + `SignatureService` + patient lookup adapters
+  - All share a single thread with one Qt event loop
 
-  SP1 ---|heartbeat| WD[Watchdog]
-  DB ---|heartbeat| WD
-  AM ---|heartbeat| WD
-  NET ---|heartbeat| WD
+- **Real-Time Processing Module** (RT Thread):
+  - `DeviceSimulator` + `MonitoringService` + domain aggregates (`PatientAggregate`, `TelemetryBatch`, `AlarmAggregate`)
+  - All share a single high-priority thread
+
+**Why Group Services into Modules:**
+1. **Reduced Context Switching:** Fewer threads = less OS overhead
+2. **Shared State:** Services in the same module can share memory without synchronization
+3. **Simplified Lifecycle:** Module starts/stops as a unit
+4. **Resource Efficiency:** Conserves thread resources on constrained hardware
+
+**When to Split a Module:**
+- If any service consumes > 40% CPU on that thread
+- If blocking operations delay other services unacceptably
+- If isolation is required (one service failure shouldn't crash others)
+
+### 3.2 Thread Categories
+
+| Thread Category | Priority | Purpose | Typical Count |
+|----------------|----------|---------|---------------|
+| **Main/UI Thread** | Default | Qt event loop, QML rendering, user interaction | 1 (required) |
+| **Real-Time Processing** | High/RT | Sensor I/O, signal processing, vitals computation | 1-3 |
+| **Application Services** | Normal | MonitoringService, AdmissionService, SecurityService orchestration | Shared with RT or Background |
+| **Database I/O** | I/O Priority | Single writer for SQLite/SQLCipher | 1 |
+| **Network I/O** | Normal | mTLS telemetry transmission, HIS/EHR lookup | 1-2 |
+| **Background Tasks** | Low | Archival, backup, firmware updates, health monitoring | 1-2 |
+
+**Typical Thread Count:**
+- **Constrained (1-2 cores):** 3-5 threads
+- **Desktop (4+ cores):** 5-8 threads
+- **NOT 98 threads** (one per component)
+
+---
+
+## 4. Complete Service-to-Thread Mapping
+
+This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specific threads.
+
+### 4.1 Main/UI Thread (Qt Event Loop)
+
+**Thread Characteristics:**
+- **Priority:** Default (QoS User Interactive on macOS)
+- **Affinity:** Main thread (must be first thread)
+- **Constraints:** No blocking I/O, keep frame budget < 16ms (60 FPS) or < 33ms (30 FPS)
+
+**Components on This Thread:**
+
+| Component | Layer | Type | Responsibility |
+|-----------|-------|------|----------------|
+| **All QML Controllers** | Interface | Controller | UI data binding, signal/slot to QML |
+| - `DashboardController` | Interface | Controller | Real-time vitals display |
+| - `AlarmController` | Interface | Controller | Alarm state and history |
+| - `PatientController` | Interface | Controller | Patient admission/discharge UI |
+| - `SettingsController` | Interface | Controller | Device settings UI |
+| - `ProvisioningController` | Interface | Controller | Provisioning/pairing UI |
+| - `TrendsController` | Interface | Controller | Historical data visualization |
+| - `SystemController` | Interface | Controller | System state, navigation, power |
+| - `NotificationController` | Interface | Controller | Non-critical messages |
+| - `DiagnosticsController` | Interface | Controller | System logs and diagnostics |
+| - `AuthenticationController` | Interface | Controller | Login/logout UI |
+| **All QML Views** | Interface | View | Full-screen UI components |
+| - `LoginView` | Interface | View | Login screen |
+| - `DashboardView` | Interface | View | Main monitoring screen |
+| - `TrendsView` | Interface | View | Historical trends |
+| - `AlarmsView` | Interface | View | Alarm management |
+| - `SettingsView` | Interface | View | Device configuration |
+| - `DiagnosticsView` | Interface | View | System diagnostics |
+| - `PatientAdmissionModal` | Interface | View | Patient admission workflow |
+| **All QML Components** | Interface | Component | Reusable UI widgets |
+| - `StatCard`, `PatientBanner`, `AlarmIndicator`, `NotificationBell`, `Sidebar`, `TopBar`, `TrendChart`, `SettingsRow`, `ConfirmDialog`, `LoadingSpinner`, `QRCodeDisplay` | Interface | Component | Various UI components |
+
+**Communication:**
+- **Inbound:** `Qt::QueuedConnection` signals from worker threads
+- **Outbound:** Queued method invocations to application services
+
+**Count:** 10 controllers + 7 views + 11 components = **28 components**
+
+---
+
+### 4.2 Real-Time Processing Thread(s)
+
+**Thread Characteristics:**
+- **Priority:** High/Real-Time (`SCHED_FIFO` on Linux, QoS User Interactive on macOS)
+- **Affinity:** Dedicated core(s) where possible
+- **Constraints:** Minimize allocations, avoid locks, use pre-allocated buffers
+
+**Components on This Thread:**
+
+| Component | Layer | Type | Responsibility |
+|-----------|-------|------|----------------|
+| `DeviceSimulator` | Infrastructure | Adapter | Generates simulated vitals/waveforms (production: real sensor I/O) |
+| `MonitoringService` | Application | Service | Coordinates vitals ingestion, telemetry batching |
+| `PatientAggregate` | Domain | Aggregate | Patient admission state, vitals history |
+| `TelemetryBatch` | Domain | Aggregate | Telemetry data collection, signing |
+| `AlarmAggregate` | Domain | Aggregate | Alarm lifecycle, state transitions |
+| `VitalRecord` | Domain | Value Object | Single vital sign measurement |
+| `AlarmSnapshot` | Domain | Value Object | Alarm state snapshot |
+| `AlarmThreshold` | Domain | Value Object | Min/max alarm trigger values |
+
+**Workflow:**
+1. `DeviceSimulator` generates vitals (or reads from real hardware)
+2. `MonitoringService` receives vitals, updates `PatientAggregate`
+3. `MonitoringService` creates `VitalRecord` value objects
+4. `MonitoringService` evaluates alarm rules via `AlarmAggregate`
+5. `AlarmAggregate` creates `AlarmSnapshot` if alarm triggered
+6. `MonitoringService` builds `TelemetryBatch` with vitals + alarms
+7. `TelemetryBatch` signs data (via `SignatureService`)
+8. Batch enqueued to Database Thread via lock-free queue
+
+**Communication:**
+- **Inbound:** SPSC ring buffer from sensor I/O (production) or timer (simulation)
+- **Outbound:**
+  - Lock-free queue to Database Thread (telemetry batches)
+  - Queued signals to Main/UI Thread (alarm events, vitals updates)
+
+**Domain Events Emitted:**
+- `TelemetryQueued`, `AlarmRaised`, `AlarmAcknowledged`
+
+**Latency Targets:**
+- Sensor read → sample enqueued: < 1 ms
+- Sample → processed (derived metrics): < 5 ms
+- Alarm detection → UI visible: < 50 ms
+
+**Count:** 1 infrastructure + 1 application + 3 aggregates + 3 value objects = **8 components**
+
+---
+
+### 4.3 Application Services Thread (or Co-located with RT)
+
+**Thread Characteristics:**
+- **Priority:** Normal to High (depending on co-location)
+- **Affinity:** May share with RT thread or run on separate thread
+
+**Components on This Thread:**
+
+| Component | Layer | Type | Responsibility |
+|-----------|-------|------|----------------|
+| `AdmissionService` | Application | Service | Admit/discharge/transfer use cases |
+| `ProvisioningService` | Application | Service | QR pairing, certificate installation |
+| `SecurityService` | Application | Service | Authentication, PIN policy, session lifecycle |
+| `AdmissionAggregate` | Domain | Aggregate | Admission/discharge/transfer workflow |
+| `ProvisioningSession` | Domain | Aggregate | Pairing workflow, QR code lifecycle |
+| `UserSession` | Domain | Aggregate | Authentication, session management |
+| `AuditTrailEntry` | Domain | Aggregate | Security event auditing |
+| `PatientIdentity` | Domain | Value Object | MRN, Name, DOB, Sex |
+| `BedLocation` | Domain | Value Object | Bed/unit/facility identifier |
+| `PinCredential` | Domain | Value Object | Hashed PIN with salt |
+| `CredentialBundle` | Domain | Value Object | Certificates, keys, server URL |
+
+**Decision:**
+- **Lightweight operations** (admission, provisioning, auth): Co-locate with RT thread or Main thread
+- **Heavy operations** (certificate validation, encryption): Offload to separate thread
+
+**Communication:**
+- **Inbound:** Queued calls from UI controllers
+- **Outbound:**
+  - Domain events to UI controllers (queued signals)
+  - Repository calls (enqueued to Database Thread)
+
+**Domain Events Emitted:**
+- `PatientAdmitted`, `PatientDischarged`, `PatientTransferred`, `ProvisioningCompleted`, `ProvisioningFailed`, `UserLoggedIn`, `UserLoggedOut`, `SessionExpired`
+
+**Count:** 3 services + 4 aggregates + 4 value objects = **11 components**
+
+---
+
+### 4.4 Database I/O Thread (Single Writer)
+
+**Thread Characteristics:**
+- **Priority:** I/O Priority (background, but responsive)
+- **Affinity:** Dedicated thread (SQLite single-writer pattern)
+- **Constraints:** Batch writes, use WAL mode, prepared statements
+
+**Components on This Thread:**
+
+| Component | Layer | Type | Responsibility |
+|-----------|-------|------|----------------|
+| `DatabaseManager` | Infrastructure | Adapter | SQLite connection management, migrations |
+| **All Repository Implementations** | Infrastructure | Repository | Persistence layer |
+| - `SQLitePatientRepository` | Infrastructure | Repository | Patient data persistence |
+| - `SQLiteTelemetryRepository` | Infrastructure | Repository | Telemetry data persistence |
+| - `SQLiteAlarmRepository` | Infrastructure | Repository | Alarm history persistence |
+| - `SQLiteProvisioningRepository` | Infrastructure | Repository | Provisioning state persistence |
+| - `SQLiteUserRepository` | Infrastructure | Repository | User account persistence |
+| - `SQLiteAuditRepository` | Infrastructure | Repository | Security audit log persistence |
+| `LogService` | Infrastructure | Adapter | Centralized logging mechanism |
+| `DataArchiveService` | Application | Service | Archives old data per retention policies |
+
+**Workflow:**
+1. Receive batched write requests via MPSC queue
+2. Open transaction
+3. Execute prepared statements for all batched records
+4. Commit transaction (every 100 records or 200ms)
+5. Send ack via queued signal
+
+**Communication:**
+- **Inbound:** MPSC queue from RT thread, Application Services, Background threads
+- **Outbound:** Queued signals for completion/errors
+
+**Latency Targets:**
+- Background batch write: < 200 ms
+- Critical alarm write (immediate flush): < 100 ms
+
+**Count:** 1 infrastructure (DatabaseManager) + 6 repositories + 1 infrastructure (LogService) + 1 application service = **9 components**
+
+---
+
+### 4.5 Network I/O Thread
+
+**Thread Characteristics:**
+- **Priority:** Normal (background, but not low)
+- **Affinity:** Separate thread (blocking TLS operations)
+- **Constraints:** Reuse TLS connections, use `TCP_NODELAY` for low latency
+
+**Components on This Thread:**
+
+| Component | Layer | Type | Responsibility |
+|-----------|-------|------|----------------|
+| `NetworkTelemetryServer` | Infrastructure | Adapter | Production telemetry transmission (HTTPS/mTLS) |
+| `MockTelemetryServer` | Infrastructure | Adapter | Testing/development telemetry endpoint |
+| `HISPatientLookupAdapter` | Infrastructure | Adapter | Real HIS/EHR integration |
+| `MockPatientLookupService` | Infrastructure | Adapter | Testing/development patient lookup |
+| `CentralStationClient` | Infrastructure | Adapter | Provisioning payload receiver |
+| `CertificateManager` | Infrastructure | Adapter | Certificate loading, validation, renewal |
+| `EncryptionService` | Infrastructure | Adapter | Payload encryption/decryption |
+| `SignatureService` | Infrastructure | Adapter | Data signing/verification |
+| `DeviceAggregate` | Domain | Aggregate | Device provisioning state, credential lifecycle |
+| `DeviceSnapshot` | Domain | Value Object | DeviceId, FirmwareVersion, ProvisioningStatus |
+| `MeasurementUnit` | Domain | Value Object | Metric or Imperial |
+
+**Workflow:**
+1. Receive telemetry batch from RT thread via queue
+2. Sign payload (via `SignatureService`)
+3. Encrypt if needed (via `EncryptionService`)
+4. Validate certificates (via `CertificateManager`)
+5. Transmit via `NetworkTelemetryServer` (or `MockTelemetryServer`)
+6. Handle retries with exponential backoff
+7. Send ack via queued signal
+
+**Communication:**
+- **Inbound:** Queue from MonitoringService (telemetry batches), queued calls from UI/Application Services (patient lookup, provisioning)
+- **Outbound:** Queued signals for completion/errors
+
+**Domain Events Emitted:**
+- `TelemetrySent`
+
+**Latency Targets:**
+- Telemetry upload: Network-dependent, keep local ack semantics so UI doesn't wait
+
+**Count:** 5 network adapters + 3 security adapters + 1 aggregate + 2 value objects = **11 components**
+
+---
+
+### 4.6 Background Tasks Thread
+
+**Thread Characteristics:**
+- **Priority:** Low (background, yield to RT/UI)
+- **Affinity:** Pooled or shared thread
+- **Constraints:** Throttle resource usage to avoid impacting real-time threads
+
+**Components on This Thread:**
+
+| Component | Layer | Type | Responsibility |
+|-----------|-------|------|----------------|
+| `FirmwareUpdateService` | Application | Service | Firmware update management |
+| `BackupService` | Application | Service | Database backup and restore |
+| `SettingsManager` | Infrastructure | Adapter | Persistent configuration storage |
+| `QRCodeGenerator` | Infrastructure | Adapter | QR code generation |
+| `SecureStorage` | Infrastructure | Adapter | Secure key storage (platform keychain) |
+| `HealthMonitor` | Infrastructure | Adapter | System health monitoring (CPU, memory, disk) |
+| `ClockSyncService` | Infrastructure | Adapter | NTP time synchronization |
+| `FirmwareManager` | Infrastructure | Adapter | Firmware update file management |
+| `WatchdogService` | Infrastructure | Adapter | Application crash detection and recovery |
+
+**Workflow:**
+1. Scheduled or on-demand tasks:
+   - Health monitoring (periodic)
+   - Clock sync (periodic)
+   - Firmware updates (on-demand)
+   - Database backups (scheduled)
+   - QR code generation (on-demand)
+2. Low-priority processing with throttling
+
+**Communication:**
+- **Inbound:** Queued calls from UI/Application Services, timers
+- **Outbound:** Queued signals for completion/errors, logging
+
+**Count:** 2 services + 7 infrastructure adapters = **9 components**
+
+---
+
+### 4.7 Domain Interfaces (Thread-Agnostic)
+
+**These are interfaces only, implemented by components on various threads:**
+
+| Repository Interface | Implemented By | Thread |
+|---------------------|----------------|--------|
+| `IPatientRepository` | `SQLitePatientRepository` | Database Thread |
+| `ITelemetryRepository` | `SQLiteTelemetryRepository` | Database Thread |
+| `IAlarmRepository` | `SQLiteAlarmRepository` | Database Thread |
+| `IProvisioningRepository` | `SQLiteProvisioningRepository` | Database Thread |
+| `IUserRepository` | `SQLiteUserRepository` | Database Thread |
+| `IAuditRepository` | `SQLiteAuditRepository` | Database Thread |
+
+**Count:** 6 interfaces (not assigned to threads, just contracts)
+
+---
+
+### 4.8 DTOs (Data Transfer Objects) - Thread-Agnostic
+
+**These are immutable data structures passed between threads:**
+
+| DTO | Purpose | Passed Between Threads |
+|-----|---------|------------------------|
+| `AdmitPatientCommand` | Patient admission request | UI → Application Services |
+| `DischargePatientCommand` | Patient discharge request | UI → Application Services |
+| `TransferPatientCommand` | Patient transfer request | UI → Application Services |
+| `TelemetrySubmission` | Telemetry data for transmission | RT Thread → Network Thread |
+| `ProvisioningPayload` | Configuration from Central Station | Network Thread → Application Services |
+| `LoginRequest` | Authentication request | UI → Application Services |
+
+**Count:** 6 DTOs (not assigned to threads, just data carriers)
+
+---
+
+## 5. Thread Mapping Summary
+
+| Thread | Component Count | Component Types |
+|--------|----------------|-----------------|
+| **Main/UI Thread** | 28 | 10 controllers + 7 views + 11 QML components |
+| **Real-Time Processing** | 8 | 1 infrastructure + 1 application + 3 aggregates + 3 value objects |
+| **Application Services** | 11 | 3 services + 4 aggregates + 4 value objects |
+| **Database I/O** | 9 | 1 infrastructure + 6 repositories + 1 infrastructure + 1 service |
+| **Network I/O** | 11 | 5 network + 3 security + 1 aggregate + 2 value objects |
+| **Background Tasks** | 9 | 2 services + 7 infrastructure |
+| **Domain Interfaces** | 6 | Repository interfaces (contracts, not implementations) |
+| **DTOs** | 6 | Data transfer objects (thread-agnostic) |
+| **Domain Events** | 11 | Events (emitted by various threads, consumed by UI/logging) |
+| **Total** | **98** | All system components accounted for |
+
+---
+
+## 6. Communication Patterns and Primitives
+
+### 6.1 Lock-Free SPSC Ring Buffers
+- **Use Case:** Waveform samples and high-frequency telemetry
+- **Threads:** Sensor I/O → Real-Time Processing
+- **Libraries:** `folly::ProducerConsumerQueue`, `boost::lockfree::spsc_queue`, or custom SPSC
+
+### 6.2 MPSC Queues
+- **Use Case:** Multiple producers (processing workers) to single DB writer
+- **Threads:** RT Thread → Database Thread, Application Services → Database Thread
+- **Libraries:** `boost::lockfree::queue`, `moodycamel::ConcurrentQueue`
+
+### 6.3 Atomics and Sequence Counters
+- **Use Case:** Ring buffer indices, heartbeat timestamps
+- **Threads:** All threads (for coordination)
+
+### 6.4 Queued Signals (Qt::QueuedConnection)
+- **Use Case:** Cross-thread UI updates, domain event propagation
+- **Threads:** Worker threads → Main/UI Thread
+
+### 6.5 Mutexes (Low-Frequency Control Paths Only)
+- **Use Case:** Configuration updates, infrequent control operations
+- **Threads:** Background threads, low-frequency operations
+- **Avoid:** Hot paths, RT thread
+
+---
+
+## 7. Memory & Allocation Rules
+
+1. **Pre-allocate all real-time buffers at startup**
+   - Ring buffers for waveform samples
+   - TelemetryBatch objects (object pool)
+   - VitalRecord structures
+
+2. **Avoid heap allocations in RT thread**
+   - Use object pools, slab allocators
+   - Reuse buffers
+
+3. **Small fixed-size message structs for queue passing**
+   - Avoid JSON serialization on hot paths
+   - Use compact binary or pre-allocated buffers
+
+---
+
+## 8. Latency and Jitter Targets
+
+| Operation | Target Latency | Priority |
+|-----------|---------------|----------|
+| Sensor read → sample enqueued | < 1 ms | Critical |
+| Sample → processed (derived metrics) | < 5 ms | Critical |
+| Alarm detection → UI visible | < 50 ms | High |
+| DB write (background batch) | < 200 ms | Normal |
+| DB write (critical alarm, immediate flush) | < 100 ms | High |
+| Network upload | Network-dependent | Normal |
+| Patient lookup (HIS/EHR) | < 2 seconds | Normal |
+| Provisioning QR generation | < 500 ms | Normal |
+
+---
+
+## 9. Real-Time Safety and Watchdogs
+
+### 9.1 Watchdog Monitoring
+
+`WatchdogService` (Background Thread) monitors heartbeat timestamps from:
+- **Real-Time Processing Thread** (critical)
+- **Database Thread** (critical)
+- **Network Thread** (normal)
+- **Application Services** (normal)
+
+**Actions on Missed Heartbeat:**
+1. Log event to `security_audit_log`
+2. Emit UI warning
+3. Attempt thread restart (configurable)
+4. Escalate to system-level restart if multiple threads fail
+
+### 9.2 Queue Depth Monitoring
+
+Monitor queue depths for all SPSC/MPSC queues:
+- **Thresholds:**
+  - Warning: 70% capacity
+  - Error: 90% capacity
+  - Critical: 95% capacity (drop non-critical data)
+
+**Actions:**
+- Log warning/error
+- Emit UI notification
+- Trigger backpressure (pause low-priority tasks)
+
+---
+
+## 10. Thread Priority Strategy and Starvation Prevention
+
+### 10.1 The Priority Dilemma
+
+**Question:** Should we use thread priorities? Won't this cause starvation?
+
+**Answer:** **Yes, we MUST use priorities in this medical device**, but with careful constraints to prevent starvation.
+
+**Why Priorities Are Justified:**
+
+1. **Safety-Critical System:** Delayed alarm detection can harm patients
+2. **Predictable Latency:** Alarms must be detected within 50ms (hard requirement)
+3. **Mixed Workload:** Real-time (vitals processing) + background (archival) on same system
+4. **Resource Contention:** Limited CPU cores must be fairly allocated
+
+**Risk:** Uncontrolled priority use → low-priority threads starve → system degradation
+
+**Solution:** **Bounded Priority System** with starvation prevention mechanisms
+
+### 10.2 Recommended Priority Levels
+
+**Safe Priority Hierarchy (6 levels, not unlimited):**
+
+| Thread/Module | Priority Level | QThread Value | Rationale | CPU Budget |
+|--------------|----------------|---------------|-----------|------------|
+| **Real-Time Processing** | Highest | `QThread::TimeCriticalPriority` | Alarm detection latency target < 50ms | Max 40-50% CPU |
+| **Main/UI Thread** | High | `QThread::HighPriority` (Qt default for main thread) | User interaction responsiveness | Max 20-30% CPU |
+| **Database I/O** | Above Normal | `QThread::HighPriority` | Critical data must be persisted promptly | Max 15-20% CPU |
+| **Network I/O** | Normal | `QThread::NormalPriority` | Important but tolerates some latency | Max 10-15% CPU |
+| **Application Services** | Normal | `QThread::NormalPriority` (or co-located) | Non-critical orchestration | Max 5-10% CPU |
+| **Background Tasks** | Low | `QThread::LowPriority` | Archive, backup, health monitoring | Remaining CPU |
+
+**Key Constraint:** **Only ONE thread at `TimeCriticalPriority`** (RT Processing Module)
+
+### 10.3 Starvation Prevention Mechanisms
+
+#### Mechanism 1: CPU Budget Enforcement
+
+**Problem:** High-priority threads monopolize CPU
+
+**Solution:** Enforce CPU time budgets for high-priority threads
+
+```cpp
+// RT Processing Thread
+class RealTimeProcessor : public QObject {
+public:
+    void processData() {
+        auto start = std::chrono::high_resolution_clock::now();
+        
+        // Do real-time work
+        processSample();
+        
+        auto duration = std::chrono::high_resolution_clock::now() - start;
+        
+        // If we're consuming too much CPU, yield
+        if (duration > m_cpuBudget) {
+            qWarning() << "RT thread exceeding CPU budget!";
+            QThread::yieldCurrentThread(); // Give others a chance
+        }
+    }
+    
+private:
+    std::chrono::microseconds m_cpuBudget{5000}; // 5ms max per iteration
+};
 ```
 
+#### Mechanism 2: Explicit Yield Points
+
+**Problem:** High-priority threads never yield
+
+**Solution:** Insert yield points after critical work
+
+```cpp
+void MonitoringService::processBatch() {
+    // Critical work (must be fast)
+    evaluateAlarms();
+    createTelemetryBatch();
+    
+    // Yield to let other threads run
+    QThread::yieldCurrentThread();
+    
+    // Non-critical work
+    updateStatistics();
+}
+```
+
+#### Mechanism 3: Rate Limiting
+
+**Problem:** High-priority threads run continuously
+
+**Solution:** Add minimum sleep intervals
+
+```cpp
+void RealTimeLoop() {
+    while (running) {
+        processData();
+        
+        // Minimum 1ms sleep ensures other threads get CPU
+        QThread::msleep(1);
+    }
+}
+```
+
+#### Mechanism 4: Priority Inheritance for Mutexes
+
+**Problem:** Low-priority thread holds lock needed by high-priority thread → priority inversion
+
+**Solution:** Use priority inheritance mutexes (automatic in most modern OSes)
+
+```cpp
+// Qt mutexes automatically inherit priority on most platforms
+QMutex mutex; // Priority inheritance enabled by default (platform-dependent)
+
+// For explicit control on Linux:
+pthread_mutexattr_t attr;
+pthread_mutexattr_init(&attr);
+pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
+pthread_mutex_init(&m_mutex, &attr);
+```
+
+#### Mechanism 5: Watchdog Monitoring of Low-Priority Threads
+
+**Problem:** Low-priority threads starve silently
+
+**Solution:** Watchdog monitors ALL threads, not just high-priority
+
+```cpp
+class WatchdogService {
+public:
+    void checkAllThreads() {
+        // Check RT thread (expected: frequent heartbeats)
+        checkThread("RT", m_rtHeartbeat, 100ms); // Strict timeout
+        
+        // Check DB thread (expected: regular heartbeats)
+        checkThread("DB", m_dbHeartbeat, 500ms);
+        
+        // Check Background thread (expected: occasional heartbeats)
+        checkThread("Background", m_bgHeartbeat, 5000ms); // Loose timeout
+        
+        // IF BACKGROUND HASN'T RUN IN 5 SECONDS → STARVATION!
+        if (timeSinceLastBgHeartbeat > 5000ms) {
+            qCritical() << "STARVATION DETECTED: Background thread starved!";
+            // Action: Temporarily lower RT thread priority
+            lowerRtPriority();
+        }
+    }
+};
+```
+
+#### Mechanism 6: Fair Scheduling Policy
+
+**Problem:** `SCHED_FIFO` can cause indefinite starvation
+
+**Solution:** Use `SCHED_RR` (round-robin) or `SCHED_DEADLINE` on Linux
+
+```cpp
+// Linux: Prefer SCHED_RR over SCHED_FIFO
+struct sched_param param;
+param.sched_priority = 80; // High, but not max (99)
+pthread_setschedparam(pthread_self(), SCHED_RR, &param); // Round-robin
+
+// Or use SCHED_DEADLINE for guaranteed bandwidth
+// (requires kernel 3.14+)
+```
+
+#### Mechanism 7: Adaptive Priority Adjustment
+
+**Problem:** Static priorities don't adapt to load
+
+**Solution:** Dynamically adjust priorities based on system health
+
+```cpp
+class PriorityManager {
+public:
+    void adjustPriorities() {
+        // If background queue is growing (starvation indicator)
+        if (m_backgroundQueueDepth > 1000) {
+            qWarning() << "Background queue full, raising priority temporarily";
+            m_backgroundThread->setPriority(QThread::NormalPriority); // Boost
+        } else {
+            m_backgroundThread->setPriority(QThread::LowPriority); // Normal
+        }
+        
+        // If RT thread is idle, lower its priority
+        if (m_rtIdleTime > 100ms) {
+            m_rtThread->setPriority(QThread::HighPriority); // Lower from TimeCritical
+        }
+    }
+};
+```
+
+### 10.4 Implementation Guidelines
+
+**DO:**
+- ✅ Use priorities for safety-critical requirements (alarm latency)
+- ✅ Limit high-priority threads to ONE (`TimeCriticalPriority`)
+- ✅ Enforce CPU budgets on high-priority threads
+- ✅ Monitor ALL threads with watchdog (including low-priority)
+- ✅ Use `SCHED_RR` instead of `SCHED_FIFO` on Linux
+- ✅ Implement yield points after critical work
+- ✅ Rate-limit high-priority loops (minimum sleep)
+- ✅ Test under stress to detect starvation
+- ✅ Document priority rationale and constraints
+
+**DON'T:**
+- ❌ Don't set more than one thread to `TimeCriticalPriority`
+- ❌ Don't use priorities without CPU budgets
+- ❌ Don't ignore low-priority threads in monitoring
+- ❌ Don't use `SCHED_FIFO` without careful testing
+- ❌ Don't set priorities without measuring impact
+- ❌ Don't assume OS will prevent starvation automatically
+- ❌ Don't use unbounded priority levels (stick to 6 levels)
+
+### 10.5 Justification for This Medical Device
+
+**Why Priorities Are Necessary:**
+
+1. **Regulatory Requirement:**
+   - IEC 60601-1-8 (Medical Alarms): Alarm latency must be deterministic
+   - FDA guidance: Safety-critical functions must have priority
+
+2. **Patient Safety:**
+   - Delayed alarm = missed critical event = patient harm
+   - 50ms alarm latency target is non-negotiable
+
+3. **Mixed Workload:**
+   - Real-time (vitals at 100-500 Hz) + background (DB archival, backups)
+   - Without priorities, archival could delay alarms
+
+4. **Resource Constraints:**
+   - Embedded device with limited cores (2-4 cores typical)
+   - Can't afford dedicated cores for every task
+
+**Starvation Prevention Measures in This Design:**
+
+| Mechanism | Status | Details |
+|-----------|--------|---------|
+| CPU Budgets | ✅ Implemented | RT thread max 5ms per iteration |
+| Yield Points | ✅ Implemented | Explicit yields after critical work |
+| Rate Limiting | ✅ Implemented | 1ms minimum sleep in RT loop |
+| Watchdog All Threads | ✅ Implemented | Background timeout = 5s (starvation detector) |
+| Priority Inheritance | ✅ Platform Default | Qt mutexes use OS defaults |
+| Fair Scheduling | ✅ Configurable | `SCHED_RR` on Linux |
+| Adaptive Priority | ⚠️ Optional | Can be added if starvation detected in testing |
+
+**Testing Requirements:**
+- [ ] Stress test: RT thread at max rate + background archival
+- [ ] Verify background thread makes progress within 5 seconds
+- [ ] Measure P99 latency for all thread types under load
+- [ ] Test priority inversion scenarios
+- [ ] Verify watchdog detects simulated starvation
+
+### 10.6 Platform-Specific Priority Implementation
+
+#### 10.6.1 Qt Cross-Platform (Recommended)
+
+```cpp
+// Use Qt's cross-platform priorities
+m_rtThread->setPriority(QThread::TimeCriticalPriority);  // RT only
+m_uiThread->setPriority(QThread::HighPriority);          // Main thread (default)
+m_dbThread->setPriority(QThread::HighPriority);          // Database
+m_netThread->setPriority(QThread::NormalPriority);       // Network
+m_bgThread->setPriority(QThread::LowPriority);           // Background
+```
+
+#### 10.6.2 Linux (Embedded) - Fine-Grained Control
+
+```cpp
+#include <pthread.h>
+#include <sched.h>
+
+// RT Processing Thread - SCHED_RR (round-robin, prevents indefinite starvation)
+struct sched_param rtParam;
+rtParam.sched_priority = 80; // High but not max (99)
+pthread_setschedparam(m_rtThread->nativeId(), SCHED_RR, &rtParam);
+
+// Set CPU affinity (pin to dedicated core)
+cpu_set_t cpuset;
+CPU_ZERO(&cpuset);
+CPU_SET(1, &cpuset); // Pin RT to core 1
+pthread_setaffinity_np(m_rtThread->nativeId(), sizeof(cpuset), &cpuset);
+
+// Database Thread - SCHED_OTHER (normal scheduling)
+struct sched_param dbParam;
+dbParam.sched_priority = 0;
+pthread_setschedparam(m_dbThread->nativeId(), SCHED_OTHER, &dbParam);
+
+// Background Thread - SCHED_BATCH (optimized for batch processing)
+struct sched_param bgParam;
+bgParam.sched_priority = 0;
+pthread_setschedparam(m_bgThread->nativeId(), SCHED_BATCH, &bgParam);
+```
+
+#### 10.6.3 macOS - QoS Classes
+
+```cpp
+#include <pthread.h>
+
+// RT Processing - User Interactive (highest)
+pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+
+// Database - User Initiated (high)
+pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
+
+// Network - Utility (normal)
+pthread_set_qos_class_self_np(QOS_CLASS_UTILITY, 0);
+
+// Background - Background (lowest)
+pthread_set_qos_class_self_np(QOS_CLASS_BACKGROUND, 0);
+```
+
+#### 10.6.4 Windows - Thread Priorities
+
+```cpp
+#include <windows.h>
+
+// RT Processing - Time Critical
+SetThreadPriority(m_rtThread->nativeHandle(), THREAD_PRIORITY_TIME_CRITICAL);
+
+// Database - Above Normal
+SetThreadPriority(m_dbThread->nativeHandle(), THREAD_PRIORITY_ABOVE_NORMAL);
+
+// Network - Normal
+SetThreadPriority(m_netThread->nativeHandle(), THREAD_PRIORITY_NORMAL);
+
+// Background - Below Normal
+SetThreadPriority(m_bgThread->nativeHandle(), THREAD_PRIORITY_BELOW_NORMAL);
+```
+
+### 10.7 Decision Tree: When to Use Priorities
+
+```
+START
+  ↓
+Is this a safety-critical system with hard latency requirements?
+  ├─ NO → Use default priorities (QThread::InheritPriority)
+  └─ YES → Continue
+      ↓
+  Can you meet latency targets WITHOUT priorities?
+  ├─ YES → Don't use priorities (simplest solution)
+  └─ NO → Continue
+      ↓
+  Can you implement CPU budgets, yield points, and watchdog monitoring?
+  ├─ NO → Don't use priorities (too risky without safeguards)
+  └─ YES → Continue
+      ↓
+  Can you test for starvation under stress?
+  ├─ NO → Don't use priorities (can't verify safety)
+  └─ YES → USE PRIORITIES with starvation prevention ✓
+```
+
+**For Z Monitor:** ✅ **Yes, use priorities** (safety-critical + can implement safeguards)
+
+---
+
+## 11. Thread Topology Diagram
+
+### 11.1 Mermaid Diagram
+
+[View Thread Model Diagram (Mermaid)](./12_THREAD_MODEL.mmd)  
+[View Thread Model Diagram (SVG)](./12_THREAD_MODEL.svg)
+
+```mermaid
+flowchart TB
+  subgraph UIThread[Main / UI Thread - Qt Event Loop]
+    UI[QML Views & Controllers<br/>28 components]
+  end
+
+  subgraph RTThread[Real-Time Processing Thread - High Priority]
+    DeviceSim[DeviceSimulator]
+    MonitorSvc[MonitoringService]
+    PatientAgg[PatientAggregate]
+    TelemetryBatch[TelemetryBatch]
+    AlarmAgg[AlarmAggregate]
+  end
+
+  subgraph AppThread[Application Services - Normal Priority<br/>may co-locate with RT]
+    AdmissionSvc[AdmissionService]
+    ProvisionSvc[ProvisioningService]
+    SecuritySvc[SecurityService]
+  end
+
+  subgraph DBThread[Database I/O Thread - Single Writer]
+    DBManager[DatabaseManager]
+    Repos[6 SQLite Repositories]
+    LogSvc[LogService]
+    ArchiveSvc[DataArchiveService]
+  end
+
+  subgraph NetThread[Network I/O Thread]
+    NetTelem[NetworkTelemetryServer]
+    HISLookup[HIS/EHR Patient Lookup]
+    CentralClient[CentralStationClient]
+    CertMgr[CertificateManager]
+    EncSvc[EncryptionService]
+    SigSvc[SignatureService]
+  end
+
+  subgraph BgThread[Background Tasks Thread - Low Priority]
+    FirmwareSvc[FirmwareUpdateService]
+    BackupSvc[BackupService]
+    HealthMon[HealthMonitor]
+    ClockSync[ClockSyncService]
+    Watchdog[WatchdogService]
+    QRGen[QRCodeGenerator]
+  end
+
+  DeviceSim -->|SPSC ring buffer<br/>vitals samples| MonitorSvc
+  MonitorSvc -->|update state| PatientAgg
+  MonitorSvc -->|create batch| TelemetryBatch
+  MonitorSvc -->|evaluate rules| AlarmAgg
+  AlarmAgg -->|Qt::QueuedConnection<br/>alarm events| UI
+  MonitorSvc -->|Qt::QueuedConnection<br/>vitals updates| UI
+  TelemetryBatch -->|MPSC queue<br/>batched writes| DBThread
+  TelemetryBatch -->|Queue<br/>telemetry submission| NetThread
+
+  UI -->|Queued calls<br/>admission requests| AdmissionSvc
+  UI -->|Queued calls<br/>provisioning| ProvisionSvc
+  UI -->|Queued calls<br/>login/auth| SecuritySvc
+
+  AdmissionSvc -->|Repository calls<br/>via queue| DBThread
+  ProvisionSvc -->|Repository calls<br/>via queue| DBThread
+  SecuritySvc -->|Repository calls<br/>via queue| DBThread
+
+  NetTelem -->|HTTPS/mTLS| ExternalServer[Central Server]
+  HISLookup -->|HTTPS| ExternalHIS[HIS/EHR]
+  CentralClient -->|HTTPS| ExternalStation[Central Station]
+
+  BgThread -->|Scheduled tasks| DBThread
+  Watchdog -->|Monitor heartbeats| RTThread
+  Watchdog -->|Monitor heartbeats| DBThread
+  Watchdog -->|Monitor heartbeats| NetThread
+
+  classDef uiClass fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+  classDef rtClass fill:#ffccbc,stroke:#d84315,stroke-width:2px
+  classDef appClass fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+  classDef dbClass fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+  classDef netClass fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+  classDef bgClass fill:#b0bec5,stroke:#37474f,stroke-width:2px
+
+  class UIThread uiClass
+  class RTThread rtClass
+  class AppThread appClass
+  class DBThread dbClass
+  class NetThread netClass
+  class BgThread bgClass
+```
+
+---
+
+## 12. Implementation Guide: Multi-Service Threads (Modules)
+
+This section explains **how to implement modules** (multiple services on the same thread) in Qt/C++.
+
+### 12.1 Strategy: QThread + Multiple QObject Workers
+
+**Pattern:** Create a single `QThread` and move multiple `QObject` workers onto that thread. All workers share the thread's event loop.
+
+**Key Concepts:**
+1. **One QThread = One Event Loop:** Each `QThread` has a single event loop (`exec()`)
+2. **Multiple QObjects on Same Thread:** Use `QObject::moveToThread()` to assign multiple workers to the same thread
+3. **Communication:** Use queued signals/slots (`Qt::QueuedConnection`) between threads
+4. **Startup Order:** Create thread → create workers → move workers to thread → start thread
+
+### 12.2 Example: Database Module Implementation
+
+**Module Contents:**
+- `DatabaseManager`
+- `SQLitePatientRepository`
+- `SQLiteTelemetryRepository`
+- `SQLiteAlarmRepository`
+- `SQLiteProvisioningRepository`
+- `SQLiteUserRepository`
+- `SQLiteAuditRepository`
+- `LogService`
+- `DataArchiveService`
+
+**Implementation:**
+
+```cpp
+// main.cpp or application initialization
+
+// 1. Create the thread
+QThread* databaseThread = new QThread();
+databaseThread->setObjectName("DatabaseThread");
+
+// 2. Create all worker objects (on main thread initially)
+DatabaseManager* dbManager = new DatabaseManager();
+SQLitePatientRepository* patientRepo = new SQLitePatientRepository(dbManager);
+SQLiteTelemetryRepository* telemetryRepo = new SQLiteTelemetryRepository(dbManager);
+SQLiteAlarmRepository* alarmRepo = new SQLiteAlarmRepository(dbManager);
+SQLiteProvisioningRepository* provisioningRepo = new SQLiteProvisioningRepository(dbManager);
+SQLiteUserRepository* userRepo = new SQLiteUserRepository(dbManager);
+SQLiteAuditRepository* auditRepo = new SQLiteAuditRepository(dbManager);
+LogService* logService = new LogService(dbManager);
+DataArchiveService* archiveService = new DataArchiveService(telemetryRepo, alarmRepo);
+
+// 3. Move ALL workers to the database thread
+dbManager->moveToThread(databaseThread);
+patientRepo->moveToThread(databaseThread);
+telemetryRepo->moveToThread(databaseThread);
+alarmRepo->moveToThread(databaseThread);
+provisioningRepo->moveToThread(databaseThread);
+userRepo->moveToThread(databaseThread);
+auditRepo->moveToThread(databaseThread);
+logService->moveToThread(databaseThread);
+archiveService->moveToThread(databaseThread);
+
+// 4. Connect initialization signal (runs on database thread when thread starts)
+QObject::connect(databaseThread, &QThread::started, 
+                 dbManager, &DatabaseManager::initialize);
+
+// 5. Connect cleanup signal (runs on database thread when thread finishes)
+QObject::connect(databaseThread, &QThread::finished, 
+                 dbManager, &DatabaseManager::cleanup);
+
+// 6. Set thread priority
+databaseThread->setPriority(QThread::HighPriority); // I/O priority
+
+// 7. Start the thread (this starts the event loop)
+databaseThread->start();
+
+// Now all database services run on the same thread and share the event loop
+```
+
+**Key Points:**
+- **All 9 services** now run on the **same OS thread** (Database I/O Thread)
+- They share the **same event loop**
+- They can call each other **directly** (same thread, no marshaling)
+- External threads communicate with them via **queued signals** (`Qt::QueuedConnection`)
+
+### 12.3 Example: Network Module Implementation
+
+**Module Contents:**
+- `NetworkTelemetryServer`
+- `CertificateManager`
+- `EncryptionService`
+- `SignatureService`
+- `HISPatientLookupAdapter`
+- `CentralStationClient`
+
+**Implementation:**
+
+```cpp
+// 1. Create the thread
+QThread* networkThread = new QThread();
+networkThread->setObjectName("NetworkThread");
+
+// 2. Create all worker objects
+CertificateManager* certManager = new CertificateManager();
+EncryptionService* encryptionService = new EncryptionService();
+SignatureService* signatureService = new SignatureService();
+NetworkTelemetryServer* telemetryServer = new NetworkTelemetryServer(
+    certManager, encryptionService, signatureService);
+HISPatientLookupAdapter* hisLookup = new HISPatientLookupAdapter();
+CentralStationClient* centralClient = new CentralStationClient(certManager);
+
+// 3. Move ALL workers to network thread
+certManager->moveToThread(networkThread);
+encryptionService->moveToThread(networkThread);
+signatureService->moveToThread(networkThread);
+telemetryServer->moveToThread(networkThread);
+hisLookup->moveToThread(networkThread);
+centralClient->moveToThread(networkThread);
+
+// 4. Initialize on thread start
+QObject::connect(networkThread, &QThread::started,
+                 certManager, &CertificateManager::loadCertificates);
+
+// 5. Set thread priority
+networkThread->setPriority(QThread::NormalPriority);
+
+// 6. Start thread
+networkThread->start();
+```
+
+### 12.4 Communication Between Modules
+
+**Between Different Threads (e.g., RT Thread → DB Thread):**
+
+```cpp
+// In MonitoringService (RT Thread)
+class MonitoringService : public QObject {
+    Q_OBJECT
+public:
+    void processBatch(TelemetryBatch batch) {
+        // Process batch...
+        
+        // Send to database thread (queued, thread-safe)
+        emit batchReadyForStorage(batch);
+    }
+    
+signals:
+    void batchReadyForStorage(const TelemetryBatch& batch);
+};
+
+// In SQLiteTelemetryRepository (DB Thread)
+class SQLiteTelemetryRepository : public QObject {
+    Q_OBJECT
+public slots:
+    void saveBatch(const TelemetryBatch& batch) {
+        // This runs on DB thread
+        // Save to database...
+    }
+};
+
+// In main.cpp - connect across threads
+QObject::connect(monitoringService, &MonitoringService::batchReadyForStorage,
+                 telemetryRepo, &SQLiteTelemetryRepository::saveBatch,
+                 Qt::QueuedConnection); // CRITICAL: Use QueuedConnection for cross-thread
+```
+
+**Within Same Thread (e.g., DB Thread services):**
+
+```cpp
+// In DataArchiveService (DB Thread)
+class DataArchiveService : public QObject {
+    Q_OBJECT
+public:
+    DataArchiveService(SQLiteTelemetryRepository* telemetryRepo,
+                      SQLiteAlarmRepository* alarmRepo)
+        : m_telemetryRepo(telemetryRepo)
+        , m_alarmRepo(alarmRepo)
+    {}
+    
+    void archiveOldData() {
+        // Direct calls (same thread, no marshaling overhead)
+        auto oldData = m_telemetryRepo->getDataOlderThan(retentionDate);
+        m_telemetryRepo->deleteRecords(oldData);
+        // No queuing, immediate execution
+    }
+    
+private:
+    SQLiteTelemetryRepository* m_telemetryRepo;
+    SQLiteAlarmRepository* m_alarmRepo;
+};
+```
+
+### 12.5 Module Lifecycle Management
+
+**Startup Sequence:**
+
+```cpp
+// Module startup helper
+class DatabaseModule {
+public:
+    static void initialize() {
+        m_thread = new QThread();
+        m_thread->setObjectName("DatabaseModule");
+        
+        // Create all services
+        createServices();
+        
+        // Move to thread
+        moveServicesToThread();
+        
+        // Connect signals
+        connectSignals();
+        
+        // Start
+        m_thread->start();
+    }
+    
+    static void shutdown() {
+        // Request thread to quit
+        m_thread->quit();
+        
+        // Wait for thread to finish (with timeout)
+        if (!m_thread->wait(5000)) {
+            qWarning() << "Database thread did not quit in time, terminating";
+            m_thread->terminate();
+            m_thread->wait();
+        }
+        
+        // Cleanup (back on main thread now)
+        cleanupServices();
+        delete m_thread;
+    }
+    
+private:
+    static QThread* m_thread;
+    // ... service pointers
+};
+```
+
+### 12.6 Alternative: Thread Pool for Heavy CPU Work
+
+For CPU-intensive tasks (compression, encryption), use `QThreadPool`:
+
+```cpp
+// For heavy, independent tasks
+class CompressionTask : public QRunnable {
+public:
+    void run() override {
+        // Heavy CPU work (compression, encryption)
+        // Runs on thread pool worker
+    }
+};
+
+// Usage
+QThreadPool::globalInstance()->start(new CompressionTask());
+```
+
+**When to Use Thread Pool:**
+- Heavy CPU work that doesn't need event loop
+- Independent tasks with no shared state
+- Want automatic thread management
+
+**When to Use Dedicated Thread + Multiple Workers:**
+- Services need event loop (signals/slots, timers)
+- Services share state (database connection, network socket)
+- Need precise control over thread lifecycle
+
+### 12.7 Module Design Best Practices
+
+1. **Single Responsibility per Module:**
+   - Database Module: All persistence
+   - Network Module: All I/O communication
+   - RT Module: All real-time processing
+
+2. **Minimize Cross-Module Calls:**
+   - Use queued signals for cross-thread communication
+   - Batch operations to reduce signaling overhead
+
+3. **Shared Resources:**
+   - Services in same module can share resources directly
+   - Database connection shared by all repositories
+   - Network socket shared by network services
+
+4. **Error Handling:**
+   - Module-level error handling (one service failure doesn't crash others)
+   - Use try-catch in event loop slots
+
+5. **Testing:**
+   - Test modules as units
+   - Mock inter-module communication (signals)
+
+### 12.8 Summary: Module vs. Service vs. Thread
+
+| Concept | Definition | Example |
+|---------|------------|---------|
+| **Service** | Logical component with specific responsibility | `DatabaseManager`, `PatientRepository` |
+| **Module** | Group of related services on same thread | Database Module (9 services) |
+| **Thread** | OS thread with event loop | `QThread` running Database Module |
+
+**Key Insight:** One thread can host multiple services (a module) by using `QObject::moveToThread()` and shared event loop.
+
+---
+
+## 13. Implementation Checklist
+
+### Core Threading
+- [ ] Define exact sampling budgets and expected max sample rates per device
+- [ ] Implement SPSC ring buffer for waveform streaming
+- [ ] Implement MPSC queue for database writes
+- [ ] Implement single DB writer with batched transactions
+- [ ] **Implement modules (multi-service threads) using QObject::moveToThread()**
+- [ ] **Create module lifecycle management (startup/shutdown sequences)**
+
+### Priority and Starvation Prevention
+- [ ] **Set thread priorities using recommended 6-level hierarchy**
+- [ ] **Enforce CPU budgets on high-priority threads (RT thread max 5ms/iteration)**
+- [ ] **Implement explicit yield points after critical work**
+- [ ] **Add rate limiting (minimum sleep) in high-priority loops**
+- [ ] **Implement watchdog monitoring for ALL threads (including low-priority)**
+- [ ] **Configure starvation detection (background thread timeout = 5s)**
+- [ ] **Use priority inheritance mutexes (verify platform support)**
+- [ ] **Prefer SCHED_RR over SCHED_FIFO on Linux**
+- [ ] **Test adaptive priority adjustment (optional, if starvation detected)**
+
+### Monitoring and Testing
+- [ ] Add watchdog monitoring and queue-depth alerts
+- [ ] Add tracing hooks for latency measurement
+- [ ] Document thread affinity and priority configuration in startup
+- [ ] Set up platform-specific thread priorities (QoS, SCHED_FIFO/RR, etc.)
+- [ ] Pre-allocate all RT buffers and object pools
+- [ ] Implement heartbeat mechanism for all critical threads
+- [ ] Add queue depth monitoring with thresholds
+
+### Stress Testing
+- [ ] Create stress tests for high data rates
+- [ ] **Stress test: RT thread at max rate + background archival simultaneously**
+- [ ] **Verify background thread makes progress within 5 seconds**
+- [ ] Measure P99 latency under nominal and peak loads
+- [ ] **Measure P99 latency for ALL thread types (including background)**
+- [ ] **Test priority inversion scenarios**
+- [ ] Verify no priority inversion or deadlocks
+- [ ] **Verify watchdog detects simulated starvation**
+- [ ] **Test under continuous load for 24+ hours**
+
+---
+
+## 14. Performance Measurement and Observability
+
+### 14.1 Instrumentation Points
+
+Instrument with timestamped events for:
+- Sample read (from sensor or simulator)
+- Processing start/end (signal processing)
+- Alarm detected
+- DB enqueue and DB commit
+- Network enqueue and send
+- Patient lookup start/end
+- Provisioning operations
+
+### 14.2 Metrics Collection
+
+- **Histograms:** Latency and jitter for all critical paths
+- **Queue Depth:** Real-time monitoring of all SPSC/MPSC queues
+- **CPU Utilization:** Per-thread CPU usage
+- **Memory Allocation:** Heap allocations in RT thread (should be zero)
+
+### 14.3 Tooling
+
+- **Linux:** `perf`, `LTTng`, `ftrace`
+- **macOS:** Instruments (Time Profiler, System Trace)
+- **Custom:** Binary trace logs with microsecond timestamps
+
+### 14.4 CI/CD Gates
+
+- Fail CI if P99 latency exceeds thresholds:
+  - Sensor → enqueued: > 2 ms
+  - Processing: > 10 ms
+  - Alarm → UI: > 100 ms
+- Fail CI if any RT thread allocates heap memory during processing
+
+---
+
+## 15. Acceptance Criteria
+
+- [ ] Unit tests for thread-safety (stress tests with high data rates)
+- [ ] Integration tests feeding waveforms at max sampling rates for extended periods
+- [ ] Performance gate: P99 sample→alarm latency < 100ms under nominal load
+- [ ] No priority inversion or deadlocks detected in stress tests
+- [ ] Queue depth never exceeds 90% under nominal load
+- [ ] Watchdog successfully detects and reports thread failures
+- [ ] All 98 components accounted for and correctly assigned to threads
+- [ ] **All modules (multi-service threads) implemented correctly using `moveToThread()`**
+- [ ] **Module lifecycle management (startup/shutdown) tested and verified**
+
+---
+
+## 16. References
+
+- `doc/29_SYSTEM_COMPONENTS.md` – Complete list of all 98 system components
+- `doc/02_ARCHITECTURE.md` – High-level architecture and data flow
+- `doc/28_DOMAIN_DRIVEN_DESIGN.md` – DDD strategy and layering
+- `doc/09_CLASS_DESIGNS.md` – Detailed class documentation
+- `doc/18_TESTING_WORKFLOW.md` – Testing strategy and benchmarks
+
+---
+
+*This document is the authoritative reference for thread topology and service-to-thread mapping. Keep it synchronized with `doc/29_SYSTEM_COMPONENTS.md`.*

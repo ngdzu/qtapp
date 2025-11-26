@@ -29,6 +29,20 @@ When modifying any of the following, update the corresponding documentation:
   - Update properties and signals
   - Update dependencies
 
+- [ ] **System Components Reference** (`project-dashboard/doc/29_SYSTEM_COMPONENTS.md`)
+  - Update component inventory when adding/removing components
+  - Update component interaction diagram (`29_SYSTEM_COMPONENTS.mmd`)
+  - Regenerate SVG: `npx @mermaid-js/mermaid-cli -i doc/29_SYSTEM_COMPONENTS.mmd -o doc/29_SYSTEM_COMPONENTS.svg`
+  - Update component count summary
+  - Ensure alignment with architecture and class design docs
+
+- [ ] **Thread Model** (`project-dashboard/doc/12_THREAD_MODEL.md`)
+  - Update service-to-thread mapping when adding/removing components
+  - Update thread topology diagram (`12_THREAD_MODEL.mmd`)
+  - Regenerate SVG: `npx @mermaid-js/mermaid-cli -i doc/12_THREAD_MODEL.mmd -o doc/12_THREAD_MODEL.svg`
+  - Update component count per thread
+  - Ensure all 98 components are accounted for
+
 - [ ] **Database Design** (`project-dashboard/doc/10_DATABASE_DESIGN.md`)
   - Update table schemas (DDL)
   - Update indices

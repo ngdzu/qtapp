@@ -1,0 +1,218 @@
+graph TB
+    subgraph "Interface Layer - QML Views"
+        LoginView[LoginView.qml]
+        DashboardView[DashboardView.qml]
+        TrendsView[TrendsView.qml]
+        AlarmsView[AlarmsView.qml]
+        SettingsView[SettingsView.qml]
+        DiagnosticsView[DiagnosticsView.qml]
+        PatientAdmissionModal[PatientAdmissionModal.qml]
+    end
+
+    subgraph "Interface Layer - QML Controllers"
+        AuthenticationController[AuthenticationController]
+        DashboardController[DashboardController]
+        TrendsController[TrendsController]
+        AlarmController[AlarmController]
+        PatientController[PatientController]
+        SettingsController[SettingsController]
+        ProvisioningController[ProvisioningController]
+        SystemController[SystemController]
+        DiagnosticsController[DiagnosticsController]
+        NotificationController[NotificationController]
+    end
+
+    subgraph "Application Layer - Services"
+        SecurityService[SecurityService]
+        MonitoringService[MonitoringService]
+        AdmissionService[AdmissionService]
+        ProvisioningService[ProvisioningService]
+        DataArchiveService[DataArchiveService]
+        FirmwareUpdateService[FirmwareUpdateService]
+        BackupService[BackupService]
+    end
+
+    subgraph "Domain Layer - Aggregates & Events"
+        PatientAggregate[PatientAggregate]
+        DeviceAggregate[DeviceAggregate]
+        TelemetryBatch[TelemetryBatch]
+        AlarmAggregate[AlarmAggregate]
+        AdmissionAggregate[AdmissionAggregate]
+        ProvisioningSession[ProvisioningSession]
+        UserSession[UserSession]
+        DomainEvents[Domain Events:<br/>PatientAdmitted<br/>TelemetryQueued<br/>AlarmRaised<br/>ProvisioningCompleted]
+    end
+
+    subgraph "Domain Layer - Repository Interfaces"
+        IPatientRepository[IPatientRepository]
+        ITelemetryRepository[ITelemetryRepository]
+        IAlarmRepository[IAlarmRepository]
+        IProvisioningRepository[IProvisioningRepository]
+        IUserRepository[IUserRepository]
+        IAuditRepository[IAuditRepository]
+    end
+
+    subgraph "Infrastructure Layer - Persistence"
+        SQLitePatientRepository[SQLitePatientRepository]
+        SQLiteTelemetryRepository[SQLiteTelemetryRepository]
+        SQLiteAlarmRepository[SQLiteAlarmRepository]
+        SQLiteProvisioningRepository[SQLiteProvisioningRepository]
+        SQLiteUserRepository[SQLiteUserRepository]
+        SQLiteAuditRepository[SQLiteAuditRepository]
+        DatabaseManager[DatabaseManager<br/>SQLite + SQLCipher]
+    end
+
+    subgraph "Infrastructure Layer - Network & External Services"
+        NetworkTelemetryServer[NetworkTelemetryServer<br/>ITelemetryServer]
+        MockTelemetryServer[MockTelemetryServer<br/>ITelemetryServer]
+        HISPatientLookupAdapter[HISPatientLookupAdapter<br/>IPatientLookupService]
+        MockPatientLookupService[MockPatientLookupService<br/>IPatientLookupService]
+        CentralStationClient[CentralStationClient]
+    end
+
+    subgraph "Infrastructure Layer - Qt & Security Adapters"
+        DeviceSimulator[DeviceSimulator]
+        SettingsManager[SettingsManager]
+        LogService[LogService]
+        CertificateManager[CertificateManager]
+        QRCodeGenerator[QRCodeGenerator]
+        EncryptionService[EncryptionService]
+        SignatureService[SignatureService]
+        SecureStorage[SecureStorage]
+        HealthMonitor[HealthMonitor]
+        ClockSyncService[ClockSyncService]
+        FirmwareManager[FirmwareManager]
+        WatchdogService[WatchdogService]
+    end
+
+    subgraph "External Systems"
+        CentralServer[Central Server<br/>HTTPS/mTLS]
+        HISEHR[HIS/EHR<br/>REST API]
+        CentralStation[Central Station<br/>Provisioning]
+        NTPServer[NTP Server]
+        CRLServer[CRL Server]
+    end
+
+    %% QML Views -> Controllers
+    LoginView --> AuthenticationController
+    DashboardView --> DashboardController
+    DashboardView --> AlarmController
+    TrendsView --> TrendsController
+    AlarmsView --> AlarmController
+    SettingsView --> SettingsController
+    SettingsView --> ProvisioningController
+    DiagnosticsView --> DiagnosticsController
+    PatientAdmissionModal --> PatientController
+    DashboardView --> PatientController
+    DashboardView --> SystemController
+
+    %% Controllers -> Application Services
+    AuthenticationController --> SecurityService
+    DashboardController --> MonitoringService
+    TrendsController --> MonitoringService
+    AlarmController --> MonitoringService
+    PatientController --> AdmissionService
+    ProvisioningController --> ProvisioningService
+    SystemController --> SecurityService
+    DiagnosticsController --> DataArchiveService
+
+    %% Controllers -> Infrastructure (legacy, should be removed)
+    DashboardController -.-> DeviceSimulator
+    SettingsController -.-> SettingsManager
+    DiagnosticsController -.-> LogService
+    DiagnosticsController -.-> HealthMonitor
+
+    %% Application Services -> Domain Aggregates
+    SecurityService --> UserSession
+    MonitoringService --> PatientAggregate
+    MonitoringService --> TelemetryBatch
+    MonitoringService --> AlarmAggregate
+    AdmissionService --> PatientAggregate
+    AdmissionService --> AdmissionAggregate
+    ProvisioningService --> DeviceAggregate
+    ProvisioningService --> ProvisioningSession
+
+    %% Application Services -> Repository Interfaces
+    SecurityService --> IUserRepository
+    SecurityService --> IAuditRepository
+    MonitoringService --> ITelemetryRepository
+    MonitoringService --> IAlarmRepository
+    MonitoringService --> IPatientRepository
+    AdmissionService --> IPatientRepository
+    AdmissionService --> IAuditRepository
+    ProvisioningService --> IProvisioningRepository
+    DataArchiveService --> ITelemetryRepository
+    DataArchiveService --> IAlarmRepository
+    BackupService --> IPatientRepository
+    BackupService --> ITelemetryRepository
+    BackupService --> IAlarmRepository
+
+    %% Domain Aggregates -> Domain Events
+    PatientAggregate --> DomainEvents
+    TelemetryBatch --> DomainEvents
+    AlarmAggregate --> DomainEvents
+    ProvisioningSession --> DomainEvents
+
+    %% Repository Interfaces -> Implementations
+    IPatientRepository --> SQLitePatientRepository
+    ITelemetryRepository --> SQLiteTelemetryRepository
+    IAlarmRepository --> SQLiteAlarmRepository
+    IProvisioningRepository --> SQLiteProvisioningRepository
+    IUserRepository --> SQLiteUserRepository
+    IAuditRepository --> SQLiteAuditRepository
+
+    %% Repository Implementations -> DatabaseManager
+    SQLitePatientRepository --> DatabaseManager
+    SQLiteTelemetryRepository --> DatabaseManager
+    SQLiteAlarmRepository --> DatabaseManager
+    SQLiteProvisioningRepository --> DatabaseManager
+    SQLiteUserRepository --> DatabaseManager
+    SQLiteAuditRepository --> DatabaseManager
+
+    %% Application Services -> Infrastructure Adapters
+    MonitoringService --> NetworkTelemetryServer
+    MonitoringService --> MockTelemetryServer
+    AdmissionService --> HISPatientLookupAdapter
+    AdmissionService --> MockPatientLookupService
+    ProvisioningService --> CentralStationClient
+    ProvisioningService --> QRCodeGenerator
+    ProvisioningService --> EncryptionService
+    ProvisioningService --> CertificateManager
+    SecurityService --> SignatureService
+    SecurityService --> SecureStorage
+    MonitoringService --> SignatureService
+    BackupService --> EncryptionService
+    FirmwareUpdateService --> FirmwareManager
+    FirmwareUpdateService --> SignatureService
+
+    %% Infrastructure -> External Systems
+    NetworkTelemetryServer --> CentralServer
+    HISPatientLookupAdapter --> HISEHR
+    CentralStationClient --> CentralStation
+    ClockSyncService --> NTPServer
+    CertificateManager --> CRLServer
+
+    %% Infrastructure cross-dependencies
+    SettingsManager --> DatabaseManager
+    LogService --> DatabaseManager
+    HealthMonitor --> LogService
+    WatchdogService --> LogService
+    DeviceSimulator --> LogService
+
+    %% Styling
+    classDef qmlView fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef controller fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef appService fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef domain fill:#f8bbd0,stroke:#c2185b,stroke-width:2px
+    classDef repository fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+    classDef infrastructure fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    classDef external fill:#b0bec5,stroke:#37474f,stroke-width:3px
+
+    class LoginView,DashboardView,TrendsView,AlarmsView,SettingsView,DiagnosticsView,PatientAdmissionModal qmlView
+    class AuthenticationController,DashboardController,TrendsController,AlarmController,PatientController,SettingsController,ProvisioningController,SystemController,DiagnosticsController,NotificationController controller
+    class SecurityService,MonitoringService,AdmissionService,ProvisioningService,DataArchiveService,FirmwareUpdateService,BackupService appService
+    class PatientAggregate,DeviceAggregate,TelemetryBatch,AlarmAggregate,AdmissionAggregate,ProvisioningSession,UserSession,DomainEvents domain
+    class IPatientRepository,ITelemetryRepository,IAlarmRepository,IProvisioningRepository,IUserRepository,IAuditRepository repository
+    class SQLitePatientRepository,SQLiteTelemetryRepository,SQLiteAlarmRepository,SQLiteProvisioningRepository,SQLiteUserRepository,SQLiteAuditRepository,DatabaseManager,NetworkTelemetryServer,MockTelemetryServer,HISPatientLookupAdapter,MockPatientLookupService,CentralStationClient,DeviceSimulator,SettingsManager,LogService,CertificateManager,QRCodeGenerator,EncryptionService,SignatureService,SecureStorage,HealthMonitor,ClockSyncService,FirmwareManager,WatchdogService infrastructure
+    class CentralServer,HISEHR,CentralStation,NTPServer,CRLServer external
+
