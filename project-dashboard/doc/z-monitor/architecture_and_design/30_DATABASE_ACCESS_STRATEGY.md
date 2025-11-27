@@ -5,6 +5,9 @@ This document defines the database access strategy for the Z Monitor application
 > **📊 Architecture Diagram:**  
 > [View Database Access Architecture (Mermaid)](./30_DATABASE_ACCESS_STRATEGY.mmd)  
 > [View Database Access Architecture (SVG)](./30_DATABASE_ACCESS_STRATEGY.svg)
+>
+> **📊 Data Caching Strategy:**  
+> [View Data Caching Architecture (36_DATA_CACHING_STRATEGY.md)](./36_DATA_CACHING_STRATEGY.md)
 
 ---
 
@@ -12,45 +15,165 @@ This document defines the database access strategy for the Z Monitor application
 
 ### **Question: Do we use ORM?**
 
-**Answer: Hybrid Approach - Repository Pattern with Qt SQL (No Heavy ORM)**
+**Answer: Lightweight ORM Acceptable - Repository Pattern with Qt SQL or QxOrm**
+
+**Key Insight from Data Caching Architecture:**
+- **Database operations are NOT in the critical path** (PRIORITY 3 - MEDIUM)
+- **Critical path:** Sensor → In-Memory Cache → Alarms (< 50ms) — **does not touch database**
+- **Database writes:** Background task, every 10 minutes (non-blocking)
+- **Database reads:** Historical queries, trend analysis (non-critical)
 
 **Rationale:**
-- **Medical device performance requirements** (< 50ms alarm latency)
-- **Real-time constraints** (100-500 Hz sample rate)
+- **Database is non-critical** - Persistence runs on low-priority background thread
+- **In-memory cache handles real-time** - 3-day buffer for critical operations
 - **SQLite + SQLCipher** for encryption
-- **Qt framework** already provides excellent SQL support
+- **Qt framework** provides excellent SQL support
 - **DDD architecture** with Repository pattern for abstraction
+- **Lightweight ORM is acceptable** - No real-time constraints on database layer
 
 ---
 
-## 2. Why NOT Use a Heavy ORM (like QxOrm, ODB, etc.)?
+## 2. Clarification: Database is NOT in the Critical Path
 
-### **Problems with Heavy ORMs in Real-Time Medical Devices:**
+### **Architecture Priorities (from [36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md)):**
 
-| Issue | Impact | Our Constraint |
-|-------|--------|----------------|
-| **Performance Overhead** | ORM query building, lazy loading, change tracking | Alarm latency must be < 50ms |
-| **Memory Allocation** | Object creation per row, caching | RT thread must avoid heap allocation |
-| **Unpredictable Latency** | Automatic lazy loading, cascade operations | P95 latency must be deterministic |
-| **Complexity** | Learning curve, debugging, schema sync | Embedded device, limited resources |
-| **Binary Size** | Large dependencies | Embedded device, storage constraints |
-| **Control Loss** | Abstract SQL generation | Need precise query optimization |
+```
+PRIORITY 1 (CRITICAL - Real-Time Thread):
+  Sensor → In-Memory Cache → Alarm Evaluation
+  Target: < 50ms end-to-end
+  ❌ NO DATABASE ACCESS
 
-### **Medical Device Requirements:**
+PRIORITY 2 (HIGH - Real-Time Thread):
+  In-Memory Cache → Telemetry Batch → Network Transmission
+  Target: Every 10 seconds (batched)
+  ❌ NO DATABASE ACCESS
 
-✅ **Deterministic performance** (P95 < 100ms)  
-✅ **Zero allocations in RT thread**  
-✅ **Precise query control** (optimized for time-series)  
-✅ **Small binary footprint**  
-✅ **Explicit, auditable SQL** (for regulatory compliance)
+PRIORITY 3 (MEDIUM - Database Thread):
+  In-Memory Cache → Database Persistence
+  Target: Every 10 minutes (background)
+  ✅ DATABASE OPERATIONS HERE (non-critical)
+
+PRIORITY 4 (LOW - Database Thread):
+  Database Cleanup (delete > 7 days)
+  Target: Daily at 3 AM
+  ✅ DATABASE OPERATIONS HERE (non-critical)
+```
+
+### **Previous Misunderstanding:**
+
+❌ **OLD ASSUMPTION:** "Alarm latency must be < 50ms" → Need to avoid ORM for database performance  
+✅ **CORRECT:** Alarm evaluation uses **in-memory cache only** (no database queries in critical path)
+
+❌ **OLD ASSUMPTION:** "RT thread must avoid heap allocation" → Database must be optimized for RT  
+✅ **CORRECT:** Database operations run on **dedicated Database I/O thread** (not RT thread)
+
+### **Database Performance Requirements (Revised):**
+
+|| Operation | Target Latency | Priority | Notes |
+||-----------|----------------|----------|-------|
+|| **Alarm Evaluation** | < 50ms | CRITICAL | ✅ Uses in-memory cache (no DB) |
+|| **Real-time Display** | < 100ms | HIGH | ✅ Uses in-memory cache (no DB) |
+|| **Database Persistence** | < 5 seconds | MEDIUM | ⚠️ Background, every 10 min |
+|| **Historical Queries** | < 2 seconds | LOW | ⚠️ Trend analysis, not real-time |
+|| **Database Cleanup** | < 30 seconds | LOW | ⚠️ Daily at 3 AM |
+
+**Conclusion:** Database latency requirements are **relaxed** (seconds, not milliseconds). Lightweight ORM overhead is acceptable.
 
 ---
 
-## 3. Recommended Approach: Repository Pattern with Qt SQL
+## 3. ORM Evaluation (Revised)
+
+### **3.1 Why a Lightweight ORM is Now Acceptable:**
+
+✅ **Non-Critical Path**: Database operations don't affect real-time alarm latency  
+✅ **Background Thread**: Database runs on dedicated thread (no RT constraints)  
+✅ **Developer Productivity**: ORM reduces boilerplate mapping code  
+✅ **Type Safety**: ORM provides compile-time type checking  
+✅ **Schema Sync**: ORM can auto-generate schema from code (or vice versa)  
+✅ **Query Building**: Type-safe query builders prevent SQL injection
+
+### **3.2 ORM Options for Qt/C++:**
+
+|| ORM | Pros | Cons | Verdict |
+||-----|------|------|---------|
+|| **QxOrm** | Qt-native, lightweight, supports SQLCipher | Learning curve, less popular | ✅ **RECOMMENDED** |
+|| **ODB** | Mature, feature-rich, excellent docs | Heavy, complex, large binary | ⚠️ Acceptable |
+|| **Qt SQL (Manual)** | Zero overhead, full control | More boilerplate code | ✅ **FALLBACK** |
+|| **sqlpp11** | Modern C++, type-safe | Not Qt-native, complex setup | ❌ Not recommended |
+
+### **3.3 Recommended Approach: QxOrm**
+
+**Rationale:**
+- **Lightweight**: Minimal overhead, small binary footprint
+- **Qt-Native**: Integrates seamlessly with Qt types (QString, QDateTime, etc.)
+- **SQLCipher Support**: Works with encrypted databases
+- **Repository Pattern**: Natural fit for DDD
+- **Non-Intrusive**: POCOs (Plain Old C++ Objects) - no inheritance required
+- **Compile-Time Type Safety**: Catch errors at compile time
+
+**Example with QxOrm:**
+
+```cpp
+// Domain aggregate (POCO - no QxOrm dependencies)
+class PatientAggregate {
+public:
+    QString mrn;
+    QString name;
+    QDate dateOfBirth;
+    QString sex;
+    QString bedLocation;
+    QDateTime admittedAt;
+    QString admissionSource;
+};
+
+// QxOrm registration (in separate file)
+QX_REGISTER_HPP_EXPORT(PatientAggregate, qx::trait::no_base_class_defined, 0)
+
+namespace qx {
+    template<> void register_class(QxClass<PatientAggregate>& t) {
+        t.id(&PatientAggregate::mrn, "mrn");
+        t.data(&PatientAggregate::name, "name");
+        t.data(&PatientAggregate::dateOfBirth, "date_of_birth");
+        t.data(&PatientAggregate::sex, "sex");
+        t.data(&PatientAggregate::bedLocation, "bed_location");
+        t.data(&PatientAggregate::admittedAt, "admitted_at");
+        t.data(&PatientAggregate::admissionSource, "admission_source");
+    }
+}
+
+// Repository using QxOrm
+class SQLitePatientRepository : public IPatientRepository {
+public:
+    std::optional<PatientAggregate> findByMrn(const QString& mrn) override {
+        PatientAggregate patient;
+        patient.mrn = mrn;
+        
+        qx::dao::fetch_by_id(patient);  // ✅ Type-safe, no SQL strings
+        
+        if (patient.name.isEmpty()) {
+            return std::nullopt;
+        }
+        return patient;
+    }
+    
+    bool save(const PatientAggregate& patient) override {
+        auto error = qx::dao::save(patient);  // ✅ Handles INSERT/UPDATE
+        return !error.isValid();
+    }
+};
+```
+
+### **3.4 Alternative: Manual Qt SQL (No ORM)**
+
+**If ORM complexity is not worth the benefits, use manual Qt SQL:**
 
 > **🔗 Related Documentation:**  
 > **Query Management:** See [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md) for type-safe query string management using the Query Registry pattern. All repositories use `QueryId::` constants instead of magic strings for compile-time safety and autocomplete support.  
 > **Schema Management:** See [33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md) for schema definition and code generation workflow. All repositories use `Schema::Columns::` constants instead of hardcoded column names for compile-time safety and autocomplete support.
+
+---
+
+## 4. Recommended Approach: Repository Pattern with Qt SQL
 
 ### **Architecture:**
 
@@ -71,8 +194,8 @@ This document defines the database access strategy for the Z Monitor application
 │   Repository Implementations (Infra)     │
 │  SQLitePatientRepository, etc.           │
 │  - Uses QSqlQuery (prepared statements)  │
-│  - Pre-allocated buffers                 │
-│  - Batch operations                      │
+│  - Runs on Database I/O Thread           │
+│  - Batch operations (every 10 min)       │
 └──────────────┬───────────────────────────┘
                │ Uses
                ▼
@@ -87,7 +210,7 @@ This document defines the database access strategy for the Z Monitor application
 
 ### **Benefits:**
 
-✅ **Performance**: Direct SQL control, no ORM overhead  
+✅ **Performance**: Direct SQL control, predictable latency  
 ✅ **Testability**: Mock repositories for testing  
 ✅ **Abstraction**: Application layer doesn't know about SQL  
 ✅ **Flexibility**: Can swap SQLite for another DB  
@@ -95,9 +218,9 @@ This document defines the database access strategy for the Z Monitor application
 
 ---
 
-## 4. Implementation Details
+## 5. Implementation Details
 
-### 4.1 DatabaseManager (Infrastructure)
+### 5.1 DatabaseManager (Infrastructure)
 
 **Responsibilities:**
 - QSqlDatabase connection management
@@ -146,7 +269,7 @@ private:
 };
 ```
 
-### 4.2 Repository Interface (Domain Layer)
+### 5.2 Repository Interface (Domain Layer)
 
 **Example: IPatientRepository**
 
@@ -172,9 +295,9 @@ public:
 - ✅ **Zero SQL in interface** (pure domain language)
 - ✅ **Returns domain objects** (PatientAggregate, not QSqlRecord)
 - ✅ **Virtual destructor** (for polymorphism)
-- ✅ **std::optional** for "not found" case (no exceptions in RT path)
+- ✅ **std::optional** for "not found" case (no exceptions)
 
-### 4.3 Repository Implementation (Infrastructure Layer)
+### 5.3 Repository Implementation (Infrastructure Layer)
 
 **Example: SQLitePatientRepository**
 
@@ -196,8 +319,6 @@ public:
     
 private:
     DatabaseManager* m_dbManager;
-    
-    // No need to cache queries - DatabaseManager handles it via QueryRegistry
     
     // Mapping helpers
     PatientAggregate mapToAggregate(const QSqlQuery& query);
@@ -282,8 +403,6 @@ void SQLitePatientRepository::bindAggregateToQuery(
     const PatientAggregate& patient)
 {
     // ✅ Map domain object to SQL parameters
-    // Note: bindValue uses SQL parameter names (:param), not column names
-    // SQL parameter names are defined in QueryCatalog (see doc/32_QUERY_REGISTRY.md)
     const auto& identity = patient.getIdentity();
     
     query.bindValue(":mrn", identity.getMrn());
@@ -296,25 +415,17 @@ void SQLitePatientRepository::bindAggregateToQuery(
 }
 ```
 
-### 4.4 Query Registry Integration
+### 5.4 Query Registry Integration
 
 **Strategy:** Use QueryRegistry pattern for type-safe query management
 
-**See:** `doc/32_QUERY_REGISTRY.md` for complete Query Registry implementation
+**See:** [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md) for complete Query Registry implementation
 
 ```cpp
 // DatabaseManager initialization (uses QueryCatalog)
 void DatabaseManager::initialize() {
     // Initialize all queries from QueryCatalog
-    // This replaces manual prepared statement setup with centralized registry
     QueryCatalog::initializeQueries(this);
-    
-    // QueryCatalog registers all queries like:
-    // - QueryId::Patient::FIND_BY_MRN
-    // - QueryId::Patient::INSERT
-    // - QueryId::Vitals::INSERT
-    // - QueryId::Vitals::GET_UNSYNCED
-    // - ... (all queries defined in QueryRegistry.h)
     
     qInfo() << "Initialized" << m_preparedQueries.size() << "prepared queries";
 }
@@ -331,9 +442,9 @@ QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Patient::FIND_BY_MRN);
 - ✅ **Centralized:** All SQL in one place (QueryCatalog.cpp)
 - ✅ **Auto-Documented:** Generates QUERY_REFERENCE.md
 
-### 4.5 Batch Operations (Critical for Performance)
+### 5.5 Batch Operations (For Periodic Persistence)
 
-**Strategy:** Batch INSERT/UPDATE for time-series data
+**Strategy:** Batch INSERT for time-series data (runs every 10 minutes on Database thread)
 
 ```cpp
 // SQLiteTelemetryRepository
@@ -378,15 +489,16 @@ bool SQLiteTelemetryRepository::saveBatch(const TelemetryBatch& batch) {
 **Performance:**
 - ✅ Single transaction for batch (faster)
 - ✅ Prepared statement reuse (no re-parse)
-- ✅ Reduced fsync calls (WAL mode)
+- ✅ Runs on background thread (no impact on critical path)
+- ⚠️ 5-second target latency (relaxed requirement)
 
 ---
 
-## 5. Query Optimization Strategies
+## 6. Query Optimization Strategies
 
-### 5.1 Time-Series Optimizations
+### 6.1 Time-Series Optimizations
 
-**Vitals Table (Hottest Path):**
+**Vitals Table:**
 
 ```sql
 -- 1. Compound index for time-range queries
@@ -403,7 +515,7 @@ ON vitals(is_synced, timestamp)
 WHERE is_synced = 0;
 ```
 
-### 5.2 WAL Mode (Write-Ahead Logging)
+### 6.2 WAL Mode (Write-Ahead Logging)
 
 ```cpp
 // DatabaseManager::open()
@@ -413,8 +525,8 @@ void DatabaseManager::open(const QString& dbPath, const QString& key) {
     // Enable WAL mode (concurrent reads during writes)
     query.exec("PRAGMA journal_mode = WAL;");
     
-    // Optimize for embedded device
-    query.exec("PRAGMA synchronous = NORMAL;");  // Faster than FULL, safe with WAL
+    // Optimize for background operations (not real-time)
+    query.exec("PRAGMA synchronous = NORMAL;");  // Safe with WAL
     query.exec("PRAGMA cache_size = -8000;");    // 8MB cache
     query.exec("PRAGMA temp_store = MEMORY;");   // Temp tables in memory
     
@@ -424,38 +536,41 @@ void DatabaseManager::open(const QString& dbPath, const QString& key) {
 }
 ```
 
-### 5.3 Connection Strategy
+### 6.3 Connection Strategy
 
 ```
 ┌─────────────────────────┐
-│   Write Connection      │  ← DB Thread (single writer)
+│   Write Connection      │  ← Database Thread (single writer)
 │   (m_writeDb)           │     All INSERT/UPDATE/DELETE
-└─────────────────────────┘
+└─────────────────────────┘     Runs every 10 minutes (batch)
 
 ┌─────────────────────────┐
 │   Read Connection       │  ← Application Services threads
-│   (m_readDb)            │     SELECT only (can be concurrent with WAL)
-└─────────────────────────┘
+│   (m_readDb)            │     SELECT only (historical queries)
+└─────────────────────────┘     Non-critical (trend analysis)
 ```
 
 ---
 
-## 6. Performance Benchmarks and Targets
+## 7. Performance Benchmarks and Targets (Revised)
 
-| Operation | Target Latency | Implementation |
-|-----------|----------------|----------------|
-| **INSERT single vital** | < 5 ms | Prepared statement, no transaction |
-| **INSERT batch (100 vitals)** | < 50 ms | Single transaction, prepared statement |
-| **SELECT recent vitals (1 hour)** | < 20 ms | Covering index, patient_mrn + timestamp |
-| **SELECT patient by MRN** | < 2 ms | Primary key or unique index |
-| **UPDATE patient** | < 5 ms | Prepared statement, WHERE mrn |
-| **Transaction commit (batch)** | < 100 ms | WAL mode, NORMAL synchronous |
+|| Operation | Target Latency | Thread | Notes |
+||-----------|----------------|--------|-------|
+|| **INSERT batch (1000 vitals)** | < 5 seconds | Database I/O | Every 10 minutes |
+|| **SELECT historical (1 hour)** | < 2 seconds | Database I/O | Trend analysis |
+|| **SELECT patient by MRN** | < 500 ms | Database I/O | Non-critical |
+|| **UPDATE patient** | < 500 ms | Database I/O | Non-critical |
+|| **Database cleanup (7 days)** | < 30 seconds | Database I/O | Daily at 3 AM |
+
+**Key Difference from Previous Version:**
+- ❌ **OLD:** Sub-millisecond targets (unrealistic for non-critical operations)
+- ✅ **NEW:** Seconds-scale targets (appropriate for background operations)
 
 ---
 
-## 7. Testing Strategy
+## 8. Testing Strategy
 
-### 7.1 Repository Unit Tests
+### 8.1 Repository Unit Tests
 
 ```cpp
 // tests/unit/SQLitePatientRepositoryTest.cpp
@@ -481,25 +596,25 @@ TEST_F(SQLitePatientRepositoryTest, FindByMrn_NotFound_ReturnsNullopt) {
 }
 ```
 
-### 7.2 Performance Tests
+### 8.2 Performance Tests (Revised Targets)
 
 ```cpp
 // tests/benchmarks/TelemetryRepositoryBenchmark.cpp
-TEST(TelemetryRepositoryBenchmark, InsertBatch_100Vitals_Under50ms) {
-    auto batch = createTestBatch(100);  // 100 vitals
+TEST(TelemetryRepositoryBenchmark, InsertBatch_1000Vitals_Under5Seconds) {
+    auto batch = createTestBatch(1000);  // 1000 vitals
     
     auto start = std::chrono::high_resolution_clock::now();
     bool success = m_repository->saveBatch(batch);
     auto duration = std::chrono::high_resolution_clock::now() - start;
     
     ASSERT_TRUE(success);
-    EXPECT_LT(std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(), 50);
+    EXPECT_LT(std::chrono::duration_cast<std::chrono::seconds>(duration).count(), 5);
 }
 ```
 
 ---
 
-## 8. Migration Strategy
+## 9. Migration Strategy
 
 **Schema migrations using numbered SQL files:**
 
@@ -511,111 +626,85 @@ project-dashboard/doc/migrations/
 └── README.md
 ```
 
-**Migration Execution:**
-
-```cpp
-// DatabaseManager::executeMigrations()
-bool DatabaseManager::executeMigrations() {
-    // Create migrations table if not exists
-    QSqlQuery query(m_writeDb);
-    query.exec(
-        "CREATE TABLE IF NOT EXISTS schema_migrations ("
-        "  version INTEGER PRIMARY KEY,"
-        "  applied_at INTEGER NOT NULL"
-        ")"
-    );
-    
-    // Get current version
-    query.exec("SELECT MAX(version) FROM schema_migrations");
-    int currentVersion = query.next() ? query.value(0).toInt() : 0;
-    
-    // Apply pending migrations
-    QDir migrationsDir(":/migrations");  // Embedded in resources
-    auto files = migrationsDir.entryList({"*.sql"}, QDir::Files, QDir::Name);
-    
-    for (const auto& file : files) {
-        int version = extractVersion(file);
-        if (version > currentVersion) {
-            if (!applyMigration(file, version)) {
-                return false;
-            }
-        }
-    }
-    
-    return true;
-}
-```
+**See:** [34_DATA_MIGRATION_WORKFLOW.md](./34_DATA_MIGRATION_WORKFLOW.md) for complete migration strategy
 
 ---
 
-## 9. Summary: Database Access Plan
+## 10. Summary: Database Access Plan (Revised)
 
-### **ORM Strategy: NO Heavy ORM**
+### **ORM Strategy: Lightweight ORM Acceptable**
 
-✅ **Approach:** Repository pattern with Qt SQL (QSqlQuery + prepared statements)
+✅ **Recommended Approach:** QxOrm (lightweight, Qt-native)  
+✅ **Fallback Approach:** Repository pattern with Qt SQL (no ORM)
 
-### **Key Decisions:**
+### **Key Decisions (Revised):**
 
-| Aspect | Decision | Rationale |
-|--------|----------|-----------|
-| **ORM Framework** | None (use Qt SQL directly) | Performance, control, simplicity |
-| **Abstraction** | Repository pattern (DDD) | Testability, decoupling |
-| **Query Type** | Prepared statements (cached) | Performance, SQL injection prevention |
-| **Transactions** | Manual control (batch operations) | Predictable latency |
-| **Connection** | Single writer + read connections | SQLite write serialization + WAL reads |
-| **Schema Migrations** | Numbered SQL files (embedded) | Explicit, auditable, version controlled |
-| **Domain Mapping** | Manual (explicit mapping methods) | Control, performance, no magic |
+|| Aspect | Decision | Rationale |
+||--------|----------|-----------|
+|| **ORM Framework** | QxOrm (or Qt SQL) | Non-critical path allows ORM overhead |
+|| **Critical Path** | In-memory cache only | Database not used for real-time operations |
+|| **Database Thread** | Dedicated background thread | No RT constraints |
+|| **Persistence Schedule** | Every 10 minutes (batch) | Non-blocking, low priority |
+|| **Performance Target** | < 5 seconds (batch insert) | Relaxed requirements |
+|| **Abstraction** | Repository pattern (DDD) | Testability, decoupling |
+|| **Query Type** | Prepared statements (cached) | Performance, SQL injection prevention |
+|| **Transactions** | Manual control (batch operations) | Predictable latency |
+|| **Connection** | Single writer + read connections | SQLite write serialization + WAL reads |
+|| **Schema Migrations** | Numbered SQL files (embedded) | Explicit, auditable, version controlled |
 
 ### **Benefits:**
 
-✅ **Performance**: Direct SQL, no ORM overhead  
-✅ **Deterministic**: No lazy loading surprises  
+✅ **Simplified Development**: ORM reduces boilerplate (if using QxOrm)  
+✅ **No Performance Impact**: Database not in critical path  
 ✅ **Testability**: Mock repositories  
-✅ **Regulatory**: Explicit, auditable SQL  
-✅ **Small Binary**: No heavy ORM dependencies  
-✅ **Qt Native**: Leverages Qt SQL (already in Qt)
+✅ **Regulatory**: Explicit, auditable persistence  
+✅ **Qt Native**: Leverages Qt SQL
 
 ### **Trade-offs:**
 
-⚠️ **More Boilerplate**: Manual mapping code (but explicit and controllable)  
-⚠️ **No Automatic Sync**: Schema changes require manual migration files  
-⚠️ **Less "Magic"**: No automatic change tracking (but we don't need it)
+⚠️ **ORM Learning Curve**: QxOrm requires initial learning (if chosen)  
+⚠️ **Binary Size**: Small increase if using ORM  
+⚠️ **Less Control**: ORM generates SQL (but acceptable for non-critical operations)
 
 ---
 
-## 10. Implementation Checklist
+## 11. Implementation Checklist
 
+- [ ] **Decide on ORM:** QxOrm vs Manual Qt SQL
+  - [ ] If QxOrm: Add dependency, configure build
+  - [ ] If Manual: Implement Query Registry pattern (see [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md))
 - [ ] Create `DatabaseManager` class (connection management)
-- [ ] **Implement Query Registry pattern** (see [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md))
-  - [ ] Create `QueryRegistry.h` with QueryId namespace constants
-  - [ ] Create `QueryCatalog.cpp` with query definitions
-  - [ ] Update `DatabaseManager` to support query registration
 - [ ] Define repository interfaces in domain layer
 - [ ] Implement SQLite repositories in infrastructure layer
-  - [ ] Use `QueryId::` constants (no magic strings)
-  - [ ] Include `QueryRegistry.h` in all repositories
-- [ ] Implement batch INSERT for time-series data
+  - [ ] Run on Database I/O thread (not RT thread)
+  - [ ] Use batch INSERT for periodic persistence (every 10 min)
 - [ ] Enable WAL mode and optimize PRAGMAs
-- [ ] Create migration system (numbered SQL files)
+- [ ] Create migration system (see [34_DATA_MIGRATION_WORKFLOW.md](./34_DATA_MIGRATION_WORKFLOW.md))
 - [ ] Write unit tests for repositories
-- [ ] Write performance benchmarks (< 50ms batch insert target)
+- [ ] Write performance benchmarks (< 5 second batch insert target)
 - [ ] Document mapping conventions (domain ↔ SQL)
 - [ ] Add to `ZTODO.md`
 
 ---
 
-## 11. References
+## 12. References
 
-- **`doc/33_SCHEMA_MANAGEMENT.md`** – Schema definition and code generation (YAML → SchemaInfo.h)
-- **`doc/32_QUERY_REGISTRY.md`** – Query string management and type-safe query IDs
-- `doc/31_DATA_TRANSFER_OBJECTS.md` – DTOs for data transfer between layers
-- `doc/10_DATABASE_DESIGN.md` – Database schema
-- `doc/28_DOMAIN_DRIVEN_DESIGN.md` – DDD strategy and repository pattern
-- `doc/29_SYSTEM_COMPONENTS.md` – Complete component list
-- `doc/12_THREAD_MODEL.md` – Thread assignment (DB thread = single writer)
+- **[36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md)** – Data caching architecture (critical path explanation)
+- **[33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md)** – Schema definition and code generation (YAML → SchemaInfo.h)
+- **[32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md)** – Query string management and type-safe query IDs
+- **[34_DATA_MIGRATION_WORKFLOW.md](./34_DATA_MIGRATION_WORKFLOW.md)** – Database migration strategy
+- **[31_DATA_TRANSFER_OBJECTS.md](./31_DATA_TRANSFER_OBJECTS.md)** – DTOs for data transfer between layers
+- **[10_DATABASE_DESIGN.md](./10_DATABASE_DESIGN.md)** – Database schema
+- **[28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md)** – DDD strategy and repository pattern
+- **[29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md)** – Complete component list
+- **[12_THREAD_MODEL.md](./12_THREAD_MODEL.md)** – Thread assignment (Database I/O thread)
 - Qt SQL Documentation: https://doc.qt.io/qt-6/sql-programming.html
+- QxOrm Documentation: https://www.qxorm.com/
 
 ---
 
-*This document defines the database access strategy for Z Monitor. The approach prioritizes performance, determinism, and regulatory compliance over convenience.*
+**Document Version:** 2.0  
+**Last Updated:** 2025-11-27  
+**Status:** Revised based on [36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md)
 
+*This document defines the database access strategy for Z Monitor. The revised approach recognizes that database operations are non-critical and run on a background thread, making lightweight ORM overhead acceptable.*
