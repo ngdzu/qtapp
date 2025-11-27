@@ -1,0 +1,83 @@
+name: PR Benchmarks
+
+on:
+  pull_request:
+    paths:
+      - 'z-monitor/src/**'
+      - 'z-monitor/tests/benchmarks/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/pr-benchmarks.yml'
+
+jobs:
+  component-benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build \
+            libqt6core6 libqt6gui6 libqt6widgets6 libqt6qml6 \
+            libbenchmark-dev libbenchmark1
+      
+      - name: Configure Build
+        run: |
+          cmake -S . -B build/benchmarks \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" \
+            -DENABLE_BENCHMARKS=ON
+      
+      - name: Build Component Benchmarks
+        run: |
+          cmake --build build/benchmarks --target benchmarks -j$(nproc)
+      
+      - name: Run Component Benchmarks
+        run: |
+          mkdir -p benchmark_results
+          ./scripts/run_tests.sh bench --filter="component" \
+            --output=benchmark_results/pr_benchmarks.json \
+            --format=json \
+            --benchmark_min_time=0.5
+      
+      - name: Get Baseline from Main Branch
+        run: |
+          git fetch origin main
+          git checkout origin/main -- benchmark_results/ 2>/dev/null || echo "No baseline found"
+      
+      - name: Compare with Baseline
+        id: compare
+        if: hashFiles('benchmark_results/baseline.json') != ''
+        run: |
+          ./scripts/compare_benchmarks.py \
+            --baseline=benchmark_results/baseline.json \
+            --current=benchmark_results/pr_benchmarks.json \
+            --threshold-critical=0.05 \
+            --threshold-must-have=0.10 \
+            --threshold-should-have=0.20 \
+            --output=benchmark_comparison.html \
+            --comment-on-pr \
+            --github-token=${{ secrets.GITHUB_TOKEN }} \
+            --pr-number=${{ github.event.pull_request.number }}
+      
+      - name: Upload Benchmark Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-benchmark-results-${{ github.run_number }}
+          path: |
+            benchmark_results/pr_benchmarks.json
+            benchmark_comparison.html
+          retention-days: 7
+      
+      - name: Fail on Critical Regression
+        if: steps.compare.outcome == 'failure'
+        run: |
+          echo "Critical benchmark regression detected. Build failed."
+          exit 1
+

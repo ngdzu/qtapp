@@ -298,6 +298,40 @@
   - What: Enable coverage builds with `-DENABLE_COVERAGE=ON`, integrate `lcov`/`genhtml`, and enforce minimum 80% line coverage on `src/core/`. Publish reports from `build_coverage/coverage/index.html`.
   - Why: Maintains confidence in critical code paths.
 
+- [ ] Implement Benchmark Framework and Performance Measurement
+  - What: Add Google Benchmark library to CMake, create benchmark directory structure (`tests/benchmarks/core/`, `tests/benchmarks/ui/`, `tests/benchmarks/network/`, `tests/benchmarks/integration/`), implement critical benchmarks (alarm detection latency, database query performance, UI response time, memory usage). Create benchmark comparison script (`scripts/compare_benchmarks.py`) and setup script (`scripts/setup_benchmark_env.sh`). Integrate into CI/CD with nightly execution workflow.
+  - Why: Performance benchmarks are critical for safety-critical requirements, especially alarm detection latency (< 50ms). Automated nightly benchmarks detect performance regressions early and ensure system meets all performance targets.
+  - Files:
+    - `z-monitor/tests/benchmarks/core/alarm_detection.cpp` (REQ-NFR-PERF-100)
+    - `z-monitor/tests/benchmarks/core/database_queries.cpp` (REQ-NFR-PERF-110)
+    - `z-monitor/tests/benchmarks/core/database_writes.cpp` (REQ-NFR-PERF-111)
+    - `z-monitor/tests/benchmarks/core/memory_usage.cpp` (REQ-NFR-HW-001)
+    - `z-monitor/tests/benchmarks/ui/response_time.cpp` (REQ-NFR-PERF-001)
+    - `z-monitor/tests/benchmarks/ui/display_refresh.cpp` (REQ-NFR-PERF-101)
+    - `z-monitor/tests/benchmarks/network/telemetry_latency.cpp` (REQ-NFR-PERF-200)
+    - `z-monitor/tests/benchmarks/integration/end_to_end_latency.cpp`
+    - `z-monitor/scripts/compare_benchmarks.py` (compare with baseline, generate reports)
+    - `z-monitor/scripts/setup_benchmark_env.sh` (isolate benchmark environment)
+    - `.github/workflows/nightly-benchmarks.yml` (nightly CI workflow)
+    - `.github/workflows/pr-benchmarks.yml` (PR benchmark comparison)
+  - Acceptance:
+    - Google Benchmark integrated into CMake build system
+    - All critical benchmarks implemented (alarm detection, database, UI, memory, network)
+    - Benchmarks run successfully and produce JSON/CSV output
+    - Comparison script compares current vs baseline and generates HTML reports
+    - Nightly workflow runs all benchmarks and stores results
+    - PR workflow runs component benchmarks and posts comparison comments
+    - Regression detection works (fail if > 10% regression for critical benchmarks)
+    - Performance dashboard generated from benchmark results
+  - Verification Steps:
+    1. Functional: All benchmarks run successfully, produce valid JSON output, comparison script works, regression detection works, nightly workflow executes, PR workflow posts comments
+    2. Code Quality: Benchmarks follow established patterns (pre-allocate data, measure critical path only, statistical reporting), Doxygen comments on all benchmarks, linter passes
+    3. Documentation: `doc/40_BENCHMARK_AND_PERFORMANCE_MEASUREMENT.md` complete, benchmark examples documented, CI/CD integration documented, performance targets documented
+    4. Integration: CMake builds benchmarks, CI workflows execute successfully, results stored correctly, comparison reports generated
+    5. Tests: Benchmark framework tests, comparison script tests, verify benchmarks meet performance targets, verify regression detection works
+  - Documentation: See `doc/40_BENCHMARK_AND_PERFORMANCE_MEASUREMENT.md` for complete benchmark strategy, framework design, CI/CD integration, and nightly execution workflow. See `doc/18_TESTING_WORKFLOW.md` for testing workflow integration.
+  - Prompt: `project-dashboard/prompt/40-implement-benchmark-framework.md`
+
 - [ ] Integrate benchmarking harness
   - What: Add Google Benchmark targets for AlarmManager, SignalProcessor, telemetry serialization, and certificate validation routines. Store results (CSV/JSON) for regression tracking.
   - Why: Detects performance regressions early.

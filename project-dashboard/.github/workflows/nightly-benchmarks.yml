@@ -1,0 +1,115 @@
+name: Nightly Benchmarks
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily
+  workflow_dispatch:     # Manual trigger
+
+jobs:
+  benchmarks:
+    runs-on: self-hosted-benchmark-runner  # Dedicated hardware for consistent results
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for baseline comparison
+      
+      - name: Setup Benchmark Environment
+        run: |
+          # Install dependencies
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build \
+            libqt6core6 libqt6gui6 libqt6widgets6 libqt6qml6 \
+            libbenchmark-dev libbenchmark1
+          
+          # Setup isolated benchmark environment
+          ./scripts/setup_benchmark_env.sh
+      
+      - name: Configure Build
+        run: |
+          cmake -S . -B build/benchmarks \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -march=native" \
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
+            -DENABLE_BENCHMARKS=ON
+      
+      - name: Build Benchmarks
+        run: |
+          cmake --build build/benchmarks --target benchmarks -j$(nproc)
+      
+      - name: Run Full Benchmark Suite
+        run: |
+          mkdir -p benchmark_results
+          ./scripts/run_tests.sh bench --all \
+            --output=benchmark_results/benchmark_$(date +%Y%m%d_%H%M%S).json \
+            --format=json \
+            --benchmark_min_time=1.0
+      
+      - name: Store Benchmark Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_number }}
+          path: benchmark_results/*.json
+          retention-days: 90
+      
+      - name: Get Baseline Results
+        id: baseline
+        run: |
+          # Get baseline from main branch
+          git fetch origin main
+          git checkout origin/main -- benchmark_results/ 2>/dev/null || echo "No baseline found"
+          if [ -f benchmark_results/baseline.json ]; then
+            echo "baseline_exists=true" >> $GITHUB_OUTPUT
+            echo "baseline_file=benchmark_results/baseline.json" >> $GITHUB_OUTPUT
+          else
+            echo "baseline_exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Compare with Baseline
+        if: steps.baseline.outputs.baseline_exists == 'true'
+        run: |
+          ./scripts/compare_benchmarks.py \
+            --baseline=${{ steps.baseline.outputs.baseline_file }} \
+            --current=benchmark_results/benchmark_*.json \
+            --threshold-critical=0.05 \
+            --threshold-must-have=0.10 \
+            --threshold-should-have=0.20 \
+            --output=performance_report.html \
+            --generate-report
+      
+      - name: Generate Performance Dashboard
+        run: |
+          ./scripts/generate_performance_dashboard.py \
+            --results=benchmark_results/*.json \
+            --output=performance_dashboard.html \
+            --days=30
+      
+      - name: Upload Performance Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report-${{ github.run_number }}
+          path: |
+            performance_report.html
+            performance_dashboard.html
+          retention-days: 90
+      
+      - name: Update Baseline (if all benchmarks pass)
+        if: success()
+        run: |
+          # Update baseline if all critical benchmarks pass
+          cp benchmark_results/benchmark_*.json benchmark_results/baseline.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add benchmark_results/baseline.json
+          git commit -m "Update benchmark baseline [skip ci]" || echo "No changes to commit"
+          git push origin HEAD:main || echo "Push failed (may require manual review)"
+      
+      - name: Alert on Regression
+        if: failure()
+        run: |
+          ./scripts/alert_performance_regression.py \
+            --report=performance_report.html \
+            --slack-webhook=${{ secrets.SLACK_WEBHOOK }} || echo "Alert failed (webhook may not be configured)"
+

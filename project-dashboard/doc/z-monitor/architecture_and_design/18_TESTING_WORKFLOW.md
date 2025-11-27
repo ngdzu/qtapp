@@ -117,6 +117,8 @@ Coverage artifacts land in `build/coverage/index.html`.
 - Results stored as CSV/JSON for trend analysis.
 - Regression threshold: failure if median runtime increases by >10% vs baseline.
 
+**See:** [40_BENCHMARK_AND_PERFORMANCE_MEASUREMENT.md](./40_BENCHMARK_AND_PERFORMANCE_MEASUREMENT.md) for comprehensive benchmark strategy, framework design, CI/CD integration, and nightly execution workflow.
+
 ## 9. Thinking Process / Selection Rationale
 
 1. **GoogleTest vs Catch2**: Selected GoogleTest due to native support in Qt ecosystem, existing developer familiarity, and richer tooling integration (e.g., gMock). Catch2 is lighter but would require more onboarding.
