@@ -81,12 +81,51 @@
   - Prompt: `project-dashboard/prompt/01-create-project-scaffold.md`  (When finished: mark this checklist item done.)
 
 - [ ] Define public C++ service interfaces (headers only)
-  - What: Create minimal header-only interface sketches for: `IDatabaseManager`, `INetworkManager`, `IAlarmManager`, `IDeviceSimulator`, `ISettingsManager`, `IPatientLookupService`, `ITelemetryServer`, `IAuthenticationService`, and `IArchiver`.
+  - What: Create minimal header-only interface sketches for: `IDatabaseManager`, `INetworkManager`, `IAlarmManager`, `IDeviceSimulator`, `ISettingsManager`, `IPatientLookupService`, `ITelemetryServer`, `ISensorDataSource`, `IAuthenticationService`, and `IArchiver`.
   - Why: Interfaces allow test-first development (mocks) and make DI decisions easier.
   - Files: `src/core/interfaces/*.h` (one header per interface), `doc/interfaces.md` with rationale and method signatures.
   - Note: `IPatientLookupService` interface is documented in `doc/interfaces/IPatientLookupService.md` and provides patient lookup from external systems (HIS/EHR) by patient ID.
   - Note: `ITelemetryServer` interface is documented in `doc/interfaces/ITelemetryServer.md` and provides server communication abstraction with support for configurable server URLs and mock implementations for testing.
+  - Note: `ISensorDataSource` interface is documented in `doc/interfaces/ISensorDataSource.md` and provides sensor data acquisition abstraction (simulator, hardware, mock, replay).
   - Prompt: `project-dashboard/prompt/02-define-public-interfaces.md`  (When finished: mark this checklist item done.)
+
+- [ ] Implement WebSocketSensorDataSource for Sensor Simulator Integration
+  - What: Implement `WebSocketSensorDataSource` class that implements `ISensorDataSource` interface and connects to the external sensor simulator via WebSocket (ws://localhost:9002). Parse JSON messages from simulator and emit vitals/waveform data via Qt signals.
+  - Why: Decouples z-monitor from sensor implementation details. Enables testing with real simulator, mock sources, or future hardware sensors. Follows Dependency Inversion Principle.
+  - Files: `z-monitor/src/infrastructure/sensors/WebSocketSensorDataSource.cpp/h`, `z-monitor/src/infrastructure/sensors/SimulatorDataSource.cpp/h` (legacy fallback), `z-monitor/src/infrastructure/sensors/MockSensorDataSource.cpp/h` (testing).
+  - External Dependency: Sensor simulator runs separately at `project-dashboard/sensor-simulator/` (WebSocket server on port 9002).
+  - JSON Protocol: Simulator sends messages with structure:
+    ```json
+    {
+      "type": "vitals",
+      "timestamp_ms": 1234567890,
+      "hr": 75,
+      "spo2": 98,
+      "rr": 16,
+      "waveform": {
+        "channel": "ecg",
+        "sample_rate": 250,
+        "start_timestamp_ms": 1234567890,
+        "values": [100, 102, 98, ...]
+      }
+    }
+    ```
+  - Acceptance: 
+    - WebSocketSensorDataSource connects to ws://localhost:9002
+    - Parses JSON vitals messages and emits `vitalSignsReceived()` signal
+    - Parses waveform data and emits `waveformSampleReceived()` signal
+    - Handles connection errors gracefully (reconnect with backoff)
+    - MonitoringService uses `ISensorDataSource` interface (not concrete class)
+  - Verification Steps:
+    1. Functional: WebSocket connects to simulator, vitals/waveforms received and parsed correctly, connection errors handled
+    2. Code Quality: Doxygen comments on all public APIs, no linter warnings, follows interface contract
+    3. Documentation: Update `doc/09_CLASS_DESIGNS.md` with WebSocketSensorDataSource design, update `doc/02_ARCHITECTURE.md` data flow
+    4. Integration: MonitoringService works with WebSocketSensorDataSource, works with MockSensorDataSource for testing
+    5. Tests: Unit tests with mock WebSocket, integration test with real simulator, reconnection test
+  - Dependencies: Qt WebSockets module (`find_package(Qt6 COMPONENTS WebSockets)`), sensor simulator running
+  - Interface Documentation: See `doc/interfaces/ISensorDataSource.md` for complete interface specification
+  - Architecture Review: See [36_DATA_CACHING_STRATEGY.md](./doc/z-monitor/architecture_and_design/36_DATA_CACHING_STRATEGY.md) for caching strategy and data flow
+  - Prompt: `project-dashboard/prompt/02b-websocket-sensor-datasource.md`  (When finished: mark this checklist item done.)
 
 - [ ] Create unit test harness + mock objects
   - What: Add `tests/CMakeLists.txt`, pick test framework (recommend `GoogleTest`), add `tests/mocks/` with mock classes that implement the interfaces.
@@ -1152,4 +1191,29 @@ Action notes:
   - What: Updated `project-dashboard/sensor-simulator/qml/Main.qml` to present the last 50 messages, showing time, message id, sensor/source, level, and message text with larger font sizes.
   - Why: Improves readability and usability during demos and manual testing.
   - Acceptance: The simulator UI lists up to 50 most-recent messages and is easier to read; README updated to note the change.
+
+- [ ] Create UI/UX mockups for all views
+  - What: Create detailed UI mockups for all views (Dashboard, Patient Admission, Settings, Trends, etc.) to guide implementation and ensure consistent design.
+  - Why: Mockups help visualize the user experience before implementation and ensure design consistency across views. Currently UI/UX documentation is text-based (80% ready).
+  - Priority: Low — Backend is ready for implementation; mockups would help but are not blocking.
+  - Files: Add mockups to `doc/z-monitor/architecture_and_design/03_UI_UX_GUIDE.md` or create separate `doc/z-monitor/ui_mockups/` directory.
+  - Acceptance: All major views have mockups (wireframes or high-fidelity), mockups are referenced in UI/UX guide, design patterns are consistent.
+  - Source: From [35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md](./doc/z-monitor/architecture_and_design/35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md) - Non-blocking remaining work.
+
+- [ ] Create Risk Management File (IEC 62304 compliance)
+  - What: Create formal Risk Management File documenting hazards, risks, mitigations, and risk controls for regulatory compliance (IEC 62304).
+  - Why: Required for full IEC 62304 compliance and medical device regulatory submission. Currently at 88% IEC 62304 coverage.
+  - Priority: Low — Not blocking implementation, but required for regulatory submission.
+  - Files: Create `doc/z-monitor/compliance/RISK_MANAGEMENT_FILE.md` documenting hazard analysis, risk assessment, risk control measures, residual risk evaluation, and risk management review.
+  - Acceptance: Complete Risk Management File exists, covers all system hazards, risk controls are documented, residual risks are acceptable, file follows IEC 62304 requirements.
+  - Estimate: 8-10 hours (significant effort).
+  - Source: From [35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md](./doc/z-monitor/architecture_and_design/35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md) - Remaining high priority item.
+
+- [ ] Create IAdmissionService interface documentation
+  - What: Create detailed interface documentation for `IAdmissionService` (patient admission/discharge/transfer operations) following the pattern of other interface docs.
+  - Why: Completes the interface documentation set. Currently at 80% interface documentation coverage (4/5 interfaces documented).
+  - Priority: Low — Can use `AdmissionService` directly; interface abstraction is helpful but not critical.
+  - Files: Create `doc/z-monitor/architecture_and_design/interfaces/IAdmissionService.md` with C++ interface definition, data structures, implementations (AdmissionService, MockAdmissionService), usage examples, testing strategies.
+  - Acceptance: IAdmissionService.md exists (~500-700 lines), follows same format as IPatientLookupService/ITelemetryServer/IProvisioningService docs, interface documentation coverage reaches 100% (5/5).
+  - Source: From [35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md](./doc/z-monitor/architecture_and_design/35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md) - Medium priority remaining work.
 

@@ -65,9 +65,10 @@
 | IPatientLookupService | ✅ Complete | interfaces/IPatientLookupService.md | 675 | 2025-11-27 |
 | ITelemetryServer | ✅ Complete | interfaces/ITelemetryServer.md | 1,084 | 2025-11-27 |
 | IProvisioningService | ✅ Complete | interfaces/IProvisioningService.md | 1,024 | 2025-11-27 |
-| IAdmissionService | ⚠️ Pending | - | - | - |
+| ISensorDataSource | ✅ Complete | interfaces/ISensorDataSource.md | 694 | 2025-11-27 |
+| IAdmissionService | ⚠️ Pending | - | - | MEDIUM |
 
-**Interface Documentation Coverage:** 3/4 (75%) - Good progress
+**Interface Documentation Coverage:** 4/5 (80%) - Excellent progress
 
 ---
 

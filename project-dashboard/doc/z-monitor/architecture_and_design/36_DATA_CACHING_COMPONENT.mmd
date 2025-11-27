@@ -1,0 +1,55 @@
+graph TB
+    subgraph SensorSources["Sensor Data Sources (ISensorDataSource interface)"]
+        SimSource[Simulator DataSource]
+        RealSource[Real Sensors<br/>future]
+        MockSource[Mock/Replay DataSource]
+    end
+    
+    SimSource --> VitalSignal[vitalSignsReceived VitalRecord]
+    RealSource --> VitalSignal
+    MockSource --> VitalSignal
+    
+    VitalSignal --> MonitoringSvc
+    
+    subgraph MonitoringSvc["MonitoringService (Real-Time Thread)"]
+        direction TB
+        Step1["1. Receive Vitals → In-Memory Cache<br/>(critical path)"]
+        Step2["2. Evaluate Alarms → AlarmManager<br/>(< 50ms)"]
+        Step3["3. Batch for Telemetry → TelemetryBatch<br/>(every 10s)"]
+        
+        Step1 --> Step2
+        Step2 --> Step3
+        
+        VCache[VitalsCache<br/>3-day]
+        WCache[WaveformCache<br/>30-sec]
+        TBatch[TelemetryBatch<br/>Builder]
+    end
+    
+    Step1 --> VCache
+    Step1 --> WCache
+    Step3 --> TBatch
+    
+    subgraph LowerPriority["Lower Priority Operations"]
+        PersistSched[Persistence Scheduler<br/>Every 10 min<br/>Database I/O Thread]
+        UIDisplay[UI Display<br/>Dashboard<br/>Real-time]
+        NetTx[Network Transmission<br/>Every 10 sec]
+    end
+    
+    VCache --> PersistSched
+    WCache --> UIDisplay
+    TBatch --> NetTx
+    
+    PersistSched --> Database[(Database<br/>SQLite<br/>7-day)]
+    NetTx --> TelemetryServer[(Telemetry Server<br/>External)]
+    
+    Database --> Cleanup[Cleanup Service<br/>Delete > 7d<br/>Daily at 3 AM]
+    
+    style SensorSources fill:#e1f5ff
+    style MonitoringSvc fill:#fff4e1
+    style LowerPriority fill:#f0f0f0
+    style VCache fill:#d4edda
+    style WCache fill:#d4edda
+    style TBatch fill:#d4edda
+    style Database fill:#cce5ff
+    style TelemetryServer fill:#cce5ff
+

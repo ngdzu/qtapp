@@ -1,0 +1,36 @@
+graph TB
+    subgraph Priority1["PRIORITY 1 (CRITICAL - Real-Time Thread)"]
+        direction LR
+        Sensor[Sensor] --> MemCache[In-Memory Cache]
+        MemCache --> AlarmEval[Alarm Evaluation]
+        P1Time["Target: < 50ms end-to-end"]
+    end
+    
+    subgraph Priority2["PRIORITY 2 (HIGH - Real-Time Thread)"]
+        direction LR
+        MemCache2[In-Memory Cache] --> TeleBatch[Telemetry Batch]
+        TeleBatch --> NetTx[Network Transmission]
+        P2Time["Target: Every 10 seconds (batched)"]
+    end
+    
+    subgraph Priority3["PRIORITY 3 (MEDIUM - Database Thread)"]
+        direction LR
+        MemCache3[In-Memory Cache] --> DBPersist[Database Persistence]
+        P3Time["Target: Every 10 minutes (background)"]
+    end
+    
+    subgraph Priority4["PRIORITY 4 (LOW - Database Thread)"]
+        direction LR
+        DBCleanup[Database Cleanup<br/>delete > 7 days]
+        P4Time["Target: Daily at 3 AM"]
+    end
+    
+    Priority1 -.->|Lower Priority| Priority2
+    Priority2 -.->|Lower Priority| Priority3
+    Priority3 -.->|Lower Priority| Priority4
+    
+    style Priority1 fill:#ffcccc
+    style Priority2 fill:#ffe6cc
+    style Priority3 fill:#fff4cc
+    style Priority4 fill:#e6f2ff
+
