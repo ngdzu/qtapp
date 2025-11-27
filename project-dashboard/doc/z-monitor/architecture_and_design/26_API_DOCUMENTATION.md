@@ -2,9 +2,30 @@
 
 This document describes the API documentation generation strategy, tools, configuration, and maintenance process for the Z Monitor project.
 
+> **Requirements Traceability:**  
+> **Non-Functional Requirements:** [REQ-NFR-MAIN-010](../../requirements/04_NON_FUNCTIONAL_REQUIREMENTS.md#req-nfr-main-010-api-documentation) - API Documentation  
+> **Interface Requirements:** [06_INTERFACE_REQUIREMENTS.md](../../requirements/06_INTERFACE_REQUIREMENTS.md) - Section 10: API Documentation Standards  
+> **Regulatory Requirements:** [REQ-REG-62304-002](../../requirements/07_REGULATORY_REQUIREMENTS.md) - Software Design Documentation
+
+---
+
 ## 1. Overview
 
 API documentation is automatically generated from source code comments using **Doxygen**, a documentation generation tool for C++ projects. This ensures that API documentation stays synchronized with the codebase and provides a comprehensive reference for developers.
+
+### 1.1 Requirements Addressed
+
+This document implements the following requirements:
+
+- **REQ-NFR-MAIN-010:** Comprehensive API documentation using Doxygen
+  - **Target:** >95% coverage of public APIs
+  - **Method:** Automatic generation from Doxygen comments
+  - **Enforcement:** CI/CD checks, pre-commit hooks (optional)
+
+- **IEC 62304 Compliance:** Software design documentation
+  - Detailed design documentation
+  - Interface specifications
+  - Traceability to requirements
 
 ## 2. Tool Selection: Doxygen
 
@@ -516,11 +537,27 @@ complete API reference.
 
 ### 12.1. Documentation Coverage
 
-- **Target:** 100% coverage of public APIs
-- **Measurement:** Doxygen can report undocumented items
-- **Enforcement:** Fail CI if public APIs are undocumented
+**Requirement:** REQ-NFR-MAIN-010 specifies >95% coverage of public APIs
 
-### 12.2. Documentation Tests
+- **Target:** 100% coverage of public APIs (exceeds requirement)
+- **Minimum:** 95% coverage (requirement threshold)
+- **Measurement:** Doxygen can report undocumented items
+- **Enforcement:** Fail CI if coverage < 95%
+
+### 12.2. Coverage Metrics
+
+Track the following metrics:
+
+|| Metric | Target | Measurement Method |
+||--------|--------|-------------------|
+|| **Public Class Coverage** | 100% | Count documented classes / total public classes |
+|| **Public Method Coverage** | 100% | Count documented methods / total public methods |
+|| **Parameter Documentation** | 100% | All method parameters have @param tags |
+|| **Return Value Documentation** | 100% | All non-void methods have @return tags |
+|| **Example Coverage** | >50% | Complex APIs have @code examples |
+|| **Cross-Reference Usage** | >80% | Methods link to related classes/docs |
+
+### 12.3. Documentation Tests
 
 ```cmake
 # Check documentation coverage
@@ -530,8 +567,33 @@ add_custom_target(docs-check
     COMMENT "Checking documentation coverage"
 )
 
-# Fail if warnings exceed threshold
+# Fail if coverage below threshold (95%)
+add_custom_target(docs-coverage-check
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/scripts/check_doxygen_coverage.py
+            --threshold 95
+            --fail-on-undocumented
+    DEPENDS docs
+    COMMENT "Verifying documentation coverage meets REQ-NFR-MAIN-010 (>95%)"
+)
 ```
+
+### 12.4. Compliance Verification
+
+**IEC 62304 Requirements:**
+
+|| IEC 62304 Section | Requirement | Implementation |
+||-------------------|-------------|----------------|
+|| 5.2.2 | Software detailed design | Doxygen class/method documentation |
+|| 5.2.3 | Interface specification | Interface documentation (ISensorDataSource, etc.) |
+|| 5.2.4 | Software unit specification | Unit documentation with test references |
+|| 5.7.3 | Traceability | @see tags link to requirement docs |
+
+**Verification:**
+- [ ] All public APIs documented (>95% coverage)
+- [ ] All interfaces have complete documentation
+- [ ] Traceability links exist (@see requirements)
+- [ ] Examples provided for complex APIs
+- [ ] Documentation published and accessible
 
 ## 13. Best Practices
 
@@ -583,10 +645,462 @@ Track:
 - Documentation update frequency
 - Broken link count
 
-## 16. Related Documents
+## 16. Security and Audit Requirements
+
+### 16.1 Security Event Documentation
+
+Per **REQ-SEC-AUDIT-001**, all security-relevant events must be logged. This includes:
+
+**Documentation Requirements for Security Classes:**
+
+```cpp
+/**
+ * @class SecurityService
+ * @brief Manages user authentication and session management.
+ * 
+ * @security This class handles sensitive operations:
+ * - PIN validation (bcrypt hashing)
+ * - Session token generation
+ * - Brute force protection
+ * - Audit logging of all authentication attempts
+ * 
+ * @note All security events are logged to security_audit_log table
+ *       per REQ-SEC-AUDIT-001
+ * 
+ * @see IAuditRepository
+ * @see REQ-SEC-AUTH-001 (PIN authentication)
+ * @see REQ-SEC-AUDIT-001 (comprehensive audit logging)
+ */
+class SecurityService : public QObject {
+    // ...
+};
+```
+
+### 16.2 Audit Log Protection
+
+Per **REQ-SEC-AUDIT-002**, audit logs must be protected. Document security mechanisms:
+
+```cpp
+/**
+ * @class AuditRepository
+ * @brief Tamper-evident audit log repository with hash chain.
+ * 
+ * @security Implements hash chain for tamper detection:
+ * - Each entry contains SHA-256 hash of previous entry
+ * - Validates chain integrity on read operations
+ * - Detects unauthorized modifications
+ * 
+ * @note Only administrators can view audit logs (REQ-SEC-AUTHZ-002)
+ * 
+ * @see REQ-SEC-AUDIT-002 (audit log protection)
+ * @see 10_DATABASE_DESIGN.md (security_audit_log schema)
+ */
+```
+
+### 16.3 Sensitive Data Handling
+
+Document all classes that handle PHI or sensitive data:
+
+```cpp
+/**
+ * @class PatientAggregate
+ * @brief Patient demographic and clinical data aggregate.
+ * 
+ * @warning Contains Protected Health Information (PHI)
+ * - Access requires VIEW_PATIENT_DATA permission
+ * - All access logged per HIPAA requirements
+ * - Data encrypted at rest (SQLCipher AES-256)
+ * 
+ * @see REQ-SEC-ENC-003 (encryption at rest)
+ * @see REQ-REG-HIPAA-001 (PHI protection)
+ */
+```
+
+---
+
+## 17. Regulatory Compliance Documentation
+
+### 17.1 IEC 62304 Traceability
+
+All public APIs must include traceability to requirements:
+
+```cpp
+/**
+ * @brief Triggers high-priority alarm.
+ * 
+ * @requirements
+ * - REQ-FUN-ALARM-001: System shall trigger alarms
+ * - REQ-FUN-ALARM-010: Alarm latency < 50ms
+ * - REQ-REG-60601-001: IEC 60601-1-8 compliance
+ * 
+ * @param vital Vital signs that triggered alarm
+ * @param threshold Threshold that was exceeded
+ * 
+ * @performance Target latency: < 50ms
+ * @thread Real-Time Processing Thread
+ * 
+ * @see AlarmAggregate
+ * @see 04_ALARM_SYSTEM.md
+ */
+void raiseAlarm(const VitalRecord& vital, const AlarmThreshold& threshold);
+```
+
+### 17.2 Medical Device Classification
+
+Document safety classification per IEC 62304:
+
+```cpp
+/**
+ * @class AlarmManager
+ * @brief Critical alarm detection and escalation system.
+ * 
+ * @safety CLASS C (IEC 62304)
+ * - Alarm failure could result in patient injury or death
+ * - Requires comprehensive testing and validation
+ * - All alarm events logged for audit
+ * 
+ * @performance Critical timing requirements:
+ * - Alarm detection: < 50ms (REQ-FUN-ALARM-010)
+ * - Audio latency: < 100ms (REQ-REG-60601-002)
+ * - Escalation delay: 60s HIGH, 120s MEDIUM (REQ-FUN-ALARM-030)
+ * 
+ * @see REQ-REG-62304-001 (software safety classification)
+ * @see 04_ALARM_SYSTEM.md (complete alarm specification)
+ */
+```
+
+---
+
+## 18. Interface Documentation Standards
+
+### 18.1 External Service Interfaces
+
+All external service interfaces must have complete documentation:
+
+**Example: ISensorDataSource**
+
+Location: [interfaces/ISensorDataSource.md](./interfaces/ISensorDataSource.md)
+
+Required documentation:
+- ✅ Complete C++ interface definition with Doxygen comments
+- ✅ All implementations (WebSocketSensorDataSource, MockSensorDataSource, etc.)
+- ✅ Data structures (VitalRecord, WaveformSample)
+- ✅ Usage examples
+- ✅ Testing strategies
+- ✅ Performance considerations
+- ✅ Security notes
+
+**Documented Interfaces:**
+1. [ISensorDataSource.md](./interfaces/ISensorDataSource.md) - Sensor data acquisition
+2. [IPatientLookupService.md](./interfaces/IPatientLookupService.md) - Patient demographic lookup
+3. [ITelemetryServer.md](./interfaces/ITelemetryServer.md) - Telemetry transmission
+4. [IProvisioningService.md](./interfaces/IProvisioningService.md) - Device provisioning
+
+### 18.2 Repository Interfaces
+
+All repository interfaces must document:
+- Domain methods (no SQL leakage)
+- Return types (domain objects, not QSqlRecord)
+- Error handling (std::optional for not found)
+- Thread safety guarantees
+
+**Example:**
+
+```cpp
+/**
+ * @interface IPatientRepository
+ * @brief Repository for patient aggregate persistence.
+ * 
+ * @thread Database I/O Thread
+ * @performance Non-critical (background operations)
+ * 
+ * @see PatientAggregate
+ * @see 30_DATABASE_ACCESS_STRATEGY.md
+ * 
+ * @ingroup Repositories
+ */
+class IPatientRepository {
+    // ...
+};
+```
+
+---
+
+## 19. Performance Documentation
+
+### 19.1 Critical Path Documentation
+
+Document performance-critical components:
+
+```cpp
+/**
+ * @class VitalsCache
+ * @brief Thread-safe in-memory cache for vital signs (3-day capacity).
+ * 
+ * @performance PRIORITY 1 (CRITICAL PATH)
+ * - Target latency: < 5ms for append()
+ * - Target latency: < 10ms for getRange()
+ * - Thread-safe using QReadWriteLock
+ * 
+ * @capacity
+ * - 3 days of vitals (~39 MB)
+ * - ~259,200 records at 1 Hz
+ * - FIFO eviction when full
+ * 
+ * @thread Real-Time Processing Thread
+ * 
+ * @see 36_DATA_CACHING_STRATEGY.md
+ * @see MonitoringService
+ * 
+ * @ingroup DataCaching
+ */
+class VitalsCache {
+    // ...
+};
+```
+
+### 19.2 Thread Assignment Documentation
+
+All components must document thread assignment:
+
+```cpp
+/**
+ * @class PersistenceScheduler
+ * @brief Manages periodic persistence of in-memory cache to database.
+ * 
+ * @thread Database I/O Thread
+ * @priority PRIORITY 3 (MEDIUM - Background)
+ * 
+ * @schedule Every 10 minutes OR when 10,000 records accumulated
+ * 
+ * @performance
+ * - Target latency: < 5 seconds (batch insert)
+ * - Non-blocking (runs on background thread)
+ * 
+ * @see VitalsCache
+ * @see IVitalsRepository
+ * @see 36_DATA_CACHING_STRATEGY.md
+ * @see 12_THREAD_MODEL.md
+ */
+```
+
+---
+
+## 20. Data Caching Documentation
+
+### 20.1 Caching Components
+
+Per [36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md), document caching architecture:
+
+**Required documentation for caching classes:**
+
+1. **VitalsCache:**
+   - 3-day in-memory capacity
+   - Thread safety (QReadWriteLock)
+   - FIFO eviction policy
+   - Critical path (< 5ms latency)
+
+2. **WaveformCache:**
+   - 30-second circular buffer
+   - Thread safety
+   - Overwrite oldest policy
+   - Display-only (not persisted)
+
+3. **PersistenceScheduler:**
+   - 10-minute schedule
+   - Batch size (10,000 records)
+   - Background thread operation
+   - Failure handling
+
+4. **DataCleanupService:**
+   - Daily schedule (3 AM)
+   - 7-day retention policy
+   - Batch delete strategy
+   - Vacuum frequency
+
+---
+
+## 21. Component Count and Coverage
+
+### 21.1 Documentation Scope
+
+Per [29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md), the system has **117 components**:
+
+|| Layer | Components | Documentation Required |
+||-------|------------|----------------------|
+|| Domain | 45 | All public aggregates, value objects, interfaces |
+|| Application | 13 | All services and DTOs |
+|| Infrastructure | 39 | All public adapters and implementations |
+|| Interface | 29 | All controllers and QML component APIs |
+
+**Target:** Document all 117 components' public APIs
+
+### 21.2 Priority Components (Must Document First)
+
+**CRITICAL (PRIORITY 1):**
+1. `MonitoringService` - Core monitoring orchestration
+2. `VitalsCache` - In-memory cache (critical path)
+3. `WaveformCache` - Waveform display cache
+4. `AlarmManager` - Alarm detection and escalation
+5. `ISensorDataSource` - Sensor data abstraction
+
+**HIGH (PRIORITY 2):**
+6. `ITelemetryServer` - Telemetry transmission
+7. `IPatientLookupService` - Patient lookup
+8. `IProvisioningService` - Device provisioning
+9. `AdmissionService` - ADT workflow
+10. `SecurityService` - Authentication and authorization
+
+**MEDIUM (PRIORITY 3):**
+11. All repository interfaces and implementations
+12. `PersistenceScheduler` - Database persistence
+13. `DataCleanupService` - Data retention
+14. All QML controllers
+
+**LOW (PRIORITY 4):**
+15. Utility classes
+16. Internal implementation details (optional)
+
+---
+
+## 22. External Interface Documentation
+
+### 22.1 External Service Interface Standards
+
+Per **Section 10 of 06_INTERFACE_REQUIREMENTS.md**, external APIs follow these standards:
+
+**REST API Documentation:**
+- HTTP methods clearly documented
+- Status codes specified
+- Request/response formats (JSON schemas)
+- Error handling and codes
+- Rate limiting policies
+- Authentication requirements
+
+**Example:**
+
+```cpp
+/**
+ * @interface ITelemetryServer
+ * @brief Secure telemetry transmission to central server.
+ * 
+ * @protocol HTTPS with mTLS
+ * @endpoint POST /api/v1/telemetry/batch
+ * @contentType application/json
+ * @authentication mTLS (device certificate)
+ * @rateLimit 100 requests/minute
+ * 
+ * @request TelemetrySubmission (JSON)
+ * @response ServerResponse (JSON)
+ * 
+ * @errorCodes
+ * - 200: Success
+ * - 400: Invalid data
+ * - 401: Authentication failed
+ * - 429: Rate limit exceeded
+ * - 500: Server error
+ * 
+ * @see doc/interfaces/ITelemetryServer.md (complete specification)
+ * @see REQ-INT-SRV-001 (telemetry server interface)
+ */
+```
+
+---
+
+## 23. Enforcement and Workflow
+
+### 23.1 Developer Workflow
+
+**When writing new code:**
+
+1. **Write Doxygen comments FIRST** (before implementation)
+   - Class documentation
+   - Method documentation
+   - Parameter/return documentation
+
+2. **Implement the code**
+
+3. **Verify documentation:**
+   ```bash
+   # Generate docs and check for warnings
+   cmake --build build --target docs
+   
+   # Check coverage
+   python3 scripts/check_doxygen_coverage.py --threshold 95
+   ```
+
+4. **Fix any undocumented APIs**
+
+### 23.2 Code Review Checklist
+
+**For all pull requests, verify:**
+
+- [ ] All new public classes have Doxygen class comments
+- [ ] All new public methods have Doxygen method comments
+- [ ] All parameters documented with @param
+- [ ] All return values documented with @return
+- [ ] Exceptions/errors documented
+- [ ] Examples provided for complex APIs (if applicable)
+- [ ] Cross-references (@see, @sa) included
+- [ ] File headers present
+- [ ] Traceability to requirements (@see REQ-XXX)
+- [ ] Performance notes (@performance tag)
+- [ ] Thread assignment (@thread tag)
+- [ ] Safety classification (@safety tag, if applicable)
+
+### 23.3 CI/CD Enforcement
+
+**GitHub Actions Workflow:**
+
+The workflow (`.github/workflows/doxygen-docs.yml`) automatically:
+
+1. **Generates documentation** on every push/PR
+2. **Checks coverage** against 95% threshold
+3. **Uploads artifacts** for review
+4. **Comments on PRs** with coverage status
+5. **Fails build** if coverage < 95% (REQ-NFR-MAIN-010)
+
+**Triggers:**
+- Nightly at 2 AM UTC
+- On push to main/master
+- On pull requests (optional, can be disabled)
+- Manual trigger via workflow_dispatch
+
+---
+
+## 24. Related Documents
+
+### 24.1 Requirements
+
+- [REQ-NFR-MAIN-010](../../requirements/04_NON_FUNCTIONAL_REQUIREMENTS.md#req-nfr-main-010-api-documentation) - API Documentation requirement (>95% coverage)
+- [06_INTERFACE_REQUIREMENTS.md](../../requirements/06_INTERFACE_REQUIREMENTS.md) - Section 10: API Documentation Standards
+- [07_REGULATORY_REQUIREMENTS.md](../../requirements/07_REGULATORY_REQUIREMENTS.md) - IEC 62304 documentation requirements
+
+### 24.2 Architecture and Design
 
 - [09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md) - Class design details
 - [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) - Code organization
+- [29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md) - Complete component list (117 components)
+- [36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md) - Caching architecture
+- [30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md) - Database strategy
+
+### 24.3 Interfaces
+
+- [interfaces/ISensorDataSource.md](./interfaces/ISensorDataSource.md) - Sensor data interface
+- [interfaces/IPatientLookupService.md](./interfaces/IPatientLookupService.md) - Patient lookup interface
+- [interfaces/ITelemetryServer.md](./interfaces/ITelemetryServer.md) - Telemetry server interface
+- [interfaces/IProvisioningService.md](./interfaces/IProvisioningService.md) - Provisioning interface
+
+### 24.4 Testing and Quality
+
 - [18_TESTING_WORKFLOW.md](./18_TESTING_WORKFLOW.md) - Testing documentation
 - [07_SETUP_GUIDE.md](./07_SETUP_GUIDE.md) - Setup instructions
+
+---
+
+**Document Version:** 2.0  
+**Last Updated:** 2025-11-27  
+**Status:** Updated to align with requirements and new architecture components
+
+*This document defines the API documentation strategy for Z Monitor, ensuring compliance with REQ-NFR-MAIN-010 (>95% coverage), IEC 62304 (traceability), and HIPAA (security documentation).*
 
