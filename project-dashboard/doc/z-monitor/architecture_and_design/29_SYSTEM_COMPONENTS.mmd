@@ -46,20 +46,43 @@ graph TB
     subgraph "Domain Layer - Repository Interfaces"
         IPatientRepository[IPatientRepository]
         ITelemetryRepository[ITelemetryRepository]
+        IVitalsRepository[IVitalsRepository]
         IAlarmRepository[IAlarmRepository]
         IProvisioningRepository[IProvisioningRepository]
         IUserRepository[IUserRepository]
         IAuditRepository[IAuditRepository]
     end
 
+    subgraph "Domain Layer - External Service Interfaces"
+        ISensorDataSource[ISensorDataSource]
+        IPatientLookupService[IPatientLookupService]
+        ITelemetryServer[ITelemetryServer]
+        IProvisioningServiceInterface[IProvisioningService]
+    end
+
     subgraph "Infrastructure Layer - Persistence"
         SQLitePatientRepository[SQLitePatientRepository]
         SQLiteTelemetryRepository[SQLiteTelemetryRepository]
+        SQLiteVitalsRepository[SQLiteVitalsRepository]
         SQLiteAlarmRepository[SQLiteAlarmRepository]
         SQLiteProvisioningRepository[SQLiteProvisioningRepository]
         SQLiteUserRepository[SQLiteUserRepository]
         SQLiteAuditRepository[SQLiteAuditRepository]
         DatabaseManager[DatabaseManager<br/>SQLite + SQLCipher]
+    end
+
+    subgraph "Infrastructure Layer - Data Caching"
+        VitalsCache[VitalsCache<br/>3-day in-memory]
+        WaveformCache[WaveformCache<br/>30-sec circular]
+        PersistenceScheduler[PersistenceScheduler<br/>Every 10 min]
+        DataCleanupService[DataCleanupService<br/>Daily 3 AM]
+    end
+
+    subgraph "Infrastructure Layer - Sensor Data Sources"
+        WebSocketSensorDataSource[WebSocketSensorDataSource<br/>ISensorDataSource]
+        SimulatorDataSource[SimulatorDataSource<br/>ISensorDataSource]
+        MockSensorDataSource[MockSensorDataSource<br/>ISensorDataSource]
+        HardwareSensorAdapter[HardwareSensorAdapter<br/>ISensorDataSource]
     end
 
     subgraph "Infrastructure Layer - Network & External Services"
@@ -71,10 +94,10 @@ graph TB
     end
 
     subgraph "Infrastructure Layer - Qt & Security Adapters"
-        DeviceSimulator[DeviceSimulator]
         SettingsManager[SettingsManager]
         LogService[LogService]
         CertificateManager[CertificateManager]
+        KeyManager[KeyManager]
         QRCodeGenerator[QRCodeGenerator]
         EncryptionService[EncryptionService]
         SignatureService[SignatureService]
@@ -89,6 +112,7 @@ graph TB
         CentralServer[Central Server<br/>HTTPS/mTLS]
         HISEHR[HIS/EHR<br/>REST API]
         CentralStation[Central Station<br/>Provisioning]
+        SensorSimulator[Sensor Simulator<br/>WebSocket:9002]
         NTPServer[NTP Server]
         CRLServer[CRL Server]
     end
@@ -116,11 +140,12 @@ graph TB
     SystemController --> SecurityService
     DiagnosticsController --> DataArchiveService
 
-    %% Controllers -> Infrastructure (legacy, should be removed)
-    DashboardController -.-> DeviceSimulator
-    SettingsController -.-> SettingsManager
-    DiagnosticsController -.-> LogService
-    DiagnosticsController -.-> HealthMonitor
+    %% Controllers -> Infrastructure (direct access for display)
+    DashboardController --> VitalsCache
+    DashboardController --> WaveformCache
+    SettingsController --> SettingsManager
+    DiagnosticsController --> LogService
+    DiagnosticsController --> HealthMonitor
 
     %% Application Services -> Domain Aggregates
     SecurityService --> UserSession
@@ -136,16 +161,24 @@ graph TB
     SecurityService --> IUserRepository
     SecurityService --> IAuditRepository
     MonitoringService --> ITelemetryRepository
+    MonitoringService --> IVitalsRepository
     MonitoringService --> IAlarmRepository
     MonitoringService --> IPatientRepository
     AdmissionService --> IPatientRepository
     AdmissionService --> IAuditRepository
     ProvisioningService --> IProvisioningRepository
     DataArchiveService --> ITelemetryRepository
+    DataArchiveService --> IVitalsRepository
     DataArchiveService --> IAlarmRepository
     BackupService --> IPatientRepository
     BackupService --> ITelemetryRepository
     BackupService --> IAlarmRepository
+
+    %% Application Services -> External Service Interfaces
+    MonitoringService --> ISensorDataSource
+    MonitoringService --> ITelemetryServer
+    AdmissionService --> IPatientLookupService
+    ProvisioningService --> IProvisioningServiceInterface
 
     %% Domain Aggregates -> Domain Events
     PatientAggregate --> DomainEvents
@@ -156,30 +189,50 @@ graph TB
     %% Repository Interfaces -> Implementations
     IPatientRepository --> SQLitePatientRepository
     ITelemetryRepository --> SQLiteTelemetryRepository
+    IVitalsRepository --> SQLiteVitalsRepository
     IAlarmRepository --> SQLiteAlarmRepository
     IProvisioningRepository --> SQLiteProvisioningRepository
     IUserRepository --> SQLiteUserRepository
     IAuditRepository --> SQLiteAuditRepository
 
+    %% External Service Interfaces -> Implementations
+    ISensorDataSource --> WebSocketSensorDataSource
+    ISensorDataSource --> SimulatorDataSource
+    ISensorDataSource --> MockSensorDataSource
+    ISensorDataSource --> HardwareSensorAdapter
+    ITelemetryServer --> NetworkTelemetryServer
+    ITelemetryServer --> MockTelemetryServer
+    IPatientLookupService --> HISPatientLookupAdapter
+    IPatientLookupService --> MockPatientLookupService
+
     %% Repository Implementations -> DatabaseManager
     SQLitePatientRepository --> DatabaseManager
     SQLiteTelemetryRepository --> DatabaseManager
+    SQLiteVitalsRepository --> DatabaseManager
     SQLiteAlarmRepository --> DatabaseManager
     SQLiteProvisioningRepository --> DatabaseManager
     SQLiteUserRepository --> DatabaseManager
     SQLiteAuditRepository --> DatabaseManager
 
+    %% Data Caching Flow (PRIORITY 1: Critical Path)
+    WebSocketSensorDataSource --> VitalsCache
+    WebSocketSensorDataSource --> WaveformCache
+    VitalsCache --> MonitoringService
+    WaveformCache --> DashboardController
+
+    %% Data Caching Flow (PRIORITY 3: Database Persistence)
+    PersistenceScheduler --> VitalsCache
+    PersistenceScheduler --> SQLiteVitalsRepository
+    DataCleanupService --> SQLiteVitalsRepository
+
     %% Application Services -> Infrastructure Adapters
-    MonitoringService --> NetworkTelemetryServer
-    MonitoringService --> MockTelemetryServer
-    AdmissionService --> HISPatientLookupAdapter
-    AdmissionService --> MockPatientLookupService
     ProvisioningService --> CentralStationClient
     ProvisioningService --> QRCodeGenerator
     ProvisioningService --> EncryptionService
     ProvisioningService --> CertificateManager
     SecurityService --> SignatureService
     SecurityService --> SecureStorage
+    SecurityService --> KeyManager
     MonitoringService --> SignatureService
     BackupService --> EncryptionService
     FirmwareUpdateService --> FirmwareManager
@@ -189,6 +242,7 @@ graph TB
     NetworkTelemetryServer --> CentralServer
     HISPatientLookupAdapter --> HISEHR
     CentralStationClient --> CentralStation
+    WebSocketSensorDataSource --> SensorSimulator
     ClockSyncService --> NTPServer
     CertificateManager --> CRLServer
 
@@ -197,14 +251,15 @@ graph TB
     LogService --> DatabaseManager
     HealthMonitor --> LogService
     WatchdogService --> LogService
-    DeviceSimulator --> LogService
 
     %% Styling
     classDef qmlView fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef controller fill:#fff9c4,stroke:#f57f17,stroke-width:2px
     classDef appService fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
     classDef domain fill:#f8bbd0,stroke:#c2185b,stroke-width:2px
+    classDef interface fill:#e1bee7,stroke:#7b1fa2,stroke-width:2px
     classDef repository fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+    classDef caching fill:#fff9c4,stroke:#f57f17,stroke-width:3px
     classDef infrastructure fill:#ffccbc,stroke:#d84315,stroke-width:2px
     classDef external fill:#b0bec5,stroke:#37474f,stroke-width:3px
 
@@ -212,7 +267,8 @@ graph TB
     class AuthenticationController,DashboardController,TrendsController,AlarmController,PatientController,SettingsController,ProvisioningController,SystemController,DiagnosticsController,NotificationController controller
     class SecurityService,MonitoringService,AdmissionService,ProvisioningService,DataArchiveService,FirmwareUpdateService,BackupService appService
     class PatientAggregate,DeviceAggregate,TelemetryBatch,AlarmAggregate,AdmissionAggregate,ProvisioningSession,UserSession,DomainEvents domain
-    class IPatientRepository,ITelemetryRepository,IAlarmRepository,IProvisioningRepository,IUserRepository,IAuditRepository repository
-    class SQLitePatientRepository,SQLiteTelemetryRepository,SQLiteAlarmRepository,SQLiteProvisioningRepository,SQLiteUserRepository,SQLiteAuditRepository,DatabaseManager,NetworkTelemetryServer,MockTelemetryServer,HISPatientLookupAdapter,MockPatientLookupService,CentralStationClient,DeviceSimulator,SettingsManager,LogService,CertificateManager,QRCodeGenerator,EncryptionService,SignatureService,SecureStorage,HealthMonitor,ClockSyncService,FirmwareManager,WatchdogService infrastructure
-    class CentralServer,HISEHR,CentralStation,NTPServer,CRLServer external
-
+    class ISensorDataSource,IPatientLookupService,ITelemetryServer,IProvisioningServiceInterface interface
+    class IPatientRepository,ITelemetryRepository,IVitalsRepository,IAlarmRepository,IProvisioningRepository,IUserRepository,IAuditRepository repository
+    class VitalsCache,WaveformCache,PersistenceScheduler,DataCleanupService caching
+    class SQLitePatientRepository,SQLiteTelemetryRepository,SQLiteVitalsRepository,SQLiteAlarmRepository,SQLiteProvisioningRepository,SQLiteUserRepository,SQLiteAuditRepository,DatabaseManager,NetworkTelemetryServer,MockTelemetryServer,HISPatientLookupAdapter,MockPatientLookupService,CentralStationClient,WebSocketSensorDataSource,SimulatorDataSource,MockSensorDataSource,HardwareSensorAdapter,SettingsManager,LogService,CertificateManager,KeyManager,QRCodeGenerator,EncryptionService,SignatureService,SecureStorage,HealthMonitor,ClockSyncService,FirmwareManager,WatchdogService infrastructure
+    class CentralServer,HISEHR,CentralStation,SensorSimulator,NTPServer,CRLServer external
