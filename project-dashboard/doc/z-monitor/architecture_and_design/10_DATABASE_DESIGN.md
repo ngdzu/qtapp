@@ -146,12 +146,14 @@ CREATE TABLE IF NOT EXISTS alarms (
 	acknowledged_time INTEGER NULL,
 	silenced_until INTEGER NULL,
 	raw_value REAL NULL,
+	threshold_value REAL NULL,     -- Threshold that was exceeded (historical snapshot for audit)
 	context_snapshot_id INTEGER NULL
 );
 ```
 
 **Critical Requirements:**
 - **Patient Association:** `patient_mrn` is REQUIRED and must not be NULL. All alarms must be associated with a patient MRN.
+- **Threshold Storage:** `threshold_value` stores the threshold that was exceeded *at the time of the alarm* for historical/audit purposes. This is a snapshot and does not reflect current configured thresholds.
 
 Recommended index:
 
@@ -304,8 +306,13 @@ Recommended default settings:
 - `measurementUnit`: Measurement system preference ("metric" or "imperial")
 - `serverUrl`: Central server URL for telemetry transmission (e.g., "https://monitoring.hospital.com:8443", default: "https://localhost:8443")
 - `useMockServer`: Boolean flag to use mock server for testing/development ("true" or "false", default: "false")
+- `alarm_thresholds_{patientMrn}`: JSON object storing *configured* alarm thresholds for each patient (e.g., `alarm_thresholds_MRN-12345` → `{"HR": {"low": 60, "high": 120}, "SPO2": {"low": 90, "high": 100}}`)
 
-**Note:** `bedId` setting has been removed. Bed location is now part of the Patient object and managed through the ADT (Admission, Discharge, Transfer) workflow. See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for details.
+**Notes:**
+- `bedId` setting has been removed. Bed location is now part of the Patient object and managed through the ADT (Admission, Discharge, Transfer) workflow. See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for details.
+- **Alarm Threshold Storage Clarification:**
+  - **Settings table** (`alarm_thresholds_{patientMrn}` key): Stores *currently configured* alarm thresholds per patient. Updated when clinician changes thresholds.
+  - **Alarms table** (`threshold_value` column): Stores *historical snapshot* of threshold value that was exceeded at alarm time. Immutable for audit/compliance.
 
 ### `audit_log`
 Immutable audit trail for critical user actions (patient assignments, settings changes, etc.). For security-specific events, see `security_audit_log`.
@@ -383,9 +390,34 @@ CREATE TABLE IF NOT EXISTS security_audit_log (
 	success BOOLEAN NOT NULL,
 	details TEXT NULL,
 	error_code TEXT NULL,
-	error_message TEXT NULL
+	error_message TEXT NULL,
+	previous_hash TEXT NULL        -- SHA-256 hash of previous entry (hash chain for tamper detection)
 );
 ```
+
+**Hash Chain for Tamper Detection (REQ-SEC-AUDIT-002):**
+
+The `previous_hash` column implements a hash chain that detects unauthorized modifications to audit log entries:
+
+1. **First Entry:** `previous_hash` is NULL (genesis entry)
+2. **Subsequent Entries:** `previous_hash` = SHA-256(previous entry's: id + timestamp + event_type + severity + user_id + details)
+3. **Validation:** To detect tampering, recompute hash chain from beginning:
+   ```sql
+   -- Compute expected hash for entry N
+   SELECT id, 
+          SHA256(CAST(prev.id AS TEXT) || 
+                 CAST(prev.timestamp AS TEXT) || 
+                 prev.event_type || 
+                 prev.severity || 
+                 COALESCE(prev.user_id, '') || 
+                 COALESCE(prev.details, '')) AS expected_hash,
+          current.previous_hash AS stored_hash
+   FROM security_audit_log current
+   JOIN security_audit_log prev ON prev.id = current.id - 1
+   WHERE expected_hash != stored_hash;  -- Finds tampered entries
+   ```
+4. **Security:** Any modification, insertion, or deletion of an entry breaks the hash chain, making tampering detectable
+5. **Performance:** Hash validation performed periodically (e.g., nightly) or on-demand, not on every query
 
 **Event Categories:**
 - `authentication`: Login attempts, certificate validation, token operations
