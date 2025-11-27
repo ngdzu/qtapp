@@ -939,21 +939,355 @@ The KeyManager supports multiple secure storage backends:
 - `accountLocked(const QString& userId)`: Emitted when account is locked
 - `loginFailed(const QString& userId, int remainingAttempts)`: Emitted on failed login
 
-### 2.8. LogService
-**Responsibility:** Provides centralized logging mechanism for the application.
+### 2.8. LogService (Application Logs - File-Based)
+**Responsibility:** Provides centralized logging mechanism for application events (errors, warnings, info, debug messages). Writes to rotated text/JSON files.
+
+**Thread:** Background Log Thread (asynchronous, non-blocking)
 
 **Key Properties:**
-- `logs`: Collection of log entries
+- `m_logLevel`: Minimum log level (Trace, Debug, Info, Warning, Error, Critical, Fatal)
+- `m_logFormat`: Log format ("human" or "json")
+- `m_logFilePath`: Path to log file (default: `logs/z-monitor.log`)
+- `m_maxLogSize`: Maximum log file size in bytes (default: 10 MB)
+- `m_maxLogFiles`: Maximum number of rotated files (default: 7)
+- `m_recentLogs`: In-memory buffer for Diagnostics View (last 1000 entries)
+- `m_logQueue`: Lock-free queue for asynchronous logging
+- `m_logThread`: Background thread for processing log queue
 
 **Key Methods:**
-- `logInfo(const QString& message)`: Logs informational message
-- `logWarning(const QString& message)`: Logs warning message
-- `logError(const QString& message)`: Logs error message
+- `log(LogLevel level, const QString& message, const QVariantMap& context = {})`: Logs message with level and context
+- `trace(const QString& message, const QVariantMap& context = {})`: Logs trace message
+- `debug(const QString& message, const QVariantMap& context = {})`: Logs debug message
+- `info(const QString& message, const QVariantMap& context = {})`: Logs info message
+- `warning(const QString& message, const QVariantMap& context = {})`: Logs warning message
+- `error(const QString& message, const QVariantMap& context = {})`: Logs error message
+- `critical(const QString& message, const QVariantMap& context = {})`: Logs critical message
+- `fatal(const QString& message, const QVariantMap& context = {})`: Logs fatal message
+- `setLogLevel(LogLevel level)`: Sets minimum log level
+- `setLogFormat(const QString& format)`: Sets log format ("human" or "json")
+- `setOutputFile(const QString& path)`: Sets log file path
+- `enableConsoleOutput(bool enable)`: Enables/disables console output
+- `setCategoryEnabled(const QString& category, bool enabled)`: Enables/disables category
+- `getRecentLogs(int count = 1000)`: Returns recent log entries for Diagnostics View
 
 **Signals:**
-- `newLogEntry(const LogEntry& entry)`: Emitted when new log entry is created
+- `logEntryAdded(const LogEntry& entry)`: Emitted when new log entry is created (for Diagnostics View)
 
-### 2.9. DataArchiver
+**Dependencies:**
+- `SettingsManager` - For configuration (log level, format, file path)
+
+**See:** [21_LOGGING_STRATEGY.md](./21_LOGGING_STRATEGY.md) for complete logging strategy.
+
+### 2.8a. LogEntry (DTO for Application Logs)
+**Purpose:** Data transfer object for application log entries.
+
+**Location:** `z-monitor/src/application/dto/LogEntry.h`
+
+```cpp
+/**
+ * @struct LogEntry
+ * @brief Data transfer object for application log entries.
+ * 
+ * Represents a single log entry for application logs (file-based).
+ * Used by LogService for writing to log files and Diagnostics View.
+ * 
+ * @note This is a POD (Plain Old Data) struct, no business logic
+ */
+struct LogEntry {
+    QDateTime timestamp;              ///< Timestamp when log entry was created
+    LogService::LogLevel level;      ///< Log level (Trace, Debug, Info, Warning, Error, Critical, Fatal)
+    QString category;                ///< Component category (e.g., "NetworkManager", "DatabaseManager")
+    QString message;                 ///< Log message
+    QVariantMap context;             ///< Structured context data (key-value pairs)
+    QString threadId;                ///< Thread identifier
+    QString file;                    ///< Source file name
+    int line;                        ///< Source line number
+    QString function;                ///< Source function name
+    
+    /**
+     * @brief Convert to JSON string (for JSON format output).
+     */
+    QString toJson() const;
+    
+    /**
+     * @brief Convert to human-readable string (for human format output).
+     */
+    QString toHumanReadable() const;
+};
+```
+
+### 2.9. IActionLogRepository (Interface for Action Logs - Database-Based)
+**Responsibility:** Interface for persisting user actions to `action_log` table for audit and compliance.
+
+**Thread:** Database I/O Thread (asynchronous, non-blocking)
+
+**Location:** `z-monitor/src/domain/interfaces/IActionLogRepository.h`
+
+**Key Methods:**
+- `logAction(const ActionLogEntry& entry)`: Logs a single user action (asynchronous)
+- `logActions(const QList<ActionLogEntry>& entries)`: Logs multiple actions in batch (asynchronous)
+- `queryActions(const ActionLogFilter& filter)`: Queries action log entries (asynchronous)
+- `getActionCount(const QString& userId, const QDateTime& startTime, const QDateTime& endTime)`: Gets action count for user in time range
+
+**Signals:**
+- `actionLogged(const ActionLogEntry& entry)`: Emitted when action is successfully logged
+- `actionLogFailed(const ActionLogEntry& entry, const Error& error)`: Emitted when action logging fails
+- `actionsQueried(const QList<ActionLogEntry>& entries)`: Emitted when query completes
+
+**Dependencies:**
+- `DatabaseManager` - For database access (via implementation)
+
+**See:** [39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md](./39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md) for action logging workflow.
+
+### 2.9a. SQLiteActionLogRepository (Implementation)
+**Responsibility:** SQLite implementation of `IActionLogRepository`. Persists action log entries to `action_log` table.
+
+**Thread:** Database I/O Thread
+
+**Location:** `z-monitor/src/infrastructure/persistence/SQLiteActionLogRepository.cpp/h`
+
+**Key Properties:**
+- `m_dbManager`: DatabaseManager instance (for database access)
+- `m_pendingEntries`: Queue of pending entries for batch writes
+- `m_flushTimer`: Timer for periodic batch writes (every 10 seconds)
+- `m_batchSize`: Maximum batch size before flush (default: 100)
+
+**Key Methods:**
+- `logAction(const ActionLogEntry& entry)`: Queues action for batch write
+- `logActions(const QList<ActionLogEntry>& entries)`: Queues multiple actions
+- `queryActions(const ActionLogFilter& filter)`: Queries database for action log entries
+- `flushPendingEntries()`: Flushes pending entries to database (batch write)
+
+**Implementation Details:**
+- Uses prepared statements for performance
+- Implements hash chain for tamper detection (`previous_hash` column)
+- Batch writes for performance (reduces database I/O)
+- Asynchronous (non-blocking) operations
+
+**Dependencies:**
+- `DatabaseManager` - For database access
+- `Schema::Columns::ActionLog` - For column name constants (from schema generation)
+
+### 2.9b. ActionLogEntry (DTO for Action Logs)
+**Purpose:** Data transfer object for action log entries persisted to database.
+
+**Location:** `z-monitor/src/domain/dto/ActionLogEntry.h`
+
+```cpp
+/**
+ * @struct ActionLogEntry
+ * @brief Data transfer object for action log entries.
+ * 
+ * Represents a single user action logged to action_log table.
+ * Used by IActionLogRepository for persisting user actions.
+ * 
+ * @note This is a POD (Plain Old Data) struct, no business logic
+ * @note All fields match action_log table schema
+ */
+struct ActionLogEntry {
+    QString userId;              ///< User who performed action (empty if no login required)
+    QString userRole;            ///< User role (NURSE, PHYSICIAN, TECHNICIAN, ADMINISTRATOR)
+    QString actionType;          ///< Action type (LOGIN, LOGOUT, AUTO_LOGOUT, ADMIT_PATIENT, etc.)
+    QString targetType;           ///< Type of target (PATIENT, SETTING, NOTIFICATION, etc.)
+    QString targetId;             ///< Target identifier (MRN, setting name, notification ID)
+    QJsonObject details;          ///< Additional context (JSON object)
+    QString result;               ///< SUCCESS, FAILURE, PARTIAL
+    QString errorCode;            ///< Error code if result is FAILURE
+    QString errorMessage;         ///< Error message if result is FAILURE
+    QString sessionTokenHash;     ///< SHA-256 hash of session token (for audit trail)
+    QString ipAddress;            ///< IP address (if available, for network actions)
+    
+    /**
+     * @brief Convert details to JSON string for database storage.
+     */
+    QString detailsToJsonString() const {
+        QJsonDocument doc(details);
+        return doc.toJson(QJsonDocument::Compact);
+    }
+    
+    /**
+     * @brief Parse details from JSON string (from database).
+     */
+    void detailsFromJsonString(const QString& jsonString) {
+        QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+        if (doc.isObject()) {
+            details = doc.object();
+        }
+    }
+};
+```
+
+**Action Types:**
+- `LOGIN`, `LOGOUT`, `AUTO_LOGOUT`, `SESSION_EXPIRED`
+- `ADMIT_PATIENT`, `DISCHARGE_PATIENT`, `TRANSFER_PATIENT`
+- `CHANGE_SETTING`, `ADJUST_ALARM_THRESHOLD`, `RESET_SETTINGS`
+- `CLEAR_NOTIFICATIONS`, `DISMISS_NOTIFICATION`
+- `VIEW_AUDIT_LOG`, `EXPORT_DATA`, `ACCESS_DIAGNOSTICS`, `PROVISIONING_MODE_ENTERED`
+
+### 2.9c. ActionLogFilter (Query Filter for Action Logs)
+**Purpose:** Filter criteria for querying action log entries.
+
+**Location:** `z-monitor/src/domain/dto/ActionLogFilter.h`
+
+```cpp
+/**
+ * @struct ActionLogFilter
+ * @brief Filter criteria for querying action log entries.
+ */
+struct ActionLogFilter {
+    QString userId;                      ///< Filter by user ID (empty = all users)
+    QString actionType;                  ///< Filter by action type (empty = all actions)
+    QString targetType;                   ///< Filter by target type (empty = all targets)
+    QString targetId;                    ///< Filter by target ID (empty = all targets)
+    QDateTime startTime;                 ///< Start time (inclusive)
+    QDateTime endTime;                   ///< End time (inclusive)
+    QString deviceId;                    ///< Filter by device ID (empty = all devices)
+    int limit;                           ///< Maximum number of results (0 = no limit)
+    int offset;                          ///< Offset for pagination
+    
+    ActionLogFilter() : limit(0), offset(0) {}
+};
+```
+
+### 2.10. IAuditRepository (Interface for Security Audit Logs - Database-Based)
+**Responsibility:** Interface for persisting security events to `security_audit_log` table for forensics and compliance.
+
+**Thread:** Database I/O Thread (asynchronous, non-blocking)
+
+**Location:** `z-monitor/src/domain/interfaces/IAuditRepository.h`
+
+**Key Methods:**
+- `logAuditEvent(const AuditEntry& entry)`: Logs a single security audit event (asynchronous)
+- `logAuditEvents(const QList<AuditEntry>& entries)`: Logs multiple events in batch (asynchronous)
+- `queryAuditEvents(const AuditFilter& filter)`: Queries security audit log entries (asynchronous)
+- `getAuditEventCount(const QString& eventType, const QDateTime& startTime, const QDateTime& endTime)`: Gets event count for type in time range
+
+**Signals:**
+- `auditEventLogged(const AuditEntry& entry)`: Emitted when event is successfully logged
+- `auditEventLogFailed(const AuditEntry& entry, const Error& error)`: Emitted when event logging fails
+- `auditEventsQueried(const QList<AuditEntry>& entries)`: Emitted when query completes
+
+**Dependencies:**
+- `DatabaseManager` - For database access (via implementation)
+
+**See:** [06_SECURITY.md](./06_SECURITY.md) for security audit logging requirements.
+
+### 2.10a. SQLiteAuditRepository (Implementation)
+**Responsibility:** SQLite implementation of `IAuditRepository`. Persists security audit events to `security_audit_log` table.
+
+**Thread:** Database I/O Thread
+
+**Location:** `z-monitor/src/infrastructure/persistence/SQLiteAuditRepository.cpp/h`
+
+**Key Properties:**
+- `m_dbManager`: DatabaseManager instance (for database access)
+- `m_pendingEntries`: Queue of pending entries for batch writes
+- `m_flushTimer`: Timer for periodic batch writes (every 10 seconds)
+- `m_batchSize`: Maximum batch size before flush (default: 100)
+
+**Key Methods:**
+- `logAuditEvent(const AuditEntry& entry)`: Queues event for batch write
+- `logAuditEvents(const QList<AuditEntry>& entries)`: Queues multiple events
+- `queryAuditEvents(const AuditFilter& filter)`: Queries database for audit log entries
+- `flushPendingEntries()`: Flushes pending entries to database (batch write)
+
+**Implementation Details:**
+- Uses prepared statements for performance
+- Implements hash chain for tamper detection (`previous_hash` column)
+- Batch writes for performance (reduces database I/O)
+- Asynchronous (non-blocking) operations
+
+**Dependencies:**
+- `DatabaseManager` - For database access
+- `Schema::Columns::SecurityAuditLog` - For column name constants (from schema generation)
+
+### 2.10b. AuditEntry (DTO for Security Audit Logs)
+**Purpose:** Data transfer object for security audit log entries persisted to database.
+
+**Location:** `z-monitor/src/domain/dto/AuditEntry.h`
+
+```cpp
+/**
+ * @struct AuditEntry
+ * @brief Data transfer object for security audit log entries.
+ * 
+ * Represents a single security event logged to security_audit_log table.
+ * Used by IAuditRepository for persisting security events.
+ * 
+ * @note This is a POD (Plain Old Data) struct, no business logic
+ * @note All fields match security_audit_log table schema
+ */
+struct AuditEntry {
+    QString eventType;           ///< Event type (LOGIN_FAILED, CERTIFICATE_INSTALLED, etc.)
+    QString eventCategory;       ///< Event category (AUTHENTICATION, CERTIFICATE, NETWORK, etc.)
+    QString severity;            ///< Severity (INFO, WARNING, ERROR, CRITICAL)
+    QString deviceId;            ///< Device identifier
+    QString userId;              ///< User identifier (if applicable)
+    QString sourceIp;            ///< Source IP address (if available)
+    bool success;                ///< Whether operation succeeded
+    QJsonObject details;         ///< Additional context (JSON object)
+    QString errorCode;           ///< Error code (if applicable)
+    QString errorMessage;        ///< Error message (if applicable)
+    
+    /**
+     * @brief Convert details to JSON string for database storage.
+     */
+    QString detailsToJsonString() const {
+        QJsonDocument doc(details);
+        return doc.toJson(QJsonDocument::Compact);
+    }
+    
+    /**
+     * @brief Parse details from JSON string (from database).
+     */
+    void detailsFromJsonString(const QString& jsonString) {
+        QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+        if (doc.isObject()) {
+            details = doc.object();
+        }
+    }
+};
+```
+
+**Event Types:**
+- `LOGIN_FAILED`, `LOGIN_SUCCESS`, `SESSION_EXPIRED`, `SESSION_REVOKED`
+- `CERTIFICATE_INSTALLED`, `CERTIFICATE_REVOKED`, `CERTIFICATE_VALIDATION_FAILED`
+- `CONNECTION_REJECTED`, `CERTIFICATE_PINNING_FAILED`
+- `UNAUTHORIZED_ACCESS`, `PERMISSION_DENIED`
+
+**Event Categories:**
+- `AUTHENTICATION`, `CERTIFICATE`, `NETWORK`, `SECURITY_VIOLATION`
+
+**Severity Levels:**
+- `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+
+### 2.10c. AuditFilter (Query Filter for Security Audit Logs)
+**Purpose:** Filter criteria for querying security audit log entries.
+
+**Location:** `z-monitor/src/domain/dto/AuditFilter.h`
+
+```cpp
+/**
+ * @struct AuditFilter
+ * @brief Filter criteria for querying security audit log entries.
+ */
+struct AuditFilter {
+    QString eventType;                   ///< Filter by event type (empty = all events)
+    QString eventCategory;               ///< Filter by event category (empty = all categories)
+    QString severity;                    ///< Filter by severity (empty = all severities)
+    QString userId;                      ///< Filter by user ID (empty = all users)
+    QString deviceId;                    ///< Filter by device ID (empty = all devices)
+    QDateTime startTime;                 ///< Start time (inclusive)
+    QDateTime endTime;                   ///< End time (inclusive)
+    bool successOnly;                    ///< Filter by success status (false = all)
+    int limit;                           ///< Maximum number of results (0 = no limit)
+    int offset;                          ///< Offset for pagination
+    
+    AuditFilter() : successOnly(false), limit(0), offset(0) {}
+};
+```
+
+### 2.11. DataArchiver
 **Responsibility:** Handles archival of historical data beyond retention period.
 
 **Key Methods:**

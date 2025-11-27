@@ -314,23 +314,78 @@ Recommended default settings:
   - **Settings table** (`alarm_thresholds_{patientMrn}` key): Stores *currently configured* alarm thresholds per patient. Updated when clinician changes thresholds.
   - **Alarms table** (`threshold_value` column): Stores *historical snapshot* of threshold value that was exceeded at alarm time. Immutable for audit/compliance.
 
-### `audit_log`
-Immutable audit trail for critical user actions (patient assignments, settings changes, etc.). For security-specific events, see `security_audit_log`.
+### `action_log`
+**UPDATED:** Immutable audit trail for all user actions (login, logout, patient management, settings changes, etc.). Enhanced schema with hash chain for tamper detection. For security-specific events, see `security_audit_log`.
+
+**Purpose:**
+- Log all user actions (login, logout, auto-logout, configuration changes)
+- Track who performed what action and when
+- Support compliance and audit requirements
+- Detect tampering via hash chain
 
 Sample DDL:
 
 ```sql
-CREATE TABLE IF NOT EXISTS audit_log (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	timestamp INTEGER NOT NULL,
-	user_id TEXT NULL,
-	action TEXT NOT NULL,
-	target_id TEXT NULL,
-	details TEXT NULL
+CREATE TABLE IF NOT EXISTS action_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp_ms INTEGER NOT NULL,              -- Unix timestamp in milliseconds
+    timestamp_iso TEXT NOT NULL,                 -- ISO 8601 timestamp for readability
+    user_id TEXT NULL,                           -- User who performed action (NULL if no login required)
+    user_role TEXT NULL,                          -- User role (NURSE, PHYSICIAN, TECHNICIAN, ADMINISTRATOR)
+    action_type TEXT NOT NULL,                   -- Action type (LOGIN, LOGOUT, AUTO_LOGOUT, ADMIT_PATIENT, etc.)
+    target_type TEXT NULL,                        -- Type of target (PATIENT, SETTING, NOTIFICATION, etc.)
+    target_id TEXT NULL,                          -- Target identifier (MRN, setting name, notification ID)
+    details TEXT NULL,                            -- JSON string with additional context
+    result TEXT NOT NULL,                         -- SUCCESS, FAILURE, PARTIAL
+    error_code TEXT NULL,                         -- Error code if result is FAILURE
+    error_message TEXT NULL,                      -- Error message if result is FAILURE
+    device_id TEXT NOT NULL,                      -- Device identifier
+    session_token_hash TEXT NULL,                 -- SHA-256 hash of session token (for audit trail)
+    ip_address TEXT NULL,                          -- IP address (if available, for network actions)
+    previous_hash TEXT NULL                       -- SHA-256 hash of previous entry (hash chain for tamper detection)
 );
+
+-- Indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_action_log_timestamp ON action_log(timestamp_ms DESC);
+CREATE INDEX IF NOT EXISTS idx_action_log_user ON action_log(user_id, timestamp_ms DESC);
+CREATE INDEX IF NOT EXISTS idx_action_log_action_type ON action_log(action_type, timestamp_ms DESC);
+CREATE INDEX IF NOT EXISTS idx_action_log_target ON action_log(target_type, target_id, timestamp_ms DESC);
+CREATE INDEX IF NOT EXISTS idx_action_log_device ON action_log(device_id, timestamp_ms DESC);
 ```
 
-**Note:** Security-related events (authentication, connections, certificate operations) are logged in `security_audit_log` table for better categorization and compliance.
+**Action Types:**
+- `LOGIN` - User successfully logged in
+- `LOGIN_FAILED` - Login attempt failed
+- `LOGOUT` - User manually logged out
+- `AUTO_LOGOUT` - Automatic logout due to inactivity
+- `SESSION_EXPIRED` - Session expired (timeout)
+- `ADMIT_PATIENT` - Patient admitted to device
+- `DISCHARGE_PATIENT` - Patient discharged from device
+- `TRANSFER_PATIENT` - Patient transferred to different device
+- `CHANGE_SETTING` - Any setting changed
+- `ADJUST_ALARM_THRESHOLD` - Alarm threshold adjusted
+- `CLEAR_NOTIFICATIONS` - Recent notifications cleared
+- `DISMISS_NOTIFICATION` - Single notification dismissed
+- `VIEW_AUDIT_LOG` - Audit log accessed
+- `EXPORT_DATA` - Data exported
+- `ACCESS_DIAGNOSTICS` - Diagnostics view accessed
+- `PROVISIONING_MODE_ENTERED` - Device entered provisioning mode
+
+**Hash Chain for Tamper Detection:**
+The `previous_hash` column implements a hash chain that detects unauthorized modifications:
+1. **First Entry:** `previous_hash` is NULL (genesis entry)
+2. **Subsequent Entries:** `previous_hash` = SHA-256(previous entry's: id || timestamp_ms || action_type || user_id || target_id || details || result)
+3. **Validation:** To detect tampering, recompute hash chain from beginning
+
+**Retention Policy:**
+- **Retention:** 90 days minimum (configurable, default: 90 days)
+- **Archival:** Old entries can be archived to external storage
+- **Compliance:** Required for regulatory audits and compliance reporting
+
+**Note:** Security-related events (authentication failures, certificate operations, network connections) are logged in `security_audit_log` table for better categorization. User actions (login, logout, configuration changes) are logged in `action_log` table.
+
+**Related Documentation:**
+- See [39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md](./39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md) for complete action logging workflow and requirements.
 
 ### `certificates`
 Certificate metadata for installed device/server certs (no private keys stored). Tracks certificate lifecycle, validation, and revocation status.

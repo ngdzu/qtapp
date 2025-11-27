@@ -172,6 +172,50 @@
   - Documentation: See `doc/interfaces/IUserManagementService.md` for complete interface specification. See `doc/38_AUTHENTICATION_WORKFLOW.md` for authentication workflow, sequence diagrams, role-permission matrix, and hospital server integration details.
   - Prompt: `project-dashboard/prompt/38-implement-hospital-authentication.md`
 
+- [ ] Implement Action Logging and Auto-Logout Workflow
+  - What: Create `action_log` table schema and `IActionLogRepository` interface for logging all user actions (login, logout, auto-logout, configuration changes). Implement `SQLiteActionLogRepository` with dependency injection (no global log objects). Update `SecurityService` to implement 5-minute inactivity timer with auto-logout. Update application state machine to handle VIEW_ONLY mode (vitals display without login) vs CONFIGURATION_MODE (requires login). Update all services to use dependency injection for logging repositories instead of global `LogService::instance()`. Implement permission checks before configuration actions (admit/discharge patient, change settings, clear notifications).
+  - Why: Device must log all user actions for audit and compliance. Viewing vitals should NOT require login (device displays normally after patient assignment). Configuration actions (settings, patient management) REQUIRE login. Auto-logout after 5 minutes inactivity prevents unauthorized access. Dependency injection makes logging testable and flexible.
+  - Files:
+    - `z-monitor/schema/database.yaml` (add `action_log` table schema)
+    - `z-monitor/src/domain/interfaces/IActionLogRepository.h` (interface)
+    - `z-monitor/src/infrastructure/persistence/SQLiteActionLogRepository.cpp/h` (implementation)
+    - `z-monitor/src/application/SecurityService.cpp/h` (add inactivity timer, auto-logout, dependency injection)
+    - `z-monitor/src/application/AdmissionService.cpp/h` (log patient management actions)
+    - `z-monitor/src/interface/controllers/SettingsController.cpp/h` (log settings changes)
+    - `z-monitor/src/interface/controllers/NotificationController.cpp/h` (log notification clearing)
+    - `z-monitor/resources/qml/views/LoginView.qml` (show inactivity warning at 4 minutes)
+    - Update all services to use dependency injection for `IActionLogRepository` and `IAuditRepository`
+  - Key Requirements:
+    - **View-Only Actions (No Login):** View vitals, waveforms, trends, alarms, notifications
+    - **Configuration Actions (Require Login):** Admit/discharge patient, change settings, adjust alarm thresholds, clear notifications, access diagnostics
+    - **Auto-Logout:** 5 minutes inactivity after configuration action → automatic logout
+    - **Inactivity Warning:** Show "1 minute until logout" warning at 4 minutes
+    - **Action Logging:** All login/logout/configuration actions logged to `action_log` table
+    - **Dependency Injection:** All services receive `IActionLogRepository` via constructor (no global log objects)
+  - Acceptance:
+    - `action_log` table created with hash chain for tamper detection
+    - `IActionLogRepository` interface defined with `logAction()`, `logActions()`, `queryActions()` methods
+    - `SQLiteActionLogRepository` implements interface, runs on Database I/O Thread, supports batch writes
+    - `SecurityService` uses dependency injection for `IActionLogRepository` (no `LogService::instance()`)
+    - Inactivity timer implemented (5 minutes, resets on configuration actions)
+    - Auto-logout triggers after 5 minutes inactivity, logs `AUTO_LOGOUT` action
+    - Inactivity warning shown at 4 minutes ("1 minute until logout")
+    - Manual logout logs `USER_LOGOUT` action
+    - Application state machine handles VIEW_ONLY vs CONFIGURATION_MODE states
+    - Permission checks before configuration actions (show login screen if not logged in)
+    - All patient management actions logged (ADMIT_PATIENT, DISCHARGE_PATIENT, TRANSFER_PATIENT)
+    - All settings changes logged (CHANGE_SETTING, ADJUST_ALARM_THRESHOLD)
+    - Notification clearing logged (CLEAR_NOTIFICATIONS)
+    - All services use dependency injection for logging (no global log objects)
+  - Verification Steps:
+    1. Functional: View vitals works without login, configuration actions require login, inactivity timer works, auto-logout triggers after 5 minutes, inactivity warning shown at 4 minutes, all actions logged correctly
+    2. Code Quality: Doxygen comments on all public APIs, dependency injection used (no global log objects), linter passes, no hardcoded dependencies
+    3. Documentation: `doc/39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md` complete, `doc/10_DATABASE_DESIGN.md` updated with `action_log` table, `doc/21_LOGGING_STRATEGY.md` updated with dependency injection, state machine diagrams updated
+    4. Integration: Build succeeds, all services use dependency injection, action logging works end-to-end, auto-logout workflow works, tests pass
+    5. Tests: Unit tests for `SQLiteActionLogRepository`, unit tests for inactivity timer, integration tests for auto-logout workflow, tests for permission checks, tests for action logging
+  - Documentation: See `doc/39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md` for complete workflow, action permission matrix, and dependency injection strategy. See `doc/10_DATABASE_DESIGN.md` for `action_log` table schema. See `doc/21_LOGGING_STRATEGY.md` for dependency injection guidelines.
+  - Prompt: `project-dashboard/prompt/39-implement-action-logging.md`
+
 - [ ] Create unit test harness + mock objects
   - What: Add `tests/CMakeLists.txt`, pick test framework (recommend `GoogleTest`), add `tests/mocks/` with mock classes that implement the interfaces.
   - Why: Unit tests should drive API decisions. Mocks let you write controller tests before production implementation.

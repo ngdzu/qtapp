@@ -58,9 +58,76 @@ classDiagram
         +getCurrentRole()
     }
     class LogService {
-        +logInfo()
-        +logWarning()
-        +logError()
+        +log(level, message, context)
+        +trace(message, context)
+        +debug(message, context)
+        +info(message, context)
+        +warning(message, context)
+        +error(message, context)
+        +critical(message, context)
+        +fatal(message, context)
+        +setLogLevel(level)
+        +getRecentLogs()
+    }
+    class IActionLogRepository {
+        <<interface>>
+        +logAction(entry)
+        +logActions(entries)
+        +queryActions(filter)
+        +actionLogged()
+        +actionLogFailed()
+    }
+    class SQLiteActionLogRepository {
+        +logAction(entry)
+        +logActions(entries)
+        +queryActions(filter)
+        +flushPendingEntries()
+    }
+    class IAuditRepository {
+        <<interface>>
+        +logAuditEvent(entry)
+        +logAuditEvents(entries)
+        +queryAuditEvents(filter)
+        +auditEventLogged()
+        +auditEventLogFailed()
+    }
+    class SQLiteAuditRepository {
+        +logAuditEvent(entry)
+        +logAuditEvents(entries)
+        +queryAuditEvents(filter)
+        +flushPendingEntries()
+    }
+    class LogEntry {
+        <<DTO>>
+        +timestamp
+        +level
+        +category
+        +message
+        +context
+        +toJson()
+        +toHumanReadable()
+    }
+    class ActionLogEntry {
+        <<DTO>>
+        +userId
+        +userRole
+        +actionType
+        +targetType
+        +targetId
+        +details
+        +result
+        +detailsToJsonString()
+    }
+    class AuditEntry {
+        <<DTO>>
+        +eventType
+        +eventCategory
+        +severity
+        +deviceId
+        +userId
+        +success
+        +details
+        +detailsToJsonString()
     }
     class DataArchiver {
         +archiveData()
@@ -103,6 +170,10 @@ classDiagram
     QObject <|-- SettingsManager
     QObject <|-- AuthenticationService
     QObject <|-- LogService
+    QObject <|-- IActionLogRepository
+    QObject <|-- SQLiteActionLogRepository
+    QObject <|-- IAuditRepository
+    QObject <|-- SQLiteAuditRepository
     QObject <|-- DataArchiver
     QObject <|-- DashboardController
     QObject <|-- AlarmController
@@ -122,3 +193,16 @@ classDiagram
     SettingsManager ..> SettingsController
     LogService ..> NotificationController
     DatabaseManager ..> TrendsController
+    
+    %% Logging relationships
+    IActionLogRepository <|.. SQLiteActionLogRepository : implements
+    IAuditRepository <|.. SQLiteAuditRepository : implements
+    SQLiteActionLogRepository ..> DatabaseManager : uses
+    SQLiteAuditRepository ..> DatabaseManager : uses
+    LogService ..> LogEntry : uses
+    IActionLogRepository ..> ActionLogEntry : uses
+    IAuditRepository ..> AuditEntry : uses
+    AuthenticationService ..> IActionLogRepository : uses
+    AuthenticationService ..> IAuditRepository : uses
+    SecurityService ..> IActionLogRepository : uses
+    SecurityService ..> IAuditRepository : uses

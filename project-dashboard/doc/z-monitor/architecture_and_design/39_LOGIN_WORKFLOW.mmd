@@ -1,0 +1,68 @@
+stateDiagram-v2
+    [*] --> Startup
+    
+    state Startup {
+        [*] --> CheckPatient
+        CheckPatient --> NoPatient: No patient assigned
+        CheckPatient --> PatientAssigned: Patient assigned
+    }
+    
+    NoPatient --> LoginRequired: Show login screen
+    PatientAssigned --> ViewOnly: Vitals display normally
+    
+    state LoginRequired {
+        [*] --> LoginScreen
+        LoginScreen --> Authenticating: User enters credentials
+        Authenticating --> LoginSuccess: Credentials valid
+        Authenticating --> LoginFailed: Credentials invalid
+        LoginFailed --> LoginScreen: Retry
+        LoginSuccess --> [*]
+    }
+    
+    LoginRequired --> ConfigurationMode: Login successful
+    
+    state ConfigurationMode {
+        [*] --> Active
+        Active --> Active: Configuration action<br/>(timer resets)
+        Active --> InactivityWarning: 4 minutes<br/>inactive
+        InactivityWarning --> Active: Action performed<br/>(timer resets)
+        InactivityWarning --> AutoLogout: 1 minute<br/>timeout
+        Active --> ManualLogout: User clicks logout
+    }
+    
+    ConfigurationMode --> ViewOnly: Auto-logout OR Manual logout
+    
+    state ViewOnly {
+        [*] --> DisplayingVitals
+        DisplayingVitals --> DisplayingVitals: View vitals/alarms<br/>(no login required)
+        DisplayingVitals --> LoginRequired: Configuration action<br/>attempted
+    }
+    
+    ViewOnly --> ConfigurationMode: Login successful
+    
+    note right of ViewOnly
+        View-Only Actions (No Login):
+        - View vitals
+        - View waveforms
+        - View trends
+        - View alarms
+        - View notifications
+    end note
+    
+    note right of ConfigurationMode
+        Configuration Actions (Require Login):
+        - Admit/discharge patient
+        - Change settings
+        - Adjust alarm thresholds
+        - Clear notifications
+        - Access diagnostics
+    end note
+    
+    note right of LoginRequired
+        All login/logout actions
+        are logged to action_log:
+        - LOGIN
+        - LOGOUT
+        - AUTO_LOGOUT
+    end note
+

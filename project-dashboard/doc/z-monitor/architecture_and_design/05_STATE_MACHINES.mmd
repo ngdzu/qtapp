@@ -1,12 +1,15 @@
 graph TD
     subgraph "1. Application Main State"
         A[Startup] --> B{Initialize};
-        B --> C{Check Auth};
-        C -- No --> D[Login Screen];
-        C -- Yes --> E[Monitoring];
-        D -- OK --> E;
-        E --> F[Settings];
-        F --> E;
+        B --> C{Patient<br/>Assigned?};
+        C -- No --> D[Login Required<br/>Admit Patient];
+        C -- Yes --> E[View Only<br/>Vitals Display];
+        D -- Login OK --> F[Configuration Mode<br/>Inactivity Timer];
+        E -- Config Action --> D;
+        F -- Config Action --> F;
+        F -- 5min Inactive<br/>OR Logout --> E;
+        F --> G[Settings];
+        G --> F;
     end
 
     subgraph "2. Network Connection"
@@ -30,10 +33,16 @@ graph TD
     end
 
     subgraph "4. User Authentication"
-        AuthA[Logged Out] --> AuthB[PIN Entry];
-        AuthB -- OK --> AuthC[Logged In];
-        AuthB -- Fail --> AuthB;
-        AuthC -- Logout --> AuthA;
+        AuthA[Logged Out] --> AuthB[Login Screen];
+        AuthB -- Credentials OK --> AuthC[Logged In<br/>Config Mode];
+        AuthB -- Credentials Fail --> AuthB;
+        AuthC -- Config Action --> AuthC;
+        AuthC -- 4min Inactive --> AuthD[Inactivity Warning<br/>1min Remaining];
+        AuthD -- Action --> AuthC;
+        AuthD -- 1min Timeout --> AuthE[Auto Logout];
+        AuthC -- Manual Logout --> AuthF[User Logout];
+        AuthE --> AuthA;
+        AuthF --> AuthA;
     end
 
     subgraph "5. Infusion Pump"
