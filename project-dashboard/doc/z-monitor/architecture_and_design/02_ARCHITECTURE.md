@@ -8,7 +8,7 @@ This document details the software architecture of the Z Monitor, which is based
 
 This diagram provides a comprehensive overview of all major software components and their relationships. Use a Mermaid-compatible viewer to zoom and pan.
 
-> **📋 Complete Component Reference:** For an authoritative list of ALL system components (98 total) including domain aggregates, application services, infrastructure adapters, controllers, and QML components, see **[System Components Reference (doc/29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md)**.
+> **📋 Complete Component Reference:** For an authoritative list of ALL system components (98 total) including domain aggregates, application services, infrastructure adapters, controllers, and QML components, see **[System Components Reference (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md)**.
 
 ## 2. Component Breakdown (DDD Perspective)
 

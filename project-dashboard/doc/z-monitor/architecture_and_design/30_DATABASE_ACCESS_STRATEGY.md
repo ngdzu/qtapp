@@ -49,8 +49,8 @@ This document defines the database access strategy for the Z Monitor application
 ## 3. Recommended Approach: Repository Pattern with Qt SQL
 
 > **🔗 Related Documentation:**  
-> **Query Management:** See `doc/32_QUERY_REGISTRY.md` for type-safe query string management using the Query Registry pattern. All repositories use `QueryId::` constants instead of magic strings for compile-time safety and autocomplete support.  
-> **Schema Management:** See `doc/33_SCHEMA_MANAGEMENT.md` for schema definition and code generation workflow. All repositories use `Schema::Columns::` constants instead of hardcoded column names for compile-time safety and autocomplete support.
+> **Query Management:** See [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md) for type-safe query string management using the Query Registry pattern. All repositories use `QueryId::` constants instead of magic strings for compile-time safety and autocomplete support.  
+> **Schema Management:** See [33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md) for schema definition and code generation workflow. All repositories use `Schema::Columns::` constants instead of hardcoded column names for compile-time safety and autocomplete support.
 
 ### **Architecture:**
 
@@ -105,7 +105,7 @@ This document defines the database access strategy for the Z Monitor application
 - Connection pooling (read/write connections)
 - Transaction management
 - Migration execution
-- **Query Registry integration** (see `doc/32_QUERY_REGISTRY.md`)
+- **Query Registry integration** (see [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md))
 
 **Example:**
 
@@ -586,7 +586,7 @@ bool DatabaseManager::executeMigrations() {
 ## 10. Implementation Checklist
 
 - [ ] Create `DatabaseManager` class (connection management)
-- [ ] **Implement Query Registry pattern** (see `doc/32_QUERY_REGISTRY.md`)
+- [ ] **Implement Query Registry pattern** (see [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md))
   - [ ] Create `QueryRegistry.h` with QueryId namespace constants
   - [ ] Create `QueryCatalog.cpp` with query definitions
   - [ ] Update `DatabaseManager` to support query registration

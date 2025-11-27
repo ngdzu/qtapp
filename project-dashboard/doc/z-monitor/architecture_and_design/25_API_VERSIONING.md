@@ -347,6 +347,6 @@ paths:
 ## 12. Related Documents
 
 - `doc/interfaces/ITelemetryServer.md` - Telemetry API interface
-- `doc/19_ADT_WORKFLOW.md` - Patient association requirements
-- `doc/20_ERROR_HANDLING_STRATEGY.md` - Error codes and handling
+- [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) - Patient association requirements
+- [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) - Error codes and handling
 

@@ -3,7 +3,7 @@
 This document specifies the threading model, communication channels, latency targets, and implementation constraints for the Z Monitor. It explains how components should be partitioned across threads, which synchronization primitives to use, and measurable performance requirements to achieve a low-latency, safe, and predictable system.
 
 > **📋 Related Documents:**
-> - [System Components Reference (doc/29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - Complete list of all 98 system components
+> - [System Components Reference (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - Complete list of all 98 system components
 > - [Architecture (doc/02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and data flow
 > - [DDD Strategy (doc/28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - Domain-Driven Design principles
 
@@ -27,7 +27,7 @@ This document specifies the threading model, communication channels, latency tar
 
 ### 3.1 Key Principle: Services ≠ Threads
 
-**Critical Understanding:** The 98 components documented in `doc/29_SYSTEM_COMPONENTS.md` are **logical services**, not OS threads. Many components run on the **same thread** for efficiency.
+**Critical Understanding:** The 98 components documented in [29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md) are **logical services**, not OS threads. Many components run on the **same thread** for efficiency.
 
 - **Rationale:** Thread boundaries are determined by:
   - Real-time requirements (high-frequency data processing)
@@ -1331,4 +1331,4 @@ Instrument with timestamped events for:
 
 ---
 
-*This document is the authoritative reference for thread topology and service-to-thread mapping. Keep it synchronized with `doc/29_SYSTEM_COMPONENTS.md`.*
+*This document is the authoritative reference for thread topology and service-to-thread mapping. Keep it synchronized with `29_SYSTEM_COMPONENTS.md`.*

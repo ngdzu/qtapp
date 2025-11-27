@@ -27,7 +27,7 @@ This document details the security architecture for the Z Monitor, covering data
     -   **Server Side:** The server will have its own server certificate and private key. It will also be configured with the CA certificate and will be set to require and verify client certificates from incoming connections. Any connection without a valid, trusted client certificate will be rejected at the TLS handshake level.
     
     **Provisioning Method:**
-    -   **QR Code-Based Provisioning:** Devices are provisioned through a secure QR code-based pairing workflow (see `doc/17_DEVICE_PROVISIONING.md` for details)
+    -   **QR Code-Based Provisioning:** Devices are provisioned through a secure QR code-based pairing workflow (see `17_DEVICE_PROVISIONING.md` for details)
     -   **Manual Provisioning (Deprecated):** Manual certificate installation is deprecated in favor of automated provisioning
     -   **Provisioning Security:**
         -   Pairing codes expire after 10 minutes (configurable)

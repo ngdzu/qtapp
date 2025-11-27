@@ -35,7 +35,7 @@ Existing classes in this document (`DeviceSimulator`, `AlarmManager`, `NetworkMa
 ### 2.4. Interface Layer
 Controllers (`DashboardController`, `PatientController`, etc.) belong in `z-monitor/src/interface/controllers/**`. They must depend only on application services, not on infrastructure classes directly.
 
-For detailed DDD guidance see `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
+For detailed DDD guidance see `28_DOMAIN_DRIVEN_DESIGN.md`.
 
 ## 3. Core Service Classes
 
@@ -267,7 +267,7 @@ struct TelemetryMetrics {
 - `serverUrl`: Central server URL for telemetry transmission (QString, default: "https://localhost:8443")
 - `useMockServer`: Boolean flag to use mock server for testing/development (bool, default: false)
 
-**Note:** `bedId` setting has been removed. Bed location is now part of the Patient object and managed through the ADT workflow. See `doc/19_ADT_WORKFLOW.md` for details.
+**Note:** `bedId` setting has been removed. Bed location is now part of the Patient object and managed through the ADT workflow. See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for details.
 
 **Signals:**
 - `settingsChanged()`: Emitted when settings are modified

@@ -100,7 +100,8 @@ Although the executable runs from `z-monitor/`, most written guidance stays in `
 
 | Directory | Purpose |
 | --- | --- |
-| `doc/` | Architecture, security, workflow docs (`01_OVERVIEW.md` … `27_PROJECT_STRUCTURE.md`). |
+| `doc/z-monitor/architecture_and_design/` | Z Monitor architecture, security, workflow docs. |
+| `doc/foundation/` | General software engineering knowledge (74 foundational topics organized in 14 categories). |
 | `prompt/` | Reusable prompt files for scoped tasks (e.g., certificate provisioning, CI setup). |
 | `scripts/` | Tooling (`run_tests.sh`, Mermaid generators, Doxygen helpers, screenshots). |
 | `ZTODO.md` | Master task list with documentation + verification requirements. |
@@ -137,12 +138,13 @@ Use this tree when you need specifications, design references, or automation scr
 
 ## 7. Cross-References
 
-- **Developer Setup:** `doc/07_SETUP_GUIDE.md` (includes quick tree + tooling steps).
-- **Architecture:** `doc/02_ARCHITECTURE.md` + Mermaid diagrams.
-- **Testing:** `doc/18_TESTING_WORKFLOW.md` and `scripts/run_tests.sh`.
+- **Developer Setup:** `07_SETUP_GUIDE.md` (includes quick tree + tooling steps).
+- **Architecture:** `02_ARCHITECTURE.md` + Mermaid diagrams.
+- **Testing:** `18_TESTING_WORKFLOW.md` and `scripts/run_tests.sh`.
 - **ZTODO:** `ZTODO.md` (documentation + verification requirements).
 - **Rules:** `.cursor/rules/*.mdc` (auto-applied coding/documentation policies).
-- **DDD Guidance:** `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
+- **DDD Guidance:** `28_DOMAIN_DRIVEN_DESIGN.md`.
+- **Foundation Knowledge:** `../../foundation/00_FOUNDATIONAL_KNOWLEDGE_INDEX.md` (74 foundational topics).
 
 Use this document with the setup guide and architecture specs to stay oriented. When layout changes, update this reference and the related docs accordingly.
 

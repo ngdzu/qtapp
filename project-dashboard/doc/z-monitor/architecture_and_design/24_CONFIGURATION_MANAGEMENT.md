@@ -519,8 +519,8 @@ bool SettingsManager::importConfiguration(const QJsonObject& config,
 
 ## 13. Related Documents
 
-- `doc/09_CLASS_DESIGNS.md` - SettingsManager class design
-- `doc/10_DATABASE_DESIGN.md` - Settings table schema
-- `doc/06_SECURITY.md` - Security configuration
-- `doc/21_LOGGING_STRATEGY.md` - Logging configuration
+- [09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md) - SettingsManager class design
+- [10_DATABASE_DESIGN.md](./10_DATABASE_DESIGN.md) - Settings table schema
+- [06_SECURITY.md](./06_SECURITY.md) - Security configuration
+- [21_LOGGING_STRATEGY.md](./21_LOGGING_STRATEGY.md) - Logging configuration
 

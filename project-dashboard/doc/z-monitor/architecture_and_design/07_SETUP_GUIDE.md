@@ -29,7 +29,7 @@ Before you begin, ensure you have the following installed:
     └── certs/               # Server certificate and trusted CA
 ```
 
-> For a full repository map (including prompts, scripts, and auxiliary projects) see `doc/27_PROJECT_STRUCTURE.md`.
+> For a full repository map (including prompts, scripts, and auxiliary projects) see `27_PROJECT_STRUCTURE.md`.
 
 ## 3. Setting up the Development Environment
 
@@ -108,7 +108,7 @@ The simulated server is a Python application.
 4.  **Generate Certificates (for mTLS):**
     For development, you'll need to generate self-signed certificates. A script for this should be provided (e.g., `generate_certs.sh` in `central-server-simulator/certs/`).
     
-    **Detailed Instructions:** See [Certificate Provisioning Guide](../doc/15_CERTIFICATE_PROVISIONING.md) for comprehensive step-by-step instructions on:
+    **Detailed Instructions:** See [Certificate Provisioning Guide](./15_CERTIFICATE_PROVISIONING.md) for comprehensive step-by-step instructions on:
     - Creating a Certificate Authority (CA)
     - Generating device certificates with device ID binding
     - Installing certificates on devices
@@ -123,7 +123,7 @@ The simulated server is a Python application.
     -   `server.crt`, `server.key` (for the server)
     -   `client.crt`, `client.key` (for the device)
     
-    **Workflow Diagrams:** See [Certificate Provisioning Workflow](../doc/15_CERTIFICATE_PROVISIONING.mmd) for visual sequence diagrams of the complete certificate lifecycle.
+    **Workflow Diagrams:** See [Certificate Provisioning Guide](./15_CERTIFICATE_PROVISIONING.md) for visual sequence diagrams of the complete certificate lifecycle.
 
 5.  **Run the Server:**
     ```bash

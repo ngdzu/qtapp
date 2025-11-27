@@ -45,7 +45,7 @@ The `patients` table should be enhanced with additional columns for ADT workflow
 - `admission_source`: Source of admission ("manual", "barcode", "central_station")
 - `device_label`: Device identifier that admitted this patient (e.g., "ICU-MON-04")
 
-See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow documentation.
+See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for complete ADT workflow documentation.
 
 **Lookup Flow:**
 1. When `PatientManager::loadPatientById(id)` is called, it first checks the local `patients` table
@@ -305,7 +305,7 @@ Recommended default settings:
 - `serverUrl`: Central server URL for telemetry transmission (e.g., "https://monitoring.hospital.com:8443", default: "https://localhost:8443")
 - `useMockServer`: Boolean flag to use mock server for testing/development ("true" or "false", default: "false")
 
-**Note:** `bedId` setting has been removed. Bed location is now part of the Patient object and managed through the ADT (Admission, Discharge, Transfer) workflow. See `doc/19_ADT_WORKFLOW.md` for details.
+**Note:** `bedId` setting has been removed. Bed location is now part of the Patient object and managed through the ADT (Admission, Discharge, Transfer) workflow. See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for details.
 
 ### `audit_log`
 Immutable audit trail for critical user actions (patient assignments, settings changes, etc.). For security-specific events, see `security_audit_log`.
@@ -467,7 +467,7 @@ CREATE INDEX IF NOT EXISTS idx_admission_events_device ON admission_events(devic
 CREATE INDEX IF NOT EXISTS idx_admission_events_type ON admission_events(event_type, timestamp);
 ```
 
-**ADT Workflow:** See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow documentation.
+**ADT Workflow:** See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for complete ADT workflow documentation.
 
 ### `telemetry_metrics`
 Stores comprehensive timing and performance metrics for telemetry transmission. This table is specifically designed for benchmarking, diagnostics, and latency analysis.
@@ -792,7 +792,7 @@ When updating an existing schema, prefer these steps:
    CREATE INDEX IF NOT EXISTS idx_admission_events_device ON admission_events(device_label, timestamp);
    ```
 
-See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow documentation.
+See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for complete ADT workflow documentation.
 
 ## 10. Next Steps
 

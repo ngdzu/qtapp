@@ -67,7 +67,7 @@ Each document follows a consistent format with:
 ### 1.1 Domain-Driven Design (DDD)
 - **Status:** ✅ Complete
 - **Document:** `01_software_architecture_and_design_patterns/01_domain_driven_design.md`
-- **Z Monitor Reference:** `../28_DOMAIN_DRIVEN_DESIGN.md`
+- **Z Monitor Reference:** `../z-monitor/architecture_and_design/28_DOMAIN_DRIVEN_DESIGN.md`
 - **Coverage:**
   - Bounded contexts
   - Aggregates and entities
@@ -83,7 +83,7 @@ Each document follows a consistent format with:
 ### 1.2 Dependency Injection (DI)
 - **Status:** ✅ Complete
 - **Document:** `01_software_architecture_and_design_patterns/02_dependency_injection.md`
-- **Z Monitor Reference:** `../13_DEPENDENCY_INJECTION.md`
+- **Z Monitor Reference:** `../z-monitor/architecture_and_design/13_DEPENDENCY_INJECTION.md`
 - **Coverage:**
   - Constructor injection
   - Interface-based dependencies
@@ -94,7 +94,8 @@ Each document follows a consistent format with:
 
 ### 1.3 Repository Pattern
 - **Status:** ✅ Complete
-- **Document:** `30_DATABASE_ACCESS_STRATEGY.md` (Section 3-4)
+- **Document:** `01_software_architecture_and_design_patterns/03_repository_pattern.md`
+- **Z Monitor Reference:** `../z-monitor/architecture_and_design/30_DATABASE_ACCESS_STRATEGY.md` (Section 3-4)
 - **Coverage:**
   - Interface definition in domain layer
   - Implementation in infrastructure layer
@@ -105,7 +106,8 @@ Each document follows a consistent format with:
 
 ### 1.4 Data Transfer Objects (DTOs)
 - **Status:** ✅ Complete
-- **Document:** `31_DATA_TRANSFER_OBJECTS.md`
+- **Document:** `01_software_architecture_and_design_patterns/04_data_transfer_objects.md`
+- **Z Monitor Reference:** `../z-monitor/architecture_and_design/31_DATA_TRANSFER_OBJECTS.md`
 - **Coverage:**
   - DTO vs Value Object vs Entity
   - Immutability principles
@@ -116,7 +118,8 @@ Each document follows a consistent format with:
 
 ### 1.5 Model-View-Controller (MVC) / Model-View-ViewModel (MVVM)
 - **Status:** 🔶 Partial
-- **Document:** Scattered across `02_ARCHITECTURE.md`, `09_CLASS_DESIGNS.md`
+- **Document:** `01_software_architecture_and_design_patterns/05_mvc_mvvm_patterns.md`
+- **Z Monitor Reference:** Scattered across `../z-monitor/architecture_and_design/02_ARCHITECTURE.md`, `../z-monitor/architecture_and_design/09_CLASS_DESIGNS.md`
 - **Coverage:**
   - QML Controllers
   - Service layer
@@ -129,7 +132,8 @@ Each document follows a consistent format with:
 
 ### 1.6 State Machine Pattern
 - **Status:** ✅ Complete
-- **Document:** `05_STATE_MACHINES.md`
+- **Document:** `01_software_architecture_and_design_patterns/06_state_machine_pattern.md`
+- **Z Monitor Reference:** `../z-monitor/architecture_and_design/05_STATE_MACHINES.md`
 - **Coverage:**
   - Finite state machines
   - State transitions
@@ -189,7 +193,7 @@ Each document follows a consistent format with:
 
 ### 2.2 SQLite Write-Ahead Logging (WAL)
 - **Status:** 🔶 Partial
-- **Document:** Mentioned in `30_DATABASE_ACCESS_STRATEGY.md` (Section 5.1)
+- **Document:** Mentioned in `../z-monitor/architecture_and_design/30_DATABASE_ACCESS_STRATEGY.md` (Section 5.1)
 - **Coverage:**
   - Basic WAL mode enabling
   - Performance benefits
@@ -203,7 +207,7 @@ Each document follows a consistent format with:
 
 ### 2.3 Database Indexing Strategies
 - **Status:** 🔶 Partial
-- **Document:** `10_DATABASE_DESIGN.md`, `33_SCHEMA_MANAGEMENT.md`
+- **Document:** `../z-monitor/architecture_and_design/10_DATABASE_DESIGN.md`, `33_SCHEMA_MANAGEMENT.md`
 - **Coverage:**
   - Index definitions in schema
   - Partial indices (WHERE clauses)
@@ -229,7 +233,7 @@ Each document follows a consistent format with:
 
 ### 2.5 Time-Series Data Management
 - **Status:** 🔶 Partial
-- **Document:** Scattered across `10_DATABASE_DESIGN.md`, `30_DATABASE_ACCESS_STRATEGY.md`
+- **Document:** Scattered across `../z-monitor/architecture_and_design/10_DATABASE_DESIGN.md`, `30_DATABASE_ACCESS_STRATEGY.md`
 - **Coverage:**
   - Vitals table structure
   - Retention policies
@@ -243,7 +247,7 @@ Each document follows a consistent format with:
 
 ### 2.6 Database Schema Versioning
 - **Status:** ✅ Complete
-- **Document:** `34_DATA_MIGRATION_WORKFLOW.md`
+- **Document:** `../z-monitor/architecture_and_design/34_DATA_MIGRATION_WORKFLOW.md`
 - **Coverage:**
   - Migration file organization
   - Version tracking
@@ -253,7 +257,7 @@ Each document follows a consistent format with:
 
 ### 2.7 Query Optimization
 - **Status:** 🔶 Partial
-- **Document:** `30_DATABASE_ACCESS_STRATEGY.md` (Section 5)
+- **Document:** `../z-monitor/architecture_and_design/30_DATABASE_ACCESS_STRATEGY.md` (Section 5)
 - **Coverage:**
   - Prepared statements
   - Statement caching
@@ -268,7 +272,7 @@ Each document follows a consistent format with:
 
 ### 2.8 Database Connection Pooling
 - **Status:** 🔶 Partial
-- **Document:** `30_DATABASE_ACCESS_STRATEGY.md` (Section 4.1)
+- **Document:** `../z-monitor/architecture_and_design/30_DATABASE_ACCESS_STRATEGY.md` (Section 4.1)
 - **Coverage:**
   - Read vs Write connection separation
   - Single writer pattern
@@ -284,7 +288,7 @@ Each document follows a consistent format with:
 
 ### 3.1 Transport Layer Security (TLS/SSL)
 - **Status:** 🔶 Partial
-- **Document:** `06_SECURITY.md` (Section 6.1), `15_CERTIFICATE_PROVISIONING.md`
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 6.1), `15_CERTIFICATE_PROVISIONING.md`
 - **Coverage:**
   - mTLS (Mutual TLS)
   - Certificate management
@@ -299,7 +303,7 @@ Each document follows a consistent format with:
 
 ### 3.2 Encryption at Rest
 - **Status:** 🔶 Partial
-- **Document:** `06_SECURITY.md` (Section 2)
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 2)
 - **Coverage:**
   - SQLCipher with AES-256
   - Key storage strategies
@@ -313,7 +317,7 @@ Each document follows a consistent format with:
 
 ### 3.3 Digital Signatures & Message Authentication
 - **Status:** 🔶 Partial
-- **Document:** `06_SECURITY.md` (Section 6.3)
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 6.3)
 - **Coverage:**
   - HMAC-SHA256 for data integrity
   - Signature verification
@@ -326,7 +330,7 @@ Each document follows a consistent format with:
 
 ### 3.4 Authentication & Authorization
 - **Status:** 🔶 Partial
-- **Document:** `06_SECURITY.md` (Section 3-4)
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 3-4)
 - **Coverage:**
   - PIN-based authentication
   - Role-based access control (RBAC)
@@ -341,7 +345,7 @@ Each document follows a consistent format with:
 
 ### 3.5 Secure Key Management
 - **Status:** 🔶 Partial
-- **Document:** `06_SECURITY.md` (Section 2.3, 6.6)
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 2.3, 6.6)
 - **Coverage:**
   - HSM (Hardware Security Module)
   - Memory protection
@@ -356,7 +360,7 @@ Each document follows a consistent format with:
 
 ### 3.6 Security Audit Logging
 - **Status:** ✅ Complete
-- **Document:** `06_SECURITY.md` (Section 6.7), `21_LOGGING_STRATEGY.md`
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 6.7), `21_LOGGING_STRATEGY.md`
 - **Coverage:**
   - Audit log requirements
   - Log security and immutability
@@ -376,7 +380,7 @@ Each document follows a consistent format with:
 
 ### 3.8 Secure Boot & Firmware Integrity
 - **Status:** 🔶 Partial
-- **Document:** `06_SECURITY.md` (Section 9)
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 9)
 - **Coverage:**
   - Basic secure boot concept
   - Firmware integrity verification
@@ -393,7 +397,7 @@ Each document follows a consistent format with:
 
 ### 4.1 Thread Safety & Synchronization
 - **Status:** 🔶 Partial
-- **Document:** `12_THREAD_MODEL.md` (Section 8)
+- **Document:** `../z-monitor/architecture_and_design/12_THREAD_MODEL.md` (Section 8)
 - **Coverage:**
   - Qt thread safety rules
   - QMutex usage
@@ -409,7 +413,7 @@ Each document follows a consistent format with:
 
 ### 4.2 Thread Priorities & Scheduling
 - **Status:** ✅ Complete
-- **Document:** `12_THREAD_MODEL.md` (Section 10)
+- **Document:** `../z-monitor/architecture_and_design/12_THREAD_MODEL.md` (Section 10)
 - **Coverage:**
   - Priority levels (6-level hierarchy)
   - Priority inversion prevention
@@ -419,7 +423,7 @@ Each document follows a consistent format with:
 
 ### 4.3 Qt Event Loop & Signal-Slot Threading
 - **Status:** 🔶 Partial
-- **Document:** `12_THREAD_MODEL.md` (Section 8.1)
+- **Document:** `../z-monitor/architecture_and_design/12_THREAD_MODEL.md` (Section 8.1)
 - **Coverage:**
   - Cross-thread signal connections
   - Qt::QueuedConnection
@@ -446,7 +450,7 @@ Each document follows a consistent format with:
 
 ### 4.5 Real-Time Processing Constraints
 - **Status:** 🔶 Partial
-- **Document:** `12_THREAD_MODEL.md` (Section 4)
+- **Document:** `../z-monitor/architecture_and_design/12_THREAD_MODEL.md` (Section 4)
 - **Coverage:**
   - Latency targets (alarm < 50ms)
   - Memory allocation constraints
@@ -475,7 +479,7 @@ Each document follows a consistent format with:
 
 ### 5.1 Memory Management in C++/Qt
 - **Status:** ✅ Complete
-- **Document:** `23_MEMORY_RESOURCE_MANAGEMENT.md`
+- **Document:** `../z-monitor/architecture_and_design/23_MEMORY_RESOURCE_MANAGEMENT.md`
 - **Coverage:**
   - Smart pointers (unique_ptr, shared_ptr)
   - Qt parent-child ownership
@@ -485,7 +489,7 @@ Each document follows a consistent format with:
 
 ### 5.2 Memory Pools & Pre-allocation
 - **Status:** 🔶 Partial
-- **Document:** `23_MEMORY_RESOURCE_MANAGEMENT.md` (Section 4)
+- **Document:** `../z-monitor/architecture_and_design/23_MEMORY_RESOURCE_MANAGEMENT.md` (Section 4)
 - **Coverage:**
   - Pre-allocation strategies
   - Object pools
@@ -534,7 +538,7 @@ Each document follows a consistent format with:
 
 ### 6.1 Error Handling Strategies
 - **Status:** ✅ Complete
-- **Document:** `20_ERROR_HANDLING_STRATEGY.md`
+- **Document:** `../z-monitor/architecture_and_design/20_ERROR_HANDLING_STRATEGY.md`
 - **Coverage:**
   - Error categories
   - Error propagation
@@ -544,7 +548,7 @@ Each document follows a consistent format with:
 
 ### 6.2 Exception Safety
 - **Status:** 🔶 Partial
-- **Document:** `20_ERROR_HANDLING_STRATEGY.md` (Section 2)
+- **Document:** `../z-monitor/architecture_and_design/20_ERROR_HANDLING_STRATEGY.md` (Section 2)
 - **Coverage:**
   - No-throw guarantee
   - Exception avoidance in RT code
@@ -556,7 +560,7 @@ Each document follows a consistent format with:
 
 ### 6.3 Circuit Breaker Pattern
 - **Status:** 🔶 Partial
-- **Document:** `06_SECURITY.md` (Section 6.5)
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 6.5)
 - **Coverage:**
   - Network failure handling
   - Retry limits
@@ -568,7 +572,7 @@ Each document follows a consistent format with:
 
 ### 6.4 Retry & Backoff Strategies
 - **Status:** 🔶 Partial
-- **Document:** `06_SECURITY.md` (Section 3.2), `20_ERROR_HANDLING_STRATEGY.md`
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 3.2), `20_ERROR_HANDLING_STRATEGY.md`
 - **Coverage:**
   - Exponential backoff
   - Retry limits
@@ -594,7 +598,7 @@ Each document follows a consistent format with:
 
 ### 7.1 Logging Strategies
 - **Status:** ✅ Complete
-- **Document:** `21_LOGGING_STRATEGY.md`
+- **Document:** `../z-monitor/architecture_and_design/21_LOGGING_STRATEGY.md`
 - **Coverage:**
   - Log levels
   - Structured logging
@@ -604,7 +608,7 @@ Each document follows a consistent format with:
 
 ### 7.2 Metrics & Telemetry
 - **Status:** 🔶 Partial
-- **Document:** `10_DATABASE_DESIGN.md` (telemetry_metrics table)
+- **Document:** `../z-monitor/architecture_and_design/10_DATABASE_DESIGN.md` (telemetry_metrics table)
 - **Coverage:**
   - Telemetry timing metrics
   - Latency tracking
@@ -642,7 +646,7 @@ Each document follows a consistent format with:
 
 ### 8.1 Test-Driven Development (TDD)
 - **Status:** 🔶 Partial
-- **Document:** `18_TESTING_WORKFLOW.md`
+- **Document:** `../z-monitor/architecture_and_design/18_TESTING_WORKFLOW.md`
 - **Coverage:**
   - Testing pyramid
   - Unit/integration/E2E tests
@@ -654,7 +658,7 @@ Each document follows a consistent format with:
 
 ### 8.2 Test Doubles (Mocks, Stubs, Fakes)
 - **Status:** 🔶 Partial
-- **Document:** `18_TESTING_WORKFLOW.md`, `13_DEPENDENCY_INJECTION.md`
+- **Document:** `../z-monitor/architecture_and_design/18_TESTING_WORKFLOW.md`, `13_DEPENDENCY_INJECTION.md`
 - **Coverage:**
   - Mock objects
   - Interface-based testing
@@ -675,7 +679,7 @@ Each document follows a consistent format with:
 
 ### 8.4 Performance Testing & Benchmarking
 - **Status:** 🔶 Partial
-- **Document:** `18_TESTING_WORKFLOW.md` (Section 4)
+- **Document:** `../z-monitor/architecture_and_design/18_TESTING_WORKFLOW.md` (Section 4)
 - **Coverage:**
   - Google Benchmark
   - Benchmark organization
@@ -688,7 +692,7 @@ Each document follows a consistent format with:
 
 ### 8.5 Integration Testing Strategies
 - **Status:** 🔶 Partial
-- **Document:** `18_TESTING_WORKFLOW.md` (Section 3)
+- **Document:** `../z-monitor/architecture_and_design/18_TESTING_WORKFLOW.md` (Section 3)
 - **Coverage:**
   - Integration test organization
   - Test databases
@@ -715,7 +719,7 @@ Each document follows a consistent format with:
 
 ### 9.2 API Versioning Strategies
 - **Status:** ✅ Complete
-- **Document:** `25_API_VERSIONING.md`
+- **Document:** `../z-monitor/architecture_and_design/25_API_VERSIONING.md`
 - **Coverage:**
   - Versioning schemes
   - Backward compatibility
@@ -724,7 +728,7 @@ Each document follows a consistent format with:
 
 ### 9.3 API Documentation Standards
 - **Status:** ✅ Complete
-- **Document:** `26_API_DOCUMENTATION.md`
+- **Document:** `../z-monitor/architecture_and_design/26_API_DOCUMENTATION.md`
 - **Coverage:**
   - Doxygen style
   - Documentation generation
@@ -733,7 +737,7 @@ Each document follows a consistent format with:
 
 ### 9.4 OpenAPI / Swagger
 - **Status:** 🔶 Partial
-- **Document:** `14_PROTOCOL_BUFFERS.md` mentions OpenAPI
+- **Document:** `../z-monitor/architecture_and_design/14_PROTOCOL_BUFFERS.md` mentions OpenAPI
 - **Coverage:**
   - Basic mention of OpenAPI
 - **Gaps:**
@@ -744,7 +748,7 @@ Each document follows a consistent format with:
 
 ### 9.5 Protocol Buffers (Protobuf)
 - **Status:** 🔶 Partial
-- **Document:** `14_PROTOCOL_BUFFERS.md`
+- **Document:** `../z-monitor/architecture_and_design/14_PROTOCOL_BUFFERS.md`
 - **Coverage:**
   - Protobuf definition
   - Code generation
@@ -844,7 +848,7 @@ Each document follows a consistent format with:
 
 ### 11.3 Alarm Management (IEC 60601-1-8)
 - **Status:** 🔶 Partial
-- **Document:** `04_ALARM_SYSTEM.md`
+- **Document:** `../z-monitor/architecture_and_design/04_ALARM_SYSTEM.md`
 - **Coverage:**
   - Alarm priorities
   - Alarm states
@@ -857,7 +861,7 @@ Each document follows a consistent format with:
 
 ### 11.4 Cybersecurity (IEC 62443, FDA Guidance)
 - **Status:** 🔶 Partial
-- **Document:** `06_SECURITY.md`
+- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md`
 - **Coverage:**
   - mTLS, encryption, authentication
   - Security audit logging
@@ -874,7 +878,7 @@ Each document follows a consistent format with:
 
 ### 12.1 Continuous Integration / Continuous Deployment (CI/CD)
 - **Status:** 🔶 Partial
-- **Document:** `18_TESTING_WORKFLOW.md` (Section 7), `34_DATA_MIGRATION_WORKFLOW.md` (Section 12)
+- **Document:** `../z-monitor/architecture_and_design/18_TESTING_WORKFLOW.md` (Section 7), `../z-monitor/architecture_and_design/34_DATA_MIGRATION_WORKFLOW.md` (Section 12)
 - **Coverage:**
   - GitHub Actions workflows
   - Automated testing
@@ -900,7 +904,7 @@ Each document follows a consistent format with:
 
 ### 12.3 Configuration Management
 - **Status:** ✅ Complete
-- **Document:** `24_CONFIGURATION_MANAGEMENT.md`
+- **Document:** `../z-monitor/architecture_and_design/24_CONFIGURATION_MANAGEMENT.md`
 - **Coverage:**
   - Configuration categories
   - Type-safe accessors
@@ -909,7 +913,7 @@ Each document follows a consistent format with:
 
 ### 12.4 Semantic Versioning
 - **Status:** 🔶 Partial
-- **Document:** `25_API_VERSIONING.md` mentions SemVer
+- **Document:** `../z-monitor/architecture_and_design/25_API_VERSIONING.md` mentions SemVer
 - **Coverage:**
   - Version number scheme
 - **Gaps:**
@@ -924,7 +928,7 @@ Each document follows a consistent format with:
 
 ### 13.1 Static Code Analysis
 - **Status:** 🔶 Partial
-- **Document:** `18_TESTING_WORKFLOW.md` (Section 5)
+- **Document:** `../z-monitor/architecture_and_design/18_TESTING_WORKFLOW.md` (Section 5)
 - **Coverage:**
   - clang-tidy
   - clang-format
@@ -937,7 +941,7 @@ Each document follows a consistent format with:
 
 ### 13.2 Code Review Best Practices
 - **Status:** 🔶 Partial
-- **Document:** `22_CODE_ORGANIZATION.md` (Section 8)
+- **Document:** `../z-monitor/architecture_and_design/22_CODE_ORGANIZATION.md` (Section 8)
 - **Coverage:**
   - Basic review guidelines
 - **Gaps:**
@@ -1053,10 +1057,10 @@ All 74 foundational topics are organized into 14 categories under `foundation/`:
 ## Related Documents
 
 - `README.md` - Foundation folder usage guide and structure
-- `../27_PROJECT_STRUCTURE.md` - Repository layout and file organization
-- `../22_CODE_ORGANIZATION.md` - Code structure within source files
-- `../01_OVERVIEW.md` - High-level project overview
-- `../02_ARCHITECTURE.md` - Z Monitor architecture (references foundation docs)
+- `../z-monitor/architecture_and_design/27_PROJECT_STRUCTURE.md` - Repository layout and file organization
+- `../z-monitor/architecture_and_design/22_CODE_ORGANIZATION.md` - Code structure within source files
+- `../z-monitor/architecture_and_design/01_OVERVIEW.md` - High-level project overview
+- `../z-monitor/architecture_and_design/02_ARCHITECTURE.md` - Z Monitor architecture (references foundation docs)
 
 ---
 

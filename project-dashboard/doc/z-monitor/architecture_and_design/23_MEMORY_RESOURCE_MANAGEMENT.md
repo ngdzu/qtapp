@@ -565,7 +565,7 @@ public:
 
 ## 12. Related Documents
 
-- `doc/12_THREAD_MODEL.md` - Memory management in multi-threaded context
-- `doc/22_CODE_ORGANIZATION.md` - Code organization
-- `doc/20_ERROR_HANDLING_STRATEGY.md` - Error handling for resource failures
+- [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) - Memory management in multi-threaded context
+- [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) - Code organization
+- [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) - Error handling for resource failures
 

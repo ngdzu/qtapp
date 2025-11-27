@@ -585,8 +585,8 @@ Track:
 
 ## 16. Related Documents
 
-- `doc/09_CLASS_DESIGNS.md` - Class design details
-- `doc/22_CODE_ORGANIZATION.md` - Code organization
-- `doc/18_TESTING_WORKFLOW.md` - Testing documentation
-- `doc/07_SETUP_GUIDE.md` - Setup instructions
+- [09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md) - Class design details
+- [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) - Code organization
+- [18_TESTING_WORKFLOW.md](./18_TESTING_WORKFLOW.md) - Testing documentation
+- [07_SETUP_GUIDE.md](./07_SETUP_GUIDE.md) - Setup instructions
 

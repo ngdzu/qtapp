@@ -37,7 +37,7 @@ The core purpose is to create a sophisticated, near-realistic application that d
 
 ## 4. Architecture Approach
 
-- **Domain-Driven Design:** The codebase is structured into domain, application, infrastructure, and interface layers (see `doc/28_DOMAIN_DRIVEN_DESIGN.md`).
+- **Domain-Driven Design:** The codebase is structured into domain, application, infrastructure, and interface layers (see [28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md)).
 - **Bounded Contexts:** Monitoring, Provisioning, Admission/ADT, and Security contexts each own their aggregates and repositories.
 - **Immutable Records:** Value objects such as `PatientIdentity`, `DeviceSnapshot`, and `VitalRecord` are modeled as immutable structs to reinforce business rules.
 

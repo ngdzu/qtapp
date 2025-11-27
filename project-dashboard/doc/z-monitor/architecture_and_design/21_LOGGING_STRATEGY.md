@@ -456,8 +456,8 @@ LogService::instance()->setCategoryEnabled("DeviceSimulator", false);
 
 ## 16. Related Documents
 
-- `doc/20_ERROR_HANDLING_STRATEGY.md` - Error logging
-- `doc/06_SECURITY.md` - Security audit logging
-- `doc/10_DATABASE_DESIGN.md` - Audit log tables
-- `doc/09_CLASS_DESIGNS.md` - LogService class design
+- [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) - Error logging
+- [06_SECURITY.md](./06_SECURITY.md) - Security audit logging
+- [10_DATABASE_DESIGN.md](./10_DATABASE_DESIGN.md) - Audit log tables
+- [09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md) - LogService class design
 

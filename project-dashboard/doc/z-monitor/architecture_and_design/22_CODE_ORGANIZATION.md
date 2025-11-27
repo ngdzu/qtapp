@@ -532,9 +532,9 @@ Each module should have a README documenting:
 
 ## 14. Related Documents
 
-- `doc/13_DEPENDENCY_INJECTION.md` - Dependency management
-- `doc/12_THREAD_MODEL.md` - Thread organization
-- `doc/18_TESTING_WORKFLOW.md` - Test organization
-- `doc/09_CLASS_DESIGNS.md` - Class structure
-- `doc/26_API_DOCUMENTATION.md` - API documentation generation
+- [13_DEPENDENCY_INJECTION.md](./13_DEPENDENCY_INJECTION.md) - Dependency management
+- [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) - Thread organization
+- [18_TESTING_WORKFLOW.md](./18_TESTING_WORKFLOW.md) - Test organization
+- [09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md) - Class structure
+- `26_API_DOCUMENTATION.md` - API documentation generation
 

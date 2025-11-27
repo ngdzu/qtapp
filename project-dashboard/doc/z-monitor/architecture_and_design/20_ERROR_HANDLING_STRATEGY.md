@@ -424,8 +424,8 @@ Alert on:
 
 ## 11. Related Documents
 
-- `doc/12_THREAD_MODEL.md` - Error handling in multi-threaded context
-- `doc/06_SECURITY.md` - Security error handling
-- `doc/18_TESTING_WORKFLOW.md` - Error handling tests
-- `doc/09_CLASS_DESIGNS.md` - Error handling in class designs
+- [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) - Error handling in multi-threaded context
+- [06_SECURITY.md](./06_SECURITY.md) - Security error handling
+- [18_TESTING_WORKFLOW.md](./18_TESTING_WORKFLOW.md) - Error handling tests
+- [09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md) - Error handling in class designs
 

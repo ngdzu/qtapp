@@ -13,7 +13,7 @@ This document provides a glossary of key terms and terminologies used within the
 
 ## A
 
-*   **ADT (Admission, Discharge, Transfer):** Hospital workflow for managing patient assignments to devices. The Z Monitor implements ADT workflow where patients are admitted to devices, creating an association between device and patient. See `doc/19_ADT_WORKFLOW.md` for complete workflow documentation.
+*   **ADT (Admission, Discharge, Transfer):** Hospital workflow for managing patient assignments to devices. The Z Monitor implements ADT workflow where patients are admitted to devices, creating an association between device and patient. See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for complete workflow documentation.
 *   **Admission Modal:** A specialized UI component for admitting patients to the device. Supports three admission methods: Manual Entry (type MRN/name), Barcode Scan (scan patient wristband), and Central Station Push (automatic admission from HIS/EHR).
 
 ## B
@@ -75,16 +75,16 @@ This document provides a glossary of key terms and terminologies used within the
 
 ## P
 
-*   **Pairing Code:** A time-limited, one-time-use code (format: XXX-XXX-XXX) used for device provisioning. Generated cryptographically and expires after 10 minutes. See `doc/17_DEVICE_PROVISIONING.md` for details.
+*   **Pairing Code:** A time-limited, one-time-use code (format: XXX-XXX-XXX) used for device provisioning. Generated cryptographically and expires after 10 minutes. See [17_DEVICE_PROVISIONING.md](./17_DEVICE_PROVISIONING.md) for details.
 *   **Patient:** An object representing a patient being monitored, containing MRN, name, DOB, sex, allergies, and bed location. Managed through the ADT workflow.
-*   **Patient Admission:** The process of associating a patient with a device, creating a monitoring session. Supports three methods: Manual Entry, Barcode Scan, and Central Station Push. See `doc/19_ADT_WORKFLOW.md` for details.
+*   **Patient Admission:** The process of associating a patient with a device, creating a monitoring session. Supports three methods: Manual Entry, Barcode Scan, and Central Station Push. See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for details.
 *   **Patient Banner:** A persistent UI element in the header displaying critical patient identification and safety information. When patient is admitted, shows patient name prominently, MRN, bed location, and allergies. When no patient is admitted, shows "DISCHARGED / STANDBY" status. Tappable to open Admission Modal when no patient is assigned.
 *   **PatientController:** A C++ QObject-based controller that exposes current patient data to the QML frontend and provides patient admission/discharge functionality via `admitPatient()` and `dischargePatient()`.
 *   **PatientManager:** A C++ backend class managing patient-specific data, profiles, and ADT workflow (admission, discharge, transfer). Integrates with `IPatientLookupService` to retrieve patient information from external systems.
 *   **IPatientLookupService:** An interface for looking up patient information from external systems (HIS/EHR) by patient ID or MRN. Supports both synchronous and asynchronous lookup patterns.
 *   **PI (Perfusion Index):** A numerical value that indicates the pulsatile blood flow in peripheral tissues.
 *   **Predictive Analytics:** Simulated feature that generates a risk score for potential adverse events based on current and historical patient data.
-*   **Provisioning:** The process of securely configuring a device with server URL, certificates, and mTLS keys through a QR code-based pairing workflow. Replaces manual network configuration. See `doc/17_DEVICE_PROVISIONING.md` for complete workflow.
+*   **Provisioning:** The process of securely configuring a device with server URL, certificates, and mTLS keys through a QR code-based pairing workflow. Replaces manual network configuration. See [17_DEVICE_PROVISIONING.md](./17_DEVICE_PROVISIONING.md) for complete workflow.
 *   **ProvisioningController:** A C++ QObject-based controller that exposes device provisioning state, QR code, pairing code, and provisioning actions to the Network Settings View.
 *   **ProvisioningService:** A C++ backend class that manages device provisioning workflow, including pairing code generation, QR code generation, configuration validation, and connection testing.
 *   **PVC (Premature Ventricular Contraction):** An extra, abnormal heartbeat that begins in the ventricles.
