@@ -127,6 +127,51 @@
   - Architecture Review: See [36_DATA_CACHING_STRATEGY.md](./doc/z-monitor/architecture_and_design/36_DATA_CACHING_STRATEGY.md) for caching strategy and data flow
   - Prompt: `project-dashboard/prompt/02b-websocket-sensor-datasource.md`  (When finished: mark this checklist item done.)
 
+- [ ] Implement Hospital User Authentication with Mock Server Support
+  - What: Create `IUserManagementService` interface for authenticating healthcare workers (nurses, physicians, technicians, administrators) against hospital user management server. Implement `MockUserManagementService` for development/testing (hardcoded test users, no network) and `HospitalUserManagementAdapter` for production (REST API or LDAP). Integrate with `SecurityService` for session management, permission checking, and RBAC enforcement. Update `LoginView` and `AuthenticationController` to use new interface.
+  - Why: Healthcare workers need to log in with secret codes to access device. Hospital centrally manages users (add/remove without device reconfiguration). Mock server enables development/testing without real hospital infrastructure. Supports role-based permissions (nurse vs. physician vs. technician vs. admin).
+  - Files: 
+    - `z-monitor/src/domain/interfaces/IUserManagementService.h` (interface)
+    - `z-monitor/src/infrastructure/authentication/MockUserManagementService.cpp/h` (mock implementation)
+    - `z-monitor/src/infrastructure/authentication/HospitalUserManagementAdapter.cpp/h` (production implementation)
+    - `z-monitor/src/application/SecurityService.cpp/h` (integration)
+    - `z-monitor/resources/qml/views/LoginView.qml` (UI updates)
+    - `z-monitor/src/interface/controllers/AuthenticationController.cpp/h` (UI controller)
+    - `project-dashboard/mock-servers/user_management_mock_server.py` (optional HTTP mock server for integration testing)
+  - Hardcoded Test Users (Mock Service):
+    - `NURSE001` / `1234` (Nurse role - basic clinical ops: view vitals, acknowledge alarms, admit/discharge patients)
+    - `PHYSICIAN001` / `5678` (Physician role - all nurse permissions + adjust alarm thresholds, export data)
+    - `TECH001` / `9999` (Technician role - device configuration, diagnostics, provisioning)
+    - `ADMIN001` / `0000` (Administrator role - full access including user management, audit logs)
+  - Protocol Options:
+    - **REST API (Recommended):** POST /api/v1/auth/login (JSON request/response)
+    - **LDAP/Active Directory (Alternative):** ldap://hospital.example.com:389 (bind authentication)
+  - Role-Permission Matrix:
+    - **Nurse:** VIEW_VITALS, ACKNOWLEDGE_ALARM, SILENCE_ALARM (< 60s), ADMIT_PATIENT, DISCHARGE_PATIENT, VIEW_TRENDS
+    - **Physician:** All nurse permissions + ADJUST_ALARM_THRESHOLDS, SILENCE_ALARM (> 60s), OVERRIDE_ALARM, EXPORT_DATA
+    - **Technician:** ACCESS_SYSTEM_SETTINGS, CONFIGURE_DEVICE, ENTER_PROVISIONING_MODE, VIEW_DIAGNOSTICS, VIEW_LOGS, CALIBRATE_DEVICE
+    - **Administrator:** All permissions + MANAGE_USERS, VIEW_AUDIT_LOGS, FACTORY_RESET, UPDATE_FIRMWARE
+  - Acceptance:
+    - `IUserManagementService` interface defined with authenticate(), validateSession(), logout(), checkPermission(), getPermissions(), healthCheck() methods
+    - `MockUserManagementService` works offline with hardcoded test users (no network required), simulated latency (500ms), optional failure simulation
+    - `HospitalUserManagementAdapter` connects to hospital server via HTTPS (REST API) or LDAP, handles network errors/timeouts/retries
+    - `SecurityService` creates sessions, validates permissions, handles session timeouts, integrates with `IUserManagementService`
+    - `LoginView` shows user ID + secret code fields, "Authenticating..." spinner, error messages (invalid credentials, account locked, network error)
+    - `AuthenticationController` exposes login/logout methods to QML, handles async responses, updates UI state
+    - Role-based permissions enforced before sensitive actions (check permission before allowing action)
+    - All authentication events logged to `security_audit_log` (LOGIN_SUCCESS, LOGIN_FAILED, SESSION_EXPIRED, USER_LOGOUT, PERMISSION_DENIED)
+    - Settings allow switching between mock and production server (`user_mgmt_use_mock`, `user_mgmt_server_url`)
+    - Session timeout (default 60 minutes, configurable), periodic server validation (every 5 minutes), session expiry warning (5 minutes before expiry)
+    - Header bar shows current user (display name + role), logout button
+  - Verification Steps:
+    1. Functional: Mock service authenticates test users correctly, invalid credentials rejected, permissions enforced (nurse cannot adjust thresholds, physician can), session timeout works, logout works, network errors handled gracefully
+    2. Code Quality: Doxygen comments on all public APIs (interface + implementations), follows interface contract, no hardcoded credentials in production adapter, secret codes never logged in plaintext, linter passes
+    3. Documentation: `doc/interfaces/IUserManagementService.md` complete (interface definition, data structures, examples), `doc/38_AUTHENTICATION_WORKFLOW.md` complete (workflow, diagrams, role-permission matrix), update `doc/09_CLASS_DESIGNS.md` with SecurityService integration
+    4. Integration: Build succeeds, SecurityService integrates with IUserManagementService, LoginView connects to AuthenticationController, authentication flow works end-to-end, tests pass
+    5. Tests: Unit tests for MockUserManagementService (valid/invalid credentials, permissions, session validation), unit tests for SecurityService integration, integration tests for full authentication workflow (login → check permissions → logout), mock HTTP server tests (optional)
+  - Documentation: See `doc/interfaces/IUserManagementService.md` for complete interface specification. See `doc/38_AUTHENTICATION_WORKFLOW.md` for authentication workflow, sequence diagrams, role-permission matrix, and hospital server integration details.
+  - Prompt: `project-dashboard/prompt/38-implement-hospital-authentication.md`
+
 - [ ] Create unit test harness + mock objects
   - What: Add `tests/CMakeLists.txt`, pick test framework (recommend `GoogleTest`), add `tests/mocks/` with mock classes that implement the interfaces.
   - Why: Unit tests should drive API decisions. Mocks let you write controller tests before production implementation.

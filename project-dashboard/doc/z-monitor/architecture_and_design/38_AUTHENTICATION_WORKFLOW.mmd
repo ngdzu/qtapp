@@ -1,0 +1,136 @@
+sequenceDiagram
+    participant Nurse as 👩‍⚕️ Nurse<br/>(Enters Secret Code)
+    participant UI as LoginView<br/>(QML UI)
+    participant Auth as SecurityService<br/>(Application)
+    participant UserMgmt as IUserManagementService<br/>(HospitalUserManagementAdapter<br/>or MockUserManagementService)
+    participant Server as 🏥 Hospital<br/>User Mgmt Server<br/>(LDAP/REST API)
+    participant Audit as AuditRepository<br/>(security_audit_log)
+    participant Dashboard as DashboardView<br/>(Main Screen)
+    
+    Note over Nurse,Dashboard: Authentication Flow - Hospital Server Integration
+    
+    Nurse->>UI: Enter User ID<br/>("NURSE001")
+    Nurse->>UI: Enter Secret Code<br/>("1234")
+    Nurse->>UI: Tap "Login" button
+    
+    UI->>Auth: login(userId, secretCode)
+    Auth->>UI: emit loginInProgress()
+    UI->>Nurse: Show "Authenticating..."<br/>spinner
+    
+    Auth->>Audit: Log "LOGIN_ATTEMPT"<br/>(userId, timestamp, deviceId)
+    
+    Auth->>UserMgmt: authenticate(userId, secretCode, deviceId)
+    Note over UserMgmt: Asynchronous<br/>Non-blocking call
+    
+    alt Production Mode (Real Hospital Server)
+        UserMgmt->>Server: HTTPS POST /api/v1/auth/login<br/>{"userId": "NURSE001", "secretCode": "****", "deviceId": "ZM-ICU-04"}
+        Note over Server: Validate credentials<br/>against LDAP/AD
+        
+        alt Valid Credentials
+            Server-->>UserMgmt: 200 OK<br/>{"status": "SUCCESS", "user": {...}, "sessionToken": "...", "permissions": [...]}
+            UserMgmt-->>Auth: authenticationCompleted()<br/>Result<UserProfile> (SUCCESS)
+            
+            Auth->>Auth: Create UserSession<br/>(profile, sessionToken, expiry)
+            Auth->>Audit: Log "LOGIN_SUCCESS"<br/>(userId, role, sessionToken)
+            Auth->>UI: emit userLoggedIn(userId, role)
+            Auth->>UI: emit loginSuccessful(displayName)
+            
+            UI->>Dashboard: Navigate to Dashboard
+            UI->>Nurse: Show "Welcome, Sarah Johnson!"
+            Dashboard->>Nurse: Display vitals,<br/>alarms, patient info
+            
+        else Invalid Credentials
+            Server-->>UserMgmt: 401 Unauthorized<br/>{"status": "ERROR", "error": {"reason": "INVALID_CREDENTIALS", "remainingAttempts": 2}}
+            UserMgmt-->>Auth: authenticationCompleted()<br/>Result<AuthenticationError> (INVALID_CREDENTIALS)
+            
+            Auth->>Audit: Log "LOGIN_FAILED"<br/>(userId, reason, remainingAttempts)
+            Auth->>UI: emit loginFailed(userId, message, remainingAttempts)
+            UI->>Nurse: Show "Invalid credentials.<br/>2 attempts remaining."
+            
+        else Account Locked
+            Server-->>UserMgmt: 403 Forbidden<br/>{"status": "ERROR", "error": {"reason": "ACCOUNT_LOCKED", "lockoutExpiry": "2025-11-27T14:30:00Z"}}
+            UserMgmt-->>Auth: authenticationCompleted()<br/>Result<AuthenticationError> (ACCOUNT_LOCKED)
+            
+            Auth->>Audit: Log "LOGIN_BLOCKED"<br/>(userId, reason)
+            Auth->>UI: emit loginFailed(userId, message, 0)
+            UI->>Nurse: Show "Account locked until 2:30 PM.<br/>Contact administrator."
+        
+        else Network Error
+            UserMgmt-->>Auth: connectionError(NetworkError)<br/>(timeout, connection refused)
+            Auth->>Audit: Log "LOGIN_NETWORK_ERROR"<br/>(error details)
+            Auth->>UI: emit loginFailed(userId, "Cannot reach hospital server", 0)
+            UI->>Nurse: Show "Network error.<br/>Contact IT support."
+        end
+        
+    else Development/Test Mode (Mock Service)
+        Note over UserMgmt: MockUserManagementService<br/>No network call<br/>Hardcoded test users
+        
+        UserMgmt->>UserMgmt: Simulate network delay<br/>(500ms)
+        UserMgmt->>UserMgmt: Lookup test user<br/>in m_testUsers map
+        
+        alt Valid Test User
+            UserMgmt-->>Auth: authenticationCompleted()<br/>Result<UserProfile> (SUCCESS)
+            Auth->>Auth: Create UserSession
+            Auth->>Audit: Log "LOGIN_SUCCESS (MOCK)"
+            Auth->>UI: emit userLoggedIn(userId, role)
+            UI->>Dashboard: Navigate to Dashboard
+            UI->>Nurse: Show "Welcome, Sarah Johnson! (TEST MODE)"
+            
+        else Invalid Test User
+            UserMgmt-->>Auth: authenticationCompleted()<br/>Result<AuthenticationError> (INVALID_CREDENTIALS)
+            Auth->>Audit: Log "LOGIN_FAILED (MOCK)"
+            Auth->>UI: emit loginFailed(userId, message, 2)
+            UI->>Nurse: Show "Invalid credentials. (TEST MODE)"
+        end
+    end
+    
+    Note over Nurse,Dashboard: Session Active - Permissions Enforced
+    
+    Nurse->>Dashboard: Attempt to acknowledge alarm
+    Dashboard->>Auth: Check permission<br/>("ACKNOWLEDGE_ALARM")
+    Auth->>UserMgmt: checkPermission(sessionToken, "ACKNOWLEDGE_ALARM")
+    
+    alt Permission Granted
+        UserMgmt-->>Auth: permissionCheckCompleted(permission, true)
+        Auth->>Dashboard: Permission granted
+        Dashboard->>Nurse: Alarm acknowledged ✓
+    else Permission Denied
+        UserMgmt-->>Auth: permissionCheckCompleted(permission, false)
+        Auth->>Dashboard: Permission denied
+        Dashboard->>Nurse: "You do not have permission<br/>to acknowledge alarms."
+    end
+    
+    Note over Nurse,Dashboard: Session Expiry (After 1-2 hours)
+    
+    Auth->>Auth: Periodic session check<br/>(every 5 minutes)
+    Auth->>UserMgmt: validateSession(sessionToken)
+    
+    alt Session Still Valid
+        UserMgmt-->>Auth: sessionValidationCompleted(sessionToken, true)
+        Auth->>Auth: Session OK, continue
+        
+    else Session Expired
+        UserMgmt-->>Auth: sessionValidationCompleted(sessionToken, false)<br/>ValidationError (SESSION_EXPIRED)
+        Auth->>Auth: Clear current session
+        Auth->>Audit: Log "SESSION_EXPIRED"
+        Auth->>UI: emit sessionExpired()
+        UI->>Nurse: Show "Your session has expired.<br/>Please log in again."
+        UI->>UI: Navigate to LoginView
+    end
+    
+    Note over Nurse,Dashboard: Logout Flow
+    
+    Nurse->>Dashboard: Tap "Logout" button
+    Dashboard->>Auth: logout()
+    Auth->>UserMgmt: logout(sessionToken, userId)
+    
+    UserMgmt->>Server: HTTPS POST /api/v1/auth/logout<br/>{"sessionToken": "..."}
+    Server-->>UserMgmt: 200 OK<br/>{"status": "SUCCESS"}
+    UserMgmt-->>Auth: logoutCompleted(sessionToken, true)
+    
+    Auth->>Auth: Clear current session
+    Auth->>Audit: Log "USER_LOGOUT"<br/>(userId, timestamp)
+    Auth->>UI: emit userLoggedOut()
+    UI->>UI: Navigate to LoginView
+    UI->>Nurse: Show "Logged out successfully"
+

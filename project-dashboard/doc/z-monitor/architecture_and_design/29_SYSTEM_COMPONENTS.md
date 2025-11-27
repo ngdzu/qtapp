@@ -86,6 +86,7 @@ The Z Monitor application is organized according to Domain-Driven Design (DDD) p
 || `IPatientLookupService` | Patient demographic lookup from HIS/EHR | `lookupPatient()`, `searchByName()` | [IPatientLookupService.md](./interfaces/IPatientLookupService.md) |
 || `ITelemetryServer` | Secure telemetry transmission to central server | `sendBatch()`, `sendAlarm()`, `registerDevice()` | [ITelemetryServer.md](./interfaces/ITelemetryServer.md) |
 || `IProvisioningService` | Device provisioning and configuration | `requestProvisioning()`, `applyConfiguration()` | [IProvisioningService.md](./interfaces/IProvisioningService.md) |
+|| `IUserManagementService` | **NEW:** Hospital user authentication and authorization (nurses, physicians, technicians, administrators) | `authenticate()`, `validateSession()`, `logout()`, `checkPermission()` | [IUserManagementService.md](./interfaces/IUserManagementService.md) |
 
 ---
 
@@ -98,7 +99,7 @@ The Z Monitor application is organized according to Domain-Driven Design (DDD) p
 || `MonitoringService` | Coordinates vitals ingestion, telemetry batching, transmission | `ITelemetryRepository`, `IPatientRepository`, `IAlarmRepository`, `IVitalsRepository` | `SecurityService` (for signing), `ISensorDataSource` (for data input) |
 || `AdmissionService` | Executes admit/discharge/transfer use cases | `IPatientRepository`, `IAuditRepository` | `SecurityService` (for audit), `IPatientLookupService` (for lookup) |
 || `ProvisioningService` | Handles QR pairing, certificate installation, validation | `IProvisioningRepository` | `SecurityService` (for audit), `IProvisioningService` (external) |
-|| `SecurityService` | Authentication, PIN policy, session lifecycle | `IUserRepository`, `IAuditRepository` | None |
+|| `SecurityService` | **UPDATED:** Authentication, session management, RBAC enforcement, permission checking | `IUserRepository`, `IAuditRepository` | **`IUserManagementService` (hospital server authentication)** |
 || `DataArchiveService` | Archives old data per retention policies | `ITelemetryRepository`, `IAlarmRepository`, `IVitalsRepository` | None |
 || `FirmwareUpdateService` | Manages firmware updates | None | `SecurityService` (for signature validation) |
 || `BackupService` | Database backup and restore | All repositories | `SecurityService` (for encryption) |
@@ -158,6 +159,13 @@ The Z Monitor application is organized according to Domain-Driven Design (DDD) p
 || `MockSensorDataSource` | `ISensorDataSource` | In-memory | Testing with deterministic data | [ISensorDataSource.md](./interfaces/ISensorDataSource.md) |
 || `HardwareSensorAdapter` | `ISensorDataSource` | Serial/USB | Future: Real hardware sensors | [ISensorDataSource.md](./interfaces/ISensorDataSource.md) |
 || `ReplayDataSource` | `ISensorDataSource` | File I/O | Development: Replay recorded data | [ISensorDataSource.md](./interfaces/ISensorDataSource.md) |
+
+### 4.4b User Management Service Adapters (NEW)
+
+|| Component | Interface | Technology | Responsibility | Documentation |
+||-----------|-----------|------------|----------------|---------------|
+|| `MockUserManagementService` | `IUserManagementService` | In-memory | **Development/Testing:** Hardcoded test users (nurses, physicians, technicians, admin), no network required | [IUserManagementService.md](./interfaces/IUserManagementService.md) |
+|| `HospitalUserManagementAdapter` | `IUserManagementService` | Qt Network (HTTPS) or LDAP | **Production:** Hospital server integration for user authentication, role retrieval, permission checks | [IUserManagementService.md](./interfaces/IUserManagementService.md) |
 
 ### 4.5 Qt Adapters
 
@@ -267,20 +275,21 @@ This diagram shows the complete flow of data and control through all system laye
 || **Domain** | Value Objects | 10 |
 || **Domain** | Domain Events | 12 |
 || **Domain** | Repository Interfaces | 7 |
-|| **Domain** | External Service Interfaces | 4 |
+|| **Domain** | External Service Interfaces | 5 | ← **Updated:** Added `IUserManagementService` |
 || **Application** | Services | 7 |
 || **Application** | DTOs | 6 |
 || **Infrastructure** | Repository Implementations | 7 |
 || **Infrastructure** | Data Caching Components | 4 |
 || **Infrastructure** | Network Adapters | 5 |
 || **Infrastructure** | Sensor Data Source Adapters | 5 |
+|| **Infrastructure** | User Management Service Adapters | 2 | ← **NEW:** Mock + Hospital adapters |
 || **Infrastructure** | Qt Adapters | 3 |
 || **Infrastructure** | Security Adapters | 6 |
 || **Infrastructure** | Device/Health Adapters | 4 |
 || **Interface** | QML Controllers | 10 |
 || **Interface** | QML Components (Reusable) | 12 |
 || **Interface** | QML Views | 7 |
-|| **Total** | | **117** |
+|| **Total** | | **120** | ← **Updated:** 117 + 3 new components |
 
 ---
 
