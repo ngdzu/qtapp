@@ -1,5 +1,12 @@
 # UI/UX Guide: Z Monitor
 
+**Document ID:** DESIGN-003  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document outlines the visual design, layout, and user interaction principles for the Z Monitor.
 
 ## 1. Visual Design Principles

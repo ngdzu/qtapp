@@ -1,5 +1,12 @@
 # Project Structure Reference
 
+**Document ID:** DESIGN-027  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document maps the `qtapp` workspace, highlighting where the executable lives (`z-monitor/`), where the documentation resides (`project-dashboard/`), and how supporting utilities fit together.
 
 ---

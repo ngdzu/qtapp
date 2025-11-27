@@ -1,8 +1,13 @@
 # Protocol Buffers (protobuf) Guidance for Z Monitor
 
-This document describes when and how to use Protocol Buffers in the Z Monitor project. It covers choices (protoc, protobuf-lite, nanopb), schema and versioning rules, in-process vs IPC vs network usage, CMake integration, gRPC recommendations, storage/archival patterns, testing and CI guidance, and an incremental migration plan.
+**Document ID:** DESIGN-014  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
 
-Generated: 2025-11-23
+---
+
+This document describes when and how to use Protocol Buffers in the Z Monitor project. It covers choices (protoc, protobuf-lite, nanopb), schema and versioning rules, in-process vs IPC vs network usage, CMake integration, gRPC recommendations, storage/archival patterns, testing and CI guidance, and an incremental migration plan.
 
 ---
 

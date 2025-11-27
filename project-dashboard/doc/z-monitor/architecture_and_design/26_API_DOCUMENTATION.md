@@ -1,5 +1,12 @@
 # API Documentation Generation
 
+**Document ID:** DESIGN-026  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document describes the API documentation generation strategy, tools, configuration, and maintenance process for the Z Monitor project.
 
 > **Requirements Traceability:**  

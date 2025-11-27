@@ -1,5 +1,12 @@
 # Database Schema Management and Code Generation
 
+**Document ID:** DESIGN-033  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines the schema management strategy for Z Monitor, including schema definition files, code generation, migration workflow, and tooling.
 
 > **📊 Schema Management Workflow Diagram:**  

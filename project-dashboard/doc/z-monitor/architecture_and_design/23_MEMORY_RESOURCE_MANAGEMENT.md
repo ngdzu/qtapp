@@ -1,5 +1,12 @@
 # Memory & Resource Management Strategy
 
+**Document ID:** DESIGN-023  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines memory management patterns, resource lifecycle management, and performance optimization strategies for the Z Monitor application.
 
 ## 1. Guiding Principles

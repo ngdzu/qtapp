@@ -1,5 +1,12 @@
 # API Versioning & Compatibility Strategy
 
+**Document ID:** DESIGN-025  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines the API versioning approach, backward compatibility policies, and migration strategies for the Z Monitor application's external interfaces.
 
 ## 1. Guiding Principles

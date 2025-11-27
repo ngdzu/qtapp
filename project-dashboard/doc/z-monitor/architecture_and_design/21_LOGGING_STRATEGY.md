@@ -1,5 +1,12 @@
 # Logging Strategy
 
+**Document ID:** DESIGN-021  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines the logging architecture, log levels, log formats, log rotation, and log management strategy for the Z Monitor application.
 
 ## 1. Overview: Three Types of Logging

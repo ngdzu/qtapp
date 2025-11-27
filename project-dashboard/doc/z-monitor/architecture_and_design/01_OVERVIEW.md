@@ -1,5 +1,12 @@
 # Project Overview: Z Monitor
 
+**Document ID:** DESIGN-001  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 ## 1. Introduction
 
 This document provides a high-level overview of the Z Monitor project. The Z Monitor is a modern, real-time patient monitoring system designed for an embedded touch-screen device.

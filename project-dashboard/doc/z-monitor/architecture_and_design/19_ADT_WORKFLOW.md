@@ -1,5 +1,12 @@
 # ADT (Admission, Discharge, Transfer) Workflow
 
+**Document ID:** DESIGN-019  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document describes the patient admission, discharge, and transfer workflow for the Z Monitor, which replaces the previous "Bed ID" configuration approach with a proper ADT workflow aligned with hospital information systems (HIS).
 
 ## 1. Overview

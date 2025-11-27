@@ -1,5 +1,12 @@
 # Code Organization & Module Structure
 
+**Document ID:** DESIGN-022  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines the code organization, module structure, namespace conventions, and file organization patterns for the Z Monitor application.
 
 ## 1. Guiding Principles

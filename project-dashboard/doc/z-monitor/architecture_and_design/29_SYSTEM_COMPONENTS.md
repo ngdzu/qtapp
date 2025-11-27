@@ -1,5 +1,12 @@
 # System Components Reference
 
+**Document ID:** DESIGN-029  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document provides a complete, authoritative list of all system components in the Z Monitor application and their interactions. This serves as the single source of truth for component inventory.
 
 > **Related Documentation:**  

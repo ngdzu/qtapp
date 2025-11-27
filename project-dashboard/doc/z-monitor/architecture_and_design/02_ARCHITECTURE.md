@@ -1,5 +1,12 @@
 # Software Architecture
 
+**Document ID:** DESIGN-002  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document details the software architecture of the Z Monitor, which is based on a clean separation between the C++ backend and the QML frontend.
 
 ## 1. High-Level Architecture Diagram

@@ -1,5 +1,12 @@
 # Dependency Injection Options for Qt/C++ Z Monitor
 
+**Document ID:** DESIGN-013  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document evaluates dependency-injection (DI) frameworks and patterns for the Qt/C++ Z Monitor project and recommends an approach.
 
 Context and goals

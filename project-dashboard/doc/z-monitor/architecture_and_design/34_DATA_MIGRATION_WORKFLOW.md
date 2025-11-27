@@ -1,5 +1,12 @@
 # Data Migration Workflow
 
+**Document ID:** DESIGN-034  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines the complete migration workflow for Z Monitor, covering schema migrations, data migrations, rollback procedures, testing strategies, and deployment workflows.
 
 > **📊 Migration Workflow Diagram:**  

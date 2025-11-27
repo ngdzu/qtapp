@@ -1,5 +1,12 @@
 # Domain-Driven Design (DDD) Strategy
 
+**Document ID:** DESIGN-028  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines how the Z Monitor application applies Domain-Driven Design (DDD). It clarifies bounded contexts, layered structure, and domain model guidelines so the codebase evolves with a clear ubiquitous language.
 
 ---

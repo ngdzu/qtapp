@@ -1,6 +1,6 @@
 # ITelemetryServer Interface
 
-**Interface ID:** IFACE-002  
+**Document ID:** INTERFACE-002  
 **Version:** 1.0  
 **Status:** Approved  
 **Last Updated:** 2025-11-27

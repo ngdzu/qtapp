@@ -1,5 +1,12 @@
 # Database Query Registry and Management
 
+**Document ID:** DESIGN-032  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines the strategy for managing, documenting, and organizing prepared SQL query strings in the Z Monitor application.
 
 ---

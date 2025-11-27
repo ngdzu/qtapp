@@ -1,5 +1,12 @@
 # Data Transfer Objects (DTOs) - Design and Usage
 
+**Document ID:** DESIGN-031  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines the Data Transfer Objects (DTOs) used in the Z Monitor application, their purpose, structure, validation rules, and usage patterns.
 
 > **📊 DTO Flow Diagram:**  

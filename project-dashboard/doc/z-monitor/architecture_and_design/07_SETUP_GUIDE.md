@@ -1,5 +1,12 @@
 # Developer Setup Guide
 
+**Document ID:** DESIGN-007  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document provides instructions for setting up the development environment, building the Z Monitor application, and running its components.
 
 ## 1. Prerequisites

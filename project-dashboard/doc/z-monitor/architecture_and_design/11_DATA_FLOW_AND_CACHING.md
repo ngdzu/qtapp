@@ -1,5 +1,12 @@
 # Data Flow and Caching Strategy
 
+**Document ID:** DESIGN-011  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document outlines the lifecycle of data within the Z Monitor, from generation to on-device caching and synchronization with the central server.
 
 ## 1. Data Flow Diagram

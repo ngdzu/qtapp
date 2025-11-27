@@ -1,5 +1,12 @@
 # Alarm System Design
 
+**Document ID:** DESIGN-004  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document details the design and behavior of the comprehensive alarm system within the Z Monitor.
 
 ## 1. Alarm Priorities

@@ -1,5 +1,12 @@
 # Device Provisioning and Pairing
 
+**Document ID:** DESIGN-017  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document describes the secure device provisioning and pairing workflow for the Z Monitor, replacing manual network configuration with an industry-standard QR code-based pairing system.
 
 ## 1. Overview

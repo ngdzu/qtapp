@@ -1,5 +1,12 @@
 # Definitions and Terminologies
 
+**Document ID:** DESIGN-008  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document provides a glossary of key terms and terminologies used within the Z Monitor project.
 
 ## Z

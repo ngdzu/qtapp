@@ -1,5 +1,12 @@
 # Security Design
 
+**Document ID:** DESIGN-006  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document details the security architecture for the Z Monitor, covering data in transit, data at rest, and authentication.
 
 ## 1. Guiding Principles

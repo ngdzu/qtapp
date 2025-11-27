@@ -1,5 +1,12 @@
 # C++ Class Designs
 
+**Document ID:** DESIGN-009  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document provides detailed class diagrams and descriptions for the key C++ classes in the `project-dashboard` application.
 
 ## 1. Class Diagram Overview

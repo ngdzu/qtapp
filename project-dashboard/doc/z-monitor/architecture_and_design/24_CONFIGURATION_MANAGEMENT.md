@@ -1,5 +1,12 @@
 # Configuration Management Strategy
 
+**Document ID:** DESIGN-024  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines the configuration management approach, settings hierarchy, configuration validation, and runtime configuration updates for the Z Monitor application.
 
 ## 1. Guiding Principles

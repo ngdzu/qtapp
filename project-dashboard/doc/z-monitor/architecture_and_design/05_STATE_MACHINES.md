@@ -1,5 +1,12 @@
 # State Machine Designs
 
+**Document ID:** DESIGN-005  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document outlines the state machine designs for key components and application flows within the Z Monitor.
 
 [View all State Machine Diagrams (interactive)](./05_STATE_MACHINES.mmd)

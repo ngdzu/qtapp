@@ -1,5 +1,12 @@
 # Database Access Strategy and ORM Plan
 
+**Document ID:** DESIGN-030  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document defines the database access strategy for the Z Monitor application, including ORM approach, repository pattern implementation, and query optimization.
 
 > **📊 Architecture Diagram:**  

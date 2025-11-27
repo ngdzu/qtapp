@@ -1,6 +1,6 @@
 # IPatientLookupService Interface
 
-**Interface ID:** IFACE-001  
+**Document ID:** INTERFACE-001  
 **Version:** 1.0  
 **Status:** Approved  
 **Last Updated:** 2025-11-27

@@ -1,6 +1,6 @@
 # ISensorDataSource Interface
 
-**Interface ID:** IFACE-004  
+**Document ID:** INTERFACE-004  
 **Version:** 1.0  
 **Status:** Approved  
 **Last Updated:** 2025-11-27

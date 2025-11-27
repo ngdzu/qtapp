@@ -1,5 +1,12 @@
 # Documentation Improvements and Clarifications
 
+**Document ID:** DESIGN-016  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document captures comprehensive improvements made to the Z Monitor documentation to eliminate ambiguities, add missing features, and address security concerns.
 
 ## 1. Ambiguities Resolved

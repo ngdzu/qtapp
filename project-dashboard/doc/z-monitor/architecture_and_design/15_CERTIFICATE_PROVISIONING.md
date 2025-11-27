@@ -1,5 +1,12 @@
 # Certificate Provisioning Guide
 
+**Document ID:** DESIGN-015  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document provides a comprehensive, step-by-step guide for certificate provisioning and device signing in the Z Monitor system. It covers the complete workflow from Certificate Authority (CA) creation to device certificate installation and validation.
 
 ## Table of Contents

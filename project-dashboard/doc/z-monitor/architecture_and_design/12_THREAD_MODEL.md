@@ -1,5 +1,12 @@
 # Thread Model and Low-Latency Architecture
 
+**Document ID:** DESIGN-012  
+**Version:** 1.0  
+**Status:** Approved  
+**Last Updated:** 2025-11-27
+
+---
+
 This document specifies the threading model, communication channels, latency targets, and implementation constraints for the Z Monitor. It explains how components should be partitioned across threads, which synchronization primitives to use, and measurable performance requirements to achieve a low-latency, safe, and predictable system.
 
 > **📋 Related Documents:**
