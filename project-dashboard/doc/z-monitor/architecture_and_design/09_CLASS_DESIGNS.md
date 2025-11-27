@@ -1,19 +1,169 @@
 # C++ Class Designs
 
 **Document ID:** DESIGN-009  
-**Version:** 1.0  
+**Version:** 2.0  
 **Status:** Approved  
 **Last Updated:** 2025-11-27
 
 ---
 
-This document provides detailed class diagrams and descriptions for the key C++ classes in the `project-dashboard` application.
+> **⚠️ This document has been reorganized into module-based documents for better maintainability and clarity.**
+> 
+> **See:** [Class Designs Overview (09_CLASS_DESIGNS_OVERVIEW.md)](./09_CLASS_DESIGNS_OVERVIEW.md) for the high-level module architecture and links to module-specific documents.
 
-## 1. Class Diagram Overview
+---
 
-[View the full Class Diagram (interactive)](./09_CLASS_DESIGNS.mmd)
+## 1. Document Reorganization
 
-This diagram provides a comprehensive overview of all major C++ classes and their relationships. Use a Mermaid-compatible viewer to zoom and pan.
+This document has been **split into module-specific documents** to improve maintainability and make diagrams smaller and easier to understand. The class designs are now organized by **module** (groups of services/components that execute on the same OS thread).
+
+### 1.1 Module-Based Documentation Structure
+
+| Module | Document | Thread | Component Count |
+|--------|----------|--------|----------------|
+| **Interface Module** | [09a_INTERFACE_MODULE.md](./09a_INTERFACE_MODULE.md) | Main/UI Thread | 30 |
+| **Real-Time Processing Module** | [09b_REALTIME_MODULE.md](./09b_REALTIME_MODULE.md) | RT Thread | 12 |
+| **Application Services Module** | [09c_APPLICATION_SERVICES_MODULE.md](./09c_APPLICATION_SERVICES_MODULE.md) | App Services Thread | 11 |
+| **Database Module** | [09d_DATABASE_MODULE.md](./09d_DATABASE_MODULE.md) | Database I/O Thread | 13 |
+| **Network Module** | [09e_NETWORK_MODULE.md](./09e_NETWORK_MODULE.md) | Network I/O Thread | 11 |
+| **Background Tasks Module** | [09f_BACKGROUND_MODULE.md](./09f_BACKGROUND_MODULE.md) | Background Thread | 9 |
+
+**Total:** 86 components organized into 6 modules
+
+### 1.2 High-Level Module Interaction
+
+[View Module Interaction Diagram (Mermaid)](./09_CLASS_DESIGNS_OVERVIEW.mmd)  
+[View Module Interaction Diagram (SVG)](./09_CLASS_DESIGNS_OVERVIEW.svg)
+
+For detailed module interaction patterns, see **[09_CLASS_DESIGNS_OVERVIEW.md](./09_CLASS_DESIGNS_OVERVIEW.md)**.
+
+---
+
+## 2. Module-Specific Documents
+
+All class designs have been organized into module-specific documents for better maintainability and clarity:
+
+### 2.1. Interface Module
+**[09a_INTERFACE_MODULE.md](./09a_INTERFACE_MODULE.md)** - UI Controllers, QML Views, and Components
+
+**Components:**
+- 11 QML Controllers (DashboardController, AlarmController, WaveformController, PatientController, etc.)
+- 7 QML Views (DashboardView, TrendsView, AlarmsView, etc.)
+- 12 QML Components (WaveformChart, TrendChart, StatCard, etc.)
+
+**Thread:** Main/UI Thread
+
+---
+
+### 2.2. Real-Time Processing Module
+**[09b_REALTIME_MODULE.md](./09b_REALTIME_MODULE.md)** - Sensor Data, Caching, and Alarm Detection
+
+**Components:**
+- `WebSocketSensorDataSource` - Sensor data input
+- `MonitoringService` - Vitals ingestion coordination
+- `VitalsCache` - In-memory cache (3-day capacity)
+- `WaveformCache` - Circular buffer (30 seconds)
+- Domain Aggregates: `PatientAggregate`, `TelemetryBatch`, `AlarmAggregate`
+- Value Objects: `VitalRecord`, `WaveformSample`, `AlarmSnapshot`, `AlarmThreshold`
+
+**Thread:** Real-Time Processing Thread (High Priority)
+
+**Critical Path:** Sensor → Cache → Alarm Detection → UI (< 50ms)
+
+---
+
+### 2.3. Application Services Module
+**[09c_APPLICATION_SERVICES_MODULE.md](./09c_APPLICATION_SERVICES_MODULE.md)** - Business Logic Orchestration
+
+**Components:**
+- `AdmissionService` - Patient admission/discharge/transfer
+- `ProvisioningService` - Device provisioning and pairing
+- `SecurityService` - Authentication and authorization
+- Domain Aggregates: `AdmissionAggregate`, `ProvisioningSession`, `UserSession`, `AuditTrailEntry`
+- Value Objects: `PatientIdentity`, `BedLocation`, `PinCredential`, `CredentialBundle`
+
+**Thread:** Application Services Thread
+
+---
+
+### 2.4. Database Module
+**[09d_DATABASE_MODULE.md](./09d_DATABASE_MODULE.md)** - Data Persistence and Archival
+
+**Components:**
+- `DatabaseManager` - SQLite connection and schema management
+- 7 Repository Implementations (SQLitePatientRepository, SQLiteVitalsRepository, etc.)
+- `PersistenceScheduler` - Periodic persistence from cache (every 10 min)
+- `DataCleanupService` - Daily data cleanup (7-day retention)
+- `LogService` - Application logging (file-based)
+- `DataArchiveService` - Data archival
+
+**Thread:** Database I/O Thread (Single Writer)
+
+**Non-Critical Path:** Database operations don't block alarm detection
+
+---
+
+### 2.5. Network Module
+**[09e_NETWORK_MODULE.md](./09e_NETWORK_MODULE.md)** - Secure Network Communication
+
+**Components:**
+- `NetworkTelemetryServer` - Telemetry transmission (HTTPS/mTLS)
+- `CertificateManager` - Certificate lifecycle management
+- `EncryptionService` - Payload encryption/decryption
+- `SignatureService` - Data signing/verification
+- `HISPatientLookupAdapter` - Patient lookup from HIS/EHR
+- `CentralStationClient` - Provisioning payload receiver
+- Domain Aggregates: `DeviceAggregate`
+- Value Objects: `DeviceSnapshot`, `MeasurementUnit`
+
+**Thread:** Network I/O Thread
+
+---
+
+### 2.6. Background Tasks Module
+**[09f_BACKGROUND_MODULE.md](./09f_BACKGROUND_MODULE.md)** - System Maintenance Tasks
+
+**Components:**
+- `FirmwareUpdateService` - Firmware update management
+- `BackupService` - Database backup and restore
+- `SettingsManager` - Configuration storage
+- `QRCodeGenerator` - QR code generation
+- `SecureStorage` - Secure key storage
+- `HealthMonitor` - System health monitoring
+- `ClockSyncService` - NTP time synchronization
+- `FirmwareManager` - Firmware file management
+- `WatchdogService` - Thread monitoring and crash detection
+
+**Thread:** Background Thread (Low Priority)
+
+---
+
+## 3. Migration Status
+
+**Status:** Class designs are being migrated to module-specific documents. The original detailed class designs remain in this document for reference during migration.
+
+**Classes Already Migrated:**
+- ✅ All QML Controllers → [09a_INTERFACE_MODULE.md](./09a_INTERFACE_MODULE.md)
+- ✅ MonitoringService, VitalsCache, WaveformCache, AlarmAggregate → [09b_REALTIME_MODULE.md](./09b_REALTIME_MODULE.md)
+- ✅ AdmissionService, ProvisioningService, SecurityService → [09c_APPLICATION_SERVICES_MODULE.md](./09c_APPLICATION_SERVICES_MODULE.md)
+- ✅ DatabaseManager, Repositories, PersistenceScheduler → [09d_DATABASE_MODULE.md](./09d_DATABASE_MODULE.md)
+- ✅ NetworkTelemetryServer, CertificateManager, EncryptionService → [09e_NETWORK_MODULE.md](./09e_NETWORK_MODULE.md)
+- ✅ SettingsManager, HealthMonitor, WatchdogService → [09f_BACKGROUND_MODULE.md](./09f_BACKGROUND_MODULE.md)
+
+**Classes Pending Migration:**
+- ⚠️ `AlarmManager` - Should be reviewed and integrated into [09b_REALTIME_MODULE.md](./09b_REALTIME_MODULE.md) (alarm detection logic)
+- ⚠️ `NetworkManager` - Should be reviewed and integrated into [09e_NETWORK_MODULE.md](./09e_NETWORK_MODULE.md) (network connectivity)
+- ⚠️ `PatientManager` - Should be reviewed and integrated into [09c_APPLICATION_SERVICES_MODULE.md](./09c_APPLICATION_SERVICES_MODULE.md) (patient context management)
+- ⚠️ `KeyManager` - Should be reviewed and integrated into [09f_BACKGROUND_MODULE.md](./09f_BACKGROUND_MODULE.md) (key management)
+- ⚠️ `AuthenticationService` - Should be reviewed and integrated into [09c_APPLICATION_SERVICES_MODULE.md](./09c_APPLICATION_SERVICES_MODULE.md) (may be same as SecurityService)
+
+> **Note:** These classes will be migrated to their appropriate module documents in a future update. For now, see the detailed designs in the sections below.
+
+---
+
+## 4. Legacy Content (Deprecated)
+
+The following sections contain detailed class designs that are being migrated to module-specific documents. They are kept here for reference during migration.
 
 
 ## 2. DDD Layering Summary

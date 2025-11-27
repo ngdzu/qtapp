@@ -1,0 +1,102 @@
+graph TB
+    subgraph InterfaceModule["Interface Module<br/>(Main/UI Thread)"]
+        Controllers[QML Controllers<br/>11 controllers]
+        Views[QML Views<br/>7 views]
+        Components[QML Components<br/>12 components]
+    end
+
+    subgraph AppServicesModule["Application Services Module<br/>(App Services Thread)"]
+        AdmissionService[AdmissionService]
+        ProvisioningService[ProvisioningService]
+        SecurityService[SecurityService]
+        AppAggregates[Domain Aggregates<br/>AdmissionAggregate<br/>ProvisioningSession<br/>UserSession]
+    end
+
+    subgraph RTModule["Real-Time Processing Module<br/>(RT Thread - High Priority)"]
+        SensorSource[WebSocketSensorDataSource]
+        MonitoringService[MonitoringService]
+        VitalsCache[VitalsCache<br/>3-day cache]
+        WaveformCache[WaveformCache<br/>30-sec buffer]
+        RTAggregates[Domain Aggregates<br/>PatientAggregate<br/>TelemetryBatch<br/>AlarmAggregate]
+    end
+
+    subgraph NetworkModule["Network Module<br/>(Network I/O Thread)"]
+        TelemetryServer[NetworkTelemetryServer]
+        CertManager[CertificateManager]
+        EncryptionService[EncryptionService]
+        SignatureService[SignatureService]
+        PatientLookup[HISPatientLookupAdapter]
+    end
+
+    subgraph DatabaseModule["Database Module<br/>(Database I/O Thread)"]
+        DBManager[DatabaseManager]
+        Repositories[SQLite Repositories<br/>7 repositories]
+        PersistenceScheduler[PersistenceScheduler]
+        DataCleanup[DataCleanupService]
+        LogService[LogService]
+    end
+
+    subgraph BackgroundModule["Background Tasks Module<br/>(Background Thread - Low Priority)"]
+        FirmwareService[FirmwareUpdateService]
+        BackupService[BackupService]
+        SettingsManager[SettingsManager]
+        HealthMonitor[HealthMonitor]
+        Watchdog[WatchdogService]
+    end
+
+    %% Critical Path (Real-Time)
+    SensorSource -->|Qt Signal| MonitoringService
+    MonitoringService -->|Direct Call| VitalsCache
+    MonitoringService -->|Direct Call| WaveformCache
+    MonitoringService -->|Direct Call| RTAggregates
+    RTAggregates -->|Qt::QueuedConnection| Controllers
+    Controllers -->|QML Binding| Components
+
+    %% User Actions
+    Controllers -->|Qt::QueuedConnection| AdmissionService
+    Controllers -->|Qt::QueuedConnection| ProvisioningService
+    Controllers -->|Qt::QueuedConnection| SecurityService
+    AdmissionService -->|Direct Call| AppAggregates
+    AppAggregates -->|Qt::QueuedConnection| Controllers
+
+    %% Non-Critical Persistence
+    VitalsCache -->|MPSC Queue| PersistenceScheduler
+    PersistenceScheduler -->|Direct Call| Repositories
+    Repositories -->|Direct Call| DBManager
+    AdmissionService -->|MPSC Queue| Repositories
+    ProvisioningService -->|MPSC Queue| Repositories
+    SecurityService -->|MPSC Queue| Repositories
+
+    %% Network Communication
+    RTAggregates -->|MPSC Queue| TelemetryServer
+    TelemetryServer -->|Direct Call| SignatureService
+    TelemetryServer -->|Direct Call| EncryptionService
+    TelemetryServer -->|Direct Call| CertManager
+    Controllers -->|Qt::QueuedConnection| PatientLookup
+    PatientLookup -->|HTTPS| ExternalHIS[External HIS/EHR]
+    TelemetryServer -->|HTTPS/mTLS| ExternalServer[Central Server]
+
+    %% Background Tasks
+    BackgroundModule -->|Scheduled| DatabaseModule
+    BackgroundModule -->|Scheduled| NetworkModule
+    Watchdog -->|Monitor| RTModule
+    Watchdog -->|Monitor| DatabaseModule
+    Watchdog -->|Monitor| NetworkModule
+
+    %% Styling
+    classDef interface fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef appServices fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef rt fill:#ffccbc,stroke:#d84315,stroke-width:3px
+    classDef network fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef database fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+    classDef background fill:#b0bec5,stroke:#37474f,stroke-width:2px
+    classDef external fill:#f5f5f5,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
+
+    class InterfaceModule,Controllers,Views,Components interface
+    class AppServicesModule,AdmissionService,ProvisioningService,SecurityService,AppAggregates appServices
+    class RTModule,SensorSource,MonitoringService,VitalsCache,WaveformCache,RTAggregates rt
+    class NetworkModule,TelemetryServer,CertManager,EncryptionService,SignatureService,PatientLookup network
+    class DatabaseModule,DBManager,Repositories,PersistenceScheduler,DataCleanup,LogService database
+    class BackgroundModule,FirmwareService,BackupService,SettingsManager,HealthMonitor,Watchdog background
+    class ExternalHIS,ExternalServer external
+

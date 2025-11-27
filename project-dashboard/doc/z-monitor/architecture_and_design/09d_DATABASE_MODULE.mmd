@@ -1,0 +1,68 @@
+graph TB
+    subgraph DatabaseModule["Database Module<br/>(Database I/O Thread - Single Writer)"]
+        subgraph Core["Core Infrastructure"]
+            DBManager[DatabaseManager<br/>Connection management<br/>Schema migrations<br/>Size monitoring]
+        end
+
+        subgraph Repositories["Repository Implementations (7)"]
+            PatientRepo[SQLitePatientRepository]
+            VitalsRepo[SQLiteVitalsRepository<br/>Time-series]
+            AlarmRepo[SQLiteAlarmRepository]
+            TelemetryRepo[SQLiteTelemetryRepository]
+            ProvisioningRepo[SQLiteProvisioningRepository]
+            UserRepo[SQLiteUserRepository]
+            AuditRepo[SQLiteAuditRepository<br/>Hash chain]
+            ActionLogRepo[SQLiteActionLogRepository<br/>Hash chain]
+        end
+
+        subgraph Services["Application Services"]
+            PersistenceScheduler[PersistenceScheduler<br/>Every 10 min<br/>From VitalsCache]
+            DataCleanup[DataCleanupService<br/>Daily at 3 AM<br/>7-day retention]
+            DataArchive[DataArchiveService<br/>Data archival]
+            LogService[LogService<br/>File-based logs]
+        end
+    end
+
+    subgraph ExternalModules["External Modules"]
+        RTModule[Real-Time Module<br/>RT Thread]
+        AppServicesModule[Application Services Module<br/>App Services Thread]
+        InterfaceModule[Interface Module<br/>UI Thread]
+        BackgroundModule[Background Module<br/>Background Thread]
+    end
+
+    %% Core to Repositories
+    DBManager -->|Provides connection| Repositories
+    Repositories -->|Direct Call<br/>Same thread| DBManager
+
+    %% Services to Repositories
+    PersistenceScheduler -->|Direct Call<br/>Batch write| VitalsRepo
+    DataCleanup -->|Direct Call<br/>Delete old data| Repositories
+    DataArchive -->|Direct Call<br/>Archive data| Repositories
+
+    %% Inbound (from RT Module)
+    RTModule -.->|MPSC Queue<br/>Telemetry batches| TelemetryRepo
+    RTModule -.->|Thread-safe read<br/>VitalsCache| PersistenceScheduler
+
+    %% Inbound (from App Services)
+    AppServicesModule -.->|MPSC Queue<br/>Repository calls| Repositories
+
+    %% Inbound (from UI)
+    InterfaceModule -.->|Qt::QueuedConnection<br/>Trend queries| VitalsRepo
+
+    %% Inbound (from Background)
+    BackgroundModule -.->|Qt::QueuedConnection<br/>Settings| DBManager
+
+    %% Outbound (to UI)
+    Repositories -.->|Qt::QueuedConnection<br/>Query results| InterfaceModule
+
+    %% Styling
+    classDef core fill:#d1c4e9,stroke:#512da8,stroke-width:3px
+    classDef repository fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef service fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef external fill:#f5f5f5,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
+
+    class Core,DBManager core
+    class Repositories,PatientRepo,VitalsRepo,AlarmRepo,TelemetryRepo,ProvisioningRepo,UserRepo,AuditRepo,ActionLogRepo repository
+    class Services,PersistenceScheduler,DataCleanup,DataArchive,LogService service
+    class ExternalModules,RTModule,AppServicesModule,InterfaceModule,BackgroundModule external
+

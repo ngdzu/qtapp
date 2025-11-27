@@ -1,0 +1,94 @@
+graph TB
+    subgraph NetworkModule["Network Module<br/>(Network I/O Thread)"]
+        subgraph NetworkAdapters["Network Adapters"]
+            TelemetryServer[NetworkTelemetryServer<br/>HTTPS/mTLS]
+            MockTelemetryServer[MockTelemetryServer<br/>Testing]
+            HISLookup[HISPatientLookupAdapter<br/>HIS/EHR integration]
+            MockLookup[MockPatientLookupService<br/>Testing]
+            CentralClient[CentralStationClient<br/>Provisioning payload]
+        end
+
+        subgraph SecurityAdapters["Security Adapters"]
+            CertManager[CertificateManager<br/>Cert lifecycle]
+            EncryptionService[EncryptionService<br/>AES-256-GCM]
+            SignatureService[SignatureService<br/>ECDSA/RSA]
+        end
+
+        subgraph Aggregates["Domain Aggregates"]
+            DeviceAgg[DeviceAggregate<br/>Provisioning state]
+        end
+
+        subgraph ValueObjects["Value Objects"]
+            DeviceSnapshot[DeviceSnapshot<br/>Device ID, firmware]
+            MeasurementUnit[MeasurementUnit<br/>Metric/Imperial]
+        end
+    end
+
+    subgraph ExternalModules["External Modules"]
+        RTModule[Real-Time Module<br/>RT Thread]
+        AppServicesModule[Application Services Module<br/>App Services Thread]
+        InterfaceModule[Interface Module<br/>UI Thread]
+        DatabaseModule[Database Module<br/>Database I/O Thread]
+        BackgroundModule[Background Module<br/>Background Thread]
+    end
+
+    subgraph ExternalSystems["External Systems"]
+        CentralServer[Central Server<br/>HTTPS/mTLS]
+        HISServer[HIS/EHR Server<br/>HTTPS]
+        CentralStation[Central Station<br/>HTTPS]
+    end
+
+    %% Network Adapters to Security
+    TelemetryServer -->|Direct Call| SignatureService
+    TelemetryServer -->|Direct Call| EncryptionService
+    TelemetryServer -->|Direct Call| CertManager
+    CentralClient -->|Direct Call| CertManager
+    CentralClient -->|Direct Call| EncryptionService
+
+    %% Network to Aggregates
+    TelemetryServer -->|Direct Call| DeviceAgg
+    CentralClient -->|Direct Call| DeviceAgg
+
+    %% Aggregate to Value Objects
+    DeviceAgg -->|uses| DeviceSnapshot
+    DeviceAgg -->|uses| MeasurementUnit
+
+    %% Inbound (from RT Module)
+    RTModule -.->|MPSC Queue<br/>Telemetry batches| TelemetryServer
+
+    %% Inbound (from App Services)
+    AppServicesModule -.->|Qt::QueuedConnection<br/>Patient lookup| HISLookup
+    AppServicesModule -.->|Qt::QueuedConnection<br/>User auth| NetworkModule
+
+    %% Inbound (from UI)
+    InterfaceModule -.->|Qt::QueuedConnection<br/>Connection test| TelemetryServer
+
+    %% Inbound (from Background)
+    BackgroundModule -.->|Qt::QueuedConnection<br/>Cert/key storage| CertManager
+
+    %% Outbound (to External Systems)
+    TelemetryServer -->|HTTPS/mTLS| CentralServer
+    HISLookup -->|HTTPS| HISServer
+    CentralClient -->|HTTPS| CentralStation
+
+    %% Outbound (to UI)
+    TelemetryServer -.->|Qt::QueuedConnection<br/>Connection status| InterfaceModule
+
+    %% Outbound (to Database)
+    TelemetryServer -.->|Qt::QueuedConnection<br/>Timing metrics| DatabaseModule
+
+    %% Styling
+    classDef network fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef security fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    classDef aggregate fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+    classDef value fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef external fill:#f5f5f5,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
+    classDef system fill:#b0bec5,stroke:#37474f,stroke-width:2px,stroke-dasharray: 3 3
+
+    class NetworkAdapters,TelemetryServer,MockTelemetryServer,HISLookup,MockLookup,CentralClient network
+    class SecurityAdapters,CertManager,EncryptionService,SignatureService security
+    class Aggregates,DeviceAgg aggregate
+    class ValueObjects,DeviceSnapshot,MeasurementUnit value
+    class ExternalModules,RTModule,AppServicesModule,InterfaceModule,DatabaseModule,BackgroundModule external
+    class ExternalSystems,CentralServer,HISServer,CentralStation system
+

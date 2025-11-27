@@ -1,0 +1,78 @@
+graph TB
+    subgraph RTModule["Real-Time Processing Module<br/>(RT Thread - High Priority)"]
+        subgraph SensorSources["Sensor Data Sources"]
+            WebSocketSource[WebSocketSensorDataSource<br/>ws://localhost:9002]
+            DeviceSim[DeviceSimulator<br/>LEGACY fallback]
+        end
+
+        subgraph Caching["In-Memory Caching"]
+            VitalsCache[VitalsCache<br/>3-day cache<br/>~39 MB<br/>QReadWriteLock]
+            WaveformCache[WaveformCache<br/>30-sec buffer<br/>~0.1 MB]
+        end
+
+        subgraph Services["Application Service"]
+            MonitoringService[MonitoringService<br/>Coordinates ingestion<br/>Alarm detection]
+        end
+
+        subgraph Aggregates["Domain Aggregates"]
+            PatientAgg[PatientAggregate<br/>Admission state]
+            TelemetryBatch[TelemetryBatch<br/>Data collection<br/>Signing]
+            AlarmAgg[AlarmAggregate<br/>Alarm lifecycle<br/>IEC 60601-1-8]
+        end
+
+        subgraph ValueObjects["Value Objects"]
+            VitalRecord[VitalRecord<br/>Immutable]
+            WaveformSample[WaveformSample<br/>Immutable]
+            AlarmSnapshot[AlarmSnapshot<br/>Immutable]
+            AlarmThreshold[AlarmThreshold<br/>Immutable]
+        end
+    end
+
+    subgraph ExternalModules["External Modules"]
+        SensorSimulator[External Sensor Simulator<br/>ws://localhost:9002]
+        InterfaceModule[Interface Module<br/>UI Thread]
+        DatabaseModule[Database Module<br/>Database I/O Thread]
+        NetworkModule[Network Module<br/>Network I/O Thread]
+    end
+
+    %% Critical Path (Real-Time)
+    SensorSimulator -->|WebSocket JSON| WebSocketSource
+    WebSocketSource -->|Qt Signal<br/>5 Hz vitals| MonitoringService
+    WebSocketSource -->|Qt Signal<br/>250 Hz waveforms| MonitoringService
+    DeviceSim -.->|Fallback| MonitoringService
+
+    MonitoringService -->|Direct Call<br/>< 5ms| VitalsCache
+    MonitoringService -->|Direct Call<br/>< 1ms| WaveformCache
+    MonitoringService -->|Direct Call<br/>< 10ms| AlarmAgg
+    MonitoringService -->|Direct Call| PatientAgg
+    MonitoringService -->|Direct Call| TelemetryBatch
+
+    AlarmAgg -->|Direct Call| AlarmSnapshot
+    TelemetryBatch -->|Direct Call| VitalRecord
+    TelemetryBatch -->|Direct Call| AlarmSnapshot
+
+    %% Outbound (Non-Critical)
+    VitalsCache -.->|MPSC Queue<br/>Background| DatabaseModule
+    TelemetryBatch -.->|MPSC Queue<br/>Background| DatabaseModule
+    TelemetryBatch -.->|MPSC Queue<br/>Background| NetworkModule
+
+    %% Outbound (Critical - UI Updates)
+    MonitoringService -.->|Qt::QueuedConnection<br/>< 50ms total| InterfaceModule
+    AlarmAgg -.->|Qt::QueuedConnection<br/>Alarm events| InterfaceModule
+    MonitoringService -.->|Qt::QueuedConnection<br/>Waveform samples| InterfaceModule
+
+    %% Styling
+    classDef sensor fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    classDef cache fill:#fff9c4,stroke:#f57f17,stroke-width:3px
+    classDef service fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef aggregate fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+    classDef value fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef external fill:#f5f5f5,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
+
+    class SensorSources,WebSocketSource,DeviceSim sensor
+    class Caching,VitalsCache,WaveformCache cache
+    class Services,MonitoringService service
+    class Aggregates,PatientAgg,TelemetryBatch,AlarmAgg aggregate
+    class ValueObjects,VitalRecord,WaveformSample,AlarmSnapshot,AlarmThreshold value
+    class ExternalModules,SensorSimulator,InterfaceModule,DatabaseModule,NetworkModule external
+

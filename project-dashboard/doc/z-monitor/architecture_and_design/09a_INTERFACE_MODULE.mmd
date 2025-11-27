@@ -1,0 +1,97 @@
+graph TB
+    subgraph InterfaceModule["Interface Module<br/>(Main/UI Thread)"]
+        subgraph Controllers["QML Controllers (11)"]
+            DashboardController[DashboardController<br/>Real-time vitals]
+            AlarmController[AlarmController<br/>Alarm state/history]
+            WaveformController[WaveformController<br/>Waveform data bridge]
+            PatientController[PatientController<br/>Patient admission]
+            SettingsController[SettingsController<br/>Device settings]
+            ProvisioningController[ProvisioningController<br/>Provisioning/pairing]
+            TrendsController[TrendsController<br/>Historical trends]
+            SystemController[SystemController<br/>Navigation/health]
+            NotificationController[NotificationController<br/>Notifications]
+            DiagnosticsController[DiagnosticsController<br/>System logs]
+            AuthController[AuthenticationController<br/>Login/logout]
+        end
+
+        subgraph Views["QML Views (7)"]
+            LoginView[LoginView.qml]
+            DashboardView[DashboardView.qml]
+            TrendsView[TrendsView.qml]
+            AlarmsView[AlarmsView.qml]
+            SettingsView[SettingsView.qml]
+            DiagnosticsView[DiagnosticsView.qml]
+            AdmissionModal[PatientAdmissionModal.qml]
+        end
+
+        subgraph Components["QML Components (12)"]
+            WaveformChart[WaveformChart.qml<br/>60 FPS Canvas]
+            TrendChart[TrendChart.qml<br/>Line chart]
+            StatCard[StatCard.qml<br/>Vitals display]
+            PatientBanner[PatientBanner.qml]
+            AlarmIndicator[AlarmIndicator.qml]
+            NotificationBell[NotificationBell.qml]
+            Sidebar[Sidebar.qml]
+            TopBar[TopBar.qml]
+            SettingsRow[SettingsRow.qml]
+            ConfirmDialog[ConfirmDialog.qml]
+            LoadingSpinner[LoadingSpinner.qml]
+            QRCodeDisplay[QRCodeDisplay.qml]
+        end
+    end
+
+    subgraph ExternalModules["External Modules"]
+        MonitoringService[MonitoringService<br/>RT Thread]
+        AdmissionService[AdmissionService<br/>App Services Thread]
+        SecurityService[SecurityService<br/>App Services Thread]
+        ProvisioningService[ProvisioningService<br/>App Services Thread]
+        SettingsManager[SettingsManager<br/>Background Thread]
+        LogService[LogService<br/>Database Thread]
+    end
+
+    %% Controller to View bindings
+    DashboardController -->|Q_PROPERTY| DashboardView
+    AlarmController -->|Q_PROPERTY| AlarmsView
+    WaveformController -->|Q_PROPERTY| DashboardView
+    PatientController -->|Q_PROPERTY| AdmissionModal
+    SettingsController -->|Q_PROPERTY| SettingsView
+    ProvisioningController -->|Q_PROPERTY| SettingsView
+    TrendsController -->|Q_PROPERTY| TrendsView
+    SystemController -->|Q_PROPERTY| Views
+    NotificationController -->|Q_PROPERTY| TopBar
+    DiagnosticsController -->|Q_PROPERTY| DiagnosticsView
+    AuthController -->|Q_PROPERTY| LoginView
+
+    %% View to Component composition
+    DashboardView -->|uses| StatCard
+    DashboardView -->|uses| WaveformChart
+    DashboardView -->|uses| PatientBanner
+    AlarmsView -->|uses| AlarmIndicator
+    SettingsView -->|uses| SettingsRow
+    SettingsView -->|uses| QRCodeDisplay
+    Views -->|uses| Sidebar
+    Views -->|uses| TopBar
+    Views -->|uses| ConfirmDialog
+    Views -->|uses| LoadingSpinner
+
+    %% External module communication (queued)
+    MonitoringService -.->|Qt::QueuedConnection| DashboardController
+    MonitoringService -.->|Qt::QueuedConnection| AlarmController
+    MonitoringService -.->|Qt::QueuedConnection| WaveformController
+    AdmissionService -.->|Qt::QueuedConnection| PatientController
+    SecurityService -.->|Qt::QueuedConnection| AuthController
+    ProvisioningService -.->|Qt::QueuedConnection| ProvisioningController
+    SettingsManager -.->|Qt::QueuedConnection| SettingsController
+    LogService -.->|Qt::QueuedConnection| DiagnosticsController
+
+    %% Styling
+    classDef controller fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef view fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef component fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef external fill:#f5f5f5,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
+
+    class Controllers,DashboardController,AlarmController,WaveformController,PatientController,SettingsController,ProvisioningController,TrendsController,SystemController,NotificationController,DiagnosticsController,AuthController controller
+    class Views,LoginView,DashboardView,TrendsView,AlarmsView,SettingsView,DiagnosticsView,AdmissionModal view
+    class Components,WaveformChart,TrendChart,StatCard,PatientBanner,AlarmIndicator,NotificationBell,Sidebar,TopBar,SettingsRow,ConfirmDialog,LoadingSpinner,QRCodeDisplay component
+    class ExternalModules,MonitoringService,AdmissionService,SecurityService,ProvisioningService,SettingsManager,LogService external
+

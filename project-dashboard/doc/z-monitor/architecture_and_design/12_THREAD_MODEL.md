@@ -10,7 +10,8 @@
 This document specifies the threading model, communication channels, latency targets, and implementation constraints for the Z Monitor. It explains how components should be partitioned across threads, which synchronization primitives to use, and measurable performance requirements to achieve a low-latency, safe, and predictable system.
 
 > **📋 Related Documents:**
-> - [System Components Reference (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - Complete list of all 117 system components (updated)
+> - [Class Designs Overview (09_CLASS_DESIGNS_OVERVIEW.md)](./09_CLASS_DESIGNS_OVERVIEW.md) - **Module-based class architecture** ⭐
+> - [System Components Reference (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - Complete list of all 120 system components
 > - [Data Caching Strategy (36_DATA_CACHING_STRATEGY.md)](./36_DATA_CACHING_STRATEGY.md) - In-memory caching, priority levels, decoupled critical path ⭐
 > - [Sensor Integration (37_SENSOR_INTEGRATION.md)](./37_SENSOR_INTEGRATION.md) - ISensorDataSource interface and implementations ⭐
 > - [Database Access Strategy (30_DATABASE_ACCESS_STRATEGY.md)](./30_DATABASE_ACCESS_STRATEGY.md) - ORM integration, schema management, performance targets ⭐
@@ -1390,14 +1391,20 @@ Instrument with timestamped events for:
 
 ## 16. References
 
-- **[29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md)** – Complete list of all 117 system components (updated from 98)
+- **[09_CLASS_DESIGNS_OVERVIEW.md](./09_CLASS_DESIGNS_OVERVIEW.md)** – **Module-based class architecture overview** ⭐
+  - [09a_INTERFACE_MODULE.md](./09a_INTERFACE_MODULE.md) – Interface Module (Controllers, QML Components)
+  - [09b_REALTIME_MODULE.md](./09b_REALTIME_MODULE.md) – Real-Time Processing Module (Sensor Data, Caching, Alarms)
+  - [09c_APPLICATION_SERVICES_MODULE.md](./09c_APPLICATION_SERVICES_MODULE.md) – Application Services Module (Admission, Provisioning, Security)
+  - [09d_DATABASE_MODULE.md](./09d_DATABASE_MODULE.md) – Database Module (Persistence, Repositories, Logging)
+  - [09e_NETWORK_MODULE.md](./09e_NETWORK_MODULE.md) – Network Module (Telemetry, Certificates, Encryption)
+  - [09f_BACKGROUND_MODULE.md](./09f_BACKGROUND_MODULE.md) – Background Tasks Module (Health, Backup, Firmware)
+- **[29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md)** – Complete list of all 120 system components
 - **[36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md)** – **Data caching architecture (VitalsCache, WaveformCache, priority levels)** ⭐
 - **[37_SENSOR_INTEGRATION.md](./37_SENSOR_INTEGRATION.md)** – **Sensor data source integration (ISensorDataSource interface)** ⭐
 - **[30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md)** – Database access strategy, ORM integration, performance targets
 - **[33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md)** – Schema management and code generation workflow
 - **[02_ARCHITECTURE.md](./02_ARCHITECTURE.md)** – High-level architecture and data flow
 - **[28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md)** – DDD strategy and layering
-- **[09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md)** – Detailed class documentation
 - **[18_TESTING_WORKFLOW.md](./18_TESTING_WORKFLOW.md)** – Testing strategy and benchmarks
 
 ---

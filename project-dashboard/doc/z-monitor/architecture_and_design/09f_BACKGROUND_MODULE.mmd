@@ -1,0 +1,78 @@
+graph TB
+    subgraph BackgroundModule["Background Tasks Module<br/>(Background Thread - Low Priority)"]
+        subgraph Services["Application Services"]
+            FirmwareService[FirmwareUpdateService<br/>Update management]
+            BackupService[BackupService<br/>Daily backup at 2 AM]
+        end
+
+        subgraph Adapters["Infrastructure Adapters"]
+            SettingsManager[SettingsManager<br/>Configuration storage]
+            QRCodeGenerator[QRCodeGenerator<br/>QR code generation]
+            SecureStorage[SecureStorage<br/>Platform keychain]
+            HealthMonitor[HealthMonitor<br/>CPU, memory, disk<br/>Every 60s]
+            ClockSync[ClockSyncService<br/>NTP sync<br/>Every 1 hour]
+            FirmwareManager[FirmwareManager<br/>Firmware files]
+            Watchdog[WatchdogService<br/>Thread monitoring<br/>Every 10s]
+        end
+    end
+
+    subgraph ExternalModules["External Modules"]
+        InterfaceModule[Interface Module<br/>UI Thread]
+        DatabaseModule[Database Module<br/>Database I/O Thread]
+        NetworkModule[Network Module<br/>Network I/O Thread]
+        RTModule[Real-Time Module<br/>RT Thread]
+        AppServicesModule[Application Services Module<br/>App Services Thread]
+    end
+
+    subgraph ExternalSystems["External Systems"]
+        NTPServer[NTP Server]
+        CentralServer[Central Server<br/>Firmware updates]
+    end
+
+    %% Services to Adapters
+    FirmwareService -->|Direct Call| FirmwareManager
+    BackupService -->|Direct Call| DatabaseModule
+    SettingsManager -->|Direct Call| DatabaseModule
+
+    %% Inbound (from UI)
+    InterfaceModule -.->|Qt::QueuedConnection<br/>Settings updates| SettingsManager
+    InterfaceModule -.->|Qt::QueuedConnection<br/>Backup/restore| BackupService
+    InterfaceModule -.->|Qt::QueuedConnection<br/>Firmware update| FirmwareService
+
+    %% Inbound (from App Services)
+    AppServicesModule -.->|Qt::QueuedConnection<br/>Settings access| SettingsManager
+
+    %% Inbound (from All Modules - Heartbeats)
+    RTModule -.->|Atomic timestamp<br/>Read-only| Watchdog
+    DatabaseModule -.->|Atomic timestamp<br/>Read-only| Watchdog
+    NetworkModule -.->|Atomic timestamp<br/>Read-only| Watchdog
+    AppServicesModule -.->|Atomic timestamp<br/>Read-only| Watchdog
+
+    %% Outbound (to UI)
+    HealthMonitor -.->|Qt::QueuedConnection<br/>Health metrics| InterfaceModule
+    SettingsManager -.->|Qt::QueuedConnection<br/>Settings changed| InterfaceModule
+    Watchdog -.->|Qt::QueuedConnection<br/>Thread warnings| InterfaceModule
+
+    %% Outbound (to Database)
+    SettingsManager -.->|Qt::QueuedConnection<br/>Settings persistence| DatabaseModule
+    BackupService -.->|Qt::QueuedConnection<br/>Backup operations| DatabaseModule
+
+    %% Outbound (to Network)
+    FirmwareService -.->|Qt::QueuedConnection<br/>Firmware download| NetworkModule
+    SecureStorage -.->|Qt::QueuedConnection<br/>Cert/key storage| NetworkModule
+
+    %% Outbound (to External Systems)
+    ClockSync -->|NTP protocol| NTPServer
+    FirmwareService -->|HTTPS| CentralServer
+
+    %% Styling
+    classDef service fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef adapter fill:#b0bec5,stroke:#37474f,stroke-width:2px
+    classDef external fill:#f5f5f5,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
+    classDef system fill:#b0bec5,stroke:#37474f,stroke-width:2px,stroke-dasharray: 3 3
+
+    class Services,FirmwareService,BackupService service
+    class Adapters,SettingsManager,QRCodeGenerator,SecureStorage,HealthMonitor,ClockSync,FirmwareManager,Watchdog adapter
+    class ExternalModules,InterfaceModule,DatabaseModule,NetworkModule,RTModule,AppServicesModule external
+    class ExternalSystems,NTPServer,CentralServer system
+
