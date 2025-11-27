@@ -1,0 +1,101 @@
+graph TB
+    subgraph "1. Schema Definition YAML"
+        YAML[database.yaml<br/>━━━━━━━━━━━━━━━━<br/>Single Source of Truth<br/>Define:<br/>• Tables<br/>• Columns<br/>• Constraints<br/>• Indices]
+    end
+
+    subgraph "2. Migration Creation"
+        CreateMigration{Need Migration?}
+        SchemaChange[Schema Migration<br/>━━━━━━━━━━━━━━━━<br/>DDL Changes:<br/>• ALTER TABLE<br/>• CREATE TABLE<br/>• DROP TABLE<br/>• CREATE INDEX<br/>━━━━━━━━━━━━━━━━<br/>File: schema/0010_add_column.sql]
+        DataChange[Data Migration<br/>━━━━━━━━━━━━━━━━<br/>DML Changes:<br/>• UPDATE<br/>• INSERT<br/>• DELETE<br/>• Data Transform<br/>━━━━━━━━━━━━━━━━<br/>File: data/0011_migrate_data.sql]
+        SeedData[Seed Migration<br/>━━━━━━━━━━━━━━━━<br/>Reference Data:<br/>• Default settings<br/>• Lookup tables<br/>• Initial config<br/>━━━━━━━━━━━━━━━━<br/>File: seed/0001_defaults.sql]
+        RollbackScript[Rollback Script<br/>━━━━━━━━━━━━━━━━<br/>Undo migration<br/>━━━━━━━━━━━━━━━━<br/>File: rollback/0010_rollback.sql]
+    end
+
+    subgraph "3. Pre-Migration Validation"
+        PreCheck[Pre-Migration Check<br/>━━━━━━━━━━━━━━━━<br/>pre_migration_check.py<br/>━━━━━━━━━━━━━━━━<br/>Checks:<br/>✓ Foreign key integrity<br/>✓ Database integrity<br/>✓ Disk space<br/>✓ No active locks]
+        BackupDB[Backup Database<br/>━━━━━━━━━━━━━━━━<br/>cp zmonitor.db<br/>  zmonitor_backup_timestamp.db<br/>━━━━━━━━━━━━━━━━<br/>CRITICAL: Always backup<br/>before migrations]
+    end
+
+    subgraph "4. Migration Execution"
+        MigrationRunner[Migration Runner<br/>━━━━━━━━━━━━━━━━<br/>migrate.py<br/>━━━━━━━━━━━━━━━━<br/>1. Check schema_version table<br/>2. Find pending migrations<br/>3. Apply in order<br/>4. Record version<br/>5. Track execution time<br/>━━━━━━━━━━━━━━━━<br/>Supports:<br/>• Dry-run mode<br/>• Target version<br/>• Batch processing]
+        
+        SchemaVersionTable[schema_version Table<br/>━━━━━━━━━━━━━━━━<br/>Tracks applied migrations:<br/>• version INTEGER PK<br/>• applied_at TEXT<br/>• description TEXT<br/>• migration_type TEXT<br/>• file_hash TEXT<br/>• execution_time_ms INT]
+        
+        Transaction{Transaction<br/>Successful?}
+        AutoRollback[AUTO ROLLBACK<br/>━━━━━━━━━━━━━━━━<br/>Transaction fails<br/>Database unchanged<br/>No partial state]
+        RecordMigration[Record Migration<br/>━━━━━━━━━━━━━━━━<br/>INSERT INTO schema_version<br/>  version, applied_at, ...<br/>━━━━━━━━━━━━━━━━<br/>Migration tracked]
+    end
+
+    subgraph "5. Post-Migration Validation"
+        PostCheck[Post-Migration Check<br/>━━━━━━━━━━━━━━━━<br/>post_migration_check.py<br/>━━━━━━━━━━━━━━━━<br/>Validates:<br/>✓ Schema version correct<br/>✓ Data integrity OK<br/>✓ Row counts match<br/>✓ No corruption]
+        
+        ValidationPass{Validation<br/>Passed?}
+        
+        Success[✅ Migration Complete<br/>━━━━━━━━━━━━━━━━<br/>Database updated<br/>Version incremented<br/>Application can restart]
+        
+        ManualRollback[Manual Rollback<br/>━━━━━━━━━━━━━━━━<br/>migrate.py --rollback VERSION<br/>━━━━━━━━━━━━━━━━<br/>Execute rollback script<br/>Restore previous state<br/>Investigate failure]
+    end
+
+    subgraph "6. Deployment Workflow"
+        DevTest[Development Test<br/>━━━━━━━━━━━━━━━━<br/>Test on copy:<br/>1. Copy DB<br/>2. Dry-run<br/>3. Apply migration<br/>4. Validate<br/>5. Test rollback]
+        
+        CI[CI/CD Pipeline<br/>━━━━━━━━━━━━━━━━<br/>GitHub Actions:<br/>• Check numbering<br/>• Test on empty DB<br/>• Test on sample data<br/>• Test rollback<br/>• Generate report]
+        
+        ProdDeploy[Production Deploy<br/>━━━━━━━━━━━━━━━━<br/>Workflow:<br/>1. Backup prod DB<br/>2. Pre-checks<br/>3. Dry-run review<br/>4. Apply migration<br/>5. Post-validation<br/>6. Monitor metrics]
+    end
+
+    YAML -->|1. Update schema| CreateMigration
+    CreateMigration -->|Schema change| SchemaChange
+    CreateMigration -->|Data change| DataChange
+    CreateMigration -->|Reference data| SeedData
+    
+    SchemaChange -->|Always create| RollbackScript
+    DataChange -->|Always create| RollbackScript
+    
+    SchemaChange -->|2. Before apply| PreCheck
+    DataChange -->|2. Before apply| PreCheck
+    SeedData -->|2. Before apply| PreCheck
+    
+    PreCheck -->|3. If passed| BackupDB
+    BackupDB -->|4. Execute| MigrationRunner
+    
+    MigrationRunner -->|Uses| SchemaVersionTable
+    MigrationRunner -->|5. Execute SQL| Transaction
+    
+    Transaction -->|Failed| AutoRollback
+    Transaction -->|Success| RecordMigration
+    
+    RecordMigration -->|6. Validate| PostCheck
+    
+    PostCheck -->|7. Check result| ValidationPass
+    ValidationPass -->|Passed| Success
+    ValidationPass -->|Failed| ManualRollback
+    
+    ManualRollback -->|Undo changes| SchemaVersionTable
+    
+    SchemaChange -.->|Test in| DevTest
+    DevTest -.->|Merge triggers| CI
+    CI -.->|Deploy to| ProdDeploy
+
+    note1[Migration Types:<br/>━━━━━━━━━━━━━━━━<br/>Schema DDL - ALTER/CREATE/DROP tables<br/>Data DML - UPDATE/INSERT/DELETE data<br/>Seed - Insert reference data<br/>Rollback - Undo migration<br/>━━━━━━━━━━━━━━━━<br/>Best Practices:<br/>✅ Always backup first<br/>✅ Test on copy of prod data<br/>✅ Write rollback scripts<br/>✅ Use transactions<br/>✅ Validate before and after<br/>❌ Never modify applied migrations]
+
+    classDef yaml fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef migration fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef validation fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef execution fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    classDef success fill:#a5d6a7,stroke:#2e7d32,stroke-width:3px
+    classDef rollback fill:#ef9a9a,stroke:#c62828,stroke-width:2px
+    classDef deploy fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+    classDef decision fill:#fff59d,stroke:#f57f17,stroke-width:2px
+    classDef note fill:#fffde7,stroke:#f9a825,stroke-width:2px,stroke-dasharray: 5 5
+
+    class YAML yaml
+    class SchemaChange,DataChange,SeedData,RollbackScript migration
+    class PreCheck,PostCheck,ValidationPass validation
+    class MigrationRunner,Transaction,SchemaVersionTable,RecordMigration execution
+    class Success success
+    class AutoRollback,ManualRollback rollback
+    class DevTest,CI,ProdDeploy deploy
+    class CreateMigration decision
+    class note1 note
+

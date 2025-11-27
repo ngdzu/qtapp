@@ -1,0 +1,76 @@
+graph TB
+    subgraph "Application Layer"
+        MonitoringService[MonitoringService]
+        AdmissionService[AdmissionService]
+        ProvisioningService[ProvisioningService]
+        SecurityService[SecurityService]
+    end
+
+    subgraph "Domain Layer - Repository Interfaces"
+        IPatientRepo[IPatientRepository]
+        ITelemetryRepo[ITelemetryRepository]
+        IAlarmRepo[IAlarmRepository]
+        IProvisioningRepo[IProvisioningRepository]
+        IUserRepo[IUserRepository]
+        IAuditRepo[IAuditRepository]
+    end
+
+    subgraph "Infrastructure Layer - Repository Implementations"
+        SQLitePatientRepo[SQLitePatientRepository<br/>Uses: QSqlQuery + Prepared Statements]
+        SQLiteTelemetryRepo[SQLiteTelemetryRepository<br/>Uses: Batch INSERT with Transactions]
+        SQLiteAlarmRepo[SQLiteAlarmRepository]
+        SQLiteProvisioningRepo[SQLiteProvisioningRepository]
+        SQLiteUserRepo[SQLiteUserRepository]
+        SQLiteAuditRepo[SQLiteAuditRepository]
+    end
+
+    subgraph "Infrastructure Layer - Database Manager"
+        DBManager[DatabaseManager<br/>━━━━━━━━━━━━━━━━<br/>Connection Management:<br/>• Write Connection DB Thread<br/>• Read Connection any thread<br/>━━━━━━━━━━━━━━━━<br/>Prepared Statement Cache:<br/>• Pre-compiled queries<br/>• Reused for performance<br/>━━━━━━━━━━━━━━━━<br/>Transaction Management<br/>Migration Runner<br/>SQLCipher Encryption]
+    end
+
+    subgraph "Database - SQLite + SQLCipher"
+        DB[(SQLite Database<br/>━━━━━━━━━━━━━━━━<br/>WAL Mode Enabled<br/>Encrypted with SQLCipher<br/>━━━━━━━━━━━━━━━━<br/>Tables:<br/>• patients<br/>• vitals<br/>• alarms<br/>• telemetry_metrics<br/>• certificates<br/>• security_audit_log<br/>• ...)]
+    end
+
+    %% Application Services depend on Repository Interfaces
+    MonitoringService --> IPatientRepo
+    MonitoringService --> ITelemetryRepo
+    MonitoringService --> IAlarmRepo
+    AdmissionService --> IPatientRepo
+    AdmissionService --> IAuditRepo
+    ProvisioningService --> IProvisioningRepo
+    SecurityService --> IUserRepo
+    SecurityService --> IAuditRepo
+
+    %% Repository Interfaces implemented by Infrastructure
+    IPatientRepo -.implements.-> SQLitePatientRepo
+    ITelemetryRepo -.implements.-> SQLiteTelemetryRepo
+    IAlarmRepo -.implements.-> SQLiteAlarmRepo
+    IProvisioningRepo -.implements.-> SQLiteProvisioningRepo
+    IUserRepo -.implements.-> SQLiteUserRepo
+    IAuditRepo -.implements.-> SQLiteAuditRepo
+
+    %% All Repository Implementations use DatabaseManager
+    SQLitePatientRepo --> DBManager
+    SQLiteTelemetryRepo --> DBManager
+    SQLiteAlarmRepo --> DBManager
+    SQLiteProvisioningRepo --> DBManager
+    SQLiteUserRepo --> DBManager
+    SQLiteAuditRepo --> DBManager
+
+    %% DatabaseManager accesses SQLite
+    DBManager --> DB
+
+    %% Styling
+    classDef appService fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef repoInterface fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef repoImpl fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    classDef dbManager fill:#d1c4e9,stroke:#512da8,stroke-width:3px
+    classDef database fill:#b0bec5,stroke:#37474f,stroke-width:3px
+
+    class MonitoringService,AdmissionService,ProvisioningService,SecurityService appService
+    class IPatientRepo,ITelemetryRepo,IAlarmRepo,IProvisioningRepo,IUserRepo,IAuditRepo repoInterface
+    class SQLitePatientRepo,SQLiteTelemetryRepo,SQLiteAlarmRepo,SQLiteProvisioningRepo,SQLiteUserRepo,SQLiteAuditRepo repoImpl
+    class DBManager dbManager
+    class DB database
+

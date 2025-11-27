@@ -96,6 +96,34 @@
   - Note: `MockTelemetryServer` should swallow all data without sending to real server, return immediate success responses, and support simulated failures for testing.
   - Prompt: `project-dashboard/prompt/03-create-unit-test-harness.md`  (When finished: mark this checklist item done.)
 
+- [ ] Implement Schema Management with Code Generation
+  - What: Create YAML schema definition (`schema/database.yaml`) as single source of truth for all tables, columns, types, constraints, indices. Create Python code generator (`scripts/generate_schema.py`) that generates `SchemaInfo.h` with type-safe column name constants, DDL SQL files, and migration templates. Create migration runner (`scripts/migrate.py`) that applies numbered migrations in order. Integrate with CMake build system and pre-commit hooks. Refactor all repositories to use `Schema::Columns::TableName::COLUMN_NAME` constants instead of hardcoded strings.
+  - Why: Eliminates hardcoded column names, provides single source of truth for schema, enables compile-time safety and autocomplete for column names, automates DDL generation, ensures schema consistency, simplifies schema changes and migrations.
+  - Files: `z-monitor/schema/database.yaml`, `z-monitor/scripts/generate_schema.py`, `z-monitor/scripts/migrate.py`, `z-monitor/src/infrastructure/persistence/generated/SchemaInfo.h` (generated), `z-monitor/schema/generated/ddl/*.sql` (generated), update CMakeLists.txt, add pre-commit hook, refactor all `*Repository.cpp` files.
+  - Acceptance: Schema defined in YAML only. SchemaInfo.h auto-generated with constants for all tables/columns. DDL auto-generated from YAML. All repositories use `Schema::` constants (no hardcoded column names). Migration runner tracks version and applies migrations. Build system regenerates schema automatically. Pre-commit hook ensures schema stays in sync.
+  - Verification Steps:
+    1. Functional: Schema generation works, DDL creates correct tables, migration runner applies migrations in order, repositories work with constants
+    2. Code Quality: No hardcoded column names in repositories (grep verification), all Schema constants have Doxygen comments, linter passes, YAML is valid
+    3. Documentation: `doc/33_SCHEMA_MANAGEMENT.md` complete, YAML schema documented, workflow documented, diagram (MMD + SVG) present
+    4. Integration: CMake generates schema before build, pre-commit hook runs generator, build succeeds, all tests pass
+    5. Tests: Unit tests verify schema generation, migration runner, constants match YAML, grep confirms no hardcoded column names
+  - Documentation: See `doc/33_SCHEMA_MANAGEMENT.md` for complete schema management strategy and code generation workflow.
+  - Prompt: `project-dashboard/prompt/33-implement-schema-management.md`
+
+- [ ] Implement Query Registry for type-safe database queries
+  - What: Create `QueryRegistry.h` with `QueryId` namespace constants (organized by domain: Patient, Vitals, Alarms, Telemetry, etc.). Create `QueryCatalog.cpp` to map query IDs to SQL statements with metadata (description, parameters, examples). Update `DatabaseManager` to support query registration and retrieval by ID. Refactor all repositories to use `QueryId` constants instead of magic strings.
+  - Why: Eliminates magic string queries, provides compile-time safety, enables autocomplete, makes queries easy to find/document/refactor, and centralizes all SQL in one place.
+  - Files: `z-monitor/src/infrastructure/persistence/QueryRegistry.h`, `z-monitor/src/infrastructure/persistence/QueryCatalog.cpp`, update `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h`, refactor all `*Repository.cpp` files.
+  - Acceptance: All SQL queries removed from repository implementations and moved to QueryCatalog. Repositories use `QueryId::Namespace::CONSTANT` format. DatabaseManager initializes all queries at startup. Auto-generated `QUERY_REFERENCE.md` documentation exists.
+  - Verification Steps:
+    1. Functional: All repositories work with QueryId constants, no runtime query lookup failures, prepared statements cache correctly
+    2. Code Quality: No magic string queries remain in codebase (grep verification), all QueryId constants have Doxygen comments, linter passes
+    3. Documentation: `doc/32_QUERY_REGISTRY.md` complete, auto-generated `QUERY_REFERENCE.md` exists and accurate, diagram (MMD + SVG) present
+    4. Integration: Build succeeds, all tests pass, no query registration errors at startup
+    5. Tests: Unit tests verify all queries registered, query IDs unique, prepared statements work, grep confirms no magic strings
+  - Documentation: See `doc/32_QUERY_REGISTRY.md` for complete Query Registry pattern specification and implementation guide.
+  - Prompt: `project-dashboard/prompt/32-implement-query-registry.md`
+
 - [ ] Design database schema + write migration SQLs
   - What: Finalize DDL for tables: `patients`, `vitals`, `ecg_samples`, `pleth_samples`, `alarms`, `system_events`, `settings`, `users`, `certificates`, `security_audit_log`. Add indices, retention metadata table, and `archival_queue`.
   - Why: Deterministic schema is required before implementing `DatabaseManager` and `TrendsController`.

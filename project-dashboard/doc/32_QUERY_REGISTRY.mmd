@@ -1,0 +1,51 @@
+graph TB
+    subgraph "Query Definition - QueryRegistry.h"
+        QueryIdNS[QueryId Namespace<br/>━━━━━━━━━━━━━━━━<br/>Patient::<br/>• FIND_BY_MRN<br/>• INSERT<br/>• UPDATE<br/>• FIND_ADMITTED<br/>━━━━━━━━━━━━━━━━<br/>Vitals::<br/>• INSERT<br/>• FIND_BY_TIME_RANGE<br/>• MARK_SYNCED<br/>• GET_UNSYNCED<br/>━━━━━━━━━━━━━━━━<br/>Alarms::<br/>• INSERT<br/>• ACKNOWLEDGE<br/>• UPDATE_STATUS<br/>━━━━━━━━━━━━━━━━<br/>Telemetry::<br/>• INSERT_METRICS<br/>• GET_P95_LATENCY<br/>━━━━━━━━━━━━━━━━<br/>+ 5 more namespaces<br/>9 total namespaces]
+    end
+
+    subgraph "Query Catalog - QueryCatalog.cpp"
+        Catalog[QueryCatalog<br/>━━━━━━━━━━━━━━━━<br/>getAllQueries<br/>Returns Map of:<br/>• Query ID<br/>• SQL statement<br/>• Description<br/>• Parameters list<br/>• Example usage<br/>• isReadOnly flag<br/>━━━━━━━━━━━━━━━━<br/>initializeQueries<br/>Registers all queries<br/>in DatabaseManager<br/>━━━━━━━━━━━━━━━━<br/>generateDocumentation<br/>Auto-generates<br/>QUERY_REFERENCE.md]
+    end
+
+    subgraph "Database Manager"
+        DBManager[DatabaseManager<br/>━━━━━━━━━━━━━━━━<br/>registerPreparedQuery<br/>  queryId, sql<br/>━━━━━━━━━━━━━━━━<br/>getPreparedQuery<br/>  queryId<br/>  returns QSqlQuery<br/>━━━━━━━━━━━━━━━━<br/>hasQuery<br/>getRegisteredQueries<br/>━━━━━━━━━━━━━━━━<br/>m_preparedQueries<br/>Map QueryId to QSqlQuery]
+    end
+
+    subgraph "Repositories - Usage"
+        PatientRepo[SQLitePatientRepository<br/>━━━━━━━━━━━━━━━━<br/>findByMrn:<br/>  query = getPreparedQuery<br/>    QueryId::Patient::FIND_BY_MRN<br/>  query.bindValue:mrn, value<br/>  query.exec<br/>  return mapToAggregate<br/>━━━━━━━━━━━━━━━━<br/>save:<br/>  query = getPreparedQuery<br/>    QueryId::Patient::INSERT<br/>  bindAggregateToQuery<br/>  query.exec]
+        VitalsRepo[SQLiteTelemetryRepository<br/>━━━━━━━━━━━━━━━━<br/>saveBatch:<br/>  query = getPreparedQuery<br/>    QueryId::Vitals::INSERT<br/>  db.transaction<br/>  for each vital:<br/>    query.bindValue...<br/>    query.exec<br/>  db.commit<br/>━━━━━━━━━━━━━━━━<br/>getUnsynced:<br/>  query = getPreparedQuery<br/>    QueryId::Vitals::GET_UNSYNCED<br/>  query.exec]
+        MetricsRepo[TelemetryMetrics Handler<br/>━━━━━━━━━━━━━━━━<br/>recordMetrics:<br/>  query = getPreparedQuery<br/>    QueryId::Telemetry::INSERT_METRICS<br/>  query.bindValue...<br/>  query.exec]
+    end
+
+    subgraph "Auto-Generated Documentation"
+        QueryRefDoc[QUERY_REFERENCE.md<br/>━━━━━━━━━━━━━━━━<br/>Auto-generated from<br/>QueryCatalog<br/>━━━━━━━━━━━━━━━━<br/>Contains:<br/>• All query IDs<br/>• SQL statements<br/>• Parameters<br/>• Examples<br/>• Grouped by namespace]
+    end
+
+    QueryIdNS -->|1. Constants<br/>defined in| Catalog
+    Catalog -->|2. initializeQueries<br/>at startup| DBManager
+    DBManager -->|3. getPreparedQuery<br/>at runtime| PatientRepo
+    DBManager -->|3. getPreparedQuery<br/>at runtime| VitalsRepo
+    DBManager -->|3. getPreparedQuery<br/>at runtime| MetricsRepo
+    
+    PatientRepo -->|Uses constants<br/>with autocomplete| QueryIdNS
+    VitalsRepo -->|Uses constants<br/>with autocomplete| QueryIdNS
+    MetricsRepo -->|Uses constants<br/>with autocomplete| QueryIdNS
+    
+    Catalog -->|generateDocumentation<br/>at build time| QueryRefDoc
+
+    note1[Flow:<br/>1. Define constants in QueryRegistry.h<br/>2. Define SQL in QueryCatalog.cpp<br/>3. Initialize at startup initializeQueries<br/>4. Repositories use constants autocomplete<br/>5. Auto-generate docs at build time]
+
+    classDef registry fill:#fff9c4,stroke:#f57f17,stroke-width:3px
+    classDef catalog fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef dbmgr fill:#d1c4e9,stroke:#512da8,stroke-width:3px
+    classDef repo fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    classDef docs fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef note fill:#fffde7,stroke:#f9a825,stroke-width:2px,stroke-dasharray: 5 5
+
+    class QueryIdNS registry
+    class Catalog catalog
+    class DBManager dbmgr
+    class PatientRepo,VitalsRepo,MetricsRepo repo
+    class QueryRefDoc docs
+    class note1 note
+

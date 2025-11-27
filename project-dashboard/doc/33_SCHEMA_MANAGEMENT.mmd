@@ -1,0 +1,78 @@
+graph TB
+    subgraph "1. Schema Definition - Single Source of Truth"
+        YAML[database.yaml<br/>━━━━━━━━━━━━━━━━<br/>Tables:<br/>• patients<br/>• vitals<br/>• telemetry_metrics<br/>• alarms<br/>━━━━━━━━━━━━━━━━<br/>For Each Table:<br/>• columns type, constraints<br/>• indices unique, where<br/>• foreign keys<br/>• retention policies<br/>• descriptions<br/>━━━━━━━━━━━━━━━━<br/>Human-Readable<br/>Version Controlled<br/>Single Source of Truth]
+    end
+
+    subgraph "2. Code Generator - Python Script"
+        Generator[generate_schema.py<br/>━━━━━━━━━━━━━━━━<br/>Reads: database.yaml<br/>━━━━━━━━━━━━━━━━<br/>Generates:<br/>1. SchemaInfo.h<br/>2. create_tables.sql<br/>3. create_indices.sql<br/>4. migration SQL<br/>━━━━━━━━━━━━━━━━<br/>Auto-generates:<br/>• Table name constants<br/>• Column name constants<br/>• Constraint constants<br/>• Complete DDL]
+    end
+
+    subgraph "3. Generated Artifacts"
+        SchemaH[SchemaInfo.h<br/>━━━━━━━━━━━━━━━━<br/>namespace Schema::Tables<br/>  PATIENTS<br/>  VITALS<br/>  TELEMETRY_METRICS<br/>━━━━━━━━━━━━━━━━<br/>namespace Schema::Columns::Patients<br/>  MRN<br/>  NAME<br/>  DOB<br/>  SEX<br/>━━━━━━━━━━━━━━━━<br/>Type-Safe Constants<br/>Autocomplete Support<br/>Compile-Time Checking]
+        
+        DDL[create_tables.sql<br/>━━━━━━━━━━━━━━━━<br/>CREATE TABLE patients<br/>  mrn TEXT PRIMARY KEY<br/>  name TEXT NOT NULL<br/>  ...<br/>━━━━━━━━━━━━━━━━<br/>CREATE TABLE vitals<br/>  id INTEGER PRIMARY KEY<br/>  timestamp INTEGER<br/>  ...<br/>━━━━━━━━━━━━━━━━<br/>Auto-Generated DDL<br/>Consistent Format<br/>No Manual Errors]
+        
+        Indices[create_indices.sql<br/>━━━━━━━━━━━━━━━━<br/>CREATE INDEX idx_vitals_timestamp<br/>  ON vitals timestamp<br/>━━━━━━━━━━━━━━━━<br/>CREATE INDEX idx_vitals_patient_mrn<br/>  ON vitals patient_mrn<br/>━━━━━━━━━━━━━━━━<br/>All Indices<br/>Optimized Queries]
+        
+        Migration[0001_initial_schema.sql<br/>━━━━━━━━━━━━━━━━<br/>Complete schema creation<br/>━━━━━━━━━━━━━━━━<br/>0002_add_adt_workflow.sql<br/>ALTER TABLE patients ADD...<br/>━━━━━━━━━━━━━━━━<br/>Numbered Migrations<br/>Version Tracked<br/>Applied in Order]
+    end
+
+    subgraph "4. Repository Implementation - Usage"
+        Repo[SQLitePatientRepository<br/>━━━━━━━━━━━━━━━━<br/>OLD BAD:<br/>  query.valuemrn<br/>  query.valuename<br/>  Magic strings!<br/>━━━━━━━━━━━━━━━━<br/>NEW GOOD:<br/>  query.valueSchema::Columns::Patients::MRN<br/>  query.valueSchema::Columns::Patients::NAME<br/>  Type-safe constants!<br/>━━━━━━━━━━━━━━━━<br/>Benefits:<br/>• Autocomplete<br/>• Compile-time errors<br/>• Easy refactoring<br/>• Ctrl+Click to find usages]
+    end
+
+    subgraph "5. Migration Runner"
+        MigrateScript[migrate.py<br/>━━━━━━━━━━━━━━━━<br/>Checks current version<br/>━━━━━━━━━━━━━━━━<br/>Applies migrations in order:<br/>  0001_initial_schema.sql<br/>  0002_add_adt_workflow.sql<br/>  0003_add_telemetry_metrics.sql<br/>━━━━━━━━━━━━━━━━<br/>Tracks version in:<br/>  schema_version table<br/>━━━━━━━━━━━━━━━━<br/>Automated<br/>Version Controlled<br/>Idempotent]
+    end
+
+    subgraph "6. Build Integration"
+        CMake[CMakeLists.txt<br/>━━━━━━━━━━━━━━━━<br/>add_custom_targetgenerate_schema<br/>  COMMAND generate_schema.py<br/>━━━━━━━━━━━━━━━━<br/>add_dependenciesz-monitor<br/>  generate_schema<br/>━━━━━━━━━━━━━━━━<br/>Auto-generates before build<br/>Always in sync]
+        
+        PreCommit[Pre-Commit Hook<br/>━━━━━━━━━━━━━━━━<br/>If database.yaml changed:<br/>  1. Run generate_schema.py<br/>  2. Stage generated files<br/>  3. Commit together<br/>━━━━━━━━━━━━━━━━<br/>Prevents schema drift<br/>Ensures sync]
+    end
+
+    subgraph "7. Database"
+        DB[(SQLite Database<br/>━━━━━━━━━━━━━━━━<br/>Tables created from DDL<br/>Indices optimized<br/>━━━━━━━━━━━━━━━━<br/>schema_version table:<br/>  version<br/>  applied_at<br/>  description<br/>━━━━━━━━━━━━━━━━<br/>Migration history tracked)]
+    end
+
+    YAML -->|1. Input to| Generator
+    Generator -->|2. Generates| SchemaH
+    Generator -->|2. Generates| DDL
+    Generator -->|2. Generates| Indices
+    Generator -->|2. Generates| Migration
+    
+    SchemaH -->|3. Included by| Repo
+    Repo -->|Uses constants<br/>Autocomplete| SchemaH
+    
+    DDL -->|4. Used by| MigrateScript
+    Indices -->|4. Used by| MigrateScript
+    Migration -->|4. Applied by| MigrateScript
+    
+    MigrateScript -->|5. Creates/Updates| DB
+    
+    Generator -->|Triggered by| CMake
+    YAML -->|Monitored by| PreCommit
+    PreCommit -->|Runs| Generator
+    
+    Repo -->|Queries| DB
+
+    note1[Workflow:<br/>1. Edit database.yaml add column<br/>2. Run generate_schema.py<br/>3. SchemaInfo.h updated with new constant<br/>4. Use constant in repository code<br/>5. Create migration SQL file<br/>6. Run migrate.py to apply<br/>7. Commit YAML + generated files together]
+
+    classDef yaml fill:#fff9c4,stroke:#f57f17,stroke-width:3px
+    classDef generator fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef generated fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef repo fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    classDef migration fill:#f8bbd0,stroke:#c2185b,stroke-width:2px
+    classDef build fill:#d1c4e9,stroke:#512da8,stroke-width:2px
+    classDef db fill:#b0bec5,stroke:#37474f,stroke-width:3px
+    classDef note fill:#fffde7,stroke:#f9a825,stroke-width:2px,stroke-dasharray: 5 5
+
+    class YAML yaml
+    class Generator generator
+    class SchemaH,DDL,Indices generated
+    class Repo repo
+    class Migration,MigrateScript migration
+    class CMake,PreCommit build
+    class DB db
+    class note1 note
+

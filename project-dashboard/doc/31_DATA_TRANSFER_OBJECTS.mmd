@@ -1,0 +1,97 @@
+graph TB
+    subgraph "Interface Layer - UI/QML"
+        QML[QML Views<br/>PatientAdmissionModal<br/>SettingsView<br/>LoginView]
+        Controllers[QML Controllers<br/>PatientController<br/>ProvisioningController<br/>AuthenticationController]
+    end
+
+    subgraph "DTOs - Application Layer"
+        AdmitCmd[AdmitPatientCommand<br/>━━━━━━━━━━━━━━━━<br/>• mrn<br/>• name<br/>• bedLocation<br/>• admissionSource<br/>• admittedAt<br/>━━━━━━━━━━━━━━━━<br/>isValid]
+        DischargeCmd[DischargePatientCommand<br/>━━━━━━━━━━━━━━━━<br/>• mrn<br/>• dischargedAt<br/>• userId]
+        TelemetrySubmit[TelemetrySubmission<br/>━━━━━━━━━━━━━━━━<br/>• batchId<br/>• deviceId<br/>• patientMrn<br/>• vitalsList<br/>• alarmsList<br/>• dataCreatedAt]
+        ProvisionPayload[ProvisioningPayload<br/>━━━━━━━━━━━━━━━━<br/>• deviceId<br/>• serverUrl<br/>• clientCertificate<br/>• clientPrivateKey<br/>• signature]
+        LoginReq[LoginRequest<br/>━━━━━━━━━━━━━━━━<br/>• userId<br/>• pinHash<br/>• salt<br/>• deviceId]
+        TelemetryMetrics[TelemetryMetrics<br/>━━━━━━━━━━━━━━━━<br/>• batchId<br/>• dataCreatedAt<br/>• transmittedAt<br/>• serverReceivedAt<br/>• endToEndLatencyMs]
+    end
+
+    subgraph "Application Layer - Services"
+        AdmissionSvc[AdmissionService<br/>━━━━━━━━━━━━━━━━<br/>validateCommand<br/>createAggregate<br/>executeDomainLogic]
+        MonitoringSvc[MonitoringService<br/>━━━━━━━━━━━━━━━━<br/>createTelemetryBatch<br/>signBatch<br/>queueForTransmission]
+        ProvisioningSvc[ProvisioningService<br/>━━━━━━━━━━━━━━━━<br/>validatePayload<br/>applyConfiguration]
+        SecuritySvc[SecurityService<br/>━━━━━━━━━━━━━━━━<br/>authenticateUser<br/>createSession]
+    end
+
+    subgraph "Domain Layer - Aggregates & Value Objects"
+        PatientAgg[PatientAggregate<br/>━━━━━━━━━━━━━━━━<br/>Business Logic:<br/>• admit<br/>• discharge<br/>• transfer]
+        TelemetryBatch[TelemetryBatch<br/>━━━━━━━━━━━━━━━━<br/>Business Logic:<br/>• addVital<br/>• sign<br/>• validate]
+        DeviceAgg[DeviceAggregate<br/>━━━━━━━━━━━━━━━━<br/>Business Logic:<br/>• applyProvisioning<br/>• markProvisioned]
+        UserSession[UserSession<br/>━━━━━━━━━━━━━━━━<br/>Business Logic:<br/>• authenticate<br/>• refreshSession]
+        
+        PatientIdentity[PatientIdentity<br/>Value Object<br/>━━━━━━━━━━━━━━━━<br/>• mrn<br/>• name<br/>• dob<br/>• sex]
+        VitalRecord[VitalRecord<br/>Value Object<br/>━━━━━━━━━━━━━━━━<br/>• timestamp<br/>• heartRate<br/>• spo2]
+    end
+
+    subgraph "Infrastructure Layer - Repositories"
+        PatientRepo[SQLitePatientRepository]
+        TelemetryRepo[SQLiteTelemetryRepository]
+        DBMgr[DatabaseManager]
+    end
+
+    %% Flow: UI creates DTOs
+    QML -->|User Input| Controllers
+    Controllers -->|1. Create DTO<br/>2. Basic Validation| AdmitCmd
+    Controllers -->|Create DTO| DischargeCmd
+    Controllers -->|Create DTO| LoginReq
+
+    %% Flow: Controllers pass DTOs to Services
+    AdmitCmd -->|3. Pass DTO| AdmissionSvc
+    DischargeCmd -->|Pass DTO| AdmissionSvc
+    LoginReq -->|Pass DTO| SecuritySvc
+
+    %% Flow: Services validate and map DTOs to Domain
+    AdmissionSvc -->|4. Business Validation<br/>5. Map DTO to Domain| PatientIdentity
+    PatientIdentity -->|6. Create Aggregate| PatientAgg
+    AdmissionSvc -->|7. Execute Logic| PatientAgg
+
+    %% Flow: Monitoring creates telemetry DTOs
+    MonitoringSvc -->|Create DTO| TelemetrySubmit
+    MonitoringSvc -->|Domain Logic| TelemetryBatch
+    TelemetryBatch -->|Contains| VitalRecord
+    TelemetrySubmit -->|Pass to Network Thread<br/>Qt::QueuedConnection| NetworkThread[Network Thread]
+
+    %% Flow: Provisioning
+    ProvisionPayload -->|Receive from Central| ProvisioningSvc
+    ProvisioningSvc -->|Map & Validate| DeviceAgg
+
+    %% Flow: Authentication
+    SecuritySvc -->|Map & Validate| UserSession
+
+    %% Flow: Domain to Infrastructure
+    PatientAgg -->|8. Persist via Repository| PatientRepo
+    TelemetryBatch -->|Persist| TelemetryRepo
+    
+    %% Flow: Repositories use DatabaseManager
+    PatientRepo -->|QSqlQuery<br/>Prepared Statements| DBMgr
+    TelemetryRepo -->|Batch INSERT<br/>Transactions| DBMgr
+    
+    %% Flow: Metrics DTO
+    NetworkThread -->|After Transmission<br/>Create Metrics DTO| TelemetryMetrics
+    TelemetryMetrics -->|Save to DB| DBMgr
+
+    %% Annotations
+    note1[DTO Flow:<br/>1. UI creates DTO<br/>2. Controller validates DTO<br/>3. Service receives DTO<br/>4. Service validates business rules<br/>5. Service maps DTO to Domain<br/>6. Domain executes logic<br/>7. Repository persists<br/>8. Response flows back]
+    
+    %% Styling
+    classDef ui fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef dto fill:#fff9c4,stroke:#f57f17,stroke-width:3px
+    classDef service fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef domain fill:#f8bbd0,stroke:#c2185b,stroke-width:2px
+    classDef infra fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    classDef note fill:#fffde7,stroke:#f9a825,stroke-width:2px,stroke-dasharray: 5 5
+
+    class QML,Controllers ui
+    class AdmitCmd,DischargeCmd,TelemetrySubmit,ProvisionPayload,LoginReq,TelemetryMetrics dto
+    class AdmissionSvc,MonitoringSvc,ProvisioningSvc,SecuritySvc service
+    class PatientAgg,TelemetryBatch,DeviceAgg,UserSession,PatientIdentity,VitalRecord domain
+    class PatientRepo,TelemetryRepo,DBMgr infra
+    class note1 note
+
