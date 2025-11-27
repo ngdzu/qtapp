@@ -5,10 +5,34 @@ appliesTo:
 ---
 # Mermaid Diagram Guidelines
 
-- After editing any Mermaid (`*.mmd`) file, regenerate the corresponding SVG so reviewers can see the rendered output.
+## Naming Convention
+
+- **Diagram files MUST follow the order numbering convention** used by their parent document.
+- If a document is named `NN_DOCUMENT_NAME.md`, its diagrams should be named `NN_DIAGRAM_DESCRIPTION.mmd`.
+- **Example:**
+  - Document: `30_DATABASE_ACCESS_STRATEGY.md`
+  - Diagrams: `30_DATABASE_ACCESS_ARCHITECTURE.mmd`, `30_DATABASE_CONNECTION_STRATEGY.mmd`
+- **Example:**
+  - Document: `36_DATA_CACHING_STRATEGY.md`
+  - Diagrams: `36_DATA_CACHING_COMPONENT.mmd`, `36_DATA_CACHING_PRIORITY.mmd`
+
+## SVG Generation (Required)
+
+- **Every `.mmd` file MUST have a corresponding `.svg` file.**
+- After editing any Mermaid (`*.mmd`) file, **immediately regenerate the corresponding SVG** so reviewers can see the rendered output.
 - Use the project's standard command (run from repo root):
   ```bash
   npx @mermaid-js/mermaid-cli -i <path/to/diagram>.mmd -o <path/to/diagram>.svg
   ```
-- Replace `<path/to/diagram>` with the actual file you changed and check the CLI output for parsing errors. Commit both the `.mmd` and updated `.svg`.
+- Replace `<path/to/diagram>` with the actual file you changed and check the CLI output for parsing errors.
+- **Commit both the `.mmd` and updated `.svg` together** - they should always be in sync.
 - **Successfully generating the SVG confirms that the Mermaid syntax is correct** - if the command completes without errors, the diagram syntax is valid.
+
+## Quality Checklist
+
+Before committing:
+- [ ] `.mmd` file follows order numbering convention (e.g., `30_*`, `36_*`)
+- [ ] `.svg` file exists with the same base name
+- [ ] `.svg` file renders correctly (no syntax errors)
+- [ ] Both `.mmd` and `.svg` are committed together
+- [ ] Parent document references the diagram with correct relative paths
