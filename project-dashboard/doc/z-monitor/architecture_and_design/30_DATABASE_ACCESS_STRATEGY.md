@@ -110,8 +110,13 @@ PRIORITY 4 (LOW - Database Thread):
 - **Repository Pattern**: Natural fit for DDD
 - **Non-Intrusive**: POCOs (Plain Old C++ Objects) - no inheritance required
 - **Compile-Time Type Safety**: Catch errors at compile time
+- **Schema Integration**: Can use schema constants for table/column names
 
-**Example with QxOrm:**
+> **🔗 Schema Integration:**  
+> QxOrm registration uses column name constants from `SchemaInfo.h` (generated from `schema/database.yaml`).  
+> See [33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md) for schema definition workflow.
+
+**Example with QxOrm + Schema Constants:**
 
 ```cpp
 // Domain aggregate (POCO - no QxOrm dependencies)
@@ -127,17 +132,26 @@ public:
 };
 
 // QxOrm registration (in separate file)
+// ✅ Uses schema constants instead of hardcoded strings
+#include "generated/SchemaInfo.h"
+
 QX_REGISTER_HPP_EXPORT(PatientAggregate, qx::trait::no_base_class_defined, 0)
 
 namespace qx {
     template<> void register_class(QxClass<PatientAggregate>& t) {
-        t.id(&PatientAggregate::mrn, "mrn");
-        t.data(&PatientAggregate::name, "name");
-        t.data(&PatientAggregate::dateOfBirth, "date_of_birth");
-        t.data(&PatientAggregate::sex, "sex");
-        t.data(&PatientAggregate::bedLocation, "bed_location");
-        t.data(&PatientAggregate::admittedAt, "admitted_at");
-        t.data(&PatientAggregate::admissionSource, "admission_source");
+        using namespace Schema::Columns::Patients;  // ✅ Import schema constants
+        
+        // ✅ Type-safe column names from schema
+        t.id(&PatientAggregate::mrn, MRN);                           // "mrn"
+        t.data(&PatientAggregate::name, NAME);                        // "name"
+        t.data(&PatientAggregate::dateOfBirth, DOB);                  // "dob"
+        t.data(&PatientAggregate::sex, SEX);                          // "sex"
+        t.data(&PatientAggregate::bedLocation, BED_LOCATION);         // "bed_location"
+        t.data(&PatientAggregate::admittedAt, ADMITTED_AT);           // "admitted_at"
+        t.data(&PatientAggregate::admissionSource, ADMISSION_SOURCE); // "admission_source"
+        
+        // ✅ Table name from schema
+        t.setName(Schema::Tables::PATIENTS);  // "patients"
     }
 }
 
@@ -162,6 +176,12 @@ public:
     }
 };
 ```
+
+**Benefits of Schema Integration:**
+- ✅ **Single Source of Truth**: Column names defined in `database.yaml` only
+- ✅ **Type Safety**: QxOrm + schema constants = double type safety
+- ✅ **Refactoring**: Rename column in YAML → regenerate → compile error if ORM mapping outdated
+- ✅ **No Duplication**: No hardcoded strings in ORM registration
 
 ### **3.4 Alternative: Manual Qt SQL (No ORM)**
 
@@ -668,30 +688,292 @@ project-dashboard/doc/migrations/
 
 ---
 
-## 11. Implementation Checklist
+## 11. Integration with Schema Management
+
+### **11.1 ORM + Schema Workflow**
+
+QxOrm integrates with the schema management system to ensure type safety and single source of truth:
+
+```
+┌─────────────────────────────────────────┐
+│  1. Define Schema in YAML               │
+│     schema/database.yaml                │
+│     - Table: patients                   │
+│     - Columns: mrn, name, dob, ...      │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│  2. Generate Schema Constants           │
+│     scripts/generate_schema.py          │
+│     → SchemaInfo.h                      │
+│       Schema::Tables::PATIENTS          │
+│       Schema::Columns::Patients::MRN    │
+└──────────────┬──────────────────────────┘
+               │
+               ├──────────────┬────────────┐
+               ▼              ▼            ▼
+     ┌─────────────┐  ┌──────────┐  ┌──────────────┐
+     │ QxOrm       │  │ Manual   │  │ QueryRegistry│
+     │ Registration│  │ Qt SQL   │  │ Pattern      │
+     │             │  │          │  │              │
+     │ Uses Schema │  │ Uses     │  │ Uses Schema  │
+     │ Constants   │  │ Schema   │  │ Constants    │
+     │ for mapping │  │ Constants│  │ for query    │
+     │             │  │ in code  │  │ IDs          │
+     └─────────────┘  └──────────┘  └──────────────┘
+```
+
+### **11.2 Schema-Driven ORM Registration**
+
+**File Structure:**
+```
+z-monitor/src/infrastructure/persistence/
+├── orm/
+│   ├── PatientAggregateMapping.h       # QxOrm registration for PatientAggregate
+│   ├── VitalRecordMapping.h            # QxOrm registration for VitalRecord
+│   ├── AlarmAggregateMapping.h         # QxOrm registration for AlarmAggregate
+│   └── OrmRegistry.cpp                 # Register all ORM mappings
+└── generated/
+    └── SchemaInfo.h                    # Auto-generated from database.yaml
+```
+
+**Example: PatientAggregateMapping.h**
+
+```cpp
+#ifndef PATIENTAGGREGATEMAPPING_H
+#define PATIENTAGGREGATEMAPPING_H
+
+#include "domain/aggregates/PatientAggregate.h"
+#include "generated/SchemaInfo.h"  // ✅ Include schema constants
+#include <QxOrm.h>
+
+// QxOrm registration
+QX_REGISTER_HPP_EXPORT(PatientAggregate, qx::trait::no_base_class_defined, 0)
+
+namespace qx {
+    template<> void register_class(QxClass<PatientAggregate>& t) {
+        // ✅ Use schema constants (not hardcoded strings)
+        using namespace Schema::Tables;
+        using namespace Schema::Columns::Patients;
+        
+        // Table name
+        t.setName(PATIENTS);  // "patients"
+        
+        // Primary key
+        t.id(&PatientAggregate::mrn, MRN);  // "mrn"
+        
+        // Data fields
+        t.data(&PatientAggregate::name, NAME);                        // "name"
+        t.data(&PatientAggregate::dateOfBirth, DOB);                  // "dob"
+        t.data(&PatientAggregate::sex, SEX);                          // "sex"
+        t.data(&PatientAggregate::bedLocation, BED_LOCATION);         // "bed_location"
+        t.data(&PatientAggregate::admissionStatus, ADMISSION_STATUS); // "admission_status"
+        t.data(&PatientAggregate::admittedAt, ADMITTED_AT);           // "admitted_at"
+        t.data(&PatientAggregate::dischargedAt, DISCHARGED_AT);       // "discharged_at"
+        t.data(&PatientAggregate::admissionSource, ADMISSION_SOURCE); // "admission_source"
+    }
+}
+
+#endif // PATIENTAGGREGATEMAPPING_H
+```
+
+**Benefits:**
+1. ✅ **Schema Changes Propagate**: Update `database.yaml` → regenerate → compile errors if ORM mapping outdated
+2. ✅ **No Duplication**: Column names defined once in YAML
+3. ✅ **Type Safety**: Constants are compile-time checked
+4. ✅ **Autocomplete**: IDE suggests schema constants
+5. ✅ **Refactoring**: Rename column in YAML → find all usages in ORM
+
+### **11.3 Workflow: Adding a New Field**
+
+**Scenario:** Add `emergency_contact` field to `patients` table
+
+**Step 1: Update Schema YAML**
+```yaml
+# schema/database.yaml
+patients:
+  columns:
+    # ... existing columns ...
+    emergency_contact:
+      type: TEXT
+      nullable: true
+      description: "Emergency contact phone number"
+```
+
+**Step 2: Regenerate Schema Constants**
+```bash
+python3 scripts/generate_schema.py
+```
+
+This generates:
+```cpp
+// SchemaInfo.h
+namespace Schema::Columns::Patients {
+    // ... existing constants ...
+    constexpr const char* EMERGENCY_CONTACT = "emergency_contact";  // ✅ New constant
+}
+```
+
+**Step 3: Update Domain Aggregate**
+```cpp
+// PatientAggregate.h
+class PatientAggregate {
+    // ... existing fields ...
+    QString emergencyContact;  // ✅ New field
+};
+```
+
+**Step 4: Update ORM Registration**
+```cpp
+// PatientAggregateMapping.h
+t.data(&PatientAggregate::emergencyContact, EMERGENCY_CONTACT);  // ✅ Use constant
+```
+
+**Step 5: Create Migration**
+```sql
+-- schema/migrations/0004_add_emergency_contact.sql
+ALTER TABLE patients ADD COLUMN emergency_contact TEXT NULL;
+```
+
+**Step 6: Build and Test**
+```bash
+cmake --build build      # ✅ Schema regenerated automatically (pre-build)
+./scripts/migrate.py    # Apply migration
+```
+
+**Result:** Schema, ORM, and database all synchronized from single source (YAML)
+
+### **11.4 Validation: Schema vs ORM Mapping**
+
+**Optional: Generate validation script to ensure ORM mappings match schema**
+
+```python
+# scripts/validate_orm_mappings.py
+"""
+Validates that QxOrm mappings use schema constants correctly.
+Parses PatientAggregateMapping.h and checks against database.yaml.
+"""
+
+def validate_orm_mapping(yaml_schema, orm_mapping_file):
+    # Parse YAML schema
+    tables = yaml_schema['tables']
+    
+    # Parse C++ ORM mapping (simple regex)
+    with open(orm_mapping_file, 'r') as f:
+        content = f.read()
+    
+    # Extract all t.data() calls
+    mappings = re.findall(r't\.data\([^,]+,\s*([A-Z_]+)\)', content)
+    
+    # Check each mapping uses schema constant
+    for mapping in mappings:
+        if mapping not in schema_constants:
+            print(f"❌ ERROR: {mapping} not found in schema constants")
+            return False
+    
+    print(f"✅ ORM mapping validated: {orm_mapping_file}")
+    return True
+```
+
+**Run validation in CI/CD:**
+```bash
+python3 scripts/validate_orm_mappings.py
+```
+
+---
+
+## 12. Implementation Checklist
 
 - [ ] **Decide on ORM:** QxOrm vs Manual Qt SQL
   - [ ] If QxOrm: Add dependency, configure build
+    - [ ] Create `orm/` directory for QxOrm mappings
+    - [ ] **Integrate with schema constants** (`SchemaInfo.h`)
+    - [ ] Create mapping files for each aggregate
+    - [ ] Use `Schema::` constants in all mappings
   - [ ] If Manual: Implement Query Registry pattern (see [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md))
+    - [ ] **Integrate with schema constants** for column names
+- [ ] **Setup Schema Management** (see [33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md))
+  - [ ] Create `schema/database.yaml` (single source of truth)
+  - [ ] Create `scripts/generate_schema.py` (code generator)
+  - [ ] Integrate into CMake build (auto-generate before compile)
 - [ ] Create `DatabaseManager` class (connection management)
 - [ ] Define repository interfaces in domain layer
 - [ ] Implement SQLite repositories in infrastructure layer
   - [ ] Run on Database I/O thread (not RT thread)
   - [ ] Use batch INSERT for periodic persistence (every 10 min)
+  - [ ] **Use schema constants** for all column names
 - [ ] Enable WAL mode and optimize PRAGMAs
 - [ ] Create migration system (see [34_DATA_MIGRATION_WORKFLOW.md](./34_DATA_MIGRATION_WORKFLOW.md))
 - [ ] Write unit tests for repositories
 - [ ] Write performance benchmarks (< 5 second batch insert target)
 - [ ] Document mapping conventions (domain ↔ SQL)
+- [ ] **Validate ORM mappings match schema** (optional script)
 - [ ] Add to `ZTODO.md`
 
 ---
 
-## 12. References
+## 12. ORM Decision Matrix
+
+### **When to Use QxOrm:**
+
+✅ **Use QxOrm if:**
+- Many simple CRUD operations (Patient, Settings, Certificates)
+- Domain objects map 1:1 to tables
+- Team comfortable with ORM concepts
+- Development speed is priority
+- Schema is stable
+
+### **When to Use Manual Qt SQL:**
+
+✅ **Use Manual Qt SQL if:**
+- Complex queries (joins, aggregations, window functions)
+- Time-series operations (batch INSERT, time-range queries)
+- Need fine-grained performance control
+- Team prefers explicit SQL
+- Schema changes frequently
+
+### **Hybrid Approach (Recommended):**
+
+✅ **Best of Both Worlds:**
+- **QxOrm**: Simple aggregates (Patient, User, Certificate)
+- **Manual Qt SQL**: Complex queries (Vitals time-series, Telemetry metrics, Alarm history)
+- **Schema Constants**: Both approaches use `SchemaInfo.h` constants
+
+**Example:**
+```cpp
+// Simple CRUD: Use QxOrm
+class SQLitePatientRepository : public IPatientRepository {
+    std::optional<PatientAggregate> findByMrn(const QString& mrn) override {
+        PatientAggregate patient;
+        patient.mrn = mrn;
+        qx::dao::fetch_by_id(patient);  // ✅ QxOrm for simple fetch
+        return patient.name.isEmpty() ? std::nullopt : std::make_optional(patient);
+    }
+};
+
+// Complex time-series: Use Manual Qt SQL
+class SQLiteTelemetryRepository : public ITelemetryRepository {
+    QList<VitalRecord> getTimeRangeWithP95(const QString& mrn, 
+                                            const QDateTime& start, 
+                                            const QDateTime& end) override {
+        // ✅ Manual SQL for complex aggregation with window functions
+        QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Vitals::GET_TIME_RANGE_WITH_P95);
+        query.bindValue(":mrn", mrn);
+        query.bindValue(":start", start.toMSecsSinceEpoch());
+        query.bindValue(":end", end.toMSecsSinceEpoch());
+        // ... execute and map results
+    }
+};
+```
+
+---
+
+## 13. References
 
 - **[36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md)** – Data caching architecture (critical path explanation)
-- **[33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md)** – Schema definition and code generation (YAML → SchemaInfo.h)
-- **[32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md)** – Query string management and type-safe query IDs
+- **[33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md)** – **Schema definition and code generation (YAML → SchemaInfo.h)** ⭐ **ORM Integration**
+- **[32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md)** – Query string management and type-safe query IDs (for manual Qt SQL approach)
 - **[34_DATA_MIGRATION_WORKFLOW.md](./34_DATA_MIGRATION_WORKFLOW.md)** – Database migration strategy
 - **[31_DATA_TRANSFER_OBJECTS.md](./31_DATA_TRANSFER_OBJECTS.md)** – DTOs for data transfer between layers
 - **[10_DATABASE_DESIGN.md](./10_DATABASE_DESIGN.md)** – Database schema
@@ -700,6 +982,7 @@ project-dashboard/doc/migrations/
 - **[12_THREAD_MODEL.md](./12_THREAD_MODEL.md)** – Thread assignment (Database I/O thread)
 - Qt SQL Documentation: https://doc.qt.io/qt-6/sql-programming.html
 - QxOrm Documentation: https://www.qxorm.com/
+- QxOrm + Schema Integration: Custom pattern (documented in this file)
 
 ---
 

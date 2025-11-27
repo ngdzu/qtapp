@@ -3,9 +3,12 @@
 This document specifies the threading model, communication channels, latency targets, and implementation constraints for the Z Monitor. It explains how components should be partitioned across threads, which synchronization primitives to use, and measurable performance requirements to achieve a low-latency, safe, and predictable system.
 
 > **📋 Related Documents:**
-> - [System Components Reference (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - Complete list of all 98 system components
-> - [Architecture (doc/02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and data flow
-> - [DDD Strategy (doc/28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - Domain-Driven Design principles
+> - [System Components Reference (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - Complete list of all 117 system components (updated)
+> - [Data Caching Strategy (36_DATA_CACHING_STRATEGY.md)](./36_DATA_CACHING_STRATEGY.md) - In-memory caching, priority levels, decoupled critical path ⭐
+> - [Sensor Integration (37_SENSOR_INTEGRATION.md)](./37_SENSOR_INTEGRATION.md) - ISensorDataSource interface and implementations ⭐
+> - [Database Access Strategy (30_DATABASE_ACCESS_STRATEGY.md)](./30_DATABASE_ACCESS_STRATEGY.md) - ORM integration, schema management, performance targets ⭐
+> - [Architecture (02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and data flow
+> - [DDD Strategy (28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - Domain-Driven Design principles
 
 ---
 
@@ -137,40 +140,52 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 
 | Component | Layer | Type | Responsibility |
 |-----------|-------|------|----------------|
-| `DeviceSimulator` | Infrastructure | Adapter | Generates simulated vitals/waveforms (production: real sensor I/O) |
+| `WebSocketSensorDataSource` | Infrastructure | Adapter | Connects to external sensor simulator (ws://localhost:9002) |
+| `DeviceSimulator` | Infrastructure | Adapter | **LEGACY:** Generates simulated vitals/waveforms (replaced by WebSocketSensorDataSource in production) |
 | `MonitoringService` | Application | Service | Coordinates vitals ingestion, telemetry batching |
+| `VitalsCache` | Infrastructure | Adapter | **NEW:** In-memory cache for vitals (3-day capacity, ~39 MB), thread-safe with QReadWriteLock |
+| `WaveformCache` | Infrastructure | Adapter | **NEW:** Circular buffer for waveforms (30 seconds, ~0.1 MB), display-only |
 | `PatientAggregate` | Domain | Aggregate | Patient admission state, vitals history |
 | `TelemetryBatch` | Domain | Aggregate | Telemetry data collection, signing |
 | `AlarmAggregate` | Domain | Aggregate | Alarm lifecycle, state transitions |
 | `VitalRecord` | Domain | Value Object | Single vital sign measurement |
+| `WaveformSample` | Domain | Value Object | **NEW:** Single waveform sample (ECG, Pleth) |
 | `AlarmSnapshot` | Domain | Value Object | Alarm state snapshot |
 | `AlarmThreshold` | Domain | Value Object | Min/max alarm trigger values |
 
-**Workflow:**
-1. `DeviceSimulator` generates vitals (or reads from real hardware)
-2. `MonitoringService` receives vitals, updates `PatientAggregate`
-3. `MonitoringService` creates `VitalRecord` value objects
-4. `MonitoringService` evaluates alarm rules via `AlarmAggregate`
-5. `AlarmAggregate` creates `AlarmSnapshot` if alarm triggered
-6. `MonitoringService` builds `TelemetryBatch` with vitals + alarms
-7. `TelemetryBatch` signs data (via `SignatureService`)
-8. Batch enqueued to Database Thread via lock-free queue
+**Workflow (Updated with Caching):**
+1. `WebSocketSensorDataSource` receives vitals/waveforms from external simulator (or `DeviceSimulator` generates if simulator unavailable)
+2. `MonitoringService` receives vitals via Qt signals
+3. **NEW:** `MonitoringService` appends vitals to `VitalsCache` (in-memory, critical path)
+4. **NEW:** `MonitoringService` appends waveforms to `WaveformCache` (display-only, not persisted)
+5. `MonitoringService` creates `VitalRecord` value objects
+6. `MonitoringService` evaluates alarm rules via `AlarmAggregate` **using cached data**
+7. `AlarmAggregate` creates `AlarmSnapshot` if alarm triggered
+8. `MonitoringService` builds `TelemetryBatch` with vitals + alarms
+9. `TelemetryBatch` signs data (via `SignatureService`)
+10. Batch enqueued to Database Thread via lock-free queue **for background persistence**
 
 **Communication:**
-- **Inbound:** SPSC ring buffer from sensor I/O (production) or timer (simulation)
+- **Inbound:** WebSocket messages from sensor simulator, or timer-based simulation
 - **Outbound:**
-  - Lock-free queue to Database Thread (telemetry batches)
-  - Queued signals to Main/UI Thread (alarm events, vitals updates)
+  - Lock-free queue to Database Thread (telemetry batches for persistence) - **NON-CRITICAL**
+  - Queued signals to Main/UI Thread (alarm events, vitals updates) - **CRITICAL**
 
 **Domain Events Emitted:**
 - `TelemetryQueued`, `AlarmRaised`, `AlarmAcknowledged`
 
 **Latency Targets:**
 - Sensor read → sample enqueued: < 1 ms
-- Sample → processed (derived metrics): < 5 ms
-- Alarm detection → UI visible: < 50 ms
+- Sample → cached (`VitalsCache::append()`): < 5 ms **CRITICAL**
+- Alarm detection (using cache) → UI visible: < 50 ms **CRITICAL**
+- Cache → database persistence: < 5 seconds **NON-CRITICAL (background)**
 
-**Count:** 1 infrastructure + 1 application + 3 aggregates + 3 value objects = **8 components**
+**Key Architectural Change:**
+- **OLD:** MonitoringService → Database (blocking)
+- **NEW:** MonitoringService → VitalsCache (non-blocking, in-memory) → Database (background, periodic)
+- **Benefit:** Database latency doesn't affect alarm detection (decoupled critical path)
+
+**Count:** 2 infrastructure (sensor sources) + 2 infrastructure (caches) + 1 application + 3 aggregates + 4 value objects = **12 components** (was 8)
 
 ---
 
@@ -218,39 +233,61 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 **Thread Characteristics:**
 - **Priority:** I/O Priority (background, but responsive)
 - **Affinity:** Dedicated thread (SQLite single-writer pattern)
-- **Constraints:** Batch writes, use WAL mode, prepared statements
+- **Constraints:** Batch writes, use WAL mode, prepared statements, **ORM (QxOrm) optional**
 
 **Components on This Thread:**
 
 | Component | Layer | Type | Responsibility |
 |-----------|-------|------|----------------|
-| `DatabaseManager` | Infrastructure | Adapter | SQLite connection management, migrations |
-| **All Repository Implementations** | Infrastructure | Repository | Persistence layer |
-| - `SQLitePatientRepository` | Infrastructure | Repository | Patient data persistence |
-| - `SQLiteTelemetryRepository` | Infrastructure | Repository | Telemetry data persistence |
-| - `SQLiteAlarmRepository` | Infrastructure | Repository | Alarm history persistence |
-| - `SQLiteProvisioningRepository` | Infrastructure | Repository | Provisioning state persistence |
-| - `SQLiteUserRepository` | Infrastructure | Repository | User account persistence |
-| - `SQLiteAuditRepository` | Infrastructure | Repository | Security audit log persistence |
+| `DatabaseManager` | Infrastructure | Adapter | SQLite connection management, migrations, schema management |
+| **All Repository Implementations** | Infrastructure | Repository | Persistence layer (uses QxOrm or Manual Qt SQL with Schema constants) |
+| - `SQLitePatientRepository` | Infrastructure | Repository | Patient data persistence (ORM or Manual) |
+| - `SQLiteTelemetryRepository` | Infrastructure | Repository | Telemetry data persistence (likely Manual for time-series) |
+| - `SQLiteVitalsRepository` | Infrastructure | Repository | **NEW:** Vitals time-series persistence (Manual Qt SQL for performance) |
+| - `SQLiteAlarmRepository` | Infrastructure | Repository | Alarm history persistence (ORM or Manual) |
+| - `SQLiteProvisioningRepository` | Infrastructure | Repository | Provisioning state persistence (ORM or Manual) |
+| - `SQLiteUserRepository` | Infrastructure | Repository | User account persistence (ORM or Manual) |
+| - `SQLiteAuditRepository` | Infrastructure | Repository | Security audit log persistence (Manual for append-only) |
+| `PersistenceScheduler` | Application | Service | **NEW:** Periodic persistence of in-memory cache (every 10 min or 10,000 records) |
+| `DataCleanupService` | Application | Service | **NEW:** Daily data cleanup (7-day retention, runs at 3 AM) |
 | `LogService` | Infrastructure | Adapter | Centralized logging mechanism |
 | `DataArchiveService` | Application | Service | Archives old data per retention policies |
 
-**Workflow:**
-1. Receive batched write requests via MPSC queue
-2. Open transaction
-3. Execute prepared statements for all batched records
-4. Commit transaction (every 100 records or 200ms)
-5. Send ack via queued signal
+**Workflow (Updated with Periodic Persistence):**
+1. **NEW:** `PersistenceScheduler` triggers every 10 minutes (or when 10,000 records accumulated)
+2. **NEW:** `PersistenceScheduler` reads data from `VitalsCache` (in-memory, RT thread)
+3. **NEW:** `PersistenceScheduler` passes batch to `SQLiteVitalsRepository`
+4. `SQLiteVitalsRepository` opens transaction
+5. Execute prepared statements (or QxOrm batch insert) for all batched records
+6. Commit transaction
+7. **NEW:** `DataCleanupService` runs daily at 3 AM: deletes data > 7 days old
+8. Send ack via queued signal
 
 **Communication:**
-- **Inbound:** MPSC queue from RT thread, Application Services, Background threads
+- **Inbound:** 
+  - **NEW:** Timer-based triggers from `PersistenceScheduler` (every 10 min)
+  - **NEW:** Timer-based triggers from `DataCleanupService` (daily at 3 AM)
+  - MPSC queue from Application Services (admission, provisioning, auth)
 - **Outbound:** Queued signals for completion/errors
 
-**Latency Targets:**
-- Background batch write: < 200 ms
-- Critical alarm write (immediate flush): < 100 ms
+**Schema Management Integration:**
+- **Database Schema:** Defined in `schema/database.yaml` (single source of truth)
+- **Code Generation:** `SchemaInfo.h` generated with type-safe constants
+- **ORM Integration:** If using QxOrm, mappings use `Schema::Columns::` constants
+- **Migration:** Versioned SQL files applied by migration runner
+- See [33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md) for complete workflow
 
-**Count:** 1 infrastructure (DatabaseManager) + 6 repositories + 1 infrastructure (LogService) + 1 application service = **9 components**
+**Latency Targets (Revised):**
+- **NEW:** Background batch persistence (10 min schedule): < 5 seconds **NON-CRITICAL**
+- **NEW:** Daily cleanup (3 AM): < 30 seconds **NON-CRITICAL**
+- ~~Critical alarm write (immediate flush): < 100 ms~~ **REMOVED:** Alarms use in-memory cache, no immediate database write needed
+
+**Key Architectural Change:**
+- **OLD:** Database writes were on critical path (alarm latency affected)
+- **NEW:** Database writes are background tasks only (alarm latency decoupled)
+- **Benefit:** Database latency doesn't affect real-time monitoring or alarm detection
+
+**Count:** 1 infrastructure (DatabaseManager) + 7 repositories (added VitalsRepository) + 2 application services (added PersistenceScheduler) + 1 application service (DataCleanupService) + 1 infrastructure (LogService) + 1 application service (DataArchiveService) = **13 components** (was 9)
 
 ---
 
@@ -377,15 +414,29 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 | Thread | Component Count | Component Types |
 |--------|----------------|-----------------|
 | **Main/UI Thread** | 28 | 10 controllers + 7 views + 11 QML components |
-| **Real-Time Processing** | 8 | 1 infrastructure + 1 application + 3 aggregates + 3 value objects |
+| **Real-Time Processing** | 12 | 2 infrastructure (sensors) + 2 infrastructure (caches) + 1 application + 3 aggregates + 4 value objects |
 | **Application Services** | 11 | 3 services + 4 aggregates + 4 value objects |
-| **Database I/O** | 9 | 1 infrastructure + 6 repositories + 1 infrastructure + 1 service |
+| **Database I/O** | 13 | 1 infrastructure + 7 repositories + 4 application services + 1 infrastructure |
 | **Network I/O** | 11 | 5 network + 3 security + 1 aggregate + 2 value objects |
 | **Background Tasks** | 9 | 2 services + 7 infrastructure |
-| **Domain Interfaces** | 6 | Repository interfaces (contracts, not implementations) |
+| **Domain Interfaces** | 7 | Repository interfaces (contracts, not implementations) - added `IVitalsRepository`, `ISensorDataSource` |
 | **DTOs** | 6 | Data transfer objects (thread-agnostic) |
 | **Domain Events** | 11 | Events (emitted by various threads, consumed by UI/logging) |
-| **Total** | **98** | All system components accounted for |
+| **Sensor Adapters** | 5 | `WebSocketSensorDataSource`, `SimulatorDataSource`, `MockSensorDataSource`, `HardwareSensorAdapter`, `ReplayDataSource` (implementations of `ISensorDataSource`) |
+| **Total** | **113** | **All system components accounted for** (increased from 98 due to caching architecture and sensor integration) |
+
+**Component Count Changes:**
+- **+4** Real-Time Processing (added sensor sources and caches)
+- **+4** Database I/O (added VitalsRepository, PersistenceScheduler, DataCleanupService)
+- **+1** Domain Interfaces (ISensorDataSource)
+- **+5** Sensor Adapters (implementations of ISensorDataSource)
+- **+1** Value Objects (WaveformSample)
+- **Total increase:** +15 components (98 → 113)
+
+**Rationale for Increase:**
+1. **Data Caching Strategy:** Added `VitalsCache`, `WaveformCache`, `PersistenceScheduler`, `DataCleanupService` to decouple critical path from database latency (see [36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md))
+2. **Sensor Integration:** Added `ISensorDataSource` interface and multiple implementations for flexible sensor data acquisition (see [37_SENSOR_INTEGRATION.md](./37_SENSOR_INTEGRATION.md))
+3. **Database Optimization:** Added `IVitalsRepository` for time-series vitals persistence separate from telemetry metrics
 
 ---
 
@@ -1323,12 +1374,40 @@ Instrument with timestamped events for:
 
 ## 16. References
 
-- `doc/29_SYSTEM_COMPONENTS.md` – Complete list of all 98 system components
-- `doc/02_ARCHITECTURE.md` – High-level architecture and data flow
-- `doc/28_DOMAIN_DRIVEN_DESIGN.md` – DDD strategy and layering
-- `doc/09_CLASS_DESIGNS.md` – Detailed class documentation
-- `doc/18_TESTING_WORKFLOW.md` – Testing strategy and benchmarks
+- **[29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md)** – Complete list of all 117 system components (updated from 98)
+- **[36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md)** – **Data caching architecture (VitalsCache, WaveformCache, priority levels)** ⭐
+- **[37_SENSOR_INTEGRATION.md](./37_SENSOR_INTEGRATION.md)** – **Sensor data source integration (ISensorDataSource interface)** ⭐
+- **[30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md)** – Database access strategy, ORM integration, performance targets
+- **[33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md)** – Schema management and code generation workflow
+- **[02_ARCHITECTURE.md](./02_ARCHITECTURE.md)** – High-level architecture and data flow
+- **[28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md)** – DDD strategy and layering
+- **[09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md)** – Detailed class documentation
+- **[18_TESTING_WORKFLOW.md](./18_TESTING_WORKFLOW.md)** – Testing strategy and benchmarks
 
 ---
 
-*This document is the authoritative reference for thread topology and service-to-thread mapping. Keep it synchronized with `29_SYSTEM_COMPONENTS.md`.*
+**Key Architectural Changes (2025-11-27):**
+
+1. **Data Caching Decouples Critical Path:**
+   - **OLD:** Sensor → MonitoringService → Database (blocking) → Alarms
+   - **NEW:** Sensor → MonitoringService → VitalsCache (in-memory) → Alarms (database writes happen in background)
+   - **Benefit:** Database latency doesn't affect alarm detection latency
+
+2. **Periodic Persistence (Non-Critical):**
+   - `PersistenceScheduler` runs every 10 minutes on Database Thread
+   - Batch writes to database (target: < 5 seconds)
+   - No impact on real-time monitoring or alarm detection
+
+3. **Sensor Abstraction:**
+   - `ISensorDataSource` interface enables swappable sensor implementations
+   - `WebSocketSensorDataSource` connects to external simulator
+   - Follows Dependency Inversion Principle
+
+4. **ORM Integration:**
+   - Repositories can use QxOrm (lightweight ORM) or Manual Qt SQL
+   - All use schema constants from `SchemaInfo.h` (generated from `database.yaml`)
+   - See [30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md) for details
+
+---
+
+*This document is the authoritative reference for thread topology and service-to-thread mapping. Keep it synchronized with [29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md) (currently 117 components).*

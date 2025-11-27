@@ -15,13 +15,24 @@ graph TB
         IAuditRepo[IAuditRepository]
     end
 
+    subgraph "Schema Management - Single Source of Truth"
+        SchemaYAML[database.yaml<br/>━━━━━━━━━━━━━━━━<br/>Tables, Columns<br/>Indices, Constraints<br/>Retention Policies<br/>━━━━━━━━━━━━━━━━<br/>⭐ Single Source]
+        SchemaGen[generate_schema.py<br/>Code Generator]
+        SchemaH[SchemaInfo.h<br/>━━━━━━━━━━━━━━━━<br/>Schema::Tables::<br/>• PATIENTS<br/>• VITALS<br/>━━━━━━━━━━━━━━━━<br/>Schema::Columns::<br/>• Patients::MRN<br/>• Vitals::TIMESTAMP<br/>━━━━━━━━━━━━━━━━<br/>✅ Type-Safe Constants]
+    end
+
     subgraph "Infrastructure Layer - Repository Implementations"
-        SQLitePatientRepo[SQLitePatientRepository<br/>Uses: QSqlQuery + Prepared Statements]
-        SQLiteTelemetryRepo[SQLiteTelemetryRepository<br/>Uses: Batch INSERT with Transactions]
+        SQLitePatientRepo[SQLitePatientRepository<br/>━━━━━━━━━━━━━━━━<br/>Option 1: QxOrm<br/>  qx::dao::fetch_by_id<br/>  Uses Schema Constants<br/>━━━━━━━━━━━━━━━━<br/>Option 2: Manual Qt SQL<br/>  QSqlQuery + QueryRegistry<br/>  Uses Schema Constants]
+        SQLiteTelemetryRepo[SQLiteTelemetryRepository<br/>━━━━━━━━━━━━━━━━<br/>Manual Qt SQL<br/>Batch INSERT<br/>Time-Series Queries<br/>Uses Schema Constants]
         SQLiteAlarmRepo[SQLiteAlarmRepository]
         SQLiteProvisioningRepo[SQLiteProvisioningRepository]
         SQLiteUserRepo[SQLiteUserRepository]
         SQLiteAuditRepo[SQLiteAuditRepository]
+    end
+
+    subgraph "ORM Layer Optional QxOrm"
+        OrmPatient[PatientAggregateMapping<br/>━━━━━━━━━━━━━━━━<br/>QxOrm Registration:<br/>t.setNameTables::PATIENTS<br/>t.idmrn, Columns::Patients::MRN<br/>t.dataname, Columns::Patients::NAME<br/>━━━━━━━━━━━━━━━━<br/>✅ Uses Schema Constants]
+        OrmVital[VitalRecordMapping<br/>Similar pattern]
     end
 
     subgraph "Infrastructure Layer - Database Manager"
@@ -31,6 +42,10 @@ graph TB
     subgraph "Database - SQLite + SQLCipher"
         DB[(SQLite Database<br/>━━━━━━━━━━━━━━━━<br/>WAL Mode Enabled<br/>Encrypted with SQLCipher<br/>━━━━━━━━━━━━━━━━<br/>Tables:<br/>• patients<br/>• vitals<br/>• alarms<br/>• telemetry_metrics<br/>• certificates<br/>• security_audit_log<br/>• ...)]
     end
+    
+    %% Schema workflow
+    SchemaYAML -->|generates| SchemaGen
+    SchemaGen -->|produces| SchemaH
 
     %% Application Services depend on Repository Interfaces
     MonitoringService --> IPatientRepo
@@ -50,6 +65,16 @@ graph TB
     IUserRepo -.implements.-> SQLiteUserRepo
     IAuditRepo -.implements.-> SQLiteAuditRepo
 
+    %% Schema constants used by repositories and ORM
+    SchemaH -->|"includes<br/>type-safe constants"| SQLitePatientRepo
+    SchemaH -->|"includes<br/>type-safe constants"| SQLiteTelemetryRepo
+    SchemaH -->|"includes<br/>type-safe constants"| OrmPatient
+    SchemaH -->|"includes<br/>type-safe constants"| OrmVital
+
+    %% ORM used by repositories (optional)
+    OrmPatient -.optional.-> SQLitePatientRepo
+    OrmVital -.optional.-> SQLiteTelemetryRepo
+
     %% All Repository Implementations use DatabaseManager
     SQLitePatientRepo --> DBManager
     SQLiteTelemetryRepo --> DBManager
@@ -60,6 +85,9 @@ graph TB
 
     %% DatabaseManager accesses SQLite
     DBManager --> DB
+    
+    %% Schema generates DDL for database
+    SchemaGen -.generates DDL.-> DB
 
     %% Styling
     classDef appService fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
@@ -67,10 +95,14 @@ graph TB
     classDef repoImpl fill:#ffccbc,stroke:#d84315,stroke-width:2px
     classDef dbManager fill:#d1c4e9,stroke:#512da8,stroke-width:3px
     classDef database fill:#b0bec5,stroke:#37474f,stroke-width:3px
+    classDef schema fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    classDef orm fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
 
     class MonitoringService,AdmissionService,ProvisioningService,SecurityService appService
     class IPatientRepo,ITelemetryRepo,IAlarmRepo,IProvisioningRepo,IUserRepo,IAuditRepo repoInterface
     class SQLitePatientRepo,SQLiteTelemetryRepo,SQLiteAlarmRepo,SQLiteProvisioningRepo,SQLiteUserRepo,SQLiteAuditRepo repoImpl
     class DBManager dbManager
     class DB database
+    class SchemaYAML,SchemaGen,SchemaH schema
+    class OrmPatient,OrmVital orm
 

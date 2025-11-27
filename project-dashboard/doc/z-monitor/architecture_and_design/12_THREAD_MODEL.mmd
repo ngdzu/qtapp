@@ -4,8 +4,11 @@ flowchart TB
   end
 
   subgraph RTThread[Real-Time Processing Thread - High Priority]
-    DeviceSim[DeviceSimulator]
+    SensorWS[WebSocketSensorDataSource<br/>ws://localhost:9002]
+    DeviceSim[DeviceSimulator<br/>LEGACY fallback]
     MonitorSvc[MonitoringService]
+    VCache[VitalsCache<br/>3-day in-memory<br/>~39 MB]
+    WCache[WaveformCache<br/>30-sec circular<br/>~0.1 MB]
     PatientAgg[PatientAggregate]
     TelemetryBatch[TelemetryBatch]
     AlarmAgg[AlarmAggregate]
@@ -18,8 +21,10 @@ flowchart TB
   end
 
   subgraph DBThread[Database I/O Thread - Single Writer]
-    DBManager[DatabaseManager]
-    Repos[6 SQLite Repositories]
+    DBManager[DatabaseManager<br/>+ Schema Management]
+    Repos[7 SQLite Repositories<br/>+ VitalsRepository]
+    PersistSched[PersistenceScheduler<br/>every 10 min]
+    CleanupSvc[DataCleanupService<br/>daily at 3 AM]
     LogSvc[LogService]
     ArchiveSvc[DataArchiveService]
   end
@@ -42,14 +47,19 @@ flowchart TB
     QRGen[QRCodeGenerator]
   end
 
-  DeviceSim -->|SPSC ring buffer<br/>vitals samples| MonitorSvc
+  SensorWS -->|Qt signals<br/>vitals/waveforms| MonitorSvc
+  DeviceSim -->|fallback<br/>if simulator down| MonitorSvc
+  MonitorSvc -->|append<br/>CRITICAL < 5ms| VCache
+  MonitorSvc -->|append<br/>display only| WCache
+  VCache -->|read for<br/>alarm eval| AlarmAgg
   MonitorSvc -->|update state| PatientAgg
   MonitorSvc -->|create batch| TelemetryBatch
-  MonitorSvc -->|evaluate rules| AlarmAgg
   AlarmAgg -->|Qt::QueuedConnection<br/>alarm events| UI
   MonitorSvc -->|Qt::QueuedConnection<br/>vitals updates| UI
-  TelemetryBatch -->|MPSC queue<br/>batched writes| DBThread
+  VCache -.->|periodic read<br/>every 10 min| PersistSched
+  PersistSched -->|batch INSERT<br/>NON-CRITICAL| Repos
   TelemetryBatch -->|Queue<br/>telemetry submission| NetThread
+  CleanupSvc -->|daily DELETE<br/>> 7 days| Repos
 
   UI -->|Queued calls<br/>admission requests| AdmissionSvc
   UI -->|Queued calls<br/>provisioning| ProvisionSvc

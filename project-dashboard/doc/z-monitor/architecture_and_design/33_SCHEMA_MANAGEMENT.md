@@ -1145,13 +1145,209 @@ git commit -m "Add emergency_contact column to patients table"
 
 ---
 
-## 13. References
+## 13. Integration with ORM (QxOrm)
 
-- `doc/32_QUERY_REGISTRY.md` – Query string management (similar pattern)
-- `doc/30_DATABASE_ACCESS_STRATEGY.md` – Repository pattern
-- `doc/10_DATABASE_DESIGN.md` – Database schema
+### **13.1 ORM Uses Schema Constants**
+
+If using QxOrm for object-relational mapping, the ORM registration **must use schema constants** to maintain single source of truth:
+
+**File:** `z-monitor/src/infrastructure/persistence/orm/PatientAggregateMapping.h`
+
+```cpp
+#include "domain/aggregates/PatientAggregate.h"
+#include "generated/SchemaInfo.h"  // ✅ Include schema constants
+#include <QxOrm.h>
+
+QX_REGISTER_HPP_EXPORT(PatientAggregate, qx::trait::no_base_class_defined, 0)
+
+namespace qx {
+    template<> void register_class(QxClass<PatientAggregate>& t) {
+        // ✅ Use schema constants (not hardcoded strings)
+        using namespace Schema::Tables;
+        using namespace Schema::Columns::Patients;
+        
+        t.setName(PATIENTS);  // Table name from schema
+        t.id(&PatientAggregate::mrn, MRN);  // Column names from schema
+        t.data(&PatientAggregate::name, NAME);
+        t.data(&PatientAggregate::dateOfBirth, DOB);
+        t.data(&PatientAggregate::sex, SEX);
+        t.data(&PatientAggregate::bedLocation, BED_LOCATION);
+        t.data(&PatientAggregate::admittedAt, ADMITTED_AT);
+        t.data(&PatientAggregate::admissionSource, ADMISSION_SOURCE);
+    }
+}
+```
+
+**Benefits:**
+- ✅ Schema changes propagate to ORM (compile error if mapping outdated)
+- ✅ No duplication of table/column names
+- ✅ Type-safe column names in ORM registration
+- ✅ Autocomplete works for ORM mapping
+
+### **13.2 Workflow: Schema Change Affects ORM**
+
+**Scenario:** Rename column `dob` → `date_of_birth`
+
+**Step 1: Update Schema YAML**
+```yaml
+# schema/database.yaml
+patients:
+  columns:
+    date_of_birth:  # ✅ Renamed from 'dob'
+      type: TEXT
+      nullable: true
+      description: "Date of birth (ISO 8601: YYYY-MM-DD)"
+```
+
+**Step 2: Regenerate Schema**
+```bash
+python3 scripts/generate_schema.py
+```
+
+**Output:**
+```cpp
+// SchemaInfo.h
+namespace Schema::Columns::Patients {
+    constexpr const char* DATE_OF_BIRTH = "date_of_birth";  // ✅ Updated constant
+    // Old constant 'DOB' removed → compile error if still used!
+}
+```
+
+**Step 3: Build Fails (Good!)**
+```bash
+cmake --build build
+
+# ❌ Compile error in PatientAggregateMapping.h:
+# error: 'DOB' is not a member of 'Schema::Columns::Patients'
+#     t.data(&PatientAggregate::dateOfBirth, DOB);
+#                                            ^~~
+```
+
+**Step 4: Fix ORM Mapping**
+```cpp
+// PatientAggregateMapping.h
+t.data(&PatientAggregate::dateOfBirth, DATE_OF_BIRTH);  // ✅ Updated to new constant
+```
+
+**Step 5: Create Migration**
+```sql
+-- schema/migrations/0005_rename_dob_column.sql
+ALTER TABLE patients RENAME COLUMN dob TO date_of_birth;
+```
+
+**Step 6: Build Success**
+```bash
+cmake --build build  # ✅ Compiles successfully
+python3 scripts/migrate.py --db data/zmonitor.db  # Apply migration
+```
+
+**Result:** Schema, ORM, and database all synchronized automatically
+
+### **13.3 Directory Structure with ORM**
+
+```
+z-monitor/
+├── schema/
+│   ├── database.yaml                    # ⭐ Single source of truth
+│   ├── migrations/
+│   │   ├── 0001_initial_schema.sql
+│   │   ├── 0002_add_adt_workflow.sql
+│   │   └── 0005_rename_dob_column.sql   # Schema changes
+│   └── generated/
+│       └── ddl/
+│           ├── create_tables.sql         # ✅ Generated
+│           └── create_indices.sql        # ✅ Generated
+├── src/
+│   ├── domain/
+│   │   └── aggregates/
+│   │       └── PatientAggregate.h       # POCO (no schema dependencies)
+│   └── infrastructure/
+│       └── persistence/
+│           ├── generated/
+│           │   └── SchemaInfo.h         # ✅ Generated from YAML
+│           ├── orm/
+│           │   ├── PatientAggregateMapping.h   # ✅ Uses SchemaInfo.h
+│           │   ├── VitalRecordMapping.h
+│           │   └── OrmRegistry.cpp
+│           ├── repositories/
+│           │   ├── SQLitePatientRepository.cpp # ✅ Uses QxOrm or Qt SQL
+│           │   └── SQLiteTelemetryRepository.cpp
+│           └── DatabaseManager.cpp
+└── scripts/
+    ├── generate_schema.py               # Code generator
+    └── migrate.py                       # Migration runner
+```
+
+### **13.4 Validation Script (Optional)**
+
+Create a script to validate ORM mappings match schema:
+
+```python
+# scripts/validate_orm_schema.py
+"""
+Validates that ORM mappings use schema constants correctly.
+"""
+import yaml
+import re
+from pathlib import Path
+
+def validate_orm_mappings():
+    # Load schema
+    with open('schema/database.yaml', 'r') as f:
+        schema = yaml.safe_load(f)
+    
+    # Get all expected constants
+    expected_constants = set()
+    for table_name, table_def in schema['tables'].items():
+        for col_name in table_def['columns'].keys():
+            const_name = col_name.upper().replace('.', '_')
+            expected_constants.add(const_name)
+    
+    # Parse ORM mapping files
+    orm_dir = Path('src/infrastructure/persistence/orm')
+    errors = []
+    
+    for mapping_file in orm_dir.glob('*Mapping.h'):
+        with open(mapping_file, 'r') as f:
+            content = f.read()
+        
+        # Extract all t.data() calls
+        for match in re.finditer(r't\.data\([^,]+,\s*([A-Z_]+)\)', content):
+            constant = match.group(1)
+            if constant not in expected_constants:
+                errors.append(f"{mapping_file.name}: Unknown constant '{constant}'")
+    
+    if errors:
+        print("❌ ORM mapping validation FAILED:")
+        for error in errors:
+            print(f"   {error}")
+        return False
+    
+    print("✅ All ORM mappings validated successfully")
+    return True
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(0 if validate_orm_mappings() else 1)
+```
+
+**Run in CI/CD:**
+```yaml
+# .github/workflows/validate.yml
+- name: Validate ORM Mappings
+  run: python3 scripts/validate_orm_schema.py
+```
+
+---
+
+## 14. References
+
+- **[30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md)** – **Repository pattern and ORM integration** ⭐
+- **[32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md)** – Query string management (similar pattern, for manual Qt SQL)
+- **[10_DATABASE_DESIGN.md](./10_DATABASE_DESIGN.md)** – Database schema
 - YAML Specification: https://yaml.org/spec/1.2.2/
 - SQLite Documentation: https://www.sqlite.org/lang.html
+- QxOrm Documentation: https://www.qxorm.com/
 
 ---
 

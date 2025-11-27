@@ -20,6 +20,10 @@ graph TB
     subgraph "4. Repository Implementation - Usage"
         Repo[SQLitePatientRepository<br/>━━━━━━━━━━━━━━━━<br/>OLD BAD:<br/>  query.valuemrn<br/>  query.valuename<br/>  Magic strings!<br/>━━━━━━━━━━━━━━━━<br/>NEW GOOD:<br/>  query.valueSchema::Columns::Patients::MRN<br/>  query.valueSchema::Columns::Patients::NAME<br/>  Type-safe constants!<br/>━━━━━━━━━━━━━━━━<br/>Benefits:<br/>• Autocomplete<br/>• Compile-time errors<br/>• Easy refactoring<br/>• Ctrl+Click to find usages]
     end
+    
+    subgraph "4b. ORM Integration Optional - QxOrm"
+        OrmMapping[PatientAggregateMapping.h<br/>━━━━━━━━━━━━━━━━<br/>QxOrm Registration:<br/>━━━━━━━━━━━━━━━━<br/>OLD BAD:<br/>  t.setNamepatients<br/>  t.idmrn, mrn<br/>  Magic strings!<br/>━━━━━━━━━━━━━━━━<br/>NEW GOOD:<br/>  t.setNameSchema::Tables::PATIENTS<br/>  t.idmrn, Schema::Columns::Patients::MRN<br/>  Type-safe constants!<br/>━━━━━━━━━━━━━━━━<br/>Benefits:<br/>• Schema changes propagate to ORM<br/>• Compile errors if mapping outdated<br/>• No duplication of column names]
+    end
 
     subgraph "5. Migration Runner"
         MigrateScript[migrate.py<br/>━━━━━━━━━━━━━━━━<br/>Checks current version<br/>━━━━━━━━━━━━━━━━<br/>Applies migrations in order:<br/>  0001_initial_schema.sql<br/>  0002_add_adt_workflow.sql<br/>  0003_add_telemetry_metrics.sql<br/>━━━━━━━━━━━━━━━━<br/>Tracks version in:<br/>  schema_version table<br/>━━━━━━━━━━━━━━━━<br/>Automated<br/>Version Controlled<br/>Idempotent]
@@ -42,7 +46,9 @@ graph TB
     Generator -->|2. Generates| Migration
     
     SchemaH -->|3. Included by| Repo
+    SchemaH -->|3. Included by| OrmMapping
     Repo -->|Uses constants<br/>Autocomplete| SchemaH
+    OrmMapping -->|Uses constants<br/>Type-safe mapping| SchemaH
     
     DDL -->|4. Used by| MigrateScript
     Indices -->|4. Used by| MigrateScript
@@ -55,13 +61,17 @@ graph TB
     PreCommit -->|Runs| Generator
     
     Repo -->|Queries| DB
+    OrmMapping -.used by.-> Repo
 
-    note1[Workflow:<br/>1. Edit database.yaml add column<br/>2. Run generate_schema.py<br/>3. SchemaInfo.h updated with new constant<br/>4. Use constant in repository code<br/>5. Create migration SQL file<br/>6. Run migrate.py to apply<br/>7. Commit YAML + generated files together]
+    note1[Workflow:<br/>1. Edit database.yaml add column<br/>2. Run generate_schema.py<br/>3. SchemaInfo.h updated with new constant<br/>4a. Use constant in repository code Manual Qt SQL<br/>4b. OR use constant in ORM mapping QxOrm<br/>5. Create migration SQL file<br/>6. Run migrate.py to apply<br/>7. Commit YAML + generated files together]
+    
+    note2[ORM Integration:<br/>• QxOrm registration uses Schema constants<br/>• Schema changes cause compile errors if ORM outdated<br/>• Single source of truth: database.yaml<br/>• No duplication of table/column names]
 
     classDef yaml fill:#fff9c4,stroke:#f57f17,stroke-width:3px
     classDef generator fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
     classDef generated fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef repo fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    classDef orm fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
     classDef migration fill:#f8bbd0,stroke:#c2185b,stroke-width:2px
     classDef build fill:#d1c4e9,stroke:#512da8,stroke-width:2px
     classDef db fill:#b0bec5,stroke:#37474f,stroke-width:3px
@@ -71,8 +81,9 @@ graph TB
     class Generator generator
     class SchemaH,DDL,Indices generated
     class Repo repo
+    class OrmMapping orm
     class Migration,MigrateScript migration
     class CMake,PreCommit build
     class DB db
-    class note1 note
+    class note1,note2 note
 
