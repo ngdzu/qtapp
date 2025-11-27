@@ -1,63 +1,201 @@
-graph TD
-    subgraph Z Monitor Application
-        subgraph C++ Backend
+graph TB
+    subgraph "Z Monitor Application"
+        subgraph "QML Frontend"
             direction TB
-            subgraph UI Controllers
-                direction LR
-                DashboardController[Dashboard<br/>Controller]
-                AlarmController[Alarm<br/>Controller]
-                TrendsController[Trends<br/>Controller]
-                SystemController[System<br/>Controller]
-                PatientController[Patient<br/>Controller]
-                SettingsController[Settings<br/>Controller]
-                NotificationController[Notification<br/>Controller]
-            end
-
-            subgraph Core Services
-                direction LR
-                DeviceSimulator[Device<br/>Simulator]
-                AlarmManager[Alarm<br/>Manager]
-                NetworkManager[Network<br/>Manager]
-                DatabaseManager[Database<br/>Manager]
-                PatientManager[Patient<br/>Manager]
-                SettingsManager[Settings<br/>Manager]
-                AuthenticationService[Authentication<br/>Service]
-                LogService[Log<br/>Service]
-                DataArchiver[Data<br/>Archiver]
-            end
-
-            CoreServices -- Data --> UIControllers
-        end
-
-        subgraph QML Frontend
-            direction TB
-            MainQML[Main.qml]
+            MainQML[Main.qml<br/>Entry Point]
             subgraph Views
-                DashboardView[Dashboard<br/>View]
-                TrendsView[Trends<br/>View]
-                SettingsView[Settings<br/>View]
-                DiagnosticsView[Diagnostics<br/>View]
-                LoginView[Login<br/>View]
+                DashboardView[Dashboard View]
+                TrendsView[Trends View]
+                SettingsView[Settings View]
+                DiagnosticsView[Diagnostics View]
+                LoginView[Login View]
             end
             subgraph Components
-                StatCard[Stat<br/>Card]
-                PatientBanner[Patient<br/>Banner]
-                AlarmIndicator[Alarm<br/>Indicator]
-                NotificationBell[Notification<br/>Bell]
+                StatCard[Stat Card]
+                PatientBanner[Patient Banner]
+                AlarmIndicator[Alarm Indicator]
+                NotificationBell[Notification Bell]
                 Sidebar[Sidebar]
                 TopBar[TopBar]
             end
+            MainQML --> Views
+            Views --> Components
         end
 
-        UIControllers -- Properties & Signals/Slots --> MainQML
-        MainQML --> Views
-        Views --> Components
+        subgraph "Interface Layer - Controllers"
+            direction LR
+            DashboardController[Dashboard<br/>Controller]
+            AlarmController[Alarm<br/>Controller]
+            TrendsController[Trends<br/>Controller]
+            SystemController[System<br/>Controller]
+            PatientController[Patient<br/>Controller]
+            SettingsController[Settings<br/>Controller]
+            ProvisioningController[Provisioning<br/>Controller]
+            NotificationController[Notification<br/>Controller]
+            AuthenticationController[Authentication<br/>Controller]
+        end
+
+        subgraph "Application Layer - Services"
+            direction TB
+            MonitoringService[Monitoring<br/>Service]
+            AdmissionService[Admission<br/>Service]
+            SecurityService[Security<br/>Service]
+            ProvisioningService[Provisioning<br/>Service]
+        end
+
+        subgraph "Domain Layer"
+            direction TB
+            PatientAggregate[Patient<br/>Aggregate]
+            DeviceAggregate[Device<br/>Aggregate]
+            AlarmAggregate[Alarm<br/>Aggregate]
+            TelemetryBatch[Telemetry<br/>Batch]
+        end
+
+        subgraph "Infrastructure Layer"
+            direction TB
+            
+            subgraph "Sensor Data Sources"
+                ISensorDataSource[ISensorDataSource<br/>Interface]
+                WebSocketSensorDataSource[WebSocketSensor<br/>DataSource]
+                DeviceSimulator[DeviceSimulator<br/>LEGACY]
+            end
+
+            subgraph "Caching - Critical Path"
+                VitalsCache[VitalsCache<br/>3-day in-memory]
+                WaveformCache[WaveformCache<br/>30-sec buffer]
+            end
+
+            subgraph "Alarm System"
+                AlarmManager[Alarm<br/>Manager]
+            end
+
+            subgraph "Data Persistence"
+                DatabaseManager[Database<br/>Manager]
+                SQLiteVitalsRepository[SQLiteVitals<br/>Repository]
+                SQLiteActionLogRepository[SQLiteActionLog<br/>Repository]
+                SQLiteAuditRepository[SQLiteAudit<br/>Repository]
+            end
+
+            subgraph "Data Management"
+                PersistenceScheduler[Persistence<br/>Scheduler]
+                DataCleanupService[DataCleanup<br/>Service]
+            end
+
+            subgraph "Network & Communication"
+                NetworkManager[Network<br/>Manager]
+                ITelemetryServer[ITelemetryServer<br/>Interface]
+            end
+
+            subgraph "External Service Interfaces"
+                IPatientLookupService[IPatientLookup<br/>Service]
+                IUserManagementService[IUserManagement<br/>Service]
+                IProvisioningService[IProvisioning<br/>Service]
+            end
+
+            subgraph "System Services"
+                SettingsManager[Settings<br/>Manager]
+                LogService[Log<br/>Service]
+                DataArchiver[Data<br/>Archiver]
+                BackupManager[Backup<br/>Manager]
+                FirmwareManager[Firmware<br/>Manager]
+                HealthMonitor[Health<br/>Monitor]
+                ClockSyncService[ClockSync<br/>Service]
+                DeviceRegistrationService[DeviceRegistration<br/>Service]
+            end
+        end
     end
 
-    subgraph External
-        CentralServer[Simulated Central Server]
+    subgraph "External Systems"
+        SensorSimulator[Sensor Simulator<br/>WebSocket Server<br/>ws://localhost:9002]
+        CentralServer[Central Telemetry<br/>Server<br/>HTTPS/mTLS]
+        HospitalUserServer[Hospital User<br/>Management Server<br/>REST/LDAP]
+        NTPServer[NTP Server<br/>Time Sync]
     end
 
-    NetworkManager -- mTLS / HTTPS --> CentralServer
-    DatabaseManager -- Encrypted SQL --> LocalStorage[(Local SQLite DB)]
-    LogService -- Logs --> DiagnosticsView
+    subgraph "Local Storage"
+        LocalDB[(Encrypted SQLite<br/>Database<br/>SQLCipher)]
+    end
+
+    %% Critical Path: Sensor → Cache → Alarm (< 50ms)
+    SensorSimulator -->|WebSocket JSON| WebSocketSensorDataSource
+    WebSocketSensorDataSource -.implements.-> ISensorDataSource
+    ISensorDataSource -->|vitalSignsReceived| MonitoringService
+    MonitoringService -->|stores| VitalsCache
+    MonitoringService -->|stores| WaveformCache
+    VitalsCache -->|checks thresholds| AlarmManager
+    AlarmManager -->|alarm events| AlarmController
+
+    %% Non-Critical Path: Persistence
+    VitalsCache -->|periodic batch| PersistenceScheduler
+    PersistenceScheduler -->|writes| SQLiteVitalsRepository
+    SQLiteVitalsRepository -->|persists| DatabaseManager
+    DatabaseManager -->|encrypted storage| LocalDB
+    DataCleanupService -->|cleanup| DatabaseManager
+
+    %% Network Transmission
+    MonitoringService -->|batches| TelemetryBatch
+    TelemetryBatch -->|sends| NetworkManager
+    NetworkManager -.uses.-> ITelemetryServer
+    ITelemetryServer -->|mTLS| CentralServer
+
+    %% Patient Management
+    PatientController -->|commands| AdmissionService
+    AdmissionService -->|queries| IPatientLookupService
+    IPatientLookupService -->|HTTPS| HospitalUserServer
+    AdmissionService -->|manages| PatientAggregate
+    AdmissionService -->|logs| SQLiteActionLogRepository
+
+    %% Authentication
+    AuthenticationController -->|delegates| SecurityService
+    SecurityService -.uses.-> IUserManagementService
+    IUserManagementService -->|HTTPS/LDAP| HospitalUserServer
+    SecurityService -->|logs| SQLiteAuditRepository
+
+    %% UI Binding
+    DashboardController -->|Properties & Signals| MainQML
+    AlarmController -->|Properties & Signals| MainQML
+    TrendsController -->|Properties & Signals| MainQML
+    PatientController -->|Properties & Signals| MainQML
+    AuthenticationController -->|Properties & Signals| MainQML
+    SettingsController -->|Properties & Signals| MainQML
+    DashboardController -->|vitals data| DashboardView
+    AlarmController -->|alarm events| DashboardView
+    TrendsController -->|historical data| TrendsView
+    PatientController -->|patient info| PatientBanner
+    AuthenticationController -->|login state| LoginView
+    SettingsController -->|settings| SettingsView
+
+    %% Application Services → Domain
+    MonitoringService -->|manages| TelemetryBatch
+    AdmissionService -->|manages| PatientAggregate
+    SecurityService -->|creates| UserSession
+    ProvisioningService -->|manages| DeviceAggregate
+
+    %% Application Services → Controllers
+    MonitoringService -->|vitals data| DashboardController
+    AlarmManager -->|alarm events| AlarmController
+    AdmissionService -->|patient state| PatientController
+    SecurityService -->|auth state| AuthenticationController
+    ProvisioningService -->|provisioning state| ProvisioningController
+
+    %% System Services
+    SettingsManager -->|config| SettingsController
+    LogService -->|logs| DiagnosticsView
+    ClockSyncService -->|syncs| NTPServer
+    DeviceRegistrationService -->|registers| CentralServer
+
+    %% Legacy (deprecated)
+    DeviceSimulator -.LEGACY.-> MonitoringService
+
+    %% Styling
+    classDef criticalPath fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
+    classDef nonCritical fill:#51cf66,stroke:#2b8a3e,stroke-width:2px
+    classDef interface fill:#4dabf7,stroke:#1971c2,stroke-width:2px
+    classDef external fill:#ffd43b,stroke:#f59f00,stroke-width:2px
+    classDef storage fill:#845ef7,stroke:#5f3dc4,stroke-width:2px
+
+    class WebSocketSensorDataSource,VitalsCache,WaveformCache,AlarmManager criticalPath
+    class PersistenceScheduler,SQLiteVitalsRepository,DatabaseManager,DataCleanupService nonCritical
+    class ISensorDataSource,ITelemetryServer,IPatientLookupService,IUserManagementService,IProvisioningService interface
+    class SensorSimulator,CentralServer,HospitalUserServer,NTPServer external
+    class LocalDB storage
