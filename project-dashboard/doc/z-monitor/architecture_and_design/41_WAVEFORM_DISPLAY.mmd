@@ -1,0 +1,58 @@
+graph TB
+    subgraph "Data Source"
+        SensorSimulator[Sensor Simulator<br/>250 Hz samples]
+    end
+
+    subgraph "Z Monitor - Data Acquisition"
+        WebSocketSensorDataSource[WebSocketSensor<br/>DataSource<br/>ws://localhost:9002]
+        MonitoringService[Monitoring<br/>Service]
+        WaveformCache[WaveformCache<br/>30-sec circular buffer<br/>7,500 samples]
+    end
+
+    subgraph "Z Monitor - UI Layer"
+        WaveformController[WaveformController<br/>C++ QObject<br/>Main/UI Thread]
+        WaveformChart[WaveformChart.qml<br/>Canvas Component]
+        RefreshTimer[Timer<br/>16ms interval<br/>60 FPS]
+    end
+
+    subgraph "Rendering Pipeline"
+        GridCanvas[Grid Canvas<br/>Background Layer<br/>z: 0]
+        WaveformCanvas[Waveform Canvas<br/>Foreground Layer<br/>z: 10]
+        ScanLine[Scan Line Effect<br/>Right Edge<br/>z: 20]
+    end
+
+    subgraph "Display"
+        Screen[8-inch Touch Screen<br/>1280x800 pixels]
+    end
+
+    %% Data Flow
+    SensorSimulator -->|WebSocket JSON<br/>250 Hz| WebSocketSensorDataSource
+    WebSocketSensorDataSource -->|vitalSignsReceived<br/>signal| MonitoringService
+    MonitoringService -->|stores samples| WaveformCache
+    
+    %% UI Update
+    WaveformCache -->|provides window<br/>2,500 samples| WaveformController
+    WaveformController -->|samples property<br/>QVariantList| WaveformChart
+    
+    %% Rendering
+    WaveformChart -->|renders| GridCanvas
+    WaveformChart -->|renders| WaveformCanvas
+    WaveformChart -->|renders| ScanLine
+    
+    %% Refresh Loop
+    RefreshTimer -->|requestPaint<br/>every 16ms| WaveformCanvas
+    WaveformCanvas -->|60 FPS| Screen
+    
+    %% Styling
+    classDef dataSource fill:#4dabf7,stroke:#1971c2,stroke-width:2px
+    classDef critical fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
+    classDef ui fill:#51cf66,stroke:#2b8a3e,stroke-width:2px
+    classDef rendering fill:#ffd43b,stroke:#f59f00,stroke-width:2px
+    classDef display fill:#845ef7,stroke:#5f3dc4,stroke-width:2px
+    
+    class SensorSimulator dataSource
+    class WebSocketSensorDataSource,MonitoringService,WaveformCache critical
+    class WaveformController,WaveformChart,RefreshTimer ui
+    class GridCanvas,WaveformCanvas,ScanLine rendering
+    class Screen display
+

@@ -1351,6 +1351,46 @@ struct AuditFilter {
 **Slots:**
 - `onConnectionStatusChanged(NetworkManager::ConnectionStatus status)`: Updates connection status
 
+### 3.3. WaveformController
+**Responsibility:** Bridges waveform data from C++ to QML for real-time waveform visualization. Exposes waveform samples to QML `WaveformChart` components.
+
+**Thread:** Main/UI Thread (required for QML property bindings)
+
+**Properties (Q_PROPERTY):**
+- `samples`: `QVariantList` - Array of waveform sample values exposed to QML (read-only)
+- `sampleRate`: `int` - Samples per second (250 Hz for ECG, 125 Hz for Pleth) (read-only)
+- `channel`: `QString` - Waveform channel identifier (e.g., "ECG_LEAD_II", "PLETH") (read-only)
+- `isActive`: `bool` - Whether waveform data is actively being received (read-only)
+
+**Q_INVOKABLE Methods:**
+- `updateSamples(const QVariantList& newSamples)`: Updates waveform samples from `WaveformCache` (called by `MonitoringService`)
+- `clearSamples()`: Clears waveform buffer (useful when switching patients or resetting display)
+- `setChannel(const QString& channel)`: Sets waveform channel identifier
+
+**Signals:**
+- `samplesChanged()`: Emitted when samples property changes (triggers QML binding updates)
+- `channelChanged(const QString& channel)`: Emitted when channel changes
+
+**Dependencies:**
+- `WaveformCache`: Source of waveform data (accessed via `MonitoringService`)
+- `MonitoringService`: Provides waveform samples via signals
+
+**Data Flow:**
+1. `MonitoringService` receives waveform samples from `WebSocketSensorDataSource`
+2. `MonitoringService` stores samples in `WaveformCache` (30-second circular buffer)
+3. `MonitoringService` emits signal with window of samples (e.g., last 2,500 samples for 10-second display)
+4. `WaveformController::updateSamples()` called (via queued connection from RT thread)
+5. `samples` Q_PROPERTY updated, triggering QML binding
+6. `WaveformChart.qml` receives data via property binding
+7. Canvas renders waveform at 60 FPS
+
+**Performance:**
+- Property updates: < 1ms (simple QVariantList assignment)
+- QML binding updates: Automatic (Qt engine handles efficiently)
+- Memory: ~10 MB for 30-second buffer (managed by `WaveformCache`)
+
+**See:** [41_WAVEFORM_DISPLAY_IMPLEMENTATION.md](./41_WAVEFORM_DISPLAY_IMPLEMENTATION.md) for complete waveform rendering implementation guide.
+
 ### 3.4. PatientController
 **Responsibility:** Exposes patient information to the Patient Banner and related UI, and provides patient admission/discharge functionality.
 

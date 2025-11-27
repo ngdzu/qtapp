@@ -100,13 +100,27 @@ Infrastructure Layer (Qt/SQL/network adapters)
 
 Controllers expose properties/signals to QML and issue commands to application services (`MonitoringService`, `AdmissionService`, `SecurityService`, etc.).
 
-### 2.6. QML Frontend
+### 2.6. QML Frontend and Visualization
 
 The frontend is responsible for all rendering and user interaction. It is purely declarative and reacts to data changes exposed by the C++ controllers.
 
+**Visualization Strategy:**
+- **QML-Based Rendering:** All visualization is handled declaratively in QML using Qt Quick components and Canvas API
+- **No Separate Visualization Service:** Rendering logic resides in QML components, not in C++ services (following Qt/QML best practices)
+- **Data Flow:** C++ Controllers (QObject) → Q_PROPERTY bindings → QML Components → Canvas/Graphics rendering
+- **Performance:** Critical visualizations (waveforms at 60 FPS) use QML Canvas API for efficient 2D rendering
+- **See:** [41_WAVEFORM_DISPLAY_IMPLEMENTATION.md](./41_WAVEFORM_DISPLAY_IMPLEMENTATION.md) for detailed waveform rendering guide
+
+**Visualization Components:**
+- **Waveforms:** `WaveformChart.qml` (Canvas-based, 60 FPS) - ECG and plethysmogram rendering
+- **Trends:** `TrendChart.qml` (Line chart) - Historical vital signs visualization
+- **Vitals:** `StatCard.qml` - Real-time numeric vital signs display
+- **Alarms:** `AlarmIndicator.qml` - Visual alarm indicators with priority colors
+
+**UI Structure:**
 -   **`Main.qml`**: The application's entry point. It assembles the main UI structure, including the sidebar, header, and the view loader. It also contains the global alarm overlay.
 -   **Views**: Self-contained QML files representing a full screen of content (e.g., `DashboardView.qml`, `SettingsView.qml`, `TrendsView.qml`, `DiagnosticsView.qml`, `LoginView.qml`). A `Loader` in `Main.qml` dynamically loads the active view based on navigation state.
--   **Components**: Reusable, smaller QML files that act as building blocks for the UI (e.g., `StatCard.qml`, `PatientBanner.qml`, `NotificationBell.qml`, `Sidebar.qml`, `TopBar.qml`, `AlarmIndicator.qml`). They are designed to be modular and stateless where possible.
+-   **Components**: Reusable, smaller QML files that act as building blocks for the UI (e.g., `StatCard.qml`, `PatientBanner.qml`, `NotificationBell.qml`, `Sidebar.qml`, `TopBar.qml`, `AlarmIndicator.qml`, `WaveformChart.qml`, `TrendChart.qml`). They are designed to be modular and stateless where possible.
 
 ### 2.7. External Systems
 

@@ -109,6 +109,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 | **All QML Controllers** | Interface | Controller | UI data binding, signal/slot to QML |
 | - `DashboardController` | Interface | Controller | Real-time vitals display |
 | - `AlarmController` | Interface | Controller | Alarm state and history |
+| - `WaveformController` | Interface | Controller | **NEW:** Waveform data bridge to QML (60 FPS rendering) |
 | - `PatientController` | Interface | Controller | Patient admission/discharge UI |
 | - `SettingsController` | Interface | Controller | Device settings UI |
 | - `ProvisioningController` | Interface | Controller | Provisioning/pairing UI |
@@ -117,6 +118,11 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 | - `NotificationController` | Interface | Controller | Non-critical messages |
 | - `DiagnosticsController` | Interface | Controller | System logs and diagnostics |
 | - `AuthenticationController` | Interface | Controller | Login/logout UI |
+| **All QML Visualization Components** | Interface | Component | Declarative rendering (Canvas, Charts, Cards) |
+| - `WaveformChart.qml` | Interface | Component | Real-time waveform rendering (Canvas API, 60 FPS) |
+| - `TrendChart.qml` | Interface | Component | Historical trends visualization (Line chart) |
+| - `StatCard.qml` | Interface | Component | Numeric vital signs display |
+| - `AlarmIndicator.qml` | Interface | Component | Visual alarm indicators |
 | **All QML Views** | Interface | View | Full-screen UI components |
 | - `LoginView` | Interface | View | Login screen |
 | - `DashboardView` | Interface | View | Main monitoring screen |
@@ -132,7 +138,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 - **Inbound:** `Qt::QueuedConnection` signals from worker threads
 - **Outbound:** Queued method invocations to application services
 
-**Count:** 10 controllers + 7 views + 11 components = **28 components**
+**Count:** 11 controllers (added `WaveformController`) + 7 views + 12 components (added visualization components) = **30 components**
 
 ---
 
@@ -420,7 +426,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 
 | Thread | Component Count | Component Types |
 |--------|----------------|-----------------|
-| **Main/UI Thread** | 28 | 10 controllers + 7 views + 11 QML components |
+| **Main/UI Thread** | 30 | 11 controllers (added `WaveformController`) + 7 views + 12 QML components (added visualization components) |
 | **Real-Time Processing** | 12 | 2 infrastructure (sensors) + 2 infrastructure (caches) + 1 application + 3 aggregates + 4 value objects |
 | **Application Services** | 11 | 3 services + 4 aggregates + 4 value objects |
 | **Database I/O** | 13 | 1 infrastructure + 7 repositories + 4 application services + 1 infrastructure |
@@ -430,7 +436,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 | **DTOs** | 6 | Data transfer objects (thread-agnostic) |
 | **Domain Events** | 11 | Events (emitted by various threads, consumed by UI/logging) |
 | **Sensor Adapters** | 5 | `WebSocketSensorDataSource`, `SimulatorDataSource`, `MockSensorDataSource`, `HardwareSensorAdapter`, `ReplayDataSource` (implementations of `ISensorDataSource`) |
-| **Total** | **113** | **All system components accounted for** (increased from 98 due to caching architecture and sensor integration) |
+| **Total** | **115** | **All system components accounted for** (increased from 113 due to visualization components) |
 
 **Component Count Changes:**
 - **+4** Real-Time Processing (added sensor sources and caches)
@@ -438,12 +444,15 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 - **+1** Domain Interfaces (ISensorDataSource)
 - **+5** Sensor Adapters (implementations of ISensorDataSource)
 - **+1** Value Objects (WaveformSample)
-- **Total increase:** +15 components (98 → 113)
+- **+1** Main/UI Thread (added `WaveformController`)
+- **+1** Main/UI Thread (added visualization components count)
+- **Total increase:** +17 components (98 → 115)
 
 **Rationale for Increase:**
 1. **Data Caching Strategy:** Added `VitalsCache`, `WaveformCache`, `PersistenceScheduler`, `DataCleanupService` to decouple critical path from database latency (see [36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md))
 2. **Sensor Integration:** Added `ISensorDataSource` interface and multiple implementations for flexible sensor data acquisition (see [37_SENSOR_INTEGRATION.md](./37_SENSOR_INTEGRATION.md))
 3. **Database Optimization:** Added `IVitalsRepository` for time-series vitals persistence separate from telemetry metrics
+4. **Visualization Architecture:** Added `WaveformController` to bridge waveform data from C++ to QML. Visualization is handled declaratively in QML (no separate C++ visualization service needed). See [41_WAVEFORM_DISPLAY_IMPLEMENTATION.md](./41_WAVEFORM_DISPLAY_IMPLEMENTATION.md) for details.
 
 ---
 
