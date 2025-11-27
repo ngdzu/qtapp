@@ -44,6 +44,9 @@ Platform independence, deployment flexibility
 ### 2.8 Compatibility (REQ-NFR-COMPAT-###)
 Interoperability, standards compliance
 
+### 2.9 Hardware Resources (REQ-NFR-HW-###)
+Memory, storage, CPU, device capabilities
+
 ---
 
 ## 3. Performance Requirements
@@ -293,7 +296,152 @@ Low latency improves user experience and ensures timely data availability at cen
 
 ---
 
-## 4. Reliability Requirements
+## 4. Hardware Resource Requirements
+
+### [REQ-NFR-HW-001] Memory (RAM) Requirements
+
+**Category:** Hardware Resources  
+**Priority:** Must Have  
+**Status:** Approved
+
+**Description:**
+The device shall have sufficient RAM to support real-time monitoring, in-memory caching, and application runtime without performance degradation.
+
+**Rationale:**
+Insufficient memory causes swapping, which degrades real-time performance and violates alarm latency requirements (< 50ms). Memory must accommodate critical path operations (alarm detection) and application runtime.
+
+**Acceptance Criteria:**
+- **Minimum RAM:** 2 GB
+- **Recommended RAM:** 4 GB
+- **Memory Allocation:**
+  - In-memory cache: ~400 MB
+    - 3-day vitals cache: ~390 MB (2.6M records × 150 bytes/record)
+    - Waveform cache: ~10 MB (30-second circular buffer for display)
+    - Purpose: Critical path for alarm detection (< 50ms latency requirement)
+    - Thread: Real-Time Processing Thread (high priority)
+  - Application runtime: ~500-800 MB
+    - Qt/QML framework and rendering
+    - Application services and controllers
+    - UI components and graphics buffers
+  - Diagnostics view buffer: ~5 MB
+    - Last 1000 log entries (in-memory only, not persisted)
+    - Used for Diagnostics View UI display
+  - System overhead: ~200-300 MB
+    - Operating system
+    - Background services
+    - Network buffers
+- **Total Estimated RAM Usage:** ~1.1-1.5 GB (with 4 GB recommended for headroom)
+- No memory allocations in critical path (pre-allocated buffers)
+- Memory usage monitored and logged
+
+**Measurement:**
+- Memory profiling on target hardware
+- Peak memory usage tracking
+- Memory leak detection (Valgrind, AddressSanitizer)
+- Real-time memory monitoring
+
+**Related Requirements:**
+- REQ-NFR-PERF-100 (alarm detection latency)
+- REQ-FUN-ALARM-001 (alarm system)
+
+**Traces To:**
+- Design: [36_DATA_CACHING_STRATEGY.md](../architecture_and_design/36_DATA_CACHING_STRATEGY.md) (in-memory cache)
+- Design: [12_THREAD_MODEL.md](../architecture_and_design/12_THREAD_MODEL.md) (memory allocation strategy)
+- Test: Memory profiling and leak detection
+
+---
+
+### [REQ-NFR-HW-002] Storage (Disk/Flash) Requirements
+
+**Category:** Hardware Resources  
+**Priority:** Must Have  
+**Status:** Approved
+
+**Description:**
+The device shall have sufficient storage capacity to store application data, logs, and system files while maintaining performance and data retention policies.
+
+**Rationale:**
+Storage must accommodate database (vitals, alarms, logs), application logs, and system files. Database size is limited to 500 MB to ensure performance and enable automatic cleanup. Insufficient storage causes data loss and system failures.
+
+**Acceptance Criteria:**
+- **Minimum Storage:** 2 GB
+- **Recommended Storage:** 4 GB
+- **Storage Allocation:**
+  - **Database (SQLite with SQLCipher):**
+    - Maximum size: 500 MB (hard limit, per CON-SW-003)
+    - Warning threshold: 400 MB (80% of limit)
+    - Critical threshold: 450 MB (90% of limit)
+    - Automatic cleanup: Triggered at 500 MB limit
+    - Contents:
+      - Vitals data: 7-day retention (~200-300 MB typical)
+      - Alarm history: 90-day retention (~50-100 MB typical)
+      - Action logs: 90-day retention (~20-50 MB typical)
+      - Security audit logs: 90-day retention (~20-50 MB typical)
+      - Telemetry metrics: 90-day retention (~10-20 MB typical)
+      - Patient data: Until discharge + 30 days (~5-10 MB typical)
+      - Settings and configuration: ~1-2 MB
+  - **Application Logs (File System):**
+    - Location: `logs/z-monitor.log.*`
+    - Retention: 7 days
+    - Rotation: Daily at midnight, keep 7 files
+    - Max file size: 10 MB per file
+    - Total maximum: ~70 MB (7 files × 10 MB)
+    - Format: Human-readable (development) or JSON (production)
+  - **System Files:**
+    - Application binary: ~50-100 MB
+    - Qt libraries: ~200-300 MB
+    - Certificates and keys: ~1-2 MB
+    - Configuration files: ~1-2 MB
+    - Temporary files: ~50-100 MB
+- **Total Estimated Storage Usage:** ~600-800 MB (with 2 GB minimum recommended for headroom and future growth)
+- Database size monitoring every 60 seconds
+- Automatic cleanup when limits exceeded
+
+**Storage Management:**
+- **Automatic Cleanup:**
+  - Daily cleanup: Runs at 3 AM, removes data older than retention periods
+  - Emergency cleanup: Triggered when database exceeds 500 MB limit
+    - Deletes vitals older than 3 days (instead of 7)
+    - Archives resolved alarms older than 7 days
+    - Compacts database (SQLite VACUUM)
+- **Size Monitoring:**
+  - Periodic check: Every 60 seconds
+  - Cached size: File size cached for 60 seconds (low overhead)
+  - Growth rate: Calculated daily (average of last 7 days)
+  - Alerts:
+    - Warning at 400 MB (80% of limit)
+    - Critical at 450 MB (90% of limit)
+    - Emergency cleanup at 500 MB (100% of limit)
+
+**Data Retention Policies:**
+- Vitals data: 7 days (configurable)
+- Alarm history: 90 days (configurable)
+- Action logs: 90 days minimum (configurable, required for compliance)
+- Security audit logs: 90 days minimum (configurable, required for compliance)
+- Telemetry metrics: 90 days (configurable)
+- Application logs: 7 days (file rotation)
+- Patient data: Until discharge + 30 days (configurable)
+
+**Measurement:**
+- Storage usage monitoring
+- Database size tracking
+- Cleanup effectiveness verification
+- Growth rate analysis
+
+**Related Requirements:**
+- REQ-FUN-DATA-002 (data storage)
+- REQ-NFR-PERF-111 (database write throughput)
+- REQ-SEC-AUDIT-002 (audit log retention)
+
+**Traces To:**
+- Design: [10_DATABASE_DESIGN.md](../architecture_and_design/10_DATABASE_DESIGN.md) (database schema and retention)
+- Design: [21_LOGGING_STRATEGY.md](../architecture_and_design/21_LOGGING_STRATEGY.md) (logging and storage)
+- Design: [09_CLASS_DESIGNS.md](../architecture_and_design/09_CLASS_DESIGNS.md) (DatabaseManager size monitoring)
+- Test: Storage capacity and cleanup tests
+
+---
+
+## 5. Reliability Requirements
 
 ### [REQ-NFR-REL-001] System Uptime
 
@@ -489,7 +637,7 @@ The system shall achieve 99.99% alarm detection reliability with zero tolerance 
 
 ---
 
-## 5. Usability Requirements
+## 6. Usability Requirements
 
 ### [REQ-NFR-USE-001] Learning Curve
 
@@ -644,7 +792,7 @@ Medical errors can have serious consequences. System must guide users toward cor
 
 ---
 
-## 6. Maintainability Requirements
+## 7. Maintainability Requirements
 
 ### [REQ-NFR-MAIN-001] Code Modularity
 
@@ -761,7 +909,7 @@ Documentation crucial for team collaboration, onboarding, and long-term maintena
 
 ---
 
-## 7. Security Requirements
+## 8. Security Requirements
 
 ### [REQ-NFR-SEC-001] Authentication Security
 
@@ -922,7 +1070,7 @@ HIPAA requires audit trails. Critical for compliance, security investigations, a
 
 ---
 
-## 8. Scalability Requirements
+## 9. Scalability Requirements
 
 ### [REQ-NFR-SCALE-001] Concurrent Patient Monitoring
 
@@ -964,7 +1112,7 @@ Hospital ICU may have 20-100 beds, each with a monitoring device. Central server
 
 ---
 
-## 9. Portability Requirements
+## 10. Portability Requirements
 
 ### [REQ-NFR-PORT-001] Platform Independence
 
@@ -1004,7 +1152,7 @@ Cross-platform support enables deployment flexibility and reduces vendor lock-in
 
 ---
 
-## 10. Compatibility Requirements
+## 11. Compatibility Requirements
 
 ### [REQ-NFR-COMPAT-001] Standards Compliance
 
@@ -1043,13 +1191,14 @@ Regulatory approval requires standards compliance. Interoperability with hospita
 
 ---
 
-## 11. Non-Functional Requirements Summary
+## 12. Non-Functional Requirements Summary
 
-### Total Requirements: 20 (of ~80-100 planned)
+### Total Requirements: 26 (of ~80-100 planned)
 
 | Category | Requirements | Critical | Must Have | Should Have |
 |----------|--------------|----------|-----------|-------------|
 | Performance | 6 | 1 | 4 | 1 |
+| Hardware Resources | 2 | 0 | 2 | 0 |
 | Reliability | 4 | 1 | 3 | 0 |
 | Usability | 4 | 0 | 4 | 0 |
 | Maintainability | 3 | 0 | 3 | 0 |
@@ -1057,10 +1206,10 @@ Regulatory approval requires standards compliance. Interoperability with hospita
 | Scalability | 1 | 0 | 1 | 0 |
 | Portability | 1 | 0 | 0 | 1 |
 | Compatibility | 1 | 0 | 1 | 0 |
-| **Total** | **24** | **5** | **17** | **2** |
+| **Total** | **26** | **5** | **19** | **2** |
 
 ### Remaining Requirements (to be added):
-- ~15 additional performance requirements (memory, CPU, battery)
+- ~10 additional performance requirements (CPU, battery)
 - ~10 reliability requirements (MTBF, MTTR, disaster recovery)
 - ~10 usability requirements (accessibility, i18n)
 - ~10 maintainability requirements (debugging, monitoring)
@@ -1070,7 +1219,7 @@ Regulatory approval requires standards compliance. Interoperability with hospita
 
 ---
 
-## 12. Quality Attribute Scenarios
+## 13. Quality Attribute Scenarios
 
 ### Example: Performance (Alarm Detection)
 - **Source:** Vital sign generator (DeviceSimulator)
@@ -1098,7 +1247,7 @@ Regulatory approval requires standards compliance. Interoperability with hospita
 
 ---
 
-## 13. Related Documents
+## 14. Related Documents
 
 - **Functional Requirements:** [03_FUNCTIONAL_REQUIREMENTS.md](./03_FUNCTIONAL_REQUIREMENTS.md)
 - **Security Requirements:** [08_SECURITY_REQUIREMENTS.md](./08_SECURITY_REQUIREMENTS.md)

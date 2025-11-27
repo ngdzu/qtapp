@@ -12,6 +12,8 @@ The core purpose is to create a sophisticated, near-realistic application that d
 - **Screen:** 8-inch Touch Screen
 - **Resolution:** 1280x800 pixels (fixed)
 
+**Note:** Detailed hardware requirements (memory, storage, CPU) are specified in [04_NON_FUNCTIONAL_REQUIREMENTS.md](../requirements/04_NON_FUNCTIONAL_REQUIREMENTS.md).
+
 ## 3. Core Features
 
 ### Patient Monitoring
@@ -41,7 +43,7 @@ The core purpose is to create a sophisticated, near-realistic application that d
 - **Bounded Contexts:** Monitoring, Provisioning, Admission/ADT, and Security contexts each own their aggregates and repositories.
 - **Immutable Records:** Value objects such as `PatientIdentity`, `DeviceSnapshot`, and `VitalRecord` are modeled as immutable structs to reinforce business rules.
 
-## 4. Technology Stack
+## 5. Technology Stack
 
 - **UI Framework:** Qt 6 with QML for the front-end.
 - **Backend Logic:** C++17 for core services, data management, and hardware simulation.
