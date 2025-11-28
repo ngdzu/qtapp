@@ -126,16 +126,14 @@ signals:
 
 #### **🟠 MEDIUM Issue #2: In-Memory Cache Design Unclear**
 
-**Problem:** No specification for in-memory cache structure and eviction policy.
+**Problem (Resolved):** The specification for the in-memory cache structure and eviction policy is now defined and aligned with the repository and persistence services.
 
-**Questions:**
-1. **Data Structure:** Ring buffer? Deque? Fixed-size array?
-2. **Eviction Policy:** FIFO? Drop oldest when full?
-3. **Thread Safety:** How is concurrent access managed?
-4. **Memory Estimation:** 3 days × 24 hours × 3600 seconds × 10 Hz = ~2.6M records
-   - At 150 bytes/record → ~390 MB (doable)
-   - But what about waveforms? ECG at 500 Hz = 10x more data
-5. **Partial Flush:** Can we flush subset of cache to database?
+**Design Decisions:**
+1. **Data Structure:** `std::deque<VitalRecord>` protected by `QReadWriteLock`. The deque gives O(1) append/pop for FIFO semantics and efficient range slicing for persistence jobs.
+2. **Eviction Policy:** Strict FIFO. When the deque reaches `m_maxRecords` (≈2.6 M entries = 3 days @ 10 Hz), the oldest record is evicted automatically. Evictions are logged at `INFO` with cache stats for observability.
+3. **Thread Safety:** Writers take the write lock for `append()` and `markAsPersisted()`. Readers take the read lock for `getRange()` and `getUnpersistedVitals()`. The cache lives on the Real-Time thread, while persistence jobs read via queued connections to avoid lock inversions.
+4. **Memory Footprint:** 2.6 M records × 150 bytes ≈ 372 MB (worst case). This fits comfortably under the 512 MB RAM allocation for real-time buffers. High-frequency waveforms are handled by `WaveformCache` (Section 5) and are therefore excluded from this budget.
+5. **Partial Flush:** `getUnpersistedVitals()` returns a shallow copy of unsaved records (bounded by batch size). After a successful transaction, `markAsPersisted(upToTimestamp)` trims the unsaved watermark so subsequent runs only touch new data.
 
 **Recommendation:**
 
@@ -199,14 +197,14 @@ private:
 
 #### **🟠 MEDIUM Issue #3: Database Persistence Timing Unclear**
 
-**Problem:** "Lower priority" and "scheduled at specific time" not well-defined.
+**Problem (Resolved):** Persistence cadence and failure handling are now codified in the `PersistenceScheduler`.
 
-**Questions:**
-1. **Frequency:** How often? Every 5 min? 30 min? 1 hour?
-2. **Trigger:** Time-based? Record count? Memory pressure?
-3. **Batch Size:** How many records per batch?
-4. **Failure Handling:** What if database write fails? Retry? Discard?
-5. **Shutdown:** What happens to unpersisted data on app close?
+**Design Decisions:**
+1. **Frequency:** Persist every 10 minutes during steady state. This interval aligns with telemetry batching (Priority 2) and keeps write amplification low.
+2. **Triggers:** Immediate persistence is triggered when either (a) 10 000 unsaved records accumulate or (b) cache utilization exceeds 80 % of capacity. Both triggers are evaluated on the Database I/O thread to avoid blocking the Real-Time thread.
+3. **Batch Size:** Each transaction writes at most 10 000 records via `IVitalsRepository::saveBatch()`. Larger backlogs are processed by chaining multiple batches in a single scheduler invocation to avoid starving new data.
+4. **Failure Handling:** On `IVitalsRepository` failure, the scheduler logs via `m_logService->error()`, backs off exponentially (initial 30 s), and retries until success. Unsaved data remains flagged in `VitalsCache`; nothing is discarded.
+5. **Shutdown:** `PersistenceScheduler::stop()` flushes all remaining unsaved records synchronously before the Database I/O thread quits. The shutdown path is part of the service lifecycle contract (see `12_THREAD_MODEL.md`).
 
 **Recommendation:**
 
@@ -251,13 +249,14 @@ private:
 
 #### **🟠 MEDIUM Issue #4: Cleanup Timing Ambiguous**
 
-**Problem:** "Clean up data at end of day" - which day? Whose timezone?
+**Problem (Resolved):** The retention workflow is now explicit and deterministic across deployments.
 
-**Questions:**
-1. **Retention:** Keep last 7 days (rolling window) or calendar days?
-2. **Timing:** End of day = midnight? 3 AM (low activity)?
-3. **Timezone:** Device local time? Server time? UTC?
-4. **Safety:** What if cleanup fails? Retry? Skip?
+**Design Decisions:**
+1. **Retention Window:** Rolling 7-day window measured using device local time converted to UTC internally. Records with `timestamp < (nowUTC - 7 days)` are eligible for deletion, matching REQ-DATA-RET-001.
+2. **Execution Time:** Cleanup runs daily at 03:00 local time (configurable). The timer lives on the Database I/O thread to reuse the same event loop as persistence and logging.
+3. **Timezone Handling:** We schedule using local time but convert cutoff comparisons to UTC to avoid DST ambiguity. Devices deployed in different regions each respect their local timezone configuration.
+4. **Safety & Retry:** Deletions occur in 10 000-row batches with explicit transactions. Failures log at `ERROR`, emit a `cleanupFailed()` signal, and set a retry timer for the next hourly window so we do not wait 24 hours to recover.
+5. **Vacuum Policy:** SQLite `VACUUM` is **not** part of the nightly job. Instead, a quarterly maintenance task (tracked in `ZTODO.md`) runs `VACUUM` during scheduled downtime.
 
 **Recommendation:**
 
@@ -298,13 +297,14 @@ private:
 
 #### **🟡 LOW Issue #5: Missing Waveform Data Strategy**
 
-**Problem:** Waveforms (ECG, SpO2 pleth) are 50-500x more data than vitals.
+**Problem (Resolved):** Waveform handling is now isolated from the vitals pipeline to avoid exploding storage requirements.
 
-**Questions:**
-1. **Storage:** Separate cache for waveforms vs vitals?
-2. **Retention:** Store waveforms for 7 days? (Massive storage)
-3. **Compression:** Use compression for waveforms?
-4. **Display:** Real-time display from in-memory or database?
+**Design Decisions:**
+1. **Storage Separation:** Waveforms live exclusively in `WaveformCache`, a dedicated circular buffer sized for 30 seconds of data at 500 Hz × 3 leads. No waveform samples enter the 3-day `VitalsCache`.
+2. **Retention:** Waveforms are **display-only**. We keep 30 seconds for bedside visualization and optionally capture 10-second snapshots for alarm annotations (stored as compressed blobs linked to the alarm event). There is no 7-day waveform retention requirement.
+3. **Compression:** Continuous streams are not persisted, so runtime compression is unnecessary. Snapshot payloads (when captured) use lightweight delta compression before being stored alongside alarms.
+4. **Display Path:** UI widgets subscribe directly to `WaveformCache::updated()` signals on the Real-Time thread. Historical playback uses telemetry data from the central server, not the local cache.
+5. **Telemetry:** Continuous waveforms are not transmitted to the telemetry server to preserve bandwidth. Only alarm-related snippets may be uploaded, per clinical workflow guidelines.
 
 **Typical Waveform Data Volume:**
 - ECG: 500 Hz × 3 leads × 2 bytes = 3 KB/second = 10.8 GB/hour
@@ -351,6 +351,41 @@ private:
 - **Display:** Real-time display from in-memory cache
 - **Telemetry:** Don't send waveforms to server (bandwidth)
 - **Snapshots:** Optionally save 10-second waveform snapshots for critical alarms
+
+**Waveform Snapshot Regeneration:**
+To support on-demand review of stored alarms, we expose a lightweight renderer that rebuilds the waveform series from the compressed snapshot blob whenever the clinician opens the alarm details view.
+
+```cpp
+/**
+ * @class WaveformSnapshotRenderer
+ * @brief Reconstructs waveform samples from stored snapshot blobs.
+ */
+class WaveformSnapshotRenderer {
+public:
+    explicit WaveformSnapshotRenderer(IAlarmRepository* alarmRepo);
+
+    /**
+     * @brief Decode snapshot and return display-ready samples.
+     * @param snapshotId ID from alarms.context_snapshot_id
+     * @return QList<WaveformSample> covering exactly the captured window
+     */
+    QList<WaveformSample> renderSnapshot(int snapshotId);
+
+private:
+    QByteArray decompress(const SnapshotBlob& blob) const;  // delta/RLE decode
+    QList<WaveformSample> toSamples(const QByteArray& data,
+                                    const SnapshotMetadata& meta) const;
+
+    IAlarmRepository* m_alarmRepo;
+};
+```
+
+**Runtime Flow:**
+1. Alarm UI requests snapshot by `snapshot_id`.
+2. `WaveformSnapshotRenderer` loads blob + metadata (channels, sample rate, gain) from the `snapshots` table via `IAlarmRepository`.
+3. Blob is decompressed (delta/run-length) into raw samples entirely in memory; no disk files are generated.
+4. Samples are fed directly to the waveform widget for playback and export.
+5. Renderer is stateless and can be invoked any time as long as the snapshot row exists, satisfying the requirement to regenerate waveforms on demand.
 
 ---
 

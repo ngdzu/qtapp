@@ -880,6 +880,43 @@ Some procedures (suctioning, position changes) temporarily affect vital signs. S
 
 ---
 
+### [REQ-FUN-ALARM-040] Waveform Snapshot Capture
+
+**Category:** Alarm Management  
+**Priority:** Should Have  
+**Status:** Proposed
+
+**Description:**
+Whenever a physiological alarm is triggered, the system shall capture a 10-second waveform snapshot (default: 5 seconds before trigger, 5 seconds after) for the monitored signals that contributed to the alarm and store it with the alarm record.
+
+**Rationale:**
+Clinicians frequently review pre/post alarm waveforms to confirm whether an alarm represented true patient deterioration or an artefact. Persisting a short snippet with each alarm enables rapid bedside review and satisfies post-event documentation needs without storing continuous waveforms.
+
+**Acceptance Criteria:**
+- Snapshot duration is 10 seconds (configurable ±2 seconds), centered on the alarm trigger timestamp; if less than 5 seconds of pre-trigger data is available, capture the maximum available.
+- Supported waveforms: ECG Lead II and SpO₂ plethysmograph; additional channels may be added via configuration.
+- Snapshot is compressed (delta or run-length) and stored in the `snapshots` table; the associated `alarms.context_snapshot_id` references the stored blob.
+- Snapshot capture completes within 1 second of alarm trigger and does not block real-time alarm processing.
+- Alarm Details view can regenerate the waveform snippet on-demand by decoding the stored snapshot blob; clinicians can replay the captured 10-second snippet without accessing live data.
+- Alarm Details view renders the stored waveform snippet inline for clinician review.
+- Snapshot metadata (channel, sampling rate, gain) is stored with the blob and synced to the telemetry server together with the alarm event.
+
+**Related Requirements:**
+- REQ-FUN-ALARM-001 (alarm triggering)
+- REQ-FUN-VITAL-011 (waveform display)
+- REQ-NFR-STO-010 (local storage budget)
+
+**Traces To:**
+- Design: [36_DATA_CACHING_STRATEGY.md](../architecture_and_design/36_DATA_CACHING_STRATEGY.md) (WaveformCache)
+- Design: [10_DATABASE_DESIGN.md](../architecture_and_design/10_DATABASE_DESIGN.md) (`snapshots` table)
+- Test: Test-ALARM-040
+
+**Notes:**
+- Default 10-second duration may be overridden via configuration but shall remain between 6 and 20 seconds to control storage usage.
+- Snapshot capture leverages the 30-second `WaveformCache`; no continuous waveform persistence is required.
+
+---
+
 ### [REQ-FUN-ALARM-030] Alarm Escalation
 
 **Category:** Alarm Management  
