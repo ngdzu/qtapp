@@ -24,7 +24,7 @@ This document provides a **workspace-level map** of the `qtapp` repository, high
 | `.github/` | GitHub Actions workflows (builds, Doxygen, etc.). |
 | `z-monitor/` | **Primary Z Monitor application** (Qt/C++, QML, tests). |
 | `project-dashboard/` | Documentation, prompts, automation scripts, ZTODO. |
-| `sensor-simulator/` | Qt/QML simulator that streams vitals over WebSocket. |
+| `sensor-simulator/` | Qt/QML simulator that writes vitals to shared memory ring buffer. |
 | `qt-style-telemetry-simulator/`, `vibelink-remote-builder/` | UI prototypes / experiments. |
 | `prompt-dashboard.md`, `prompt.md`, `docker_useful_commands.md` | Prompt and operations references. |
 | Other files (`docker-compose.simulator.yml`, etc.) | Environment helpers. |
@@ -98,7 +98,7 @@ Use this tree when you need specifications, design references, or automation scr
 
 | Path | Purpose |
 | --- | --- |
-| `sensor-simulator/` | Qt/QML simulator emitting vitals/alarms over WebSocket (consumed by adapters). |
+| `sensor-simulator/` | Qt/QML simulator emitting vitals/alarms into shared memory ring buffer (consumed by adapters). |
 | `qt-style-telemetry-simulator/`, `vibelink-remote-builder/` | Front-end experiments for telemetry dashboards. |
 
 ---

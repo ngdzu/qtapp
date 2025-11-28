@@ -4,7 +4,7 @@ flowchart TB
   end
 
   subgraph RTThread[Real-Time Processing Thread - High Priority]
-    SensorWS[WebSocketSensorDataSource<br/>ws://localhost:9002]
+    SensorWS[SharedMemorySensorDataSource<br/>memfd reader]
     DeviceSim[DeviceSimulator<br/>LEGACY fallback]
     MonitorSvc[MonitoringService]
     VCache[VitalsCache<br/>3-day in-memory<br/>~39 MB]

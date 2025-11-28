@@ -1,0 +1,32 @@
+graph TD
+    subgraph "External Sensor Simulator"
+        sim[Sensor Simulator<br/>Shared Memory Writer<br/>60 Hz vitals / 250 Hz ECG]
+        writer[Ring Buffer Writer<br/>Lock-free<br/>memfd + POSIX shm]
+    end
+
+    subgraph "Z-Monitor Application"
+        iface[ISensorDataSource<br/>Abstract Interface]
+        shmSrc[SharedMemorySensorDataSource<br/>memfd Reader<br/>Binary parser]
+        ring[SharedMemoryRingBuffer<br/>Header + slots]
+        monitor[MonitoringService<br/>Critical Path <16ms]
+        cache[VitalsCache<br/>In-memory 3-day buffer]
+        alarms[AlarmManager<br/>Threshold Evaluation]
+        telem[TelemetryBatch<br/>Server Batching]
+        ui[DashboardController<br/>Waveform/Vitals UI]
+    end
+
+    sim --> writer
+    writer -->|memfd handle + metadata| ring
+    ring --> shmSrc
+    shmSrc -->|implements| iface
+    iface -->|signals| monitor
+    monitor --> cache
+    monitor --> alarms
+    monitor --> telem
+    monitor --> ui
+
+    classDef external fill:#fef4dc,stroke:#f5ba45,color:#2b2b2b;
+    classDef internal fill:#e3f2fd,stroke:#1976d2,color:#0d47a1;
+    class sim,writer external;
+    class iface,shmSrc,ring,monitor,cache,alarms,telem,ui internal;
+

@@ -79,7 +79,7 @@ graph TB
     end
 
     subgraph "Infrastructure Layer - Sensor Data Sources"
-        WebSocketSensorDataSource[WebSocketSensorDataSource<br/>ISensorDataSource]
+        SharedMemorySensorDataSource[SharedMemorySensorDataSource<br/>ISensorDataSource]
         SimulatorDataSource[SimulatorDataSource<br/>ISensorDataSource]
         MockSensorDataSource[MockSensorDataSource<br/>ISensorDataSource]
         HardwareSensorAdapter[HardwareSensorAdapter<br/>ISensorDataSource]
@@ -112,7 +112,7 @@ graph TB
         CentralServer[Central Server<br/>HTTPS/mTLS]
         HISEHR[HIS/EHR<br/>REST API]
         CentralStation[Central Station<br/>Provisioning]
-        SensorSimulator[Sensor Simulator<br/>WebSocket:9002]
+        SensorSimulator[Sensor Simulator<br/>Shared Memory Ring]
         NTPServer[NTP Server]
         CRLServer[CRL Server]
     end
@@ -196,7 +196,7 @@ graph TB
     IAuditRepository --> SQLiteAuditRepository
 
     %% External Service Interfaces -> Implementations
-    ISensorDataSource --> WebSocketSensorDataSource
+    ISensorDataSource --> SharedMemorySensorDataSource
     ISensorDataSource --> SimulatorDataSource
     ISensorDataSource --> MockSensorDataSource
     ISensorDataSource --> HardwareSensorAdapter
@@ -215,8 +215,8 @@ graph TB
     SQLiteAuditRepository --> DatabaseManager
 
     %% Data Caching Flow (PRIORITY 1: Critical Path)
-    WebSocketSensorDataSource --> VitalsCache
-    WebSocketSensorDataSource --> WaveformCache
+    SharedMemorySensorDataSource --> VitalsCache
+    SharedMemorySensorDataSource --> WaveformCache
     VitalsCache --> MonitoringService
     WaveformCache --> DashboardController
 
@@ -242,7 +242,7 @@ graph TB
     NetworkTelemetryServer --> CentralServer
     HISPatientLookupAdapter --> HISEHR
     CentralStationClient --> CentralStation
-    WebSocketSensorDataSource --> SensorSimulator
+    SharedMemorySensorDataSource --> SensorSimulator
     ClockSyncService --> NTPServer
     CertificateManager --> CRLServer
 
@@ -270,5 +270,5 @@ graph TB
     class ISensorDataSource,IPatientLookupService,ITelemetryServer,IProvisioningServiceInterface interface
     class IPatientRepository,ITelemetryRepository,IVitalsRepository,IAlarmRepository,IProvisioningRepository,IUserRepository,IAuditRepository repository
     class VitalsCache,WaveformCache,PersistenceScheduler,DataCleanupService caching
-    class SQLitePatientRepository,SQLiteTelemetryRepository,SQLiteVitalsRepository,SQLiteAlarmRepository,SQLiteProvisioningRepository,SQLiteUserRepository,SQLiteAuditRepository,DatabaseManager,NetworkTelemetryServer,MockTelemetryServer,HISPatientLookupAdapter,MockPatientLookupService,CentralStationClient,WebSocketSensorDataSource,SimulatorDataSource,MockSensorDataSource,HardwareSensorAdapter,SettingsManager,LogService,CertificateManager,KeyManager,QRCodeGenerator,EncryptionService,SignatureService,SecureStorage,HealthMonitor,ClockSyncService,FirmwareManager,WatchdogService infrastructure
+    class SQLitePatientRepository,SQLiteTelemetryRepository,SQLiteVitalsRepository,SQLiteAlarmRepository,SQLiteProvisioningRepository,SQLiteUserRepository,SQLiteAuditRepository,DatabaseManager,NetworkTelemetryServer,MockTelemetryServer,HISPatientLookupAdapter,MockPatientLookupService,CentralStationClient,SharedMemorySensorDataSource,SimulatorDataSource,MockSensorDataSource,HardwareSensorAdapter,SettingsManager,LogService,CertificateManager,KeyManager,QRCodeGenerator,EncryptionService,SignatureService,SecureStorage,HealthMonitor,ClockSyncService,FirmwareManager,WatchdogService infrastructure
     class CentralServer,HISEHR,CentralStation,SensorSimulator,NTPServer,CRLServer external

@@ -4,7 +4,7 @@ graph TB
     end
 
     subgraph "Z Monitor - Data Acquisition"
-        WebSocketSensorDataSource[WebSocketSensor<br/>DataSource<br/>ws://localhost:9002]
+        SharedMemorySensorDataSource[SharedMemorySensor<br/>DataSource<br/>memfd reader]
         MonitoringService[Monitoring<br/>Service]
         WaveformCache[WaveformCache<br/>30-sec circular buffer<br/>7,500 samples]
     end
@@ -26,8 +26,8 @@ graph TB
     end
 
     %% Data Flow
-    SensorSimulator -->|WebSocket JSON<br/>250 Hz| WebSocketSensorDataSource
-    WebSocketSensorDataSource -->|vitalSignsReceived<br/>signal| MonitoringService
+    SensorSimulator -->|Shared Memory<br/>250 Hz| SharedMemorySensorDataSource
+    SharedMemorySensorDataSource -->|vitalSignsReceived<br/>signal| MonitoringService
     MonitoringService -->|stores samples| WaveformCache
     
     %% UI Update
@@ -51,7 +51,7 @@ graph TB
     classDef display fill:#845ef7,stroke:#5f3dc4,stroke-width:2px
     
     class SensorSimulator dataSource
-    class WebSocketSensorDataSource,MonitoringService,WaveformCache critical
+    class SharedMemorySensorDataSource,MonitoringService,WaveformCache critical
     class WaveformController,WaveformChart,RefreshTimer ui
     class GridCanvas,WaveformCanvas,ScanLine rendering
     class Screen display

@@ -174,43 +174,41 @@ These infrastructure components should be implemented early as they are dependen
   - Note: `ISensorDataSource` interface is documented in `doc/interfaces/ISensorDataSource.md` and provides sensor data acquisition abstraction (simulator, hardware, mock, replay).
   - Prompt: `project-dashboard/prompt/02-define-public-interfaces.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement WebSocketSensorDataSource for Sensor Simulator Integration
-  - What: Implement `WebSocketSensorDataSource` class that implements `ISensorDataSource` interface and connects to the external sensor simulator via WebSocket (ws://localhost:9002). Parse JSON messages from simulator and emit vitals/waveform data via Qt signals.
-  - Why: Decouples z-monitor from sensor implementation details. Enables testing with real simulator, mock sources, or future hardware sensors. Follows Dependency Inversion Principle.
-  - Files: `z-monitor/src/infrastructure/sensors/WebSocketSensorDataSource.cpp/h`, `z-monitor/src/infrastructure/sensors/SimulatorDataSource.cpp/h` (legacy fallback), `z-monitor/src/infrastructure/sensors/MockSensorDataSource.cpp/h` (testing).
-  - External Dependency: Sensor simulator runs separately at `project-dashboard/sensor-simulator/` (WebSocket server on port 9002).
-  - JSON Protocol: Simulator sends messages with structure:
-    ```json
-    {
-      "type": "vitals",
-      "timestamp_ms": 1234567890,
-      "hr": 75,
-      "spo2": 98,
-      "rr": 16,
-      "waveform": {
-        "channel": "ecg",
-        "sample_rate": 250,
-        "start_timestamp_ms": 1234567890,
-        "values": [100, 102, 98, ...]
-      }
-    }
-    ```
-  - Acceptance: 
-    - WebSocketSensorDataSource connects to ws://localhost:9002
-    - Parses JSON vitals messages and emits `vitalSignsReceived()` signal
-    - Parses waveform data and emits `waveformSampleReceived()` signal
-    - Handles connection errors gracefully (reconnect with backoff)
-    - MonitoringService uses `ISensorDataSource` interface (not concrete class)
+- [ ] Implement SharedMemorySensorDataSource (memfd reader)
+  - What: Implement `SharedMemorySensorDataSource` (ISensorDataSource) that connects to the simulator's Unix control socket, maps the shared-memory ring buffer (`memfd`), and emits vitals/waveform signals with < 16 ms latency.
+  - Why: WebSocket JSON adds > 60 ms latency; shared memory keeps the development transport under the 16 ms requirement and matches the caching/monitoring design.
+  - Files: `z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.cpp/h`, `SharedMemoryRingBuffer.h/cpp`, `SharedMemoryControlChannel.h/cpp`, unit tests in `tests/infrastructure/SharedMemorySensorDataSourceTests.cpp`.
+  - Acceptance:
+    - Maps ring buffer (validates header, version, CRC) and reads 60 Hz vitals / 250 Hz waveform batches.
+    - Emits `vitalSignsReceived` and `waveformSampleReceived` within 1 ms of frame arrival.
+    - Detects stalled writer (no heartbeat for 250 ms) and raises `sensorError`.
+    - Handles ring-buffer overruns (logs warning, resyncs to latest frame).
+    - MonitoringService consumes the new data source without code changes (DI only).
   - Verification Steps:
-    1. Functional: WebSocket connects to simulator, vitals/waveforms received and parsed correctly, connection errors handled
-    2. Code Quality: Doxygen comments on all public APIs, no linter warnings, follows interface contract
-    3. Documentation: Update `doc/09_CLASS_DESIGNS.md` with WebSocketSensorDataSource design, update `doc/02_ARCHITECTURE.md` data flow
-    4. Integration: MonitoringService works with WebSocketSensorDataSource, works with MockSensorDataSource for testing
-    5. Tests: Unit tests with mock WebSocket, integration test with real simulator, reconnection test
-  - Dependencies: Qt WebSockets module (`find_package(Qt6 COMPONENTS WebSockets)`), sensor simulator running
-  - Interface Documentation: See `doc/interfaces/ISensorDataSource.md` for complete interface specification
-  - Architecture Review: See [36_DATA_CACHING_STRATEGY.md](./doc/z-monitor/architecture_and_design/36_DATA_CACHING_STRATEGY.md) for caching strategy and data flow
-  - Prompt: `project-dashboard/prompt/02b-websocket-sensor-datasource.md`  (When finished: mark this checklist item done.)
+    1. Functional: Harness publishes frames, reader receives and decodes them, heartbeat + stall detection verified.
+    2. Code Quality: Doxygen comments, clang-tidy clean, zero heap allocations on hot path (except startup).
+    3. Documentation: Update `doc/37_SENSOR_INTEGRATION.md`, `doc/12_THREAD_MODEL.md`, `doc/02_ARCHITECTURE.md`, `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md`, `doc/42_LOW_LATENCY_TECHNIQUES.md`.
+    4. Integration: Monitoring dashboard shows live vitals from shared memory; fallback simulators still work.
+    5. Tests: Unit tests for parser/heartbeat/overrun, integration test with shared-memory harness, perf test (< 16 ms).
+  - Dependencies: POSIX shared memory (`memfd_create`, `shm_open`), Unix domain sockets, `<atomic>`.
+  - Prompt: `project-dashboard/prompt/02c-shared-memory-sensor-datasource.md`
+
+- [ ] Update Sensor Simulator to write shared-memory ring buffer
+  - What: Replace the simulator's WebSocket publisher with a shared-memory writer + Unix control socket that hands the `memfd` descriptor to Z-Monitor.
+  - Why: Matches the new ingestion path and slashes transport latency without needing an actual network stack for local development.
+  - Files: `sensor-simulator/src/core/SharedMemoryWriter.cpp/h`, `sensor-simulator/src/core/ControlServer.cpp/h`, simulator main wiring; update `sensor-simulator/README.md`.
+  - Acceptance:
+    - Allocates ring buffer (magic/version/header), maintains heartbeat, writes frames at 60 Hz / 250 Hz.
+    - Publishes `memfd` over control socket, supports reconnect (new reader can attach any time).
+    - Provides CLI/GUI indicators for shared-memory status and frame drops.
+    - Includes watchdog to recreate buffer if Z-Monitor disappears.
+  - Verification Steps:
+    1. Functional: Use harness to read buffer directly and verify data matches UI.
+    2. Code Quality: Doxygen comments, thread-safety review, no info leaks (0600 perms).
+    3. Documentation: Update `sensor-simulator/README.md`, `doc/37_SENSOR_INTEGRATION.md`.
+    4. Integration: End-to-end latency measured < 16 ms with real UI.
+    5. Tests: Unit tests for writer (slot wrap, CRC), integration test with SharedMemorySensorDataSource.
+  - Prompt: `project-dashboard/prompt/02d-shared-memory-simulator.md`
 
 - [ ] Implement Hospital User Authentication with Mock Server Support
   - What: Create `IUserManagementService` interface for authenticating healthcare workers (nurses, physicians, technicians, administrators) against hospital user management server. Implement `MockUserManagementService` for development/testing (hardcoded test users, no network) and `HospitalUserManagementAdapter` for production (REST API or LDAP). Integrate with `SecurityService` for session management, permission checking, and RBAC enforcement. Update `LoginView` and `AuthenticationController` to use new interface.

@@ -140,7 +140,7 @@ The Z Monitor is organized into **6 primary modules**:
 **Purpose:** Critical path for sensor data processing and alarm detection
 
 **Key Components:**
-- `WebSocketSensorDataSource` - Sensor data input
+- `SharedMemorySensorDataSource` - Sensor data input
 - `MonitoringService` - Coordinates vitals ingestion
 - `VitalsCache` - In-memory cache (3-day capacity)
 - `WaveformCache` - Circular buffer (30 seconds)
@@ -262,8 +262,8 @@ The Z Monitor is organized into **6 primary modules**:
 
 ```
 Sensor Simulator
-    ↓ WebSocket
-WebSocketSensorDataSource (RT Module)
+    ↓ Shared Memory Frames
+SharedMemorySensorDataSource (RT Module)
     ↓ Qt Signal
 MonitoringService (RT Module)
     ↓ Direct Call (same thread)

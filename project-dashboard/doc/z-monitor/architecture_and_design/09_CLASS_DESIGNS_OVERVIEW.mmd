@@ -13,7 +13,7 @@ graph TB
     end
 
     subgraph RTModule["Real-Time Processing Module<br/>(RT Thread - High Priority)"]
-        SensorSource[WebSocketSensorDataSource]
+        SensorSource[SharedMemorySensorDataSource]
         MonitoringService[MonitoringService]
         VitalsCache[VitalsCache<br/>3-day cache]
         WaveformCache[WaveformCache<br/>30-sec buffer]

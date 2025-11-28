@@ -56,7 +56,7 @@ graph TB
             
             subgraph "Sensor Data Sources"
                 ISensorDataSource[ISensorDataSource<br/>Interface]
-                WebSocketSensorDataSource[WebSocketSensor<br/>DataSource]
+                SharedMemorySensorDataSource[SharedMemorySensor<br/>DataSource]
                 DeviceSimulator[DeviceSimulator<br/>LEGACY]
             end
 
@@ -106,7 +106,7 @@ graph TB
     end
 
     subgraph "External Systems"
-        SensorSimulator[Sensor Simulator<br/>WebSocket Server<br/>ws://localhost:9002]
+        SensorSimulator[Sensor Simulator<br/>Shared Memory Writer<br/>memfd://zmonitor-sim-ring]
         CentralServer[Central Telemetry<br/>Server<br/>HTTPS/mTLS]
         HospitalUserServer[Hospital User<br/>Management Server<br/>REST/LDAP]
         NTPServer[NTP Server<br/>Time Sync]
@@ -117,8 +117,8 @@ graph TB
     end
 
     %% Critical Path: Sensor → Cache → Alarm (< 50ms)
-    SensorSimulator -->|WebSocket JSON| WebSocketSensorDataSource
-    WebSocketSensorDataSource -.implements.-> ISensorDataSource
+    SensorSimulator -->|Shared Memory Frames| SharedMemorySensorDataSource
+    SharedMemorySensorDataSource -.implements.-> ISensorDataSource
     ISensorDataSource -->|vitalSignsReceived| MonitoringService
     MonitoringService -->|stores| VitalsCache
     MonitoringService -->|stores| WaveformCache
@@ -194,7 +194,7 @@ graph TB
     classDef external fill:#ffd43b,stroke:#f59f00,stroke-width:2px
     classDef storage fill:#845ef7,stroke:#5f3dc4,stroke-width:2px
 
-    class WebSocketSensorDataSource,VitalsCache,WaveformCache,AlarmManager criticalPath
+    class SharedMemorySensorDataSource,VitalsCache,WaveformCache,AlarmManager criticalPath
     class PersistenceScheduler,SQLiteVitalsRepository,DatabaseManager,DataCleanupService nonCritical
     class ISensorDataSource,ITelemetryServer,IPatientLookupService,IUserManagementService,IProvisioningService interface
     class SensorSimulator,CentralServer,HospitalUserServer,NTPServer external

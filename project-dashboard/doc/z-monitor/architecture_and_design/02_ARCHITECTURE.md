@@ -51,7 +51,7 @@ Infrastructure Layer (Qt/SQL/network adapters)
 
 **Sensor Data Sources:**
 -   `ISensorDataSource` interface: Abstraction for sensor data acquisition
--   `WebSocketSensorDataSource`: WebSocket connection to sensor simulator (`ws://localhost:9002`)
+-   `SharedMemorySensorDataSource`: Maps simulator shared-memory ring buffer (`memfd://zmonitor-sim-ring`) via Unix control socket
 -   `DeviceSimulator`: Legacy fallback (internal simulator, deprecated in favor of external simulator)
 
 **Network & Communication:**
@@ -137,7 +137,7 @@ A standalone Python application that simulates a hospital's central monitoring s
 
 **Sensor Simulator:**
 External Qt application (`project-dashboard/sensor-simulator/`) that generates realistic vital signs data.
--   **Protocol:** WebSocket server on `ws://localhost:9002`
+-   **Transport:** Shared-memory ring buffer + Unix-domain control socket (same host, < 16 ms)
 -   **Data Rate:** Vitals at 5 Hz (200ms), waveforms at 250 Hz
 -   **Format:** JSON messages with vitals and waveform data
 -   **Purpose:** Development and testing without actual medical sensors
@@ -160,7 +160,7 @@ Network Time Protocol server for clock synchronization.
 ### 3.1. Critical Path: Sensor → Alarm Detection (< 50ms)
 
 1.  **Sensor Data Acquisition:** 
-    - `WebSocketSensorDataSource` receives vital signs from sensor simulator via WebSocket (`ws://localhost:9002`)
+    - `SharedMemorySensorDataSource` polls the shared-memory ring buffer exposed by the simulator
     - Parses JSON messages and emits `vitalSignsReceived()` signal
     - **Alternative:** `DeviceSimulator` (legacy fallback) generates data internally
 

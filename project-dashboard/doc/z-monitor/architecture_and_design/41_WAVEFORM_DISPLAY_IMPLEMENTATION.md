@@ -67,9 +67,9 @@ Waveforms (ECG, plethysmogram) are critical diagnostic tools that require smooth
 **Textual Flow:**
 ```
 Sensor Simulator (250 Hz)
-    ↓ WebSocket JSON
-WebSocketSensorDataSource
-    ↓ Qt Signals (vitalSignsReceived)
+    ↓ Shared Memory Frame (memfd ring buffer)
+SharedMemorySensorDataSource
+    ↓ Qt Signals (vitalSignsReceived / waveformSampleReceived)
 MonitoringService
     ↓ Stores samples
 WaveformCache (30-second circular buffer)
@@ -623,7 +623,7 @@ Item {
 
 **How does data flow?**
 1. **Sensor Simulator** generates waveform samples at 250 Hz (4ms intervals)
-2. **WebSocketSensorDataSource** receives samples via WebSocket
+2. **SharedMemorySensorDataSource** polls shared memory ring buffer (memfd) for new samples
 3. **MonitoringService** stores samples in **WaveformCache** (circular buffer)
 4. **WaveformController** (C++) exposes samples as Q_PROPERTY
 5. **WaveformChart.qml** binds to controller's `samples` property

@@ -42,55 +42,59 @@ This document provides detailed class designs for the **Real-Time Processing Mod
 
 ## 3. Infrastructure Components
 
-### 3.1. WebSocketSensorDataSource
+### 3.1. SharedMemorySensorDataSource
 
-**Responsibility:** Connects to external sensor simulator via WebSocket and receives vital signs and waveform data.
+**Responsibility:** Maps the simulator's shared-memory ring buffer (memfd) and streams 60 Hz vitals / 250 Hz waveform batches with microsecond latency.
 
 **Thread:** Real-Time Processing Thread
 
 **Interface:** `ISensorDataSource`
 
 **Key Properties:**
-- `isActive`: `bool` - Whether data source is active
-- `connectionStatus`: `ConnectionStatus` - WebSocket connection status
-- `serverUrl`: `QString` - WebSocket server URL (default: `ws://localhost:9002`)
+- `socketPath`: `QString` – Unix-domain control socket path (`unix://run/zmonitor-sim.sock`)
+- `ringName`: `QString` – Shared-memory ring identifier (`zmonitor-sim-ring`)
+- `readIndex`: `uint32_t` – Reader position within the ring buffer
+- `heartbeatTimeoutMs`: `int` – Stall threshold (default 250 ms)
 
 **Key Methods:**
-- `start()`: Starts WebSocket connection to sensor simulator
-- `stop()`: Stops WebSocket connection
-- `isActive()`: Returns whether data source is active
+- `start()`: Connects to control socket, receives `memfd`, `mmap`s header + slots, and primes polling loop.
+- `stop()`: Unmaps shared memory and closes control socket.
+- `pollFrames()`: Checks `writeIndex`, copies new frames into scratch buffer, emits vitals/waveform signals.
+- `handleHeartbeat()`: Updates internal watchdog; emits `sensorError` if heartbeat stalls.
+- `isActive()`: Returns whether data source currently has a valid mapped buffer.
 
 **Signals:**
-- `vitalSignsReceived(const VitalSigns& vitals)`: Emitted when new vitals received (5 Hz)
-- `waveformSamplesReceived(const QList<WaveformSample>& samples)`: Emitted when new waveform samples received (250 Hz)
-- `connectionStatusChanged(ConnectionStatus status)`: Emitted when connection status changes
-- `errorOccurred(const QString& error)`: Emitted when connection error occurs
+- `vitalSignsReceived(const VitalSigns& vitals)` @ 60 Hz.
+- `waveformSamplesReceived(const QList<WaveformSample>& samples)` @ 250 Hz (batched).
+- `connectionStatusChanged(ConnectionStatus status)` – Reflects control socket + heartbeat state.
+- `errorOccurred(const QString& error)` – Corruption, stall, or control-channel failure.
 
 **Data Flow:**
 ```
-Sensor Simulator (ws://localhost:9002)
-    ↓ WebSocket JSON message
-WebSocketSensorDataSource::onTextMessageReceived()
-    ↓ Parse JSON
+Sensor Simulator (shared-memory writer)
+    ↓ Shared Memory Frame
+SharedMemorySensorDataSource::pollFrames()
+    ↓ Decode binary payload
     ↓ Emit signal
 MonitoringService::onVitalSignsReceived() (same thread, direct call)
 ```
 
 **Dependencies:**
-- `QWebSocket` (Qt WebSockets) - WebSocket client
-- `MonitoringService` - Consumes vitals/waveform signals
+- POSIX shared memory + `memfd_create`
+- Unix-domain sockets for descriptor passing
+- `MonitoringService` (consumes vitals/waveform signals)
 
-**See:** [37_SENSOR_INTEGRATION.md](./37_SENSOR_INTEGRATION.md) for complete sensor integration guide.
+**See:** [37_SENSOR_INTEGRATION.md](./37_SENSOR_INTEGRATION.md) for the shared-memory layout and handshake details.
 
 ---
 
 ### 3.2. DeviceSimulator (LEGACY)
 
-**Responsibility:** **LEGACY FALLBACK** - Generates realistic simulated patient vital signs internally (replaced by `WebSocketSensorDataSource` in production).
+**Responsibility:** **LEGACY FALLBACK** - Generates realistic simulated patient vital signs internally (replaced by `SharedMemorySensorDataSource` in production).
 
 **Thread:** Real-Time Processing Thread
 
-**Status:** Deprecated - Use `WebSocketSensorDataSource` for production. Kept for fallback when external simulator unavailable.
+**Status:** Deprecated - Use `SharedMemorySensorDataSource` for production. Kept for fallback when external simulator unavailable.
 
 **Key Methods:**
 - `start()`: Begins the simulation timer
@@ -207,7 +211,7 @@ MonitoringService::onVitalSignsReceived() (same thread, direct call)
 - `waveformSamplesReady(const QVariantList& samples)`: Emitted when waveform window ready (to UI Thread)
 
 **Dependencies:**
-- `ISensorDataSource` - Sensor data input (WebSocketSensorDataSource)
+- `ISensorDataSource` - Sensor data input (SharedMemorySensorDataSource)
 - `VitalsCache` - In-memory vitals cache
 - `WaveformCache` - Waveform buffer
 - `AlarmAggregate` - Alarm detection logic
@@ -390,7 +394,7 @@ Sensor Data → VitalsCache::append() → AlarmAggregate::evaluate() → UI Sign
 ### 7.1. Inbound (From Other Modules)
 
 **From Sensor Simulator (External):**
-- WebSocket messages (JSON) with vitals and waveform data
+- Shared-memory frames (binary) with vitals and waveform data
 
 **From Application Services Module:**
 - `Qt::QueuedConnection` signals for patient admission/discharge

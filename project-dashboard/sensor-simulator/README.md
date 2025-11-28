@@ -1,18 +1,18 @@
 
 # Sensor Simulator
 
-Sensor Simulator is a Qt-based application that simulates sensors for the Z Monitor and streams JSON telemetry over WebSocket.
+Sensor Simulator is a Qt-based application that simulates sensors for the Z Monitor and publishes binary telemetry frames into a shared-memory ring buffer (memfd + Unix-domain control socket).
 
 ## Description
 
-The simulator exposes a WebSocket server and a modern QML UI (title: "Telemetry Simulator") that provides:
+The simulator exposes a modern QML UI (title: "Telemetry Simulator") and a low-latency shared-memory writer that provides:
 
 - **Real-time Vitals Display**: Heart Rate, SpO2, and Respiration Rate cards with live updates
 - **ECG Waveform Visualization**: Real-time ECG Lead II waveform with PQRST complex generation
 - **Interactive Controls**: Manual trigger buttons for Critical, Warning, and Notification events
 - **Demo Sequence**: Automated demo that plays through alarm scenarios
 - **Log Console**: Filterable telemetry stream with pause/resume functionality
-- **WebSocket Server**: Streams vitals and waveform data to connected clients at 5Hz (200ms intervals)
+- **Shared-Memory Publisher**: Streams 60 Hz vitals and 250 Hz ECG waveform batches via `memfd://zmonitor-sim-ring`
 
 ## Build & Run (Local)
 
@@ -31,11 +31,11 @@ cd project-dashboard
 docker compose -f docker-compose.simulator.yml up --build
 ```
 
-## WebSocket Endpoint
+## Shared-Memory Transport
 
-```text
-ws://localhost:9002
-```
+- **Control Socket:** `unix://run/zmonitor-sim.sock`
+- **Ring Buffer Name:** `zmonitor-sim-ring` (visible as `/dev/shm/zmonitor-sim-ring` for diagnostics)
+- **Latency Target:** < 16 ms end-to-end (simulator write → Z-Monitor UI)
 
 ## Features
 
@@ -56,23 +56,27 @@ ws://localhost:9002
 - Color-coded log entries matching event types
 - Displays up to 200 most recent log entries
 
-### WebSocket Protocol
-The simulator sends JSON messages with the following structure:
-```json
-{
-  "type": "vitals",
-  "timestamp_ms": 1234567890,
-  "hr": 75,
-  "spo2": 98,
-  "rr": 16,
-  "waveform": {
-    "channel": "ecg",
-    "sample_rate": 250,
-    "start_timestamp_ms": 1234567890,
-    "values": [100, 102, 98, ...]
-  }
+### Ring Buffer Layout
+
+```
+SharedMemoryHeader {
+  magic = 'SMRR'
+  version = 1
+  slotCount = 2048
+  frameSize = 1024 bytes
+  std::atomic<uint32_t> writeIndex
+  std::atomic<uint64_t> heartbeatNs
+}
+
+SensorFrame {
+  uint64_t timestampNs
+  VitalPayload vital   // HR, SpO₂, RR, etc.
+  WaveformPayload waveform[2]  // ECG + SpO₂, 10 samples per payload
+  uint32_t crc32
 }
 ```
+
+Each frame writes into `slots[writeIndex % slotCount]`, then increments `writeIndex`. The control socket pushes the `memfd` descriptor to Z-Monitor whenever the simulator starts.
 
 ## Notes
 

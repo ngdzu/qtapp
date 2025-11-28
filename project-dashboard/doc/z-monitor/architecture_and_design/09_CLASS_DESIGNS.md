@@ -59,7 +59,7 @@ All class designs have been organized into module-specific documents for better 
 **[09b_REALTIME_MODULE.md](./09b_REALTIME_MODULE.md)** - Sensor Data, Caching, and Alarm Detection
 
 **Components:**
-- `WebSocketSensorDataSource` - Sensor data input
+- `SharedMemorySensorDataSource` - Sensor data input (memfd ring buffer)
 - `MonitoringService` - Vitals ingestion coordination
 - `VitalsCache` - In-memory cache (3-day capacity)
 - `WaveformCache` - Circular buffer (30 seconds)
@@ -1537,7 +1537,7 @@ struct AuditFilter {
 - `MonitoringService`: Provides waveform samples via signals
 
 **Data Flow:**
-1. `MonitoringService` receives waveform samples from `WebSocketSensorDataSource`
+1. `MonitoringService` receives waveform samples from `SharedMemorySensorDataSource`
 2. `MonitoringService` stores samples in `WaveformCache` (30-second circular buffer)
 3. `MonitoringService` emits signal with window of samples (e.g., last 2,500 samples for 10-second display)
 4. `WaveformController::updateSamples()` called (via queued connection from RT thread)

@@ -11,7 +11,7 @@
 
 ## Overview
 
-Z-Monitor will receive vital signs data from an external **Sensor Simulator** via WebSocket connection. The integration follows the Dependency Inversion Principle using the `ISensorDataSource` interface.
+For local development we run the Sensor Simulator on the **same machine** as Z-Monitor. To achieve < 16 ms transport latency (60 Hz vitals + 250 Hz waveforms), the simulator and device exchange data through a shared-memory ring buffer backed by `memfd`/POSIX shared memory. The `ISensorDataSource` abstraction is still honored, but the concrete implementation is now `SharedMemorySensorDataSource`, which reads directly from the ring buffer instead of a WebSocket.
 
 ---
 
@@ -19,43 +19,10 @@ Z-Monitor will receive vital signs data from an external **Sensor Simulator** vi
 
 ### Component Diagram
 
-```
-┌───────────────────────────────────────────────────────────────┐
-│  Sensor Simulator (External Process)                         │
-│  Location: project-dashboard/sensor-simulator/               │
-│                                                               │
-│  - WebSocket Server: ws://localhost:9002                     │
-│  - Sends JSON vitals at 5 Hz (200ms intervals)               │
-│  - Sends ECG waveforms at 250 Hz                             │
-│  - Built with Qt (QWebSocketServer)                          │
-└────────────────────────┬──────────────────────────────────────┘
-                         │ WebSocket (JSON)
-                         ↓
-┌───────────────────────────────────────────────────────────────┐
-│  Z-Monitor Application                                        │
-│                                                               │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │  ISensorDataSource Interface                         │   │
-│  │  (Abstraction for sensor data acquisition)           │   │
-│  └────────────┬─────────────────────────────────────────┘   │
-│               │ implements                                    │
-│  ┌────────────▼──────────────────────────────────────────┐  │
-│  │  WebSocketSensorDataSource                            │  │
-│  │  - Connects to ws://localhost:9002                    │  │
-│  │  - Parses JSON vitals messages                        │  │
-│  │  - Emits vitalSignsReceived() signal                  │  │
-│  │  - Handles reconnection with backoff                  │  │
-│  └────────────┬──────────────────────────────────────────┘  │
-│               │ signals                                       │
-│  ┌────────────▼──────────────────────────────────────────┐  │
-│  │  MonitoringService                                     │  │
-│  │  - Receives vitals via signals                         │  │
-│  │  - Caches to in-memory (VitalsCache)                   │  │
-│  │  - Evaluates alarms (AlarmManager)                     │  │
-│  │  - Batches for telemetry (TelemetryBatch)             │  │
-│  └────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────────┘
-```
+> **📊 Sensor Integration Diagram**  
+> [View Sensor Integration (Mermaid)](./37_SENSOR_INTEGRATION.mmd)
+
+The simulator now writes binary frames into a lock-free shared-memory ring buffer. Z-Monitor maps the same buffer, and `SharedMemorySensorDataSource` pulls frames, converts them to `VitalRecord` / `WaveformSample`, and emits the usual Qt signals. The diagram shows the writer, shared buffer, and reader chain, all staying within the < 16 ms target from simulator write to UI update.
 
 ---
 
@@ -66,36 +33,48 @@ Z-Monitor will receive vital signs data from an external **Sensor Simulator** vi
 project-dashboard/sensor-simulator/
 ```
 
-### WebSocket Endpoint
+### Shared Memory Transport
+
+- **Control Socket:** `unix://run/zmonitor-sim.sock` – simulator publishes new `memfd` handles and status.
+- **Data Buffer:** `memfd://zmonitor-sim-ring` (mirrored at `/dev/shm/zmonitor-sim-ring` for diagnostic tooling).
+- **Synchronization:** lock-free ring buffer with atomic write index + heartbeat timestamp; reader polls using CPU-friendly backoff (< 50 µs).
+- **Data Rate:** 60 Hz vitals (one frame every 16.67 ms) and 250 Hz ECG waveform samples (batched into 10-sample chunks per frame).
+
+### Ring Buffer Layout
+
 ```
-ws://localhost:9002
+┌──────────────────────────────────────────────┐
+│ struct SharedMemoryHeader {                  │
+│   uint32_t magic = 0x534D5252;               │
+│   uint16_t version = 1;                      │
+│   uint16_t slotCount = 2048;                 │
+│   std::atomic<uint32_t> writeIndex;          │
+│   std::atomic<uint64_t> heartbeatNs;         │
+│   uint32_t frameSizeBytes;                   │
+│   uint32_t reserved[11];                     │
+│ };                                           │
+│                                              │
+│ struct SensorFrame {                         │
+│   uint64_t timestampNs;                      │
+│   uint16_t sampleCount;                      │
+│   uint16_t channelMask;                      │
+│   VitalPayload vital;                        │
+│   WaveformPayload waveforms[MAX_CHANNELS];   │
+│   uint32_t crc32;                            │
+│ };                                           │
+└──────────────────────────────────────────────┘
 ```
 
-### JSON Message Format
+- **Writer (Simulator):** increments `writeIndex` after copying a new `SensorFrame` into `slots[writeIndex % slotCount]`, then updates `heartbeatNs`.
+- **Reader (Z-Monitor):** tracks `readIndex`, waits until `writeIndex != readIndex`, copies frame, validates `crc32`, then emits Qt signals.
 
-**Vitals Message (5 Hz):**
-```json
-{
-  "type": "vitals",
-  "timestamp_ms": 1234567890,
-  "hr": 75,
-  "spo2": 98,
-  "rr": 16,
-  "waveform": {
-    "channel": "ecg",
-    "sample_rate": 250,
-    "start_timestamp_ms": 1234567890,
-    "values": [100, 102, 98, ...]
-  }
-}
-```
+### Simulator Responsibilities
 
-### Features
-- **Real-time Vitals:** Heart Rate, SpO2, Respiration Rate
-- **ECG Waveform:** Realistic PQRST complex at 250 Hz
-- **Interactive Controls:** Manual trigger for alarms
-- **Demo Sequence:** Automated alarm scenarios
-- **QML UI:** Modern UI with live updates
+1. On startup, create `memfd`, size it (`ftruncate`) to `sizeof(Header) + slotCount * frameSize`.
+2. Publish the `memfd` file descriptor over the Unix domain control socket.
+3. Stream data into the ring buffer at 60 Hz / 250 Hz, ensuring writes complete within 2 ms.
+4. Update `heartbeatNs` every frame so Z-Monitor can detect stalled writers.
+5. Provide tooling (`simctl`) to dump the buffer for debugging.
 
 ### Running the Simulator
 
@@ -146,40 +125,42 @@ signals:
 };
 ```
 
-### Implementation: WebSocketSensorDataSource
+### Implementation: SharedMemorySensorDataSource
 
-**Location:** `z-monitor/src/infrastructure/sensors/WebSocketSensorDataSource.cpp/h`
+**Location:** `z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.cpp/h`
 
 **Responsibilities:**
-1. Connect to simulator's WebSocket server (ws://localhost:9002)
-2. Parse JSON vitals messages
-3. Convert JSON to `VitalRecord` and `WaveformSample` structs
-4. Emit Qt signals for MonitoringService
-5. Handle connection errors and reconnection with exponential backoff
+1. Connect to the Unix-domain control socket, receive the latest `memfd` handle.
+2. `mmap` the header + slots into process space (read-only).
+3. Poll `writeIndex` / `heartbeatNs`, detect new frames, and copy them into local buffers.
+4. Convert binary payloads into `VitalRecord` and `WaveformSample` structs (no JSON parsing).
+5. Emit Qt signals to `MonitoringService`.
+6. Detect stalled simulator (no heartbeat for >250 ms) and raise `sensorError`.
 
 **Key Features:**
-- **Auto-reconnect:** Reconnects with exponential backoff (1s, 2s, 4s, 8s, max 30s)
-- **Error Handling:** Graceful handling of network errors, JSON parse errors
-- **Connection Status:** Reports connection status changes
-- **Thread-Safe:** Runs on Real-Time Processing thread
+- **Microsecond latency:** Reader copies directly from shared memory, no syscalls on the hot path.
+- **Zero allocations:** Pre-allocated scratch buffers for waveform arrays.
+- **Backpressure handling:** If reader lags, `readIndex` simply jumps to latest and raises a `FrameDropped` warning.
+- **Watchdog:** If simulator stops updating `heartbeatNs`, data source enters `Paused` state and awaits next control message.
 
 ### Data Flow
 
 ```
-Sensor Simulator (External)
-  ↓ (WebSocket JSON @ 5 Hz)
-WebSocketSensorDataSource::onTextMessageReceived()
-  ↓ (Parse JSON)
-WebSocketSensorDataSource::parseVitalsMessage()
-  ↓ (Create VitalRecord)
+Sensor Simulator (local process)
+  ↓ (memfd write @ 60 Hz / 250 Hz)
+SharedMemoryRingBuffer::writeFrame()
+  ↓ (atomic writeIndex)
+SharedMemorySensorDataSource::pollFrames()
+  ↓ (binary decode)
 emit ISensorDataSource::vitalSignsReceived(VitalRecord)
+emit ISensorDataSource::waveformSampleReceived(WaveformSample)
   ↓ (Qt Signal)
 MonitoringService::onVitalsReceived(VitalRecord)
-  ↓ (< 50ms critical path)
-  ├─ VitalsCache::append() (in-memory cache)
-  ├─ AlarmManager::processVitalSigns() (alarm evaluation)
-  ├─ UI update (DashboardController)
-  └─ TelemetryBatch::addVital() (batch for server)
+  ↓ (< 16ms transport budget)
+  ├─ VitalsCache::append()
+  ├─ AlarmManager::processVitalSigns()
+  ├─ UI update
+  └─ TelemetryBatch::addVital()
 ```
 
 ---
@@ -213,29 +194,25 @@ MonitoringService::onVitalsReceived(VitalRecord)
 ```cpp
 // Configuration (based on settings)
 void ServiceContainer::configure() {
-    // Use WebSocket simulator (production/development default)
-    if (Settings::instance()->useWebSocketSimulator()) {
+    if (Settings::instance()->useSharedMemorySimulator()) {
         registerSingleton<ISensorDataSource>([]() {
-            return new WebSocketSensorDataSource("ws://localhost:9002");
+            return new SharedMemorySensorDataSource(
+                Settings::instance()->sharedMemorySocketPath(),   // e.g. unix://run/zmonitor-sim.sock
+                Settings::instance()->sharedMemoryRingName());    // e.g. zmonitor-sim-ring
         });
-    }
-    // Use internal simulator (fallback)
-    else if (Settings::instance()->useInternalSimulator()) {
+    } else if (Settings::instance()->useInternalSimulator()) {
         registerSingleton<ISensorDataSource>([]() {
             return new SimulatorDataSource();
         });
-    }
-    // Use mock (testing)
-    else {
+    } else {
         registerSingleton<ISensorDataSource>([]() {
             return new MockSensorDataSource();
         });
     }
     
-    // MonitoringService gets ISensorDataSource injected
     registerSingleton<MonitoringService>([](ServiceContainer* container) {
         return new MonitoringService(
-            container->resolve<ISensorDataSource>(),  // ✅ Injected
+            container->resolve<ISensorDataSource>(),
             container->resolve<VitalsCache>(),
             container->resolve<AlarmManager>()
         );
@@ -245,75 +222,46 @@ void ServiceContainer::configure() {
 
 ---
 
-## ZTODO Task
-
-**Task Added:** `Implement WebSocketSensorDataSource for Sensor Simulator Integration`
-
-**Location in ZTODO:** After "Define public C++ service interfaces" task
-
-**Key Points:**
-- Implements `ISensorDataSource` interface
-- Connects to ws://localhost:9002
-- Parses JSON vitals messages
-- Handles reconnection with exponential backoff
-- Includes verification steps (functional, code quality, documentation, integration, tests)
-
-**Acceptance Criteria:**
-1. WebSocket connects to simulator
-2. Parses JSON and emits signals
-3. Connection errors handled gracefully
-4. MonitoringService uses interface (not concrete class)
-
-**Dependencies:**
-- Qt WebSockets module
-- Sensor simulator running externally
-- ISensorDataSource interface defined
-
----
-
 ## Testing Strategy
 
 ### Unit Tests
 ```cpp
-TEST(WebSocketSensorDataSource, ConnectToSimulator) {
-    WebSocketSensorDataSource dataSource("ws://localhost:9002");
+TEST(SharedMemorySensorDataSource, ConnectsToRingBuffer) {
+    SharedMemoryTestHarness harness(/*slotCount=*/8);
+    SharedMemorySensorDataSource dataSource(harness.socketPath(), harness.ringName());
     QSignalSpy spy(&dataSource, &ISensorDataSource::vitalSignsReceived);
     
     ASSERT_TRUE(dataSource.start());
-    QTest::qWait(1000);  // Wait for vitals
+    harness.writeFrame(makeTestFrame());
     
-    EXPECT_GE(spy.count(), 1);  // At least 1 vital received
+    QVERIFY(spy.wait(100));   // Expect a frame within 100 ms
 }
 
-TEST(WebSocketSensorDataSource, ParseVitalsJSON) {
-    QString json = R"({
-        "type": "vitals",
-        "timestamp_ms": 1234567890,
-        "hr": 75,
-        "spo2": 98.5,
-        "rr": 16
-    })";
+TEST(SharedMemorySensorDataSource, DetectsStalledWriter) {
+    SharedMemoryTestHarness harness(/*slotCount=*/4);
+    SharedMemorySensorDataSource dataSource(harness.socketPath(), harness.ringName());
+    QSignalSpy errorSpy(&dataSource, &ISensorDataSource::sensorError);
     
-    VitalRecord vital = parseVitalsMessage(json);
+    ASSERT_TRUE(dataSource.start());
+    harness.stopHeartbeat();
     
-    EXPECT_EQ(vital.heartRate, 75);
-    EXPECT_DOUBLE_EQ(vital.spo2, 98.5);
-    EXPECT_EQ(vital.respirationRate, 16);
+    QVERIFY(errorSpy.wait(300));  // Reader should emit stalled error
 }
 ```
 
 ### Integration Tests
 ```cpp
-TEST(MonitoringService, ReceivesVitalsFromWebSocket) {
-    // Arrange
-    WebSocketSensorDataSource* dataSource = new WebSocketSensorDataSource("ws://localhost:9002");
+TEST(MonitoringService, ReceivesVitalsFromSharedMemory) {
+    SharedMemoryTestHarness harness(/*slotCount=*/16);
+    SharedMemorySensorDataSource* dataSource =
+        new SharedMemorySensorDataSource(harness.socketPath(), harness.ringName());
     VitalsCache cache;
     AlarmManager alarmMgr;
     MonitoringService service(dataSource, &cache, &alarmMgr);
     
     // Act
     service.start();
-    QTest::qWait(2000);  // Wait 2 seconds
+    harness.writeFrames(120);  // 2 seconds of data at 60 Hz
     
     // Assert
     EXPECT_GT(cache.size(), 0);  // Cache has vitals
@@ -325,86 +273,39 @@ TEST(MonitoringService, ReceivesVitalsFromWebSocket) {
 ## Performance Considerations
 
 ### Data Rate
-- **Vitals:** 5 Hz (200ms intervals) = 5 messages/second
-- **Waveforms:** 250 Hz = 250 samples/second (50 samples per packet)
-- **Total Bandwidth:** ~52 KB/second
+- **Vitals:** 60 Hz (16.67 ms intervals), 32 bytes per payload.
+- **Waveforms:** 250 Hz (~4 ms intervals) batched as 10-sample chunks (ECG Lead II + SpO₂ pleth).
+- **Total Shared Memory Throughput:** ≈ 1.2 MB/s (fits comfortably in L3 cache).
 
 ### Critical Path Timing
 ```
-WebSocket message received (0ms)
+Simulator writes frame to shared memory (0µs)
   ↓
-Parse JSON (< 5ms)
+SharedMemorySensorDataSource polls (≤ 50µs)
   ↓
-Emit signal (< 1ms)
+Frame decode + signal emit (< 200µs)
   ↓
-MonitoringService processes (< 50ms total)
-  ├─ VitalsCache::append() (< 5ms)
-  ├─ AlarmManager::processVitals() (< 20ms)
-  ├─ UI update (< 10ms)
-  └─ Telemetry batch (< 5ms)
+MonitoringService processing (< 15ms budget)
+  ├─ VitalsCache::append() (< 2ms)
+  ├─ AlarmManager::processVitals() (< 8ms)
+  ├─ UI update (< 3ms)
+  └─ Telemetry batch (< 2ms)
 ```
 
-**Total: < 60ms from WebSocket to UI update** ✅
+**Total: < 16 ms from simulator write to UI update** ✅
 
 ---
 
 ## Security Considerations
 
-### WebSocket Security
-- **Development:** ws:// (unencrypted) on localhost:9002 ✅
-- **Production:** Should use wss:// (WebSocket Secure) with TLS
-- **Future:** Add authentication token for WebSocket connection
+### Shared Memory Security
+- **Access Control:** Simulator creates the `memfd` with `0600` permissions and only shares the descriptor with local processes that pass an authentication token over the control socket.
+- **Sandboxing:** Z-Monitor validates `magic`, `version`, and `frameSizeBytes` before trusting the buffer.
+- **DoS Mitigation:** Reader detects overruns and logs frame drops; watchdog restarts simulator if heartbeat stops.
 
 ### Data Validation
-- **JSON Parsing:** Validate all fields before creating VitalRecord
+- **Binary Schema:** CRC32 on each frame, plus per-field range validation (heart rate 0–300 BPM, etc.).
 - **Range Checking:** Ensure vitals within physiological limits
-- **Error Handling:** Malformed JSON should not crash application
+- **Error Handling:** Corrupted frames are skipped, and diagnostics are logged.
 
 ---
-
-## Documentation Updates
-
-### Created
-1. ✅ `interfaces/ISensorDataSource.md` (694 lines) - Complete interface specification
-2. ✅ [36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md) (611 lines) - Caching strategy and architecture
-3. ✅ [37_SENSOR_INTEGRATION.md](./37_SENSOR_INTEGRATION.md) (This document) - Integration overview
-
-### Updated
-1. ✅ `ZTODO.md` - Added WebSocketSensorDataSource implementation task
-2. ✅ [35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md](./35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md) - Updated interface count (4/5, 80%)
-
-### To Update (During Implementation)
-1. `09_CLASS_DESIGNS.md` - Add WebSocketSensorDataSource class design
-2. `02_ARCHITECTURE.md` - Update data flow diagram
-3. `12_THREAD_MODEL.md` - Document sensor data source thread assignment
-
----
-
-## Summary
-
-### ✅ Completed
-- ISensorDataSource interface documented (694 lines)
-- Data caching architecture reviewed
-- Integration strategy defined
-- ZTODO task added
-
-### ⏳ Next Steps (Implementation)
-1. Implement `WebSocketSensorDataSource` class
-2. Implement `MockSensorDataSource` for testing
-3. Update `MonitoringService` to use `ISensorDataSource`
-4. Write unit and integration tests
-5. Update documentation
-
-### 🎯 Benefits
-- ✅ Decouples z-monitor from sensor implementation
-- ✅ Enables testing without external simulator
-- ✅ Supports future hardware sensor integration
-- ✅ Follows Dependency Inversion Principle
-- ✅ Interface-based design for flexibility
-
----
-
-**Status:** Ready for Implementation  
-**Interface Documentation:** Complete (4/5 interfaces documented)  
-**Implementation Task:** Added to ZTODO.md
-

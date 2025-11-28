@@ -1,7 +1,7 @@
 graph TB
     subgraph RTModule["Real-Time Processing Module<br/>(RT Thread - High Priority)"]
         subgraph SensorSources["Sensor Data Sources"]
-            WebSocketSource[WebSocketSensorDataSource<br/>ws://localhost:9002]
+            SharedMemorySource[SharedMemorySensorDataSource<br/>memfd reader]
             DeviceSim[DeviceSimulator<br/>LEGACY fallback]
         end
 
@@ -36,9 +36,9 @@ graph TB
     end
 
     %% Critical Path (Real-Time)
-    SensorSimulator -->|WebSocket JSON| WebSocketSource
-    WebSocketSource -->|Qt Signal<br/>5 Hz vitals| MonitoringService
-    WebSocketSource -->|Qt Signal<br/>250 Hz waveforms| MonitoringService
+    SensorSimulator -->|Shared Memory Frames| SharedMemorySource
+    SharedMemorySource -->|Qt Signal<br/>60 Hz vitals| MonitoringService
+    SharedMemorySource -->|Qt Signal<br/>250 Hz waveforms| MonitoringService
     DeviceSim -.->|Fallback| MonitoringService
 
     MonitoringService -->|Direct Call<br/>< 5ms| VitalsCache
@@ -69,7 +69,7 @@ graph TB
     classDef value fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef external fill:#f5f5f5,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
 
-    class SensorSources,WebSocketSource,DeviceSim sensor
+    class SensorSources,SharedMemorySource,DeviceSim sensor
     class Caching,VitalsCache,WaveformCache cache
     class Services,MonitoringService service
     class Aggregates,PatientAgg,TelemetryBatch,AlarmAgg aggregate

@@ -154,8 +154,8 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 
 | Component | Layer | Type | Responsibility |
 |-----------|-------|------|----------------|
-| `WebSocketSensorDataSource` | Infrastructure | Adapter | Connects to external sensor simulator (ws://localhost:9002) |
-| `DeviceSimulator` | Infrastructure | Adapter | **LEGACY:** Generates simulated vitals/waveforms (replaced by WebSocketSensorDataSource in production) |
+| `SharedMemorySensorDataSource` | Infrastructure | Adapter | Maps shared-memory ring buffer (memfd) and ingests 60 Hz vitals / 250 Hz waveforms |
+| `DeviceSimulator` | Infrastructure | Adapter | **LEGACY:** Generates simulated vitals/waveforms (fallback when shared memory unavailable) |
 | `MonitoringService` | Application | Service | Coordinates vitals ingestion, telemetry batching |
 | `VitalsCache` | Infrastructure | Adapter | **NEW:** In-memory cache for vitals (3-day capacity, ~39 MB), thread-safe with QReadWriteLock |
 | `WaveformCache` | Infrastructure | Adapter | **NEW:** Circular buffer for waveforms (30 seconds, ~0.1 MB), display-only |
@@ -168,7 +168,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 | `AlarmThreshold` | Domain | Value Object | Min/max alarm trigger values |
 
 **Workflow (Updated with Caching):**
-1. `WebSocketSensorDataSource` receives vitals/waveforms from external simulator (or `DeviceSimulator` generates if simulator unavailable)
+1. `SharedMemorySensorDataSource` polls the shared-memory ring buffer (or `DeviceSimulator` generates if simulator unavailable)
 2. `MonitoringService` receives vitals via Qt signals
 3. **NEW:** `MonitoringService` appends vitals to `VitalsCache` (in-memory, critical path)
 4. **NEW:** `MonitoringService` appends waveforms to `WaveformCache` (display-only, not persisted)
@@ -180,7 +180,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 10. Batch enqueued to Database Thread via lock-free queue **for background persistence**
 
 **Communication:**
-- **Inbound:** WebSocket messages from sensor simulator, or timer-based simulation
+- **Inbound:** Shared-memory frames from simulator writer, or timer-based simulation
 - **Outbound:**
   - Lock-free queue to Database Thread (telemetry batches for persistence) - **NON-CRITICAL**
   - Queued signals to Main/UI Thread (alarm events, vitals updates) - **CRITICAL**
@@ -189,7 +189,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 - `TelemetryQueued`, `AlarmRaised`, `AlarmAcknowledged`
 
 **Latency Targets:**
-- Sensor read → sample enqueued: < 1 ms
+- Simulator write → sample read: < 1 ms
 - Sample → cached (`VitalsCache::append()`): < 5 ms **CRITICAL**
 - Alarm detection (using cache) → UI visible: < 50 ms **CRITICAL**
 - Cache → database persistence: < 5 seconds **NON-CRITICAL (background)**
@@ -443,7 +443,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 | **Domain Interfaces** | 7 | Repository interfaces (contracts, not implementations) - added `IVitalsRepository`, `ISensorDataSource` |
 | **DTOs** | 6 | Data transfer objects (thread-agnostic) |
 | **Domain Events** | 11 | Events (emitted by various threads, consumed by UI/logging) |
-| **Sensor Adapters** | 5 | `WebSocketSensorDataSource`, `SimulatorDataSource`, `MockSensorDataSource`, `HardwareSensorAdapter`, `ReplayDataSource` (implementations of `ISensorDataSource`) |
+| **Sensor Adapters** | 5 | `SharedMemorySensorDataSource`, `SimulatorDataSource`, `MockSensorDataSource`, `HardwareSensorAdapter`, `ReplayDataSource` (implementations of `ISensorDataSource`) |
 | **Total** | **115** | **All system components accounted for** (increased from 113 due to visualization components) |
 
 **Component Count Changes:**
@@ -1442,7 +1442,7 @@ Instrument with timestamped events for:
 
 3. **Sensor Abstraction:**
    - `ISensorDataSource` interface enables swappable sensor implementations
-   - `WebSocketSensorDataSource` connects to external simulator
+   - `SharedMemorySensorDataSource` maps memfd from simulator
    - Follows Dependency Inversion Principle
 
 4. **ORM Integration:**

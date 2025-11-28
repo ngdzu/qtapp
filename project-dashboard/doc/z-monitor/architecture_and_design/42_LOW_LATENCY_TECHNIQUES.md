@@ -644,7 +644,7 @@ Is it high-frequency (> 1000 ops/sec)?
 - Custom SPSC ring buffer for waveform samples (if needed)
 
 **Location:**
-- `src/infrastructure/sensors/WebSocketSensorDataSource.cpp` - Producer
+- `src/infrastructure/sensors/SharedMemorySensorDataSource.cpp` - Producer
 - `src/application/services/MonitoringService.cpp` - Consumer (RT Thread)
 - `src/domain/monitoring/AlarmAggregate.cpp` - Alarm detection
 

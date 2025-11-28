@@ -795,7 +795,7 @@ Location: [interfaces/ISensorDataSource.md](./interfaces/ISensorDataSource.md)
 
 Required documentation:
 - ✅ Complete C++ interface definition with Doxygen comments
-- ✅ All implementations (WebSocketSensorDataSource, MockSensorDataSource, etc.)
+- ✅ All implementations (SharedMemorySensorDataSource, MockSensorDataSource, etc.)
 - ✅ Data structures (VitalRecord, WaveformSample)
 - ✅ Usage examples
 - ✅ Testing strategies

@@ -118,7 +118,9 @@ src/
 │   │   ├── CentralStationClient.h/cpp
 │   │   └── HospitalUserManagementAdapter.h/cpp  # IUserManagementService impl
 │   ├── sensors/                  # Sensor data source adapters
-│   │   ├── WebSocketSensorDataSource.h/cpp     # ISensorDataSource impl
+│   │   ├── SharedMemorySensorDataSource.h/cpp  # ISensorDataSource impl (memfd reader)
+│   │   ├── SharedMemoryRingBuffer.h/cpp        # Shared buffer layout helpers
+│   │   ├── SharedMemoryControlChannel.h/cpp    # Unix socket handshake utilities
 │   │   ├── SimulatorDataSource.h/cpp
 │   │   ├── MockSensorDataSource.h/cpp
 │   │   ├── HardwareSensorAdapter.h/cpp
@@ -265,7 +267,7 @@ namespace ZMonitor {
             class NetworkTelemetryServer;
         }
         namespace Sensors {
-            class WebSocketSensorDataSource;
+            class SharedMemorySensorDataSource;
         }
         namespace Security {
             class CertificateManager;

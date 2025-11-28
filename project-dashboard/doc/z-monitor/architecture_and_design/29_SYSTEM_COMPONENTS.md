@@ -246,7 +246,7 @@ QML interacts with controllers via properties/signals; controllers call applicat
 
 | Component | Interface | Technology | Responsibility | Documentation |
 |-----------|-----------|------------|----------------|---------------|
-| `WebSocketSensorDataSource` | `ISensorDataSource` | Qt WebSockets | Connects to external sensor simulator (ws://localhost:9002) | [ISensorDataSource.md](./interfaces/ISensorDataSource.md) |
+| `SharedMemorySensorDataSource` | `ISensorDataSource` | POSIX shared memory + memfd | Maps shared ring buffer exposed by local simulator | [ISensorDataSource.md](./interfaces/ISensorDataSource.md) |
 | `SimulatorDataSource` | `ISensorDataSource` | Qt Timers | Internal fallback simulator (no external process) | [ISensorDataSource.md](./interfaces/ISensorDataSource.md) |
 | `MockSensorDataSource` | `ISensorDataSource` | In-memory | Testing with deterministic data | [ISensorDataSource.md](./interfaces/ISensorDataSource.md) |
 | `HardwareSensorAdapter` | `ISensorDataSource` | Serial/USB | Future: Real hardware sensors | [ISensorDataSource.md](./interfaces/ISensorDataSource.md) |
@@ -371,7 +371,7 @@ This diagram shows the complete flow of data and control through all system laye
 | **Central Server** | REST API (HTTPS/mTLS) | Receives telemetry data, provides provisioning payloads |
 | **HIS/EHR** | REST API (HTTPS) | Patient lookup service |
 | **Central Station** | REST API (HTTPS) | Provisioning orchestration, patient assignments |
-| **Sensor Simulator** | WebSocket (ws://localhost:9002) | External sensor data simulator (development) |
+| **Sensor Simulator** | Shared memory ring buffer (`memfd://zmonitor-sim-ring`) + Unix control socket | External sensor data simulator (development) |
 | **NTP Server** | NTP protocol | Time synchronization |
 | **CRL Server** | HTTP/HTTPS | Certificate revocation list |
 
