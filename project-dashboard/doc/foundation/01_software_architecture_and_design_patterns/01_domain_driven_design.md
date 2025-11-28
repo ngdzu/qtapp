@@ -455,7 +455,7 @@ public:
 │   Infrastructure Layer (Adapters)   │
 │   - SQLite repositories              │
 │   - Network adapters                 │
-│   - Qt adapters                      │
+│   - Platform adapters (Qt-based)     │
 │   - Certificate management           │
 └─────────────────────────────────────┘
 ```
@@ -490,7 +490,7 @@ z-monitor/src/
 ├── infrastructure/     # Technical implementations
 │   ├── persistence/   # SQLite, repositories
 │   ├── network/        # HTTPS/mTLS
-│   ├── qt/             # Qt adapters
+│   ├── adapters/       # Platform adapters (Qt-based)
 │   └── provisioning/   # Certificate management
 │
 └── interface/          # UI layer

@@ -653,7 +653,7 @@ TEST(LogService, NonBlocking) {
 ### 11.2. Migration Steps
 
 1. **Create ILogBackend interface** (`src/infrastructure/logging/ILogBackend.h`)
-2. **Move LogService** to `src/infrastructure/logging/` (from `src/infrastructure/qt/`)
+2. **Move LogService** to `src/infrastructure/logging/` (from `src/infrastructure/adapters/`)
 3. **Implement async queue** (lock-free queue + Database I/O Thread processing)
 4. **Create SpdlogBackend** implementation
 5. **Create CustomBackend** fallback

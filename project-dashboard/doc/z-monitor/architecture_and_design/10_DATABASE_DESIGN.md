@@ -33,26 +33,30 @@ CREATE TABLE IF NOT EXISTS patients (
 	room TEXT NULL,
 	created_at INTEGER NOT NULL,
 	last_lookup_at INTEGER NULL,
-	lookup_source TEXT NULL
+	lookup_source TEXT NULL,
+	-- ADT Workflow columns (added in migration 0003_adt_workflow.sql)
+	bed_location TEXT NULL,              -- Current bed/room assignment (e.g., "ICU-4B")
+	admitted_at INTEGER NULL,            -- Timestamp when patient was admitted to device (NULL if not currently admitted)
+	discharged_at INTEGER NULL,          -- Timestamp when patient was discharged (NULL if currently admitted)
+	admission_source TEXT NULL,          -- Source of admission ("manual", "barcode", "central_station")
+	device_label TEXT NULL               -- Device identifier that admitted this patient (e.g., "ICU-MON-04")
 );
 ```
 
 **Usage Notes:**
 - `patient_id`: Primary identifier used for patient lookups (typically MRN)
 - `mrn`: Medical Record Number, primary patient identifier in hospital systems
-- `room`: Current room/bed assignment (may be updated from external system or overridden during admission)
-- `last_lookup_at`: Timestamp of last successful lookup from external system (NULL if never looked up)
-- `lookup_source`: Source of patient data ("local", "his", "ehr", etc.) for audit purposes
-
-**ADT Workflow Enhancements:**
-The `patients` table should be enhanced with additional columns for ADT workflow:
-- `bed_location`: Current bed/room assignment (e.g., "ICU-4B") - part of Patient object
+- `room`: Legacy room/bed assignment (deprecated, use `bed_location` instead)
+- `bed_location`: Current bed/room assignment (e.g., "ICU-4B") - part of Patient object, managed through ADT workflow
 - `admitted_at`: Timestamp when patient was admitted to device (NULL if not currently admitted)
 - `discharged_at`: Timestamp when patient was discharged (NULL if currently admitted)
 - `admission_source`: Source of admission ("manual", "barcode", "central_station")
 - `device_label`: Device identifier that admitted this patient (e.g., "ICU-MON-04")
+- `last_lookup_at`: Timestamp of last successful lookup from external system (NULL if never looked up)
+- `lookup_source`: Source of patient data ("local", "his", "ehr", etc.) for audit purposes
 
-See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for complete ADT workflow documentation.
+**ADT Workflow:**
+The `patients` table includes ADT workflow columns for proper patient lifecycle management. See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for complete ADT workflow documentation.
 
 **Lookup Flow:**
 1. When `PatientManager::loadPatientById(id)` is called, it first checks the local `patients` table

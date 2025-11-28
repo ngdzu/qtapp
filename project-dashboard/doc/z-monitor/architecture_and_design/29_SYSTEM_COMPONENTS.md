@@ -24,7 +24,7 @@ The Z Monitor application is organized according to Domain-Driven Design (DDD) p
 
 - **Domain Layer**: Pure business logic (aggregates, value objects, domain events, repository interfaces, external service interfaces)
 - **Application Layer**: Use case orchestration (services, DTOs)
-- **Infrastructure Layer**: Technical implementations (persistence, networking, Qt adapters, caching)
+- **Infrastructure Layer**: Technical implementations (persistence, networking, platform adapters, caching)
 - **Interface Layer**: UI integration (QML controllers, QML components)
 
 ### 1.1 DDD Guiding Principles
@@ -86,7 +86,7 @@ Application services should:
 - **Sensors:** Adapters implementing `ISensorDataSource`
 - **Caching:** In-memory caches for performance
 - **Security:** Certificate management, encryption, signing
-- **Qt Adapters:** Settings, logging
+- **Platform Adapters (Qt-based):** Settings, logging
 - **System Services:** Health monitoring, firmware, time sync
 - **Utilities:** Object pools, lock-free queues, utility functions
 
@@ -260,7 +260,7 @@ QML interacts with controllers via properties/signals; controllers call applicat
 | `MockUserManagementService` | `IUserManagementService` | In-memory | **Development/Testing:** Hardcoded test users (nurses, physicians, technicians, admin), no network required | [IUserManagementService.md](./interfaces/IUserManagementService.md) |
 | `HospitalUserManagementAdapter` | `IUserManagementService` | Qt Network (HTTPS) or LDAP | **Production:** Hospital server integration for user authentication, role retrieval, permission checks | [IUserManagementService.md](./interfaces/IUserManagementService.md) |
 
-### 4.5 Qt Adapters
+### 4.5 Platform Adapters (Qt-based)
 
 | Component | Technology | Responsibility |
 |-----------|------------|----------------|
@@ -394,7 +394,7 @@ This diagram shows the complete flow of data and control through all system laye
 | **Infrastructure** | Network Adapters | 5 |
 | **Infrastructure** | Sensor Data Source Adapters | 5 |
 | **Infrastructure** | User Management Service Adapters | 2 | ← **NEW:** Mock + Hospital adapters |
-| **Infrastructure** | Qt Adapters | 3 |
+| **Infrastructure** | Platform Adapters (Qt-based) | 3 |
 | **Infrastructure** | Security Adapters | 6 |
 | **Infrastructure** | Device/Health Adapters | 7 | ← **Updated:** Added BackupManager, DataArchiver, DeviceRegistrationService |
 | **Infrastructure** | Utilities | 8 | ← **NEW:** Infrastructure utility classes (not yet implemented) |

@@ -151,7 +151,7 @@ src/
 │   │   │   └── GlogBackend.h/cpp (optional)
 │   │   └── utils/
 │   │       └── LogFormatter.h/cpp
-│   ├── qt/                       # Qt-specific adapters
+│   ├── adapters/                 # Platform adapters (Qt-based)
 │   │   └── SettingsManager.h/cpp
 │   ├── system/                   # System services
 │   │   ├── HealthMonitor.h/cpp
@@ -369,7 +369,7 @@ NetworkManager::NetworkManager() {
 
 ### 4.3. Infrastructure Layer
 
-**Purpose:** Technical implementations (persistence, networking, Qt adapters, caching)
+**Purpose:** Technical implementations (persistence, networking, platform adapters, caching)
 
 **Dependencies:**
 - Domain layer (implements repository interfaces)
@@ -386,7 +386,7 @@ NetworkManager::NetworkManager() {
 - Sensor adapters in `src/infrastructure/sensors/`
 - Caching components in `src/infrastructure/caching/`
 - Security adapters in `src/infrastructure/security/`
-- Qt adapters in `src/infrastructure/qt/`
+- Platform adapters (Qt-based) in `src/infrastructure/adapters/`
 - System services in `src/infrastructure/system/`
 - Utility classes in `src/infrastructure/utils/` (ObjectPool, LockFreeQueue, LogBuffer, etc. - see [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md))
 

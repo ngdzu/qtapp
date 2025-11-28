@@ -5,6 +5,8 @@ set(APPLICATION_SOURCES
     services/MonitoringService.h
     services/MonitoringService.cpp
     services/ISensorDataSource.h
+    services/AdmissionService.h
+    services/AdmissionService.cpp
 )
 
 # Create application layer static library
@@ -28,5 +30,6 @@ target_link_libraries(z_monitor_application
 target_link_libraries(z_monitor_application
     PUBLIC
         Qt6::Core
+        Qt6::Sql
 )
 

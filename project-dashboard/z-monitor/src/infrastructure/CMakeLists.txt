@@ -13,6 +13,10 @@ set(INFRASTRUCTURE_SOURCES
     logging/backends/CustomBackend.cpp
     logging/backends/SpdlogBackend.h
     logging/backends/SpdlogBackend.cpp
+    
+    # Platform adapters (Qt-based)
+    adapters/SettingsManager.h
+    adapters/SettingsManager.cpp
 )
 
 # Create infrastructure layer static library
@@ -38,6 +42,7 @@ target_link_libraries(z_monitor_infrastructure
     PUBLIC
         Qt6::Core
         Qt6::Gui
+        Qt6::Sql
 )
 
 # Link spdlog if enabled

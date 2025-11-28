@@ -4,7 +4,9 @@
 # These sources are compiled into the main executable, not a separate library
 # Set in parent scope so src/CMakeLists.txt can use it
 set(INTERFACE_SOURCES
-    # Controllers will be added here as they are implemented
+    # Controllers
+    controllers/SettingsController.h
+    controllers/SettingsController.cpp
     # Example:
     # controllers/DashboardController.h
     # controllers/DashboardController.cpp

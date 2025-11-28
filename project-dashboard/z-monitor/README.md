@@ -19,7 +19,7 @@ Directory layout
     repository interfaces).
   - `application/` – Application layer (services, DTOs, orchestration).
   - `infrastructure/` – Infrastructure layer (persistence, network, sensors,
-    logging, Qt adapters).
+    logging, platform adapters).
   - `interface/` – Interface layer (QObject controllers, QML-related C++).
   - `main.cpp` – Application entry point.
 - `resources/`

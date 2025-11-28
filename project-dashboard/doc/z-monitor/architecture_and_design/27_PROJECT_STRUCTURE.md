@@ -74,7 +74,7 @@ project-dashboard/z-monitor/
 **Layer Overview:**
 - **Domain Layer** (`src/domain/`) – Pure business logic, aggregates, value objects, domain events, repository interfaces
 - **Application Layer** (`src/application/`) – Use-case orchestration, application services, DTOs
-- **Infrastructure Layer** (`src/infrastructure/`) – Technical implementations (persistence, network, sensors, caching, security, Qt adapters, system services, utilities)
+- **Infrastructure Layer** (`src/infrastructure/`) – Technical implementations (persistence, network, sensors, caching, security, platform adapters, system services, utilities)
   - Includes `utils/` subdirectory for shared utility classes (ObjectPool, LockFreeQueue, LogBuffer, etc.) - see [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) Section 12
 - **Interface Layer** (`src/interface/`) – UI integration (QML controllers and QML UI)
 
