@@ -139,9 +139,9 @@ These infrastructure components should be implemented early as they are dependen
 ---
 
 - [ ] Refactor Settings: Remove Bed ID, Add Device Label and ADT Workflow
-  - What: Remove `bedId` setting from SettingsManager and SettingsController. Add `deviceLabel` setting (static device identifier/asset tag). Update PatientManager to support ADT workflow with admission/discharge methods. Update database schema to add `admission_events` table and enhance `patients` table with ADT columns (bed_location, admitted_at, discharged_at, admission_source, device_label).
+  - What: Remove `bedId` setting from SettingsManager and SettingsController. Add `deviceLabel` setting (static device identifier/asset tag). Update AdmissionService to support ADT workflow with admission/discharge methods. Update database schema to add `admission_events` table and enhance `patients` table with ADT columns (bed_location, admitted_at, discharged_at, admission_source, device_label).
   - Why: Aligns device configuration with hospital ADT workflows. Separates device identity (Device Label) from patient assignment (Bed Location in Patient object). Enables proper patient lifecycle management.
-  - Files: `src/core/SettingsManager.cpp/h`, `src/ui/SettingsController.cpp/h`, `src/core/PatientManager.cpp/h`, `doc/migrations/0003_adt_workflow.sql`, update `doc/10_DATABASE_DESIGN.md`.
+  - Files: `z-monitor/src/infrastructure/qt/SettingsManager.cpp/h`, `z-monitor/src/interface/controllers/SettingsController.cpp/h`, `z-monitor/src/application/services/AdmissionService.cpp/h`, `z-monitor/schema/migrations/0003_adt_workflow.sql`, update `doc/10_DATABASE_DESIGN.md`.
   - Changes:
     - Remove `bedId` from settings table and SettingsManager
     - Add `deviceLabel` to settings (static asset tag, e.g., "ICU-MON-04")
@@ -160,18 +160,32 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/08a-refactor-settings-adt.md`  (When finished: mark this checklist item done.)
 
 - [ ] Create project scaffolding and repo checklist
-  - What: Ensure `project-dashboard/` contains the canonical folders: `src/`, `resources/`, `doc/`, `proto/`, `openapi/`, `tests/`, `central-server-simulator/` and `doc/migrations/`.
-  - Why: Provides a stable structure to place interfaces, tests, and docs.
-  - Artifacts: `CMakeLists.txt` (top-level), empty `proto/` and `openapi/` dirs, `doc/migrations/README.md`.
+  - What: Ensure `z-monitor/` contains the canonical folders following DDD structure: `src/domain/`, `src/application/`, `src/infrastructure/`, `src/interface/`, `resources/qml/`, `resources/assets/`, `resources/i18n/`, `resources/certs/`, `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/benchmarks/`, `schema/`, `doc/`, `proto/`, `openapi/`, `central-server-simulator/` and `doc/migrations/`.
+  - Why: Provides a stable DDD-aligned structure to place interfaces, tests, and docs. Foundation for all subsequent development.
+  - Files: `z-monitor/CMakeLists.txt` (top-level), empty `proto/` and `openapi/` dirs, `doc/migrations/README.md`, `z-monitor/README.md`.
+  - Acceptance: All directories exist, CMakeLists.txt configured, README.md created, structure matches `doc/27_PROJECT_STRUCTURE.md` and `doc/22_CODE_ORGANIZATION.md`.
+  - Verification Steps:
+    1. Functional: Directory structure verified, CMakeLists.txt builds successfully (even if empty)
+    2. Code Quality: Structure follows DDD layers (domain, application, infrastructure, interface)
+    3. Documentation: README.md created, structure documented
+    4. Integration: CMake configuration works, no build errors
+    5. Tests: Structure ready for test scaffolding
   - Prompt: `project-dashboard/prompt/01-create-project-scaffold.md`  (When finished: mark this checklist item done.)
 
 - [ ] Define public C++ service interfaces (headers only)
-  - What: Create minimal header-only interface sketches for: `IDatabaseManager`, `INetworkManager`, `IAlarmManager`, `IDeviceSimulator`, `ISettingsManager`, `IPatientLookupService`, `ITelemetryServer`, `ISensorDataSource`, `IAuthenticationService`, and `IArchiver`.
-  - Why: Interfaces allow test-first development (mocks) and make DI decisions easier.
-  - Files: `src/core/interfaces/*.h` (one header per interface), `doc/interfaces.md` with rationale and method signatures.
+  - What: Create minimal header-only interface sketches following DDD principles. Domain interfaces in `src/domain/interfaces/`, infrastructure interfaces in `src/infrastructure/interfaces/`. Interfaces: `IPatientRepository`, `ITelemetryRepository`, `IVitalsRepository`, `IAlarmRepository`, `IProvisioningRepository`, `IUserRepository`, `IAuditRepository`, `IPatientLookupService`, `ITelemetryServer`, `ISensorDataSource`, `IUserManagementService`, `IArchiver`, `ILogBackend`.
+  - Why: Interfaces allow test-first development (mocks) and make DI decisions easier. DDD separation ensures domain interfaces are pure (no infrastructure dependencies).
+  - Files: `z-monitor/src/domain/interfaces/*.h` (repository interfaces), `z-monitor/src/infrastructure/interfaces/*.h` (infrastructure adapters), `doc/interfaces/*.md` with rationale and method signatures.
   - Note: `IPatientLookupService` interface is documented in `doc/interfaces/IPatientLookupService.md` and provides patient lookup from external systems (HIS/EHR) by patient ID.
   - Note: `ITelemetryServer` interface is documented in `doc/interfaces/ITelemetryServer.md` and provides server communication abstraction with support for configurable server URLs and mock implementations for testing.
   - Note: `ISensorDataSource` interface is documented in `doc/interfaces/ISensorDataSource.md` and provides sensor data acquisition abstraction (simulator, hardware, mock, replay).
+  - Acceptance: All interfaces defined with pure virtual methods, Doxygen comments, no implementation dependencies, interfaces compile independently.
+  - Verification Steps:
+    1. Functional: Interfaces compile, can create mock implementations, method signatures match requirements
+    2. Code Quality: Doxygen comments on all interfaces, follows C++ best practices, no circular dependencies
+    3. Documentation: Interface documentation created in `doc/interfaces/`, rationale documented
+    4. Integration: Interfaces can be used by application services, mock implementations work
+    5. Tests: Mock implementations compile and can be used in tests
   - Prompt: `project-dashboard/prompt/02-define-public-interfaces.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement SharedMemorySensorDataSource (memfd reader)
@@ -195,9 +209,9 @@ These infrastructure components should be implemented early as they are dependen
 
 - [ ] Update Sensor Simulator to write shared-memory ring buffer
 - [ ] Implement PermissionRegistry (enum-based role mapping)
-  - What: Create a compile-time `PermissionRegistry` service (or generated table) that maps each `UserRole` to its default `Permission` bitset, exposes helper APIs (`permissionsForRole`, `toString`, `toDisplayName`), and seeds `SecurityService` / `UserProfile` during login. Replace all ad-hoc string comparisons with enum checks wired through the registry.
-  - Why: The RBAC matrix in DESIGN-038 requires a single source of truth for default permissions; relying on strings sprinkled throughout the codebase is brittle and hard to audit.
-  - Files: `src/domain/security/Permission.h`, `PermissionRegistry.h/cpp`, updates to `SecurityService`, `UserProfile`, `AuthenticationController`, unit tests in `tests/domain/security/PermissionRegistryTests.cpp`.
+  - What: Create a compile-time `PermissionRegistry` service in domain layer that maps each `UserRole` to its default `Permission` bitset, exposes helper APIs (`permissionsForRole`, `toString`, `toDisplayName`), and seeds `SecurityService` / `UserSession` during login. Replace all ad-hoc string comparisons with enum checks wired through the registry.
+  - Why: The RBAC matrix in `doc/38_AUTHENTICATION_WORKFLOW.md` requires a single source of truth for default permissions; relying on strings sprinkled throughout the codebase is brittle and hard to audit. Domain layer ensures business rules are centralized.
+  - Files: `z-monitor/src/domain/security/Permission.h`, `z-monitor/src/domain/security/PermissionRegistry.h/cpp`, updates to `z-monitor/src/application/services/SecurityService.cpp/h`, `z-monitor/src/domain/security/UserSession.h`, `z-monitor/src/interface/controllers/AuthenticationController.cpp/h`, unit tests in `z-monitor/tests/unit/domain/security/PermissionRegistryTests.cpp`.
   - Acceptance:
     - `PermissionRegistry` holds the exact mapping defined in section 3.2 (enum-based).
     - `SecurityService` uses the registry to populate profiles and perform permission checks.
@@ -221,15 +235,15 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/02d-shared-memory-simulator.md`
 
 - [ ] Implement Hospital User Authentication with Mock Server Support
-  - What: Create `IUserManagementService` interface for authenticating healthcare workers (nurses, physicians, technicians, administrators) against hospital user management server. Implement `MockUserManagementService` for development/testing (hardcoded test users, no network) and `HospitalUserManagementAdapter` for production (REST API or LDAP). Integrate with `SecurityService` for session management, permission checking, and RBAC enforcement. Update `LoginView` and `AuthenticationController` to use new interface.
-  - Why: Healthcare workers need to log in with secret codes to access device. Hospital centrally manages users (add/remove without device reconfiguration). Mock server enables development/testing without real hospital infrastructure. Supports role-based permissions (nurse vs. physician vs. technician vs. admin).
+  - What: Create `IUserManagementService` interface in domain layer for authenticating healthcare workers (nurses, physicians, technicians, administrators) against hospital user management server. Implement `MockUserManagementService` for development/testing (hardcoded test users, no network) and `HospitalUserManagementAdapter` for production (REST API or LDAP) in infrastructure layer. Integrate with `SecurityService` in application layer for session management, permission checking, and RBAC enforcement. Update `LoginView` and `AuthenticationController` in interface layer to use new interface.
+  - Why: Healthcare workers need to log in with secret codes to access device. Hospital centrally manages users (add/remove without device reconfiguration). Mock server enables development/testing without real hospital infrastructure. Supports role-based permissions (nurse vs. physician vs. technician vs. admin). DDD separation ensures domain interface is pure, infrastructure adapters implement it.
   - Files: 
-    - `z-monitor/src/domain/interfaces/IUserManagementService.h` (interface)
-    - `z-monitor/src/infrastructure/authentication/MockUserManagementService.cpp/h` (mock implementation)
-    - `z-monitor/src/infrastructure/authentication/HospitalUserManagementAdapter.cpp/h` (production implementation)
-    - `z-monitor/src/application/SecurityService.cpp/h` (integration)
-    - `z-monitor/resources/qml/views/LoginView.qml` (UI updates)
-    - `z-monitor/src/interface/controllers/AuthenticationController.cpp/h` (UI controller)
+    - `z-monitor/src/domain/interfaces/IUserManagementService.h` (interface - domain layer)
+    - `z-monitor/src/infrastructure/authentication/MockUserManagementService.cpp/h` (mock implementation - infrastructure)
+    - `z-monitor/src/infrastructure/authentication/HospitalUserManagementAdapter.cpp/h` (production implementation - infrastructure)
+    - `z-monitor/src/application/services/SecurityService.cpp/h` (integration - application layer)
+    - `z-monitor/resources/qml/views/LoginView.qml` (UI updates - interface layer)
+    - `z-monitor/src/interface/controllers/AuthenticationController.cpp/h` (UI controller - interface layer)
     - `project-dashboard/mock-servers/user_management_mock_server.py` (optional HTTP mock server for integration testing)
   - Hardcoded Test Users (Mock Service):
     - `NURSE001` / `1234` (Nurse role - basic clinical ops: view vitals, acknowledge alarms, admit/discharge patients)
@@ -266,33 +280,33 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/38-implement-hospital-authentication.md`
 
 - [ ] Implement Action Logging and Auto-Logout Workflow
-  - What: Create `action_log` table schema and `IActionLogRepository` interface for logging all user actions (login, logout, auto-logout, configuration changes). Implement `SQLiteActionLogRepository` with dependency injection (no global log objects). Update `SecurityService` to implement 5-minute inactivity timer with auto-logout. Update application state machine to handle VIEW_ONLY mode (vitals display without login) vs CONFIGURATION_MODE (requires login). Update all services to use dependency injection for logging repositories instead of global `LogService::instance()`. Implement permission checks before configuration actions (admit/discharge patient, change settings, clear notifications).
-  - Why: Device must log all user actions for audit and compliance. Viewing vitals should NOT require login (device displays normally after patient assignment). Configuration actions (settings, patient management) REQUIRE login. Auto-logout after 5 minutes inactivity prevents unauthorized access. Dependency injection makes logging testable and flexible.
+  - What: Create `action_log` table schema and `IActionLogRepository` interface for logging all user actions (login, logout, auto-logout, configuration changes). Implement `SQLiteActionLogRepository` with dependency injection (no global log objects). Update `SecurityService` to implement 15-minute inactivity timer with auto-logout (per REQ-FUN-USER-003). Update application state machine to handle VIEW_ONLY mode (vitals display without login) vs CONFIGURATION_MODE (requires login). Update all services to use dependency injection for logging repositories instead of global `LogService::instance()`. Implement permission checks before configuration actions (admit/discharge patient, change settings, clear notifications).
+  - Why: Device must log all user actions for audit and compliance (REQ-SEC-AUDIT-001, REQ-REG-HIPAA-003). Viewing vitals should NOT require login (device displays normally after patient assignment). Configuration actions (settings, patient management) REQUIRE login. Auto-logout after 15 minutes inactivity prevents unauthorized access (REQ-FUN-USER-003). Dependency injection makes logging testable and flexible.
   - Files:
     - `z-monitor/schema/database.yaml` (add `action_log` table schema)
-    - `z-monitor/src/domain/interfaces/IActionLogRepository.h` (interface)
-    - `z-monitor/src/infrastructure/persistence/SQLiteActionLogRepository.cpp/h` (implementation)
-    - `z-monitor/src/application/SecurityService.cpp/h` (add inactivity timer, auto-logout, dependency injection)
-    - `z-monitor/src/application/AdmissionService.cpp/h` (log patient management actions)
-    - `z-monitor/src/interface/controllers/SettingsController.cpp/h` (log settings changes)
-    - `z-monitor/src/interface/controllers/NotificationController.cpp/h` (log notification clearing)
-    - `z-monitor/resources/qml/views/LoginView.qml` (show inactivity warning at 4 minutes)
+    - `z-monitor/src/domain/interfaces/IActionLogRepository.h` (interface - domain layer)
+    - `z-monitor/src/infrastructure/persistence/SQLiteActionLogRepository.cpp/h` (implementation - infrastructure layer)
+    - `z-monitor/src/application/services/SecurityService.cpp/h` (add inactivity timer, auto-logout, dependency injection - application layer)
+    - `z-monitor/src/application/services/AdmissionService.cpp/h` (log patient management actions - application layer)
+    - `z-monitor/src/interface/controllers/SettingsController.cpp/h` (log settings changes - interface layer)
+    - `z-monitor/src/interface/controllers/NotificationController.cpp/h` (log notification clearing - interface layer)
+    - `z-monitor/resources/qml/views/LoginView.qml` (show inactivity warning at 14 minutes - interface layer)
     - Update all services to use dependency injection for `IActionLogRepository` and `IAuditRepository`
   - Key Requirements:
-    - **View-Only Actions (No Login):** View vitals, waveforms, trends, alarms, notifications
-    - **Configuration Actions (Require Login):** Admit/discharge patient, change settings, adjust alarm thresholds, clear notifications, access diagnostics
-    - **Auto-Logout:** 5 minutes inactivity after configuration action → automatic logout
-    - **Inactivity Warning:** Show "1 minute until logout" warning at 4 minutes
+    - **View-Only Actions (No Login):** View vitals, waveforms, trends, alarms, notifications (per REQ-FUN-USER-004)
+    - **Configuration Actions (Require Login):** Admit/discharge patient, change settings, adjust alarm thresholds, clear notifications, access diagnostics (per REQ-FUN-USER-004)
+    - **Auto-Logout:** 15 minutes inactivity after configuration action → automatic logout (per REQ-FUN-USER-003)
+    - **Inactivity Warning:** Show "1 minute until logout" warning at 14 minutes (per REQ-FUN-USER-003)
     - **Action Logging:** All login/logout/configuration actions logged to `action_log` table
     - **Dependency Injection:** All services receive `IActionLogRepository` via constructor (no global log objects)
   - Acceptance:
-    - `action_log` table created with hash chain for tamper detection
+    - `action_log` table created with hash chain for tamper detection (per REQ-SEC-AUDIT-002)
     - `IActionLogRepository` interface defined with `logAction()`, `logActions()`, `queryActions()` methods
     - `SQLiteActionLogRepository` implements interface, runs on Database I/O Thread, supports batch writes
     - `SecurityService` uses dependency injection for `IActionLogRepository` (no `LogService::instance()`)
-    - Inactivity timer implemented (5 minutes, resets on configuration actions)
-    - Auto-logout triggers after 5 minutes inactivity, logs `AUTO_LOGOUT` action
-    - Inactivity warning shown at 4 minutes ("1 minute until logout")
+    - Inactivity timer implemented (15 minutes, resets on configuration actions) (per REQ-FUN-USER-003)
+    - Auto-logout triggers after 15 minutes inactivity, logs `AUTO_LOGOUT` action (per REQ-FUN-USER-003)
+    - Inactivity warning shown at 14 minutes ("1 minute until logout") (per REQ-FUN-USER-003)
     - Manual logout logs `USER_LOGOUT` action
     - Application state machine handles VIEW_ONLY vs CONFIGURATION_MODE states
     - Permission checks before configuration actions (show login screen if not logged in)
@@ -301,7 +315,7 @@ These infrastructure components should be implemented early as they are dependen
     - Notification clearing logged (CLEAR_NOTIFICATIONS)
     - All services use dependency injection for logging (no global log objects)
   - Verification Steps:
-    1. Functional: View vitals works without login, configuration actions require login, inactivity timer works, auto-logout triggers after 5 minutes, inactivity warning shown at 4 minutes, all actions logged correctly
+    1. Functional: View vitals works without login, configuration actions require login, inactivity timer works, auto-logout triggers after 15 minutes, inactivity warning shown at 14 minutes, all actions logged correctly (per REQ-FUN-USER-003)
     2. Code Quality: Doxygen comments on all public APIs, dependency injection used (no global log objects), linter passes, no hardcoded dependencies
     3. Documentation: `doc/39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md` complete, `doc/10_DATABASE_DESIGN.md` updated with `action_log` table, `doc/21_LOGGING_STRATEGY.md` updated with dependency injection, state machine diagrams updated
     4. Integration: Build succeeds, all services use dependency injection, action logging works end-to-end, auto-logout workflow works, tests pass
@@ -310,17 +324,24 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/39-implement-action-logging.md`
 
 - [ ] Create unit test harness + mock objects
-  - What: Add `tests/CMakeLists.txt`, pick test framework (recommend `GoogleTest`), add `tests/mocks/` with mock classes that implement the interfaces.
-  - Why: Unit tests should drive API decisions. Mocks let you write controller tests before production implementation.
-  - Files: `tests/CMakeLists.txt`, `tests/mock_DatabaseManager.h`, `tests/mock_NetworkManager.h`, `tests/mock_PatientLookupService.h`, `tests/mock_TelemetryServer.h`, example test `tests/test_alarm_manager.cpp`.
+  - What: Add `z-monitor/tests/CMakeLists.txt`, pick test framework (recommend `GoogleTest`), add `z-monitor/tests/mocks/` with mock classes that implement the interfaces. Organize mocks by layer: `tests/mocks/domain/`, `tests/mocks/infrastructure/`, `tests/mocks/application/`.
+  - Why: Unit tests should drive API decisions. Mocks let you write controller tests before production implementation. Layer-organized mocks align with DDD structure.
+  - Files: `z-monitor/tests/CMakeLists.txt`, `z-monitor/tests/mocks/infrastructure/MockDatabaseManager.h`, `z-monitor/tests/mocks/infrastructure/MockNetworkManager.h`, `z-monitor/tests/mocks/infrastructure/MockPatientLookupService.h`, `z-monitor/tests/mocks/infrastructure/MockTelemetryServer.h`, `z-monitor/tests/mocks/domain/MockPatientRepository.h`, example test `z-monitor/tests/unit/core/test_alarm_manager.cpp`.
   - Note: `MockPatientLookupService` should return hardcoded patient data for testing and support simulated failures.
   - Note: `MockTelemetryServer` should swallow all data without sending to real server, return immediate success responses, and support simulated failures for testing.
+  - Acceptance: Test framework integrated, mocks compile and implement interfaces, example test runs successfully, test coverage infrastructure ready.
+  - Verification Steps:
+    1. Functional: Tests compile and run, mocks work correctly, example test passes
+    2. Code Quality: Mocks follow interface contracts, test code follows guidelines, no test framework warnings
+    3. Documentation: Test setup documented, mock usage examples provided
+    4. Integration: CMake test targets work, CI can run tests, coverage tools integrated
+    5. Tests: Test framework tests, mock verification tests
   - Prompt: `project-dashboard/prompt/03-create-unit-test-harness.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement Schema Management with Code Generation (ORM Integration)
-  - What: Create YAML schema definition (`schema/database.yaml`) as single source of truth for all tables, columns, types, constraints, indices. Create Python code generator (`scripts/generate_schema.py`) that generates `SchemaInfo.h` with type-safe column name constants, DDL SQL files, and migration templates. Create migration runner (`scripts/migrate.py`) that applies numbered migrations in order. Integrate with CMake build system and pre-commit hooks. Refactor all repositories to use `Schema::Columns::TableName::COLUMN_NAME` constants instead of hardcoded strings. **If using QxOrm:** Create ORM mappings that use schema constants (e.g., `t.data(&PatientAggregate::mrn, Schema::Columns::Patients::MRN)`) to ensure single source of truth.
-  - Why: Eliminates hardcoded column names, provides single source of truth for schema, enables compile-time safety and autocomplete for column names, automates DDL generation, ensures schema consistency, simplifies schema changes and migrations. **ORM integration ensures schema changes propagate to ORM mappings (compile errors if mappings outdated).**
-  - Files: `z-monitor/schema/database.yaml`, `z-monitor/scripts/generate_schema.py`, `z-monitor/scripts/migrate.py`, `z-monitor/src/infrastructure/persistence/generated/SchemaInfo.h` (generated), `z-monitor/schema/generated/ddl/*.sql` (generated), update CMakeLists.txt, add pre-commit hook, refactor all `*Repository.cpp` files. **If using QxOrm:** Create `z-monitor/src/infrastructure/persistence/orm/*Mapping.h` files that use schema constants.
+  - What: Create YAML schema definition (`z-monitor/schema/database.yaml`) as single source of truth for all tables, columns, types, constraints, indices. Create Python code generator (`z-monitor/scripts/generate_schema.py`) that generates `SchemaInfo.h` with type-safe column name constants, DDL SQL files, and migration templates. Create migration runner (`z-monitor/scripts/migrate.py`) that applies numbered migrations in order. Integrate with CMake build system and pre-commit hooks. Refactor all repositories to use `Schema::Columns::TableName::COLUMN_NAME` constants instead of hardcoded strings. **If using QxOrm:** Create ORM mappings that use schema constants (e.g., `t.data(&PatientAggregate::mrn, Schema::Columns::Patients::MRN)`) to ensure single source of truth.
+  - Why: Eliminates hardcoded column names, provides single source of truth for schema, enables compile-time safety and autocomplete for column names, automates DDL generation, ensures schema consistency, simplifies schema changes and migrations. **ORM integration ensures schema changes propagate to ORM mappings (compile errors if mappings outdated).** Aligns with REQ-DATA-STRUCT-001, REQ-DATA-MIG-001.
+  - Files: `z-monitor/schema/database.yaml`, `z-monitor/scripts/generate_schema.py`, `z-monitor/scripts/migrate.py`, `z-monitor/src/infrastructure/persistence/generated/SchemaInfo.h` (generated), `z-monitor/schema/generated/ddl/*.sql` (generated), update CMakeLists.txt, add pre-commit hook, refactor all `*Repository.cpp` files in `z-monitor/src/infrastructure/persistence/`. **If using QxOrm:** Create `z-monitor/src/infrastructure/persistence/orm/*Mapping.h` files that use schema constants.
   - Acceptance: Schema defined in YAML only. SchemaInfo.h auto-generated with constants for all tables/columns. DDL auto-generated from YAML. All repositories use `Schema::` constants (no hardcoded column names). **If using QxOrm: All ORM mappings use `Schema::` constants (no hardcoded table/column names in ORM registrations).** Migration runner tracks version and applies migrations. Build system regenerates schema automatically. Pre-commit hook ensures schema stays in sync.
   - Verification Steps:
     1. Functional: Schema generation works, DDL creates correct tables, migration runner applies migrations in order, repositories work with constants, **ORM mappings work correctly (if using QxOrm)**
@@ -332,9 +353,9 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/33-implement-schema-management.md`
 
 - [ ] Implement Query Registry for type-safe database queries
-  - What: Create `QueryRegistry.h` with `QueryId` namespace constants (organized by domain: Patient, Vitals, Alarms, Telemetry, etc.). Create `QueryCatalog.cpp` to map query IDs to SQL statements with metadata (description, parameters, examples). Update `DatabaseManager` to support query registration and retrieval by ID. Refactor all repositories to use `QueryId` constants instead of magic strings.
-  - Why: Eliminates magic string queries, provides compile-time safety, enables autocomplete, makes queries easy to find/document/refactor, and centralizes all SQL in one place.
-  - Files: `z-monitor/src/infrastructure/persistence/QueryRegistry.h`, `z-monitor/src/infrastructure/persistence/QueryCatalog.cpp`, update `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h`, refactor all `*Repository.cpp` files.
+  - What: Create `QueryRegistry.h` with `QueryId` namespace constants (organized by domain: Patient, Vitals, Alarms, Telemetry, etc.). Create `QueryCatalog.cpp` to map query IDs to SQL statements with metadata (description, parameters, examples). Update `DatabaseManager` to support query registration and retrieval by ID. Refactor all repositories in `z-monitor/src/infrastructure/persistence/` to use `QueryId` constants instead of magic strings. Use `Schema::Columns::` constants in queries for column names.
+  - Why: Eliminates magic string queries, provides compile-time safety, enables autocomplete, makes queries easy to find/document/refactor, and centralizes all SQL in one place. Works with Schema Management for complete type safety.
+  - Files: `z-monitor/src/infrastructure/persistence/QueryRegistry.h`, `z-monitor/src/infrastructure/persistence/QueryCatalog.cpp`, update `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h`, refactor all `*Repository.cpp` files in `z-monitor/src/infrastructure/persistence/`.
   - Acceptance: All SQL queries removed from repository implementations and moved to QueryCatalog. Repositories use `QueryId::Namespace::CONSTANT` format. DatabaseManager initializes all queries at startup. Auto-generated `QUERY_REFERENCE.md` documentation exists.
   - Verification Steps:
     1. Functional: All repositories work with QueryId constants, no runtime query lookup failures, prepared statements cache correctly
@@ -346,18 +367,33 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/32-implement-query-registry.md`
 
 - [ ] Design database schema + write migration SQLs
-  - What: Finalize DDL for tables: `patients`, `vitals`, `ecg_samples`, `pleth_samples`, `alarms`, `system_events`, `settings`, `users`, `certificates`, `security_audit_log`. Add indices, retention metadata table, and `archival_queue`.
-  - Why: Deterministic schema is required before implementing `DatabaseManager` and `TrendsController`.
-  - Files: `doc/migrations/0001_initial.sql`, `doc/migrations/0002_add_indices.sql`, `doc/10_DATABASE_DESIGN.md` update, ERD SVG in `doc/`.
-  - Note: The `settings` table must support `deviceId`, `bedId`, `measurementUnit`, `serverUrl`, and `useMockServer` configuration options. See `doc/10_DATABASE_DESIGN.md` for the settings table schema.
+  - What: Finalize DDL for tables following schema management workflow. Tables: `patients`, `vitals`, `ecg_samples`, `pleth_samples`, `alarms`, `alarm_snapshots`, `admission_events`, `action_log`, `settings`, `users`, `certificates`, `security_audit_log`, `telemetry_metrics`. Add indices, retention metadata, and `archival_queue`. Use YAML schema definition (`schema/database.yaml`) as single source of truth, generate DDL from YAML.
+  - Why: Deterministic schema is required before implementing `DatabaseManager` and repository implementations. Schema management ensures single source of truth and compile-time safety.
+  - Files: `z-monitor/schema/database.yaml` (YAML schema definition), `z-monitor/schema/migrations/0001_initial.sql`, `z-monitor/schema/migrations/0002_add_indices.sql`, `z-monitor/schema/migrations/0003_adt_workflow.sql`, `doc/10_DATABASE_DESIGN.md` update, ERD SVG in `doc/`.
+  - Note: The `settings` table must support `deviceId`, `deviceLabel`, `measurementUnit`, `serverUrl`, and `useMockServer` configuration options. `bedId` has been removed. See `doc/10_DATABASE_DESIGN.md` for the settings table schema.
   - Note: The `patients` table serves as a cache for patient lookups. Add `last_lookup_at` and `lookup_source` columns to track when patient data was retrieved from external systems. See `doc/10_DATABASE_DESIGN.md` for details.
   - Note: The `certificates` table must track certificate lifecycle including expiration, revocation, and validation status. The `security_audit_log` table must store all security-relevant events for audit and compliance. See `doc/10_DATABASE_DESIGN.md` for detailed schemas.
+  - Note: The `action_log` table stores all user actions (login, logout, admission, discharge, settings changes) with hash chain for tamper detection. See `doc/39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md`.
+  - Acceptance: Schema defined in YAML, DDL generated, migrations created, schema matches requirements, ERD generated.
+  - Verification Steps:
+    1. Functional: Schema generates DDL correctly, migrations run successfully, schema matches requirements
+    2. Code Quality: YAML schema is valid, DDL is correct, no syntax errors
+    3. Documentation: Schema documented in `doc/10_DATABASE_DESIGN.md`, ERD generated, migration workflow documented
+    4. Integration: Schema generation works, migrations apply correctly, database operations work
+    5. Tests: Schema validation tests, migration tests, database integrity tests
   - Prompt: `project-dashboard/prompt/04-design-db-schema-migrations.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement DatabaseManager spike (in-memory + SQLCipher plan)
-  - What: Implement a minimal, test-only `DatabaseManager` that uses an in-memory SQLite for tests. Document how SQLCipher will be integrated and add CMake options to enable/disable SQLCipher.
-  - Why: Validates schema and migrations without full SQLCipher integration yet.
-  - Files: `src/core/DatabaseManagerStub.cpp/h`, `tests/db_smoke_test.cpp`, `CMakeLists` options: `-DENABLE_SQLCIPHER=ON/OFF`.
+  - What: Implement a minimal, test-only `DatabaseManager` in `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h` that uses an in-memory SQLite for tests. Document how SQLCipher will be integrated and add CMake options to enable/disable SQLCipher. Follow DDD pattern - DatabaseManager is infrastructure adapter.
+  - Why: Validates schema and migrations without full SQLCipher integration yet. Provides foundation for repository implementations.
+  - Files: `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h`, `z-monitor/tests/integration/db_smoke_test.cpp`, `CMakeLists` options: `-DENABLE_SQLCIPHER=ON/OFF`.
+  - Acceptance: DatabaseManager compiles, in-memory database works, schema migrations run, SQLCipher integration plan documented, CMake options work.
+  - Verification Steps:
+    1. Functional: DatabaseManager opens/closes database, executes SQL, migrations work, in-memory mode works
+    2. Code Quality: Doxygen comments, error handling, follows DDD infrastructure patterns
+    3. Documentation: SQLCipher integration plan documented, usage examples provided
+    4. Integration: CMake options work, can switch between SQLite/SQLCipher, tests pass
+    5. Tests: DatabaseManager unit tests, migration tests, in-memory database tests
   - Prompt: `project-dashboard/prompt/05-implement-dbmanager-spike.md`  (When finished: mark this checklist item done.)
 
 - [ ] Define telemetry proto and/or OpenAPI spec (canonical schema)
@@ -367,29 +403,58 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/06-define-telemetry-proto-openapi.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement basic NetworkManager test double + API contract
-  - What: Using the proto/OpenAPI, implement a mock `NetworkManager` (no TLS) that records requests and simulates server responses (200, 500, timeout). Add unit tests for retry and backoff behavior.
-  - Why: Allows `SystemController`/`NotificationController` unit tests before adding mTLS plumbing.
-  - Files: `tests/mock_NetworkManager.h`, `tests/network_retry_test.cpp`.
+  - What: Using the proto/OpenAPI, implement a mock `NetworkManager` in `z-monitor/src/infrastructure/network/NetworkManager.cpp/h` (no TLS initially) that records requests and simulates server responses (200, 500, timeout). Add unit tests for retry and backoff behavior. NetworkManager uses `ITelemetryServer` interface for server communication.
+  - Why: Allows `SystemController`/`NotificationController` unit tests before adding mTLS plumbing. Provides foundation for secure network communication.
+  - Files: `z-monitor/src/infrastructure/network/NetworkManager.cpp/h`, `z-monitor/tests/mocks/infrastructure/MockNetworkManager.h`, `z-monitor/tests/unit/network/network_retry_test.cpp`.
   - Note: `NetworkManager` should use `ITelemetryServer` interface. Implement `MockTelemetryServer` that swallows data for testing.
+  - Acceptance: NetworkManager compiles, mock implementation works, retry/backoff logic tested, ITelemetryServer integration works.
+  - Verification Steps:
+    1. Functional: NetworkManager sends requests, handles responses, retry logic works, backoff timing correct
+    2. Code Quality: Doxygen comments, error handling, follows DDD infrastructure patterns
+    3. Documentation: NetworkManager API documented, retry/backoff strategy documented
+    4. Integration: ITelemetryServer integration works, mock server works, tests pass
+    5. Tests: NetworkManager unit tests, retry/backoff tests, mock server tests
   - Prompt: `project-dashboard/prompt/07-implement-mock-networkmanager.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement controller skeletons and QML binding stubs
-  - What: Create `DashboardController`, `AlarmController`, `SystemController`, `PatientController`, `SettingsController`, `TrendsController`, `NotificationController` as QObject-derived classes exposing Q_PROPERTY and basic signals. Do not implement heavy logic yet.
-  - Why: QML UI can be wired to properties and tested for binding behavior early.
-  - Files: `src/ui/*.cpp/h` and `resources/qml/Main.qml` with placeholder components.
+  - What: Create controllers in `src/interface/controllers/` as QObject-derived classes exposing Q_PROPERTY and basic signals. Controllers: `DashboardController`, `AlarmController`, `SystemController`, `PatientController`, `SettingsController`, `TrendsController`, `NotificationController`, `ProvisioningController`, `DiagnosticsController`, `AuthenticationController`, `WaveformController`. Do not implement heavy logic yet - delegate to application services.
+  - Why: QML UI can be wired to properties and tested for binding behavior early. Controllers bridge QML to application services following DDD interface layer pattern.
+  - Files: `z-monitor/src/interface/controllers/*.cpp/h` and `z-monitor/resources/qml/Main.qml` with placeholder components.
   - Note: `SettingsController` must expose `deviceId`, `deviceLabel`, `measurementUnit`, `serverUrl`, and `useMockServer` as Q_PROPERTY. `bedId` has been removed - bed location is now part of Patient object managed through ADT workflow.
   - Note: `PatientController` must expose `admitPatient()`, `dischargePatient()`, `openAdmissionModal()`, `scanBarcode()` as Q_INVOKABLE methods and `admissionState`, `isAdmitted`, `bedLocation`, `admittedAt` as Q_PROPERTY for ADT workflow. See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow specification.
+  - Note: `WaveformController` bridges waveform data from MonitoringService to QML for 60 FPS rendering. See `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md`.
+  - Acceptance: All controllers compile, Q_PROPERTY bindings work in QML, signals/slots connect correctly, controllers delegate to application services (stubbed).
+  - Verification Steps:
+    1. Functional: Controllers instantiate, QML can bind to properties, signals emit correctly
+    2. Code Quality: Doxygen comments on all controllers, follows Qt/QML patterns, no business logic in controllers
+    3. Documentation: Controller API documented, QML binding examples provided
+    4. Integration: Controllers integrate with QML, application services can be injected
+    5. Tests: Controller unit tests (QML binding tests, signal emission tests)
   - Prompt: `project-dashboard/prompt/08-controller-skeletons-qml-stubs.md`  (When finished: mark this checklist item done.)
 
 ## Testing & Quality Foundations
 
 - [ ] Implement unified testing workflow
-  - What: Create GoogleTest + Qt Test scaffolding under `tests/unit/`, integration suites under `tests/integration/`, E2E suites under `tests/e2e/`, and benchmark suites under `tests/benchmarks/`. Apply `ctest` labels (`unit`, `integration`, `benchmark`) and follow the process documented in `doc/18_TESTING_WORKFLOW.md`.
-  - Why: Testing groundwork must be established early to support iterative development.
+  - What: Create GoogleTest + Qt Test scaffolding under `z-monitor/tests/unit/`, integration suites under `z-monitor/tests/integration/`, E2E suites under `z-monitor/tests/e2e/`, and benchmark suites under `z-monitor/tests/benchmarks/`. Organize tests by DDD layer: `tests/unit/domain/`, `tests/unit/application/`, `tests/unit/infrastructure/`, `tests/unit/interface/`. Apply `ctest` labels (`unit`, `integration`, `benchmark`) and follow the process documented in `doc/18_TESTING_WORKFLOW.md`.
+  - Why: Testing groundwork must be established early to support iterative development. DDD-aligned test structure matches code organization.
+  - Acceptance: Test framework integrated, test structure matches DDD layers, ctest labels work, tests can run independently, CI integration works.
+  - Verification Steps:
+    1. Functional: Tests compile and run, test structure matches code structure, ctest labels work
+    2. Code Quality: Test code follows guidelines, test organization clear, no test framework warnings
+    3. Documentation: Testing workflow documented, test structure documented
+    4. Integration: CI runs tests, test reports generated, coverage integration works
+    5. Tests: Test framework tests, test organization verified
 
 - [ ] Add coverage pipeline
-  - What: Enable coverage builds with `-DENABLE_COVERAGE=ON`, integrate `lcov`/`genhtml`, and enforce minimum 80% line coverage on `src/core/`. Publish reports from `build_coverage/coverage/index.html`.
-  - Why: Maintains confidence in critical code paths.
+  - What: Enable coverage builds with `-DENABLE_COVERAGE=ON`, integrate `lcov`/`genhtml`, and enforce minimum 80% line coverage on critical components (`src/domain/`, `src/application/`, `src/infrastructure/persistence/`, `src/infrastructure/network/`). Publish reports from `build_coverage/coverage/index.html`.
+  - Why: Maintains confidence in critical code paths. Per REQ-NFR-MAIN-002, critical components require 90%+ coverage, normal components 80%+.
+  - Acceptance: Coverage builds work, reports generated, CI enforces coverage thresholds, coverage tracked per component.
+  - Verification Steps:
+    1. Functional: Coverage builds succeed, reports generated, thresholds enforced
+    2. Code Quality: Coverage targets met, no regressions
+    3. Documentation: Coverage workflow documented, thresholds documented
+    4. Integration: CI runs coverage builds, reports published, thresholds enforced
+    5. Tests: Coverage measurement verified, threshold enforcement tested
 
 - [ ] Implement Benchmark Framework and Performance Measurement
   - What: Add Google Benchmark library to CMake, create benchmark directory structure (`tests/benchmarks/core/`, `tests/benchmarks/ui/`, `tests/benchmarks/network/`, `tests/benchmarks/integration/`), implement critical benchmarks (alarm detection latency, database query performance, UI response time, memory usage). Create benchmark comparison script (`scripts/compare_benchmarks.py`) and setup script (`scripts/setup_benchmark_env.sh`). Integrate into CI/CD with nightly execution workflow.
@@ -461,12 +526,19 @@ These infrastructure components should be implemented early as they are dependen
 ## Parallel Tasks (can be done concurrently)
 
 - [ ] QML UI skeleton and components
-  - What: Implement `Main.qml`, `Sidebar.qml`, `TopBar.qml`, `StatCard.qml`, `PatientBanner.qml`, and placeholder `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView, AdmissionModal).
-  - Why: Visual scaffolding enables early UX validation and manual QA.
-  - Acceptance: QML app boots and displays placeholders at `1280x800`.
+  - What: Implement QML UI following interface layer structure. Files in `z-monitor/resources/qml/` or `z-monitor/src/interface/qml/`: `Main.qml`, `Sidebar.qml`, `TopBar.qml`, `StatCard.qml`, `PatientBanner.qml`, `WaveformChart.qml`, `TrendChart.qml`, `AlarmIndicator.qml`, and placeholder `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView, AdmissionModal).
+  - Why: Visual scaffolding enables early UX validation and manual QA. QML components follow declarative rendering pattern (no separate C++ visualization service).
+  - Acceptance: QML app boots and displays placeholders at `1280x800`, all views load correctly, components render properly.
   - Note: `SettingsView.qml` must include Device Configuration section with Device Label (read-only display), Device ID input, and Measurement Unit dropdown (metric/imperial). Bed ID has been removed - bed location is now part of Patient object. See `doc/03_UI_UX_GUIDE.md` section 4.4 for specifications.
   - Note: `AdmissionModal.qml` must provide admission method selection (Manual Entry, Barcode Scan, Central Station), patient lookup, patient preview with bed location override, and admission confirmation. See `doc/03_UI_UX_GUIDE.md` section 4.5 and `doc/19_ADT_WORKFLOW.md` for specifications.
   - Note: `PatientBanner.qml` must display patient name prominently when admitted, or "DISCHARGED / STANDBY" when no patient is admitted. Should be tappable to open Admission Modal when no patient is assigned. See `doc/03_UI_UX_GUIDE.md` section 5.1 for specifications.
+  - Note: `WaveformChart.qml` uses Canvas API for 60 FPS waveform rendering. See `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md` for implementation details.
+  - Verification Steps:
+    1. Functional: QML app launches, all views display, navigation works, components render correctly
+    2. Code Quality: QML follows best practices, no JavaScript errors, proper component organization
+    3. Documentation: UI structure documented, component responsibilities clear
+    4. Integration: QML binds to controllers, signals/slots work, data flows correctly
+    5. Tests: QML component tests, visual regression tests (optional)
   - Prompt: `project-dashboard/prompt/09-qml-ui-skeleton.md`  (When finished: mark this checklist item done.)
 
 - [ ] Alarm UI & animation prototypes (QML)
@@ -474,21 +546,43 @@ These infrastructure components should be implemented early as they are dependen
   - Why: Visual design for alarms should be validated separately from backend logic.
   - Prompt: `project-dashboard/prompt/10-alarm-ui-prototypes.md`  (When finished: mark this checklist item done.)
 
-- [ ] DeviceSimulator and synthetic signal generation
-  - What: Implement a test-only `DeviceSimulator` capable of generating vitals, ECG waveform samples, pleth waveform, and simulated events (arrhythmia, motion artifact) for UI demos.
-  - Why: Provides deterministic input for UI, controller, and integration tests.
+- [ ] DeviceSimulator and synthetic signal generation (Legacy Fallback)
+  - What: Implement a test-only `DeviceSimulator` in infrastructure layer capable of generating vitals, ECG waveform samples, pleth waveform, and simulated events (arrhythmia, motion artifact) for UI demos. **Note:** This is legacy fallback. Primary sensor data source is `ISensorDataSource` with `SharedMemorySensorDataSource` implementation. DeviceSimulator implements `ISensorDataSource` interface.
+  - Why: Provides deterministic input for UI, controller, and integration tests when external sensor simulator unavailable. Fallback ensures testing can continue without external dependencies.
+  - Files: `z-monitor/src/infrastructure/sensors/DeviceSimulator.cpp/h` (implements ISensorDataSource), unit tests in `z-monitor/tests/unit/infrastructure/DeviceSimulatorTests.cpp`.
+  - Acceptance: DeviceSimulator generates realistic vitals/waveforms, implements ISensorDataSource interface, can be injected into MonitoringService, deterministic playback works.
+  - Verification Steps:
+    1. Functional: DeviceSimulator generates vitals/waveforms, implements ISensorDataSource, deterministic playback works, event injection works
+    2. Code Quality: Doxygen comments, follows ISensorDataSource contract, no memory leaks
+    3. Documentation: DeviceSimulator documented, usage examples provided, fallback strategy documented
+    4. Integration: DeviceSimulator can replace SharedMemorySensorDataSource, MonitoringService works with DeviceSimulator
+    5. Tests: Unit tests for signal generation, deterministic playback tests, event injection tests
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement `WebSocketDeviceSimulatorAdapter` (IDeviceSimulator)
-  - What: Implement an adapter `WebSocketDeviceSimulatorAdapter` that implements `IDeviceSimulator` and connects to `sensor-simulator` (`ws://localhost:9002`). Adapter should translate incoming JSON messages into `PacketCallback` invocations and provide optional control commands to the simulator.
-  - Why: The device should depend only on `IDeviceSimulator`; this adapter lets the device run without hardware by connecting to the simulator.
-  - Acceptance: `WebSocketDeviceSimulatorAdapter` builds and passes a unit test where a mocked websocket delivers a `vitals` JSON and the adapter invokes the registered `PacketCallback` with equivalent JSON.
+- [ ] Implement WebSocketSensorDataSource (ISensorDataSource) - Optional Legacy
+  - What: **Note:** This is optional legacy adapter. Primary sensor data source is `SharedMemorySensorDataSource` (shared-memory ring buffer). WebSocket adapter may be deprecated. If implementing, create `WebSocketSensorDataSource` that implements `ISensorDataSource` and connects to `sensor-simulator` (`ws://localhost:9002`). Adapter should translate incoming JSON messages into vitals/waveform signals.
+  - Why: Legacy fallback for WebSocket-based simulator. Shared memory is preferred (< 16 ms latency vs > 60 ms for WebSocket).
+  - Files: `z-monitor/src/infrastructure/sensors/WebSocketSensorDataSource.cpp/h` (implements ISensorDataSource), unit tests.
+  - Acceptance: `WebSocketSensorDataSource` builds and passes a unit test where a mocked websocket delivers a `vitals` JSON and the adapter emits vitals signals correctly.
+  - Verification Steps:
+    1. Functional: WebSocket connection works, JSON parsing works, signals emitted correctly
+    2. Code Quality: Doxygen comments, error handling, follows ISensorDataSource contract
+    3. Documentation: WebSocket adapter documented, latency comparison documented
+    4. Integration: Can replace SharedMemorySensorDataSource, MonitoringService works with WebSocket adapter
+    5. Tests: Unit tests for WebSocket connection, JSON parsing, signal emission
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
 
-- [ ] Add factory and configuration for selecting simulator implementation
-  - What: Add `DeviceSimulatorFactory::Create()` which returns either an in-process `MockDeviceSimulator` for unit tests or `WebSocketDeviceSimulatorAdapter` for local dev based on a config option / CMake define or runtime flag.
-  - Why: Keeps Z Monitor code decoupled from transport; simplifies CI and developer workflows.
-  - Acceptance: Device main can call `auto sim = DeviceSimulatorFactory::Create(config)` and receive a valid `IDeviceSimulator*` for use.
+- [ ] Add factory and configuration for selecting sensor data source implementation
+  - What: Add `SensorDataSourceFactory::Create()` in infrastructure layer which returns appropriate `ISensorDataSource` implementation based on configuration: `SharedMemorySensorDataSource` (preferred, default), `DeviceSimulator` (fallback), `MockSensorDataSource` (testing), `WebSocketSensorDataSource` (optional legacy). Factory uses dependency injection pattern.
+  - Why: Keeps Z Monitor code decoupled from sensor transport; simplifies CI and developer workflows. Factory pattern enables runtime selection of sensor data source.
+  - Files: `z-monitor/src/infrastructure/sensors/SensorDataSourceFactory.cpp/h`, update `MonitoringService` to use factory.
+  - Acceptance: Factory creates appropriate sensor data source based on config, all implementations work, factory can be injected into MonitoringService, configuration works correctly.
+  - Verification Steps:
+    1. Functional: Factory creates correct implementation, all implementations work, configuration selection works
+    2. Code Quality: Doxygen comments, factory pattern implemented correctly, error handling
+    3. Documentation: Factory usage documented, configuration options documented
+    4. Integration: Factory integrates with MonitoringService, configuration system works
+    5. Tests: Factory unit tests, configuration tests, integration tests
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
 
  - [x] Sensor-simulator (WebSocket sensor stream + QML UI)
@@ -511,23 +605,45 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/21-e2e-containerized-harness.md`  (When finished: mark this checklist item done.)
 
 - [ ] Central server simulator (mTLS later)
-  - What: Create `central-server-simulator/` with a simple REST endpoint `POST /api/telemetry` that can accept JSON and returns ack. Implement toggles to simulate network failures and delays.
-  - Why: Enables local end-to-end testing of networking flows.
-  - Note: Add optional `GET /api/patients/{patientId}` endpoint for patient lookup to support `IPatientLookupService` integration. This endpoint should return patient demographics in JSON format.
+  - What: Create `project-dashboard/central-server-simulator/` with a simple REST endpoint `POST /api/v1/telemetry/vitals` that can accept JSON and returns ack. Implement toggles to simulate network failures and delays. Server simulates central telemetry server for local testing.
+  - Why: Enables local end-to-end testing of networking flows without requiring production server infrastructure.
+  - Note: Add optional `GET /api/v1/patients/{mrn}` endpoint for patient lookup to support `IPatientLookupService` integration. This endpoint should return patient demographics in JSON format (per REQ-INT-HIS-001).
   - Note: Server URL should be configurable through `SettingsManager` (default: "https://localhost:8443"). The `NetworkManager` should use `ITelemetryServer` interface, allowing for `MockTelemetryServer` implementation that swallows data for testing without requiring server infrastructure.
-  - Note: Server must implement mTLS, validate client certificates, verify digital signatures on payloads, check timestamps for replay prevention, and enforce rate limiting. See `doc/06_SECURITY.md` section 6.7 for server-side security requirements.
+  - Note: Server must implement mTLS, validate client certificates, verify digital signatures on payloads, check timestamps for replay prevention, and enforce rate limiting. See `doc/06_SECURITY.md` section 6.7 for server-side security requirements (REQ-SEC-ENC-002, REQ-SEC-CERT-001).
+  - Acceptance: Server accepts telemetry data, returns acknowledgments, simulates failures/delays, patient lookup endpoint works, mTLS works (when implemented).
+  - Verification Steps:
+    1. Functional: Server accepts telemetry, returns acks, failure simulation works, patient lookup works
+    2. Code Quality: Server code follows best practices, error handling, logging
+    3. Documentation: Server API documented, usage instructions provided
+    4. Integration: Device can connect to simulator, telemetry transmission works, patient lookup works
+    5. Tests: Server unit tests, integration tests with device, mTLS tests (when implemented)
   - Prompt: `project-dashboard/prompt/12-central-server-simulator.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement mockable logging and LogService binding to QML
-  - What: Create `LogService` that queues messages and exposes them to QML as a model for the Diagnostics view. Support different levels (Info/Warn/Error).
-  - Why: Diagnostics and logs are required for debugging and QA.
+- [ ] Implement LogService with QML model binding (after async logging infrastructure)
+  - What: After async logging infrastructure is complete, ensure `LogService` exposes in-memory buffer (last 1000 entries) to QML as QAbstractListModel for Diagnostics view. LogService uses `ILogBackend` interface and runs on Database I/O Thread.
+  - Why: Diagnostics and logs are required for debugging and QA. Async architecture ensures logging doesn't block UI or real-time threads.
+  - Files: `z-monitor/src/infrastructure/logging/LogService.cpp/h` (already refactored for async), ensure `diagnosticsModel()` method returns QAbstractListModel for QML.
+  - Dependencies: Async logging infrastructure must be completed first (ILogBackend, LogService async refactor).
+  - Acceptance: LogService provides QAbstractListModel for Diagnostics View, model updates automatically, last 1000 entries available, async logging works (< 1μs per call).
+  - Verification Steps:
+    1. Functional: Diagnostics View shows recent logs, model updates automatically, log rotation works, async logging doesn't block
+    2. Code Quality: Doxygen comments, proper Qt model implementation, thread safety verified
+    3. Documentation: LogService QML integration documented, Diagnostics View usage documented
+    4. Integration: LogService integrates with ILogBackend, Diagnostics View binds to model, async queue works
+    5. Tests: QML model tests, async behavior tests, Diagnostics View integration tests
   - Prompt: `project-dashboard/prompt/13-logservice-qml-model.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement PatientManager with IPatientLookupService integration
-  - What: Implement `PatientManager` to integrate with `IPatientLookupService` for patient lookups. Add `loadPatientById()` method that first checks local database, then uses lookup service if not found. Cache lookup results in local `patients` table.
-  - Why: Enables quick patient assignment by entering patient ID, with automatic lookup from external systems (HIS/EHR).
-  - Files: `src/core/PatientManager.cpp/h`, implement integration with `IPatientLookupService`, update `DatabaseManager` to support patient caching.
-  - Acceptance: `PatientManager::loadPatientById(id)` successfully looks up patient from external system and caches result locally. Unit tests with `MockPatientLookupService` verify lookup flow.
+- [ ] Implement AdmissionService with IPatientLookupService integration
+  - What: Implement `AdmissionService` in application layer to integrate with `IPatientLookupService` for patient lookups. Add `lookupPatient(mrn)` method that first checks local database cache, then uses lookup service if not found. Cache lookup results in local `patients` table via `IPatientRepository`. AdmissionService orchestrates patient admission/discharge/transfer workflows.
+  - Why: Enables quick patient assignment by entering patient ID, with automatic lookup from external systems (HIS/EHR). Application service pattern ensures business logic is centralized and testable.
+  - Files: `z-monitor/src/application/services/AdmissionService.cpp/h`, implement integration with `IPatientLookupService`, use `IPatientRepository` for caching, update `PatientController` to use AdmissionService.
+  - Acceptance: `AdmissionService::lookupPatient(mrn)` successfully looks up patient from external system and caches result locally. Unit tests with `MockPatientLookupService` verify lookup flow. Admission/discharge/transfer workflows work correctly.
+  - Verification Steps:
+    1. Functional: Patient lookup works (cache hit, cache miss with HIS lookup), admission/discharge/transfer workflows function correctly, patient data cached properly
+    2. Code Quality: Doxygen comments, error handling, follows DDD application service patterns
+    3. Documentation: AdmissionService API documented, workflow documented in `doc/19_ADT_WORKFLOW.md`
+    4. Integration: AdmissionService integrates with IPatientLookupService and IPatientRepository, PatientController uses AdmissionService
+    5. Tests: Unit tests for lookup flow, admission/discharge/transfer tests, cache tests
   - Prompt: `project-dashboard/prompt/13b-patient-lookup-integration.md`  (When finished: mark this checklist item done.)
 
 
@@ -615,10 +731,10 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/16-mtls-integration-spike.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement comprehensive security for data transmission
-  - What: Implement full security architecture for telemetry and sensor data transmission including: certificate management and validation, digital signatures on payloads, timestamp/nonce for replay prevention, rate limiting, circuit breaker pattern, and security audit logging.
-  - Why: Ensures secure, authenticated, and auditable transmission of sensitive patient data to central server.
-  - Files: `src/core/NetworkManager.cpp/h`, `src/core/CertificateManager.cpp/h`, `src/core/SecurityAuditLogger.cpp/h`, update `DatabaseManager` for security audit log storage.
-  - Note: CRL checking is **mandatory for production** (not optional). Clock skew tolerance is ±1 minute for production, ±5 minutes for development. See `doc/06_SECURITY.md` section 6 for detailed requirements.
+  - What: Implement full security architecture for telemetry and sensor data transmission including: certificate management and validation, digital signatures on payloads, timestamp/nonce for replay prevention, rate limiting, circuit breaker pattern, and security audit logging. Follow DDD structure - security adapters in infrastructure layer.
+  - Why: Ensures secure, authenticated, and auditable transmission of sensitive patient data to central server. Per REQ-SEC-ENC-001, REQ-SEC-ENC-002, REQ-SEC-CERT-001, REQ-SEC-CERT-002, REQ-SEC-AUDIT-001, REQ-REG-HIPAA-001.
+  - Files: `z-monitor/src/infrastructure/network/NetworkManager.cpp/h`, `z-monitor/src/infrastructure/security/CertificateManager.cpp/h`, `z-monitor/src/infrastructure/security/SignatureService.cpp/h`, `z-monitor/src/infrastructure/security/EncryptionService.cpp/h`, update `z-monitor/src/infrastructure/persistence/SQLiteAuditRepository.cpp/h` for security audit log storage.
+  - Note: CRL checking is **mandatory for production** (not optional). Clock skew tolerance is ±1 minute for production, ±5 minutes for development. See `doc/06_SECURITY.md` section 6 for detailed requirements. Per REQ-SEC-CERT-002.
   - **CRITICAL - Patient Data Association:**
     - All telemetry data MUST include patient MRN (Medical Record Number) for proper patient association
     - `NetworkManager` must automatically retrieve current patient MRN from `PatientManager` when sending telemetry
@@ -641,8 +757,16 @@ These infrastructure components should be implemented early as they are dependen
 ## Database Encryption & Archival (dependent)
 
 - [ ] SQLCipher integration plan and build spike
-  - What: Research how to add SQLCipher to the CMake build for macOS/Linux and add a spike that compiles and links SQLCipher for local runs.
-  - Why: Encryption-at-rest is mandatory for patient data.
+  - What: Research how to add SQLCipher to the CMake build for macOS/Linux and add a spike that compiles and links SQLCipher for local runs. SQLCipher provides AES-256-CBC encryption for database at rest (per REQ-SEC-ENC-003, REQ-DATA-SEC-001, REQ-REG-HIPAA-001).
+  - Why: Encryption-at-rest is mandatory for patient data. HIPAA requires encryption of PHI at rest. Device theft or unauthorized access must not expose patient data.
+  - Files: Update `z-monitor/CMakeLists.txt` with SQLCipher find/configuration, create `z-monitor/cmake/FindSQLCipher.cmake`, update `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h` to use SQLCipher.
+  - Acceptance: SQLCipher compiles and links, DatabaseManager can open encrypted databases, encryption works, performance impact acceptable (< 10% overhead).
+  - Verification Steps:
+    1. Functional: SQLCipher builds, encrypted database works, encryption verified (hexdump shows encrypted bytes)
+    2. Code Quality: CMake integration clean, error handling, Doxygen comments
+    3. Documentation: SQLCipher integration documented, encryption settings documented
+    4. Integration: DatabaseManager uses SQLCipher, encryption transparent to repositories
+    5. Tests: Encryption verification tests, performance tests, key management tests
   - Prompt: `project-dashboard/prompt/17-sqlcipher-integration-plan.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement Archiver interface and archiving tests
@@ -761,7 +885,7 @@ These infrastructure components should be implemented early as they are dependen
 
 - [ ] Maintain System Components Reference (doc/29_SYSTEM_COMPONENTS.md)
   - What: Keep `doc/29_SYSTEM_COMPONENTS.md` synchronized with the codebase. When adding/removing/refactoring components, update the component inventory, interaction diagram, and component count.
-  - Why: Provides a single authoritative source of truth for all system components (98 total across all layers). Prevents discrepancies between documentation and implementation.
+  - Why: Provides a single authoritative source of truth for all system components (115 total across all layers per `doc/12_THREAD_MODEL.md`). Prevents discrepancies between documentation and implementation.
   - Files: `doc/29_SYSTEM_COMPONENTS.md`, `doc/29_SYSTEM_COMPONENTS.mmd`, `doc/29_SYSTEM_COMPONENTS.svg`, related architecture/design docs.
   - When to Update:
     - Adding new aggregates, services, controllers, repositories, or UI components
@@ -770,42 +894,43 @@ These infrastructure components should be implemented early as they are dependen
     - Changing component interactions or dependencies
   - Update Steps:
     1. Update component tables in `doc/29_SYSTEM_COMPONENTS.md` (section 2-5)
-    2. Update component count summary (section 8)
+    2. Update component count summary (section 8) - currently 115 components
     3. Update interaction diagram in `doc/29_SYSTEM_COMPONENTS.mmd` (section 6)
     4. Regenerate SVG: `npx @mermaid-js/mermaid-cli -i doc/29_SYSTEM_COMPONENTS.mmd -o doc/29_SYSTEM_COMPONENTS.svg`
     5. Update cross-references in `doc/02_ARCHITECTURE.md`, `doc/09_CLASS_DESIGNS.md`
-  - Acceptance: Component list matches implemented code, diagram is accurate, SVG renders correctly, component count is correct, no discrepancies with architecture/design docs.
+  - Acceptance: Component list matches implemented code, diagram is accurate, SVG renders correctly, component count is correct (115), no discrepancies with architecture/design docs.
   - Verification Steps:
-    1. Functional: All listed components exist in codebase or are documented as planned/deprecated
+    1. Functional: All listed components exist in codebase or are documented as planned/deprecated, count matches 115
     2. Code Quality: Diagram syntax valid (SVG generates without errors)
-    3. Documentation: Cross-references in other docs are updated
-    4. Integration: Component interactions match actual dependencies
+    3. Documentation: Cross-references in other docs are updated, component count matches thread model
+    4. Integration: Component interactions match actual dependencies, DDD layer assignments correct
     5. Tests: Manual verification or script to compare doc vs. codebase
   - Prompt: `project-dashboard/prompt/29-maintain-component-reference.md`  (When finished: mark this checklist item done.)
 
 - [ ] Maintain Thread Model (doc/12_THREAD_MODEL.md)
   - What: Keep `doc/12_THREAD_MODEL.md` synchronized with system components and thread assignments. When adding/removing components or changing thread topology, update the service-to-thread mapping, thread diagrams, and component counts per thread.
-  - Why: Ensures all 98 components are correctly assigned to threads. Prevents ambiguity about which thread a service runs on. Critical for performance optimization and debugging.
+  - Why: Ensures all 115 components are correctly assigned to threads. Prevents ambiguity about which thread a service runs on. Critical for performance optimization and debugging. Thread model defines latency targets (REQ-NFR-PERF-100: < 50ms alarm detection).
   - Files: `doc/12_THREAD_MODEL.md`, `doc/12_THREAD_MODEL.mmd`, `doc/12_THREAD_MODEL.svg`, `doc/29_SYSTEM_COMPONENTS.md`.
   - When to Update:
     - Adding new services, adapters, or infrastructure components
     - Changing thread topology (e.g., splitting RT thread, adding worker pools)
     - Moving components between threads for performance optimization
     - Adding new communication patterns (queues, signals)
+    - Adding new modules (multi-service threads)
   - Update Steps:
     1. Update service-to-thread mapping tables in `doc/12_THREAD_MODEL.md` (section 4)
-    2. Update thread mapping summary (section 5)
+    2. Update thread mapping summary (section 5) - currently 115 components across 6 threads
     3. Update thread topology diagram in `doc/12_THREAD_MODEL.mmd`
     4. Regenerate SVG: `npx @mermaid-js/mermaid-cli -i doc/12_THREAD_MODEL.mmd -o doc/12_THREAD_MODEL.svg`
-    5. Verify total component count matches `doc/29_SYSTEM_COMPONENTS.md` (98 components)
+    5. Verify total component count matches `doc/29_SYSTEM_COMPONENTS.md` (115 components)
     6. Update cross-references in `doc/02_ARCHITECTURE.md`
-  - Acceptance: All 98 components are assigned to threads, thread topology matches implementation, SVG renders correctly, component counts are correct, latency targets are documented.
+  - Acceptance: All 115 components are assigned to threads, thread topology matches implementation, SVG renders correctly, component counts are correct, latency targets are documented (REQ-NFR-PERF-100: < 50ms alarm detection).
   - Verification Steps:
-    1. Functional: Thread assignments match actual implementation (verify with code)
+    1. Functional: Thread assignments match actual implementation (verify with code), component count matches 115
     2. Code Quality: Diagram syntax valid (SVG generates without errors)
-    3. Documentation: Total component count matches System Components Reference (98)
-    4. Integration: Communication patterns (queues, signals) match implementation
-    5. Tests: Performance tests validate latency targets
+    3. Documentation: Total component count matches System Components Reference (115), latency targets documented
+    4. Integration: Communication patterns (queues, signals) match implementation, modules (multi-service threads) documented
+    5. Tests: Performance tests validate latency targets (REQ-NFR-PERF-100)
   - Prompt: `project-dashboard/prompt/12-maintain-thread-model.md`  (When finished: mark this checklist item done.)
 
 - [ ] Update `doc/10_DATABASE_DESIGN.md` and add ERD
@@ -873,7 +998,14 @@ If you'd like, I can now:
 
 These documents should live under `doc/interfaces/` and include an interface overview, responsibilities, threading model, lifecycle/ownership rules, public method signatures (C++ style), error semantics, example code paths and sequence diagrams (where helpful), and a list of unit/integration tests the implementation must satisfy.
 
-- Prompt: `project-dashboard/prompt/02-define-public-interfaces.md`  (When finished: mark this section's interface docs done.)
+**Status:** Interface documentation is partially complete. See existing docs:
+- ✅ `doc/interfaces/IPatientLookupService.md` - Complete
+- ✅ `doc/interfaces/ITelemetryServer.md` - Complete  
+- ✅ `doc/interfaces/ISensorDataSource.md` - Complete
+- ✅ `doc/interfaces/IProvisioningService.md` - Complete
+- ⏳ `doc/interfaces/IAdmissionService.md` - Pending (see Low Priority section)
+
+**Remaining Interface Docs to Create:**
 
 - [ ] `doc/interfaces/IDatabaseManager.md`
   - Purpose: Persistent storage and schema migrations for vitals, events, alarms, settings and users. Must support encrypted DB (SQLCipher) and an in-memory mode for tests.
@@ -898,14 +1030,14 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: open/close, enqueue insert under concurrent producers, migration application order, archive operation correctness, encrypted DB open/close (smoke)
 
 - [ ] `doc/interfaces/INetworkManager.md`
-  - Purpose: Reliable, authenticated transport to central server; manages connection state and telemetry batching.
+  - Purpose: Reliable, authenticated transport to central server; manages connection state and telemetry batching. **Note:** NetworkManager is an infrastructure adapter that uses `ITelemetryServer` interface. Consider documenting NetworkManager as implementation detail rather than separate interface.
   - Responsibilities:
     - Configure TLS/mTLS credentials from `resources/certs/`.
     - Batch telemetry messages and send using backoff & retry; surface ack/failed delivery metrics.
     - Provide health and connection state to `SystemController`.
     - Integrate with `ITelemetryServer` interface for server communication.
   - Threading & ownership:
-    - Runs worker thread(s) for network I/O or uses Qt event loop + QNetworkAccessManager on the main thread depending on platform; prefer dedicated network thread for blocking crypto ops.
+    - Runs on Network I/O Thread (dedicated thread for blocking crypto ops). See `doc/12_THREAD_MODEL.md` section 4.5.
   - Key API:
     - `virtual void ConfigureSsl(const SslConfig &cfg) = 0;`
     - `virtual ConnectionState Connect() = 0;`
@@ -916,9 +1048,9 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual QString GetServerUrl() const = 0;`
   - Security features: Certificate validation (expiration, revocation, device ID match), digital signatures on payloads, replay prevention (timestamp/nonce), rate limiting, circuit breaker, security audit logging.
   - Error semantics: surface transient vs permanent errors (e.g., `CERT_INVALID`, `CERT_EXPIRED`, `CERT_REVOKED`, `TLS_HANDSHAKE_FAILED`, `NETWORK_UNREACHABLE`, `RATE_LIMIT_EXCEEDED`).
-  - Example code path: `DeviceSimulator` emits vitals -> `DashboardController` enqueues to `IDatabaseManager` and asks `INetworkManager` to send batched telemetry via `ITelemetryServer`; `NetworkManager` validates certificate, signs payload, sends with mTLS; on failure, `INetworkManager` persists unsent batches to disk via `IDatabaseManager` archival queue and logs security event to `security_audit_log`.
+  - Example code path: `MonitoringService` (RT Thread) creates telemetry batch -> enqueues to Network Thread -> `NetworkManager` validates certificate, signs payload, sends via `ITelemetryServer` (mTLS); on failure, `NetworkManager` persists unsent batches to database archival queue and logs security event to `security_audit_log`.
   - Tests to write: configurable failures, backoff timing behavior, SSL config validation, acknowledgment handling, server URL configuration, mock server integration, certificate validation, signature verification, replay prevention, rate limiting, audit logging.
-  - Note: Interface documentation exists at `doc/interfaces/ITelemetryServer.md`. See `doc/06_SECURITY.md` section 6 for comprehensive security architecture.
+  - Note: `ITelemetryServer` interface documentation exists at `doc/interfaces/ITelemetryServer.md`. See `doc/06_SECURITY.md` section 6 for comprehensive security architecture.
 
 - [ ] `doc/interfaces/ITelemetryServer.md`
   - Purpose: Interface for sending telemetry data and sensor data to a central monitoring server. Abstracts server communication to support multiple implementations (production, mock, file-based).
@@ -955,7 +1087,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: priority ordering, silence behavior, acknowledgement persistence, history correctness.
 
 - [ ] `doc/interfaces/IDeviceSimulator.md`
-  - Purpose: Deterministic or pseudo-random signal generator used for UI demos and tests.
+  - Purpose: **Note:** DeviceSimulator is legacy fallback. Primary sensor data source is `ISensorDataSource` interface with `SharedMemorySensorDataSource` implementation. DeviceSimulator may be deprecated in favor of external sensor simulator. Document if keeping as fallback.
   - Responsibilities:
     - Generate vitals streams (ECG, pleth), and inject events (arrhythmia, motion artifact) on schedule or via API.
     - Allow deterministic playback of recorded trace files for regression tests.
@@ -967,6 +1099,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - Signals: `OnVitalsSample(VitalsSample)`, `OnWaveformSample(WaveformSample)`.
   - Example code path: tests subscribe to `OnVitalsSample`, verify values drive `AlarmManager` logic.
   - Tests to write: deterministic playback matches expected triggers, event injection causes expected alarms.
+  - Note: See `doc/interfaces/ISensorDataSource.md` for primary sensor data source interface. DeviceSimulator is infrastructure adapter implementing ISensorDataSource.
 
 - [ ] `doc/interfaces/IPatientLookupService.md`
   - Purpose: Interface for looking up patient information from external systems (HIS/EHR) by patient ID.
@@ -985,47 +1118,48 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Note: Interface documentation exists at `doc/interfaces/IPatientLookupService.md`.
 
 - [ ] `doc/interfaces/ISettingsManager.md`
-  - Purpose: Persistent configuration store for device settings and thresholds.
+  - Purpose: Persistent configuration store for device settings and thresholds. **Note:** SettingsManager is infrastructure adapter (Qt-specific). Consider if interface abstraction needed or if SettingsManager can be used directly.
   - Responsibilities:
     - Read/write typed settings, validation, defaulting, and notification of changes.
-    - Persist settings via `IDatabaseManager` or settings file.
-    - Manage device configuration: Device ID, Bed ID, and Measurement Unit (metric/imperial).
+    - Persist settings via database (settings table) or settings file.
+    - Manage device configuration: Device ID, Device Label, and Measurement Unit (metric/imperial).
   - Key API:
     - `virtual std::optional<SettingValue> Get(const std::string &key) = 0;`
     - `virtual Result Set(const std::string &key, const SettingValue &v) = 0;`
     - `virtual void Subscribe(SettingsObserver*) = 0;`
   - Required Settings:
     - `deviceId`: Unique device identifier (QString)
-    - `bedId`: Bed/room location identifier (QString)
+    - `deviceLabel`: Static device asset tag/identifier (QString, e.g., "ICU-MON-04")
     - `measurementUnit`: Measurement system preference ("metric" or "imperial")
+    - `serverUrl`: Central telemetry server URL (QString)
+    - `useMockServer`: Use mock server for testing (bool)
+  - Note: `bedId` has been removed - bed location is part of Patient object managed through ADT workflow.
   - Tests to write: validation rules, persistence, migration of settings schema, device configuration persistence.
 
 - [ ] `doc/interfaces/IAuthenticationService.md`
-  - Purpose: PIN-based local authentication and role enforcement for UI actions.
+  - Purpose: **Note:** Authentication is handled by `SecurityService` (application layer) which uses `IUserManagementService` interface. Hospital user authentication replaces local PIN-based auth. Document SecurityService API instead of separate IAuthenticationService interface.
   - Responsibilities:
-    - Authenticate users (PIN), maintain current session, enforce simple lockout policies, provide role checks.
-    - Audit login attempts into `system_events`/`alarms` as required.
+    - Authenticate users via `IUserManagementService` (hospital server or mock), maintain current session, enforce lockout policies, provide role checks.
+    - Audit login attempts into `security_audit_log` table.
   - Threading & ownership:
-    - Lightweight; called from UI thread. For cryptographic or slow ops, run on a worker thread.
-  - Key API:
-    - `virtual AuthResult AuthenticatePin(const UserId &user, const std::string &pin) = 0;`
+    - Runs on Application Services Thread (may co-locate with RT thread). See `doc/12_THREAD_MODEL.md` section 4.3.
+  - Key API (SecurityService):
+    - `virtual AuthResult Authenticate(const QString& userId, const QString& secretCode) = 0;`
     - `virtual void Logout() = 0;`
-    - `virtual bool HasRole(const UserId &user, Role r) const = 0;`
-    - `virtual CurrentUserInfo GetCurrentUser() const = 0;`
-    - `virtual Result ChangePin(const UserId &, const std::string &oldPin, const std::string &newPin) = 0;`
+    - `virtual bool HasPermission(const QString& permission) const = 0;`
+    - `virtual UserSession GetCurrentSession() const = 0;`
     - `virtual void RefreshSession() = 0;` (refresh session timeout on activity)
     - `virtual bool CheckSessionTimeout() = 0;` (check if session expired)
-    - `virtual bool IsAccountLocked(const UserId &user) = 0;` (check lockout status)
-    - `virtual int GetRemainingLockoutTime(const UserId &user) = 0;` (seconds until unlock)
-    - `virtual Result UnlockAccount(const UserId &user) = 0;` (requires admin role)
-  - Example code path: user enters PIN in `LoginView.qml` -> `AuthenticationService::AuthenticatePin` -> on success emit `OnAuthStateChanged` -> `SystemController` transitions to logged-in state and updates UI.
+    - `virtual bool IsAccountLocked(const QString& userId) = 0;` (check lockout status)
+  - Example code path: user enters User ID and secret code in `LoginView.qml` -> `AuthenticationController` -> `SecurityService::Authenticate()` -> uses `IUserManagementService` to validate -> on success creates `UserSession` -> emits `OnAuthStateChanged` -> `SystemController` transitions to logged-in state and updates UI.
   - Security notes: 
-    - PINs must be stored hashed (SHA-256) + salted (per-user salt)
-    - Brute force protection: 5 failed attempts → 15-minute lockout, exponential backoff
-    - Session timeout: 30 minutes of inactivity (configurable)
+    - Secret codes validated via hospital user management server (or mock for testing)
+    - Brute force protection: 3 failed attempts → 10-minute lockout (per REQ-FUN-USER-005)
+    - Session timeout: 15 minutes of inactivity (per REQ-FUN-USER-003, configurable)
     - All authentication events logged to `security_audit_log`
-    - Consider hardware-backed key storage on target platforms
-  - Tests to write: correct/incorrect PIN, lockout behavior, role checks.
+    - Role-based permissions via `PermissionRegistry`
+  - Tests to write: correct/incorrect credentials, lockout behavior, permission checks, session timeout.
+  - Note: See `doc/38_AUTHENTICATION_WORKFLOW.md` for complete authentication workflow and `doc/interfaces/IUserManagementService.md` for hospital authentication interface.
 
 - [ ] `doc/interfaces/IArchiver.md`
   - Purpose: Responsible for moving expired data out of the primary DB into compressed archive stores and/or remote upload staging.
@@ -1039,182 +1173,42 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: archive creation correctness, safe purge, resume/retry behavior on failures.
 
 - [ ] `doc/interfaces/ILogService.md`
-  - Purpose: Centralized logging with a QAbstractListModel to expose log records to QML Diagnostics view.
+  - Purpose: Centralized logging with async non-blocking architecture. LogService runs on Database I/O Thread and uses `ILogBackend` interface for backend abstraction. Exposes in-memory buffer (last 1000 entries) to QML Diagnostics view.
   - Responsibilities:
-    - Append logs with levels and timestamps; allow querying and tailing.
+    - Append logs with levels, timestamps, and structured context; async non-blocking (< 1μs per call).
+    - Provide in-memory buffer for Diagnostics View (last 1000 entries, not persisted).
+    - Support log rotation, file size limits, and multiple formats (human-readable, JSON).
   - Key API:
-    - `virtual void Append(LogLevel level, const std::string &msg) = 0;`
-    - `virtual QAbstractListModel* AsQmlModel() = 0;`
-  - Tests: ensure log ordering, level filtering, model bindings to QML.
+    - `virtual void info(const QString& message, const QVariantMap& context = {}) = 0;`
+    - `virtual void warning(const QString& message, const QVariantMap& context = {}) = 0;`
+    - `virtual void error(const QString& message, const QVariantMap& context = {}) = 0;`
+    - `virtual QAbstractListModel* diagnosticsModel() = 0;` (last 1000 entries for UI)
+  - Threading: Runs on Database I/O Thread, uses lock-free queue (MPSC) for async logging.
+  - Tests: ensure log ordering, level filtering, async behavior (< 1μs latency), queue overflow handling, model bindings to QML.
+  - Note: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` for complete async logging architecture.
 
 - [ ] `doc/interfaces/Controllers.md`
-  - Purpose: Document each QML-facing controller and the properties/methods they expose.
+  - Purpose: Document each QML-facing controller in interface layer and the properties/methods they expose. Controllers bridge QML to application services following DDD interface layer pattern.
   - For each controller include:
-    - `DashboardController` — properties: `heartRate`, `spo2`, `ecgWaveformModel`; methods: `StartMonitoring()`, `StopMonitoring()`, `RequestTrend(range)`.
-    - `AlarmController` — properties: `activeAlarmsModel`, `historyModel`; methods: `AcknowledgeAlarm(id)`, `Silence(duration)`.
-    - `SystemController` — properties: `connectionState`, `appVersion`, `clock`; methods: `Reboot()`, `Shutdown()`.
-    - `PatientController` — properties: `patientId`, `patientName`, `patientAge`, `allergies`, `isLookingUp`, `lookupError`; methods: `lookupPatientById(id)`, `clearPatient()`; include examples of QML bindings for Patient Assignment View.
-    - `SettingsController` — properties: `deviceId`, `bedId`, `measurementUnit`, `allSettings`; methods: `updateSetting(key, value)`, `resetToDefaults()`; include examples of QML bindings for Device Configuration section.
-    - `TrendsController`, `NotificationController` — list properties and key methods; include examples of QML bindings and signal usage.
-  - Tests: QML binding smoke tests, property change notifications, method-call round trips.
+    - `DashboardController` — properties: `heartRate`, `spo2`, `respirationRate`, `ecgWaveformModel`, `plethWaveformModel`; methods: `StartMonitoring()`, `StopMonitoring()`, `RequestTrend(range)`.
+    - `AlarmController` — properties: `activeAlarmsModel`, `historyModel`, `alarmCount`; methods: `AcknowledgeAlarm(id)`, `Silence(duration)`.
+    - `SystemController` — properties: `connectionState`, `appVersion`, `clock`, `networkStatus`; methods: `Reboot()`, `Shutdown()`, `NavigateToView(viewName)`.
+    - `PatientController` — properties: `patientMrn`, `patientName`, `patientAge`, `bedLocation`, `admissionState`, `isAdmitted`, `isLookingUp`, `lookupError`; methods: `admitPatient(mrn, bedLocation)`, `dischargePatient()`, `openAdmissionModal()`, `scanBarcode()`; include examples of QML bindings for Patient Assignment View.
+    - `SettingsController` — properties: `deviceId`, `deviceLabel`, `measurementUnit`, `serverUrl`, `useMockServer`, `allSettings`; methods: `updateSetting(key, value)`, `resetToDefaults()`; include examples of QML bindings for Device Configuration section.
+    - `TrendsController` — properties: `trendDataModel`, `selectedTimeRange`; methods: `loadTrend(metric, timeRange)`, `exportTrend()`.
+    - `NotificationController` — properties: `notificationsModel`, `unreadCount`; methods: `clearNotification(id)`, `clearAllNotifications()`.
+    - `WaveformController` — properties: `ecgWaveformData`, `plethWaveformData`, `sampleRate`; signals: `waveformDataUpdated()`; bridges waveform data from MonitoringService to QML for 60 FPS rendering.
+    - `ProvisioningController` — properties: `provisioningState`, `qrCodeData`, `pairingCode`; methods: `enterProvisioningMode()`, `cancelProvisioning()`.
+    - `DiagnosticsController` — properties: `logModel`, `systemHealth`; methods: `exportLogs()`, `runDiagnostics()`.
+    - `AuthenticationController` — properties: `isAuthenticated`, `currentUser`, `sessionTimeout`; methods: `login(userId, secretCode)`, `logout()`.
+  - Threading: All controllers run on Main/UI Thread. See `doc/12_THREAD_MODEL.md` section 4.1.
+  - Tests: QML binding smoke tests, property change notifications, method-call round trips, signal emission tests.
 
 Action notes:
 - File paths: create `doc/interfaces/*.md` for each interface and `doc/interfaces/Controllers.md`.
 - Deliverables per interface doc: responsibilities, signatures, example code paths, tests list, and a short sequence diagram (Mermaid) where helpful.
-- Prioritization: start with `IDatabaseManager`, `INetworkManager`, `IAlarmManager`, `IAuthenticationService`, then controllers.
-
-
-## Sequential Tasks (must be done in order)
-
-- [ ] 1. Create project scaffolding and repo checklist
-  - What: Ensure `project-dashboard/` contains the canonical folders: `src/`, `resources/`, `doc/`, `proto/`, `openapi/`, `tests/`, `central-server-simulator/` and `doc/migrations/`.
-  - Why: Provides a stable structure to place interfaces, tests, and docs.
-  - Artifacts: `CMakeLists.txt` (top-level), empty `proto/` and `openapi/` dirs, `doc/migrations/README.md`.
-
-- [ ] 1. Define public C++ service interfaces (headers only)
-  - What: Create minimal header-only interface sketches for: `IDatabaseManager`, `INetworkManager`, `IAlarmManager`, `IDeviceSimulator`, `ISettingsManager`, `IAuthenticationService`, and `IArchiver`.
-  - Why: Interfaces allow test-first development (mocks) and make DI decisions easier.
-  - Files: `src/core/interfaces/*.h` (one header per interface), `doc/interfaces.md` with rationale and method signatures.
-
-- [ ] 1. Create unit test harness + mock objects
-  - What: Add `tests/CMakeLists.txt`, pick test framework (recommend `GoogleTest`), add `tests/mocks/` with mock classes that implement the interfaces.
-  - Why: Unit tests should drive API decisions. Mocks let you write controller tests before production implementation.
-  - Files: `tests/CMakeLists.txt`, `tests/mock_DatabaseManager.h`, `tests/mock_NetworkManager.h`, example test `tests/test_alarm_manager.cpp`.
-
-- [ ] 1. Design database schema + write migration SQLs
-  - What: Finalize DDL for tables: `patients`, `vitals`, `ecg_samples`, `pleth_samples`, `alarms`, `system_events`, `settings`, `users`. Add indices, retention metadata table, and `archival_queue`.
-  - Why: Deterministic schema is required before implementing `DatabaseManager` and `TrendsController`.
-  - Files: `doc/migrations/0001_initial.sql`, `doc/migrations/0002_add_indices.sql`, `doc/10_DATABASE_DESIGN.md` update, ERD SVG in `doc/`.
-
-- [ ] 1. Implement DatabaseManager spike (in-memory + SQLCipher plan)
-  - What: Implement a minimal, test-only `DatabaseManager` that uses an in-memory SQLite for tests. Document how SQLCipher will be integrated and add CMake options to enable/disable SQLCipher.
-  - Why: Validates schema and migrations without full SQLCipher integration yet.
-  - Files: `src/core/DatabaseManagerStub.cpp/h`, `tests/db_smoke_test.cpp`, `CMakeLists` options: `-DENABLE_SQLCIPHER=ON/OFF`.
-
-- [ ] 1. Define telemetry proto and/or OpenAPI spec (canonical schema)
-  - What: Create `proto/telemetry.proto` and `openapi/telemetry.yaml`. Include message definitions for vitals, device status, alarms, and batching semantics.
-  - Why: Having canonical schema lets the simulator, server, and device agree on payloads. Protobuf + JSON mapping recommended.
-  - Files: `proto/telemetry.proto`, `openapi/telemetry.yaml`, `doc/proto_design.md`.
-
-- [ ] 1. Implement basic NetworkManager test double + API contract
-  - What: Using the proto/OpenAPI, implement a mock `NetworkManager` (no TLS) that records requests and simulates server responses (200, 500, timeout). Add unit tests for retry and backoff behavior.
-  - Why: Allows `SystemController`/`NotificationController` unit tests before adding mTLS plumbing.
-  - Files: `tests/mock_NetworkManager.h`, `tests/network_retry_test.cpp`.
-
-- [ ] 1. Implement controller skeletons and QML binding stubs
-  - What: Create `DashboardController`, `AlarmController`, `SystemController`, `PatientController`, `SettingsController`, `TrendsController`, `NotificationController` as QObject-derived classes exposing Q_PROPERTY and basic signals. Do not implement heavy logic yet.
-  - Why: QML UI can be wired to properties and tested for binding behavior early.
-  - Files: `src/ui/*.cpp/h` and `resources/qml/Main.qml` with placeholder components.
-  - Note: `SettingsController` must expose `deviceId`, `bedId`, and `measurementUnit` as Q_PROPERTY for Device Configuration section in Settings View.
-
-
-## Parallel Tasks (can be done concurrently)
-
-- [ ] 1. QML UI skeleton and components
-  - What: Implement `Main.qml`, `Sidebar.qml`, `TopBar.qml`, `StatCard.qml`, `PatientBanner.qml`, and placeholder `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView).
-  - Why: Visual scaffolding enables early UX validation and manual QA.
-  - Acceptance: QML app boots and displays placeholders at `1280x800`.
-  - Note: `SettingsView.qml` must include Device Configuration section with inputs for Device ID, Bed ID, and Measurement Unit dropdown (metric/imperial). See `doc/03_UI_UX_GUIDE.md` section 4.4 for specifications.
-
-- [ ] 1. Alarm UI & animation prototypes (QML)
-  - What: Prototype critical alarm full-screen flash, per-card highlight, audio stubs, and Alarm History panel in QML.
-  - Why: Visual design for alarms should be validated separately from backend logic.
-
-- [ ] 1. DeviceSimulator and synthetic signal generation
-  - What: Implement a test-only `DeviceSimulator` capable of generating vitals, ECG waveform samples, pleth waveform, and simulated events (arrhythmia, motion artifact) for UI demos.
-  - Why: Provides deterministic input for UI, controller, and integration tests.
-
-- [ ] 1. Central server simulator (mTLS later)
-  - What: Create `central-server-simulator/` with a simple REST endpoint `POST /api/telemetry` that can accept JSON and returns ack. Implement toggles to simulate network failures and delays.
-  - Why: Enables local end-to-end testing of networking flows.
-
-- [ ] 1. Implement mockable logging and LogService binding to QML
-  - What: Create `LogService` that queues messages and exposes them to QML as a model for the Diagnostics view. Support different levels (Info/Warn/Error).
-  - Why: Diagnostics and logs are required for debugging and QA.
-
-
-## Security & Certificates (ordered but distinct)
-
-- [ ] 1. Define security architecture and provisioning plan
-  - What: Finalize how device certificates will be provisioned, where certs are stored in `resources/certs/`, and the CA trust model. Document in `doc/06_SECURITY.md`.
-  - Why: Security design must be agreed before writing any cert-generation scripts.
-
-- [ ] 1. Add scripts for CA + cert generation (after infra agreed)
-  - What: Create `scripts/generate-selfsigned-certs.sh` that generates CA, server, and client certs for local testing. Include instructions for converting to PKCS12 if needed.
-  - Why: Provides reproducible certs for simulator and device tests. NOTE: create *after* the previous task is approved.
-  - Files: `scripts/generate-selfsigned-certs.sh`, `central-server-simulator/certs/README.md`.
-
-- [ ] 1. mTLS integration spike for NetworkManager
-  - What: Implement a small C++ example that configures `QSslConfiguration` with the generated client cert and validates handshake against the simulator using mutual auth.
-  - Why: Confirms approach works on target platforms before full NetworkManager implementation.
-
-
-## Database Encryption & Archival (dependent)
-
-- [ ] 1. SQLCipher integration plan and build spike
-  - What: Research how to add SQLCipher to the CMake build for macOS/Linux and add a spike that compiles and links SQLCipher for local runs.
-  - Why: Encryption-at-rest is mandatory for patient data.
-
-- [ ] 1. Implement Archiver interface and archiving tests
-  - What: Create `IArchiver` interface and tests that show moving rows older than 7 days to an `archived_vitals` table or external archive file. Add unit tests for retention policy enforcement.
-  - Why: Archival is required by requirements; must be testable and configurable.
-
-
-## Testing, CI & Automation (parallelizable)
-
-- [ ] 1. Add CI workflows for build + tests
-  - What: Add GitHub Actions (or preferred CI) jobs: `build`, `unit-tests`, `render-diagrams`, `integration-tests` that run the server simulator.
-  - Why: Keeps repo healthy and verifies that docs/diagrams render correctly in CI.
-
-- [ ] 1. Add mermaid render script and CI check
-  - What: Add `scripts/render-mermaid.sh` and a CI job that runs it and fails on parse errors. Document usage in `.github/copilot-instructions.md`.
-  - Why: Prevents malformed diagrams from being committed (we had parser issues earlier).
-
-- [ ] 1. Add E2E containerized test harness
-  - What: Compose the Z Monitor (headless) and the server simulator in docker-compose test environment and run basic E2E scenarios.
-  - Why: Validates connectivity, DB writes, and archival behavior in a reproducible environment.
-
-
-## Documentation, Compliance & Diagrams
-
-- [ ] 1. Update `doc/10_DATABASE_DESIGN.md` and add ERD
-  - What: Consolidate the extended DDL into `doc/10_DATABASE_DESIGN.md`, include ERD and index rationale, and retention/archival notes.
-
-- [ ] 1. Produce API docs: OpenAPI + proto docs
-  - What: Finalize `openapi/telemetry.yaml` and ensure codegen steps are documented in `doc/`. Add `doc/api/README.md` describing mapping between proto and JSON.
-
-- [ ] 1. Create SRS and V&V outlines
-  - What: Add `doc/SRS.md` (feature list, acceptance criteria) and `doc/VVPlan.md` for verification and validation testing; include list of safety-critical tests.
-
-- [ ] 1. Create threat model summary and FMEA sketch
-  - What: Draft `doc/threat_model.md` and `doc/FMEA.md` focusing on data confidentiality (at-rest/in-transit), certificate compromise, tampering, and mitigations.
-
-
-## UX & Clinical Validation
-
-- [ ] 1. Perform UI walkthrough and polish
-  - What: Iterate on the QML layout for `1280x800`, validate readability of stat cards, colors, and alarm indicators with clinical stakeholders.
-
-- [ ] 1. Add translation skeletons and i18n check
-  - What: Ensure all strings use `qsTr()` and add `i18n/en_US.ts`, `i18n/es_ES.ts` placeholders. Add a script to extract strings and compile `.qm` files.
-
-
-## Optional Spikes and Performance
-
-- [ ] 1. DI container spike (optional)
-  - What: Evaluate `Boost.DI` and simple manual DI patterns; create `doc/13_DEPENDENCY_INJECTION.md` with recommendation. Implement a tiny `AppContainer` prototype if desired.
-
-- [ ] 1. Proto size & nanopb spike for embedded targets
-  - What: Generate nanopb or protobuf-lite builds to measure code size and runtime cost on target. Document tradeoffs in `doc/14_PROTOCOL_BUFFERS.md`.
-
-
-## Release & Packaging
-
-- [ ] 1. Final multi-stage Dockerfile and runtime optimization
-  - What: Create builder and runtime stages using `qtapp-qt-dev-env:latest` and `qtapp-qt-runtime-nano:latest`. Ensure final image copies only runtime artifacts.
-
-- [ ] 1. Packaging and install target
-  - What: Confirm `CMakeLists.txt` installs executable to `/opt/lesson##/` (or `/opt/project-dashboard/`) and create `release/README.md` with run instructions for macOS and Linux.
+- Prioritization: start with repository interfaces (`IPatientRepository`, `ITelemetryRepository`, etc.), then infrastructure interfaces (`ISensorDataSource`, `ITelemetryServer`, `IUserManagementService`), then controllers.
+- DDD Alignment: Domain interfaces in `src/domain/interfaces/`, infrastructure interfaces in `src/infrastructure/interfaces/`. Controllers are interface layer (no separate interface needed).
 
 
 ---
