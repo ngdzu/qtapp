@@ -194,6 +194,16 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/02c-shared-memory-sensor-datasource.md`
 
 - [ ] Update Sensor Simulator to write shared-memory ring buffer
+- [ ] Implement PermissionRegistry (enum-based role mapping)
+  - What: Create a compile-time `PermissionRegistry` service (or generated table) that maps each `UserRole` to its default `Permission` bitset, exposes helper APIs (`permissionsForRole`, `toString`, `toDisplayName`), and seeds `SecurityService` / `UserProfile` during login. Replace all ad-hoc string comparisons with enum checks wired through the registry.
+  - Why: The RBAC matrix in DESIGN-038 requires a single source of truth for default permissions; relying on strings sprinkled throughout the codebase is brittle and hard to audit.
+  - Files: `src/domain/security/Permission.h`, `PermissionRegistry.h/cpp`, updates to `SecurityService`, `UserProfile`, `AuthenticationController`, unit tests in `tests/domain/security/PermissionRegistryTests.cpp`.
+  - Acceptance:
+    - `PermissionRegistry` holds the exact mapping defined in section 3.2 (enum-based).
+    - `SecurityService` uses the registry to populate profiles and perform permission checks.
+    - Unit tests verify each role receives the correct permissions and serialization matches hospital payload expectations.
+    - Documentation updated (`38_AUTHENTICATION_WORKFLOW.md`, `09_CLASS_DESIGNS.md`).
+  - Prompt: `project-dashboard/prompt/38b-permission-registry.md`
   - What: Replace the simulator's WebSocket publisher with a shared-memory writer + Unix control socket that hands the `memfd` descriptor to Z-Monitor.
   - Why: Matches the new ingestion path and slashes transport latency without needing an actual network stack for local development.
   - Files: `sensor-simulator/src/core/SharedMemoryWriter.cpp/h`, `sensor-simulator/src/core/ControlServer.cpp/h`, simulator main wiring; update `sensor-simulator/README.md`.

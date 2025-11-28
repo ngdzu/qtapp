@@ -191,7 +191,8 @@ QML interacts with controllers via properties/signals; controllers call applicat
 | `MonitoringService` | Coordinates vitals ingestion, telemetry batching, transmission | `ITelemetryRepository`, `IPatientRepository`, `IAlarmRepository`, `IVitalsRepository` | `SecurityService` (for signing), `ISensorDataSource` (for data input) |
 | `AdmissionService` | Executes admit/discharge/transfer use cases | `IPatientRepository`, `IAuditRepository` | `SecurityService` (for audit), `IPatientLookupService` (for lookup) |
 | `ProvisioningService` | Handles QR pairing, certificate installation, validation | `IProvisioningRepository` | `SecurityService` (for audit), `IProvisioningService` (external) |
-| `SecurityService` | **UPDATED:** Authentication, session management, RBAC enforcement, permission checking | `IUserRepository`, `IAuditRepository` | **`IUserManagementService` (hospital server authentication)** |
+| `SecurityService` | **UPDATED:** Authentication, session management, RBAC enforcement, permission checking | `IUserRepository`, `IAuditRepository` | `IUserManagementService` (hospital server authentication), **PermissionRegistry** (role defaults) |
+| `PermissionRegistry` | Enum-based role → permission mapping, permission string/label helpers | None | `SecurityService`, `UserProfile` (seeding), UI controllers (display labels) |
 | `DataArchiveService` | Coordinates data archival workflow (orchestrates `DataArchiver`) | `ITelemetryRepository`, `IAlarmRepository`, `IVitalsRepository` | `DataArchiver` (infrastructure) |
 | `FirmwareUpdateService` | Manages firmware updates | None | `SecurityService` (for signature validation), `FirmwareManager` (infrastructure) |
 | `BackupService` | Coordinates database backup and restore workflow (orchestrates `BackupManager`) | All repositories | `SecurityService` (for encryption), `BackupManager` (infrastructure) |

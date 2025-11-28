@@ -24,6 +24,7 @@ graph TB
 
     subgraph "Application Layer - Services"
         SecurityService[SecurityService]
+        PermissionRegistry[PermissionRegistry]
         MonitoringService[MonitoringService]
         AdmissionService[AdmissionService]
         ProvisioningService[ProvisioningService]
@@ -149,6 +150,7 @@ graph TB
 
     %% Application Services -> Domain Aggregates
     SecurityService --> UserSession
+    SecurityService -->|uses| PermissionRegistry
     MonitoringService --> PatientAggregate
     MonitoringService --> TelemetryBatch
     MonitoringService --> AlarmAggregate
@@ -265,7 +267,7 @@ graph TB
 
     class LoginView,DashboardView,TrendsView,AlarmsView,SettingsView,DiagnosticsView,PatientAdmissionModal qmlView
     class AuthenticationController,DashboardController,TrendsController,AlarmController,PatientController,SettingsController,ProvisioningController,SystemController,DiagnosticsController,NotificationController controller
-    class SecurityService,MonitoringService,AdmissionService,ProvisioningService,DataArchiveService,FirmwareUpdateService,BackupService appService
+    class SecurityService,PermissionRegistry,MonitoringService,AdmissionService,ProvisioningService,DataArchiveService,FirmwareUpdateService,BackupService appService
     class PatientAggregate,DeviceAggregate,TelemetryBatch,AlarmAggregate,AdmissionAggregate,ProvisioningSession,UserSession,DomainEvents domain
     class ISensorDataSource,IPatientLookupService,ITelemetryServer,IProvisioningServiceInterface interface
     class IPatientRepository,ITelemetryRepository,IVitalsRepository,IAlarmRepository,IProvisioningRepository,IUserRepository,IAuditRepository repository

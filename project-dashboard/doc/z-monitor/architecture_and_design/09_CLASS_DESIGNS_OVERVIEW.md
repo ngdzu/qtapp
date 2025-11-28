@@ -40,12 +40,12 @@ The Z Monitor is organized into **6 primary modules**:
 |--------|--------|----------|----------------|---------------|
 | **Interface Module** | Main/UI Thread | Default | 30 | [09a_INTERFACE_MODULE.md](./09a_INTERFACE_MODULE.md) |
 | **Real-Time Processing Module** | RT Thread | High/RT | 12 | [09b_REALTIME_MODULE.md](./09b_REALTIME_MODULE.md) |
-| **Application Services Module** | App Services Thread | Normal | 11 | [09c_APPLICATION_SERVICES_MODULE.md](./09c_APPLICATION_SERVICES_MODULE.md) |
+| **Application Services Module** | App Services Thread | Normal | 12 | [09c_APPLICATION_SERVICES_MODULE.md](./09c_APPLICATION_SERVICES_MODULE.md) |
 | **Database Module** | Database I/O Thread | I/O Priority | 13 | [09d_DATABASE_MODULE.md](./09d_DATABASE_MODULE.md) |
 | **Network Module** | Network I/O Thread | Normal | 11 | [09e_NETWORK_MODULE.md](./09e_NETWORK_MODULE.md) |
 | **Background Tasks Module** | Background Thread | Low | 9 | [09f_BACKGROUND_MODULE.md](./09f_BACKGROUND_MODULE.md) |
 
-**Total:** 86 components organized into 6 modules (thread-assigned components only)
+**Total:** 87 components organized into 6 modules (thread-assigned components only)
 
 > **Note:** This count (86) represents components that are assigned to specific threads. Additional components (interfaces, DTOs, domain events) are thread-agnostic and not included in this count. See [29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md) for the complete component inventory (120 total).
 
@@ -167,6 +167,7 @@ The Z Monitor is organized into **6 primary modules**:
 - `AdmissionService` - Patient admission/discharge/transfer
 - `ProvisioningService` - Device provisioning and pairing
 - `SecurityService` - Authentication and authorization
+- `PermissionRegistry` - Enum-based role → permission mapping
 - Domain Aggregates: `AdmissionAggregate`, `ProvisioningSession`, `UserSession`
 - Value Objects: `PatientIdentity`, `BedLocation`, `PinCredential`
 

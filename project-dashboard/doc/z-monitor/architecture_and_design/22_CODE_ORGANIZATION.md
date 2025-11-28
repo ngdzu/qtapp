@@ -77,6 +77,7 @@ src/
 │   ├── security/                 # Security bounded context
 │   │   ├── UserSession.h/cpp
 │   │   ├── AuditTrailEntry.h/cpp
+│   │   ├── PermissionRegistry.h/cpp
 │   │   └── events/
 │   └── repositories/             # Repository interfaces (domain)
 │       ├── IPatientRepository.h

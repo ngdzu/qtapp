@@ -4,6 +4,7 @@ graph TB
             AdmissionService[AdmissionService<br/>Admit/discharge/transfer]
             ProvisioningService[ProvisioningService<br/>QR pairing<br/>Certificate install]
             SecurityService[SecurityService<br/>Authentication<br/>RBAC]
+            PermissionRegistry[PermissionRegistry<br/>Role → permission mapping]
         end
 
         subgraph Aggregates["Domain Aggregates"]
@@ -32,6 +33,7 @@ graph TB
     ProvisioningService -->|Direct Call| ProvisioningSession
     SecurityService -->|Direct Call| UserSession
     SecurityService -->|Direct Call| AuditTrail
+    SecurityService -->|Reads mapping| PermissionRegistry
 
     %% Aggregate to Value Objects
     AdmissionAgg -->|uses| PatientIdentity
@@ -64,7 +66,7 @@ graph TB
     classDef value fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef external fill:#f5f5f5,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
 
-    class Services,AdmissionService,ProvisioningService,SecurityService service
+    class Services,AdmissionService,ProvisioningService,SecurityService,PermissionRegistry service
     class Aggregates,AdmissionAgg,ProvisioningSession,UserSession,AuditTrail aggregate
     class ValueObjects,PatientIdentity,BedLocation,PinCredential,CredentialBundle value
     class ExternalModules,InterfaceModule,DatabaseModule,NetworkModule external

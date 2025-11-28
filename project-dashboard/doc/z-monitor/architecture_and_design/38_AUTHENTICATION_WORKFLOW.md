@@ -84,47 +84,56 @@ Observer (Read-Only)
 
 ### 3.2 Role-Permission Matrix
 
-| Permission | Nurse | Physician | Technician | Administrator |
-|-----------|:-----:|:---------:|:----------:|:-------------:|
-| **Monitoring** |
-| View Vitals | ✅ | ✅ | ❌ | ✅ |
-| View Waveforms | ✅ | ✅ | ❌ | ✅ |
-| View Trends | ✅ | ✅ | ❌ | ✅ |
-| **Alarms** |
-| View Alarms | ✅ | ✅ | ❌ | ✅ |
-| Acknowledge Alarms | ✅ | ✅ | ❌ | ✅ |
-| Silence Alarms (< 60s) | ✅ | ✅ | ❌ | ✅ |
-| Silence Alarms (> 60s) | ❌ | ✅ | ❌ | ✅ |
-| Adjust Alarm Thresholds | ❌ | ✅ | ❌ | ✅ |
-| Override Alarm | ❌ | ✅ | ❌ | ✅ |
-| **Patient Management** |
-| View Patient Data | ✅ | ✅ | ❌ | ✅ |
-| Admit Patient | ✅ | ✅ | ❌ | ✅ |
-| Discharge Patient | ✅ | ✅ | ❌ | ✅ |
-| Transfer Patient | ✅ | ✅ | ❌ | ✅ |
-| **Data Export** |
-| Export Vitals | ❌ | ✅ | ❌ | ✅ |
-| Export Trends | ❌ | ✅ | ❌ | ✅ |
-| **Device Configuration** |
-| Access System Settings | ❌ | ❌ | ✅ | ✅ |
-| Configure Device | ❌ | ❌ | ✅ | ✅ |
-| Enter Provisioning Mode | ❌ | ❌ | ✅ | ✅ |
-| View Diagnostics | ❌ | ❌ | ✅ | ✅ |
-| View Logs | ❌ | ❌ | ✅ | ✅ |
-| Export Logs | ❌ | ❌ | ✅ | ✅ |
-| Calibrate Device | ❌ | ❌ | ✅ | ✅ |
-| **Administration** |
-| Manage Users | ❌ | ❌ | ❌ | ✅ |
-| View Audit Logs | ❌ | ❌ | ❌ | ✅ |
-| Manage Settings | ❌ | ❌ | ❌ | ✅ |
-| Factory Reset | ❌ | ❌ | ❌ | ✅ |
-| Update Firmware | ❌ | ❌ | ❌ | ✅ |
+All permissions are defined in `Permission` enum (`Permission.h`) and serialized as strings when communicating with the hospital server. Controllers and services must always reference the enum values shown below; never gate logic on string literals.
+
+| Permission (enum) | Nurse | Physician | Technician | Administrator |
+|-------------------|:-----:|:---------:|:----------:|:-------------:|
+| **Monitoring** |||||
+| `Permission::ViewVitals` | ✅ | ✅ | ❌ | ✅ |
+| `Permission::ViewWaveforms` | ✅ | ✅ | ❌ | ✅ |
+| `Permission::ViewTrends` | ✅ | ✅ | ❌ | ✅ |
+| **Alarms** |||||
+| `Permission::ViewAlarms` | ✅ | ✅ | ❌ | ✅ |
+| `Permission::AcknowledgeAlarm` | ✅ | ✅ | ❌ | ✅ |
+| `Permission::SilenceAlarmShort` | ✅ | ✅ | ❌ | ✅ |
+| `Permission::SilenceAlarmExtended` | ❌ | ✅ | ❌ | ✅ |
+| `Permission::AdjustAlarmThresholds` | ❌ | ✅ | ❌ | ✅ |
+| `Permission::OverrideAlarm` | ❌ | ✅ | ❌ | ✅ |
+| **Patient Management** |||||
+| `Permission::ViewPatientData` | ✅ | ✅ | ❌ | ✅ |
+| `Permission::AdmitPatient` | ✅ | ✅ | ❌ | ✅ |
+| `Permission::DischargePatient` | ✅ | ✅ | ❌ | ✅ |
+| `Permission::TransferPatient` | ✅ | ✅ | ❌ | ✅ |
+| **Data Export** |||||
+| `Permission::ExportVitals` | ❌ | ✅ | ❌ | ✅ |
+| `Permission::ExportTrends` | ❌ | ✅ | ❌ | ✅ |
+| **Device Configuration** |||||
+| `Permission::AccessSystemSettings` | ❌ | ❌ | ✅ | ✅ |
+| `Permission::ConfigureDevice` | ❌ | ❌ | ✅ | ✅ |
+| `Permission::EnterProvisioningMode` | ❌ | ❌ | ✅ | ✅ |
+| `Permission::ViewDiagnostics` | ❌ | ❌ | ✅ | ✅ |
+| `Permission::ViewLogs` | ❌ | ❌ | ✅ | ✅ |
+| `Permission::ExportLogs` | ❌ | ❌ | ✅ | ✅ |
+| `Permission::CalibrateDevice` | ❌ | ❌ | ✅ | ✅ |
+| **Administration** |||||
+| `Permission::ManageUsers` | ❌ | ❌ | ❌ | ✅ |
+| `Permission::ViewAuditLogs` | ❌ | ❌ | ❌ | ✅ |
+| `Permission::ManageSettings` | ❌ | ❌ | ❌ | ✅ |
+| `Permission::ResetDevice` | ❌ | ❌ | ❌ | ✅ |
+| `Permission::UpdateFirmware` | ❌ | ❌ | ❌ | ✅ |
 
 ### 3.3 Permission Enforcement
 
 ```cpp
+enum class Permission {
+    SilenceAlarmShort,
+    SilenceAlarmExtended,
+    AdjustAlarmThresholds,
+    // ...
+};
+
 // Before performing any sensitive action
-bool SecurityService::checkPermission(const QString& permission) {
+bool SecurityService::checkPermission(Permission permission) const {
     if (!hasActiveSession()) {
         return false;  // Not logged in
     }
@@ -136,12 +145,13 @@ bool SecurityService::checkPermission(const QString& permission) {
 // Example usage in AlarmController
 void AlarmController::silenceAlarm(const QString& alarmId, int durationSeconds) {
     // Different permissions based on silence duration
-    QString requiredPermission = (durationSeconds <= 60) 
-        ? "SILENCE_ALARM" 
-        : "SILENCE_ALARM_EXTENDED";
+    Permission requiredPermission = (durationSeconds <= 60) 
+        ? Permission::SilenceAlarmShort 
+        : Permission::SilenceAlarmExtended;
     
-    if (!SecurityService::instance()->checkPermission(requiredPermission)) {
-        emit permissionDenied("You do not have permission to silence alarms for this duration");
+    if (!m_securityService->checkPermission(requiredPermission)) {
+        emit permissionDenied(tr("You do not have permission to silence alarms for %1 seconds.")
+            .arg(durationSeconds));
         return;
     }
     
@@ -149,12 +159,41 @@ void AlarmController::silenceAlarm(const QString& alarmId, int durationSeconds) 
     m_alarmService->silenceAlarm(alarmId, durationSeconds);
     
     // Log action
-    SecurityService::instance()->logAuditEvent(
+    m_securityService->logAuditEvent(
         "ALARM_SILENCED",
         QString("alarmId=%1, duration=%2s").arg(alarmId).arg(durationSeconds)
     );
 }
 ```
+
+### 3.4 Permission Registry (Default Role Mapping)
+
+`SecurityService` should never hardcode string-based permission lists. Instead, we introduce a dedicated `PermissionRegistry` component that owns the canonical mapping between `UserRole` values and the set of `Permission` enums granted to that role. The registry is responsible for:
+
+- Defining the compile-time mapping shown in the matrix above (stored as `std::array<std::bitset<P kPermissionCount>, kRoleCount>` or similar).
+- Providing helper APIs to resolve role → permissions, permission → localized label, and optional string serialization for telemetry/audit messages.
+- Serving as the single source of truth for both `SecurityService` and UI controllers when they need to display human-readable permission descriptions.
+
+```cpp
+class PermissionRegistry {
+public:
+    static const PermissionRegistry& instance();
+
+    const PermissionSet& permissionsForRole(UserRole role) const;
+    QString toString(Permission perm) const;           // e.g. "VIEW_VITALS"
+    QString toDisplayName(Permission perm) const;      // e.g. "View Vitals"
+
+private:
+    PermissionRegistry();
+    std::array<PermissionSet, static_cast<size_t>(UserRole::Count)> m_roleMatrix;
+};
+
+PermissionSet PermissionRegistry::permissionsForRole(UserRole role) const {
+    return m_roleMatrix.at(static_cast<size_t>(role));
+}
+```
+
+`UserProfile::hasPermission()` simply checks membership within the `PermissionSet` returned by the registry. During authentication, once a role is resolved from the hospital server, `SecurityService` seeds the user profile with `PermissionRegistry::permissionsForRole(resolvedRole)` and optionally merges in any extra per-user overrides supplied by the server. This guarantees that every device start has the same default permission set defined by the design table above, without duplicating string literals throughout the codebase.
 
 ---
 

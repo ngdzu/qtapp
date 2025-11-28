@@ -9,6 +9,7 @@ graph TB
         AdmissionService[AdmissionService]
         ProvisioningService[ProvisioningService]
         SecurityService[SecurityService]
+        PermissionRegistry[PermissionRegistry]
         AppAggregates[Domain Aggregates<br/>AdmissionAggregate<br/>ProvisioningSession<br/>UserSession]
     end
 
@@ -57,6 +58,7 @@ graph TB
     Controllers -->|Qt::QueuedConnection| ProvisioningService
     Controllers -->|Qt::QueuedConnection| SecurityService
     AdmissionService -->|Direct Call| AppAggregates
+SecurityService -->|Reads mapping| PermissionRegistry
     AppAggregates -->|Qt::QueuedConnection| Controllers
 
     %% Non-Critical Persistence
@@ -93,7 +95,7 @@ graph TB
     classDef external fill:#f5f5f5,stroke:#757575,stroke-width:2px,stroke-dasharray: 5 5
 
     class InterfaceModule,Controllers,Views,Components interface
-    class AppServicesModule,AdmissionService,ProvisioningService,SecurityService,AppAggregates appServices
+    class AppServicesModule,AdmissionService,ProvisioningService,SecurityService,PermissionRegistry,AppAggregates appServices
     class RTModule,SensorSource,MonitoringService,VitalsCache,WaveformCache,RTAggregates rt
     class NetworkModule,TelemetryServer,CertManager,EncryptionService,SignatureService,PatientLookup network
     class DatabaseModule,DBManager,Repositories,PersistenceScheduler,DataCleanup,LogService database

@@ -21,7 +21,7 @@ This document provides detailed class designs for the **Application Services Mod
 
 **Thread:** Application Services Thread (or co-located with RT Thread)  
 **Priority:** Normal to High (depending on co-location)  
-**Component Count:** 11 components
+**Component Count:** 12 components
 
 **Purpose:**
 - Execute use cases (admit patient, provision device, authenticate user)
@@ -127,15 +127,13 @@ This document provides detailed class designs for the **Application Services Mod
   - Terminates `UserSession`
   - Logs logout event
   - Emits `UserLoggedOut` domain event
-- `checkPermission(const QString& action, const QString& resource)`: Checks user permission
-  - Delegates to `IUserManagementService`
+- `checkPermission(Permission permission) const`: Checks user permission using enum + `PermissionRegistry`
   - Returns `bool` (true if permitted)
-- `getPermissions()`: Returns user's permissions
-  - Delegates to `IUserManagementService`
-  - Returns `QStringList` of permission strings
+- `currentPermissions() const`: Returns user's `PermissionSet` for UI display/logging
 
 **Dependencies:**
 - `UserSession` - Authentication and session management aggregate
+- `PermissionRegistry` - Default role/permission mapping
 - `IUserManagementService` - Hospital user authentication (Network Module)
 - `IAuditRepository` - Security audit logging (Database Module)
 - `IActionLogRepository` - Action logging (Database Module)
@@ -146,6 +144,27 @@ This document provides detailed class designs for the **Application Services Mod
 - `SessionExpired` - Emitted when session expires
 
 **See:** [38_AUTHENTICATION_WORKFLOW.md](./38_AUTHENTICATION_WORKFLOW.md) for complete authentication workflow.
+
+---
+
+### 3.4. PermissionRegistry
+
+**Responsibility:** Central, enum-based mapping of `UserRole` → default `PermissionSet`, plus helper utilities for serialization/localization.
+
+**Thread:** Application Services Thread (stateless singleton)
+
+**Key Methods:**
+- `static const PermissionRegistry& instance()`: Access singleton instance.
+- `const PermissionSet& permissionsForRole(UserRole role) const`: Returns default permissions defined in DESIGN-038.
+- `QString toString(Permission permission) const`: Stable identifier for audit logs / REST payloads.
+- `QString toDisplayName(Permission permission) const`: Localized label for UI.
+
+**Dependencies:** None (pure data/service object)
+
+**Notes:**
+- SecurityService seeds `UserSession` permissions by copying `permissionsForRole(resolvedRole)` and merging in overrides returned from the hospital server.
+- `PermissionSet` is implemented as a fixed-size bitset (enum ordinal → bit index) to ensure O(1) checks with no heap allocations.
+- Unit tests validate that the registry stays in sync with the matrix in [38_AUTHENTICATION_WORKFLOW.md](./38_AUTHENTICATION_WORKFLOW.md).
 
 ---
 
@@ -193,12 +212,12 @@ This document provides detailed class designs for the **Application Services Mod
 - `sessionToken`: `QString` - Session token (hashed for storage)
 - `userId`: `QString` - User identifier
 - `role`: `UserRole` - User role (NURSE, PHYSICIAN, TECHNICIAN, ADMINISTRATOR)
-- `permissions`: `QStringList` - User permissions
+- `permissions`: `PermissionSet` - Bitset of enum-based permissions
 - `expiresAt`: `QDateTime` - Session expiration time
 - `lastActivityTime`: `QDateTime` - Last activity timestamp
 
 **Key Methods:**
-- `authenticate(const QString& userId, const QString& secretCode)`: Authenticates user
+- `bool hasPermission(Permission permission) const`: Checks permission from bitset
 - `refreshSession()`: Refreshes session timeout on activity
 - `terminate()`: Terminates session
 
