@@ -621,15 +621,36 @@ tests/
 
 ### 10.1. CMake Structure
 
+The CMake build system follows best practices with `CMakeLists.txt` files in each subdirectory that manage their own sources and dependencies.
+
 ```
-CMakeLists.txt                    # Root CMake file
-├── src/CMakeLists.txt           # Source code build
-├── qml/CMakeLists.txt           # QML resources
-├── tests/CMakeLists.txt          # Test build
-└── cmake/                        # CMake modules
+CMakeLists.txt                    # Root CMake file (project setup, find_package, add_subdirectory only)
+├── src/CMakeLists.txt           # Orchestrates layer subdirectories, creates main executable
+│   ├── domain/CMakeLists.txt    # Domain layer: z_monitor_domain static library (no Qt)
+│   ├── application/CMakeLists.txt # Application layer: z_monitor_application static library (Qt Core only)
+│   ├── infrastructure/CMakeLists.txt # Infrastructure layer: z_monitor_infrastructure static library (Qt dependencies)
+│   └── interface/CMakeLists.txt  # Interface layer: adds sources to main executable
+├── tests/CMakeLists.txt          # Test targets (unit, integration, e2e)
+└── cmake/                        # CMake modules (optional)
     ├── FindQt6.cmake
     └── ...
 ```
+
+**Structure Details:**
+- **Root `CMakeLists.txt`**: Project setup, CMake version, C++ standard, Qt package finding, `add_subdirectory(src)`
+- **`src/CMakeLists.txt`**: Adds subdirectories for each DDD layer, creates main `z-monitor` executable, links all layer libraries
+- **`src/domain/CMakeLists.txt`**: Creates `z_monitor_domain` static library, includes all domain sources, sets include directories (no Qt dependencies)
+- **`src/application/CMakeLists.txt`**: Creates `z_monitor_application` static library, includes application sources, links to `z_monitor_domain` (Qt Core only for signals/slots)
+- **`src/infrastructure/CMakeLists.txt`**: Creates `z_monitor_infrastructure` static library, includes infrastructure sources, links to `z_monitor_domain` and `z_monitor_application` (full Qt dependencies)
+- **`src/interface/CMakeLists.txt`**: Adds interface sources to main executable, links to all layer libraries
+- **`tests/CMakeLists.txt`**: Creates test targets, links to appropriate layer libraries
+
+**Benefits:**
+- Each layer manages its own sources
+- Clear dependency management (application depends on domain, infrastructure depends on both, etc.)
+- Easier to add new files (add to appropriate layer's CMakeLists.txt)
+- Better incremental builds (only changed layers rebuild)
+- Proper include directory configuration per target
 
 ### 10.2. Library Organization
 

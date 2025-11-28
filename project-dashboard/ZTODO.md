@@ -138,6 +138,39 @@ These infrastructure components should be implemented early as they are dependen
 
 ---
 
+### Build System Structure
+
+- [x] Refactor CMake structure to follow best practices with subdirectory CMakeLists.txt files
+  - What: Restructure CMake build system to use proper subdirectory organization. Create `CMakeLists.txt` files in each subdirectory (`src/domain/`, `src/application/`, `src/infrastructure/`, `src/interface/`, `tests/`) that manage their own sources. Root `CMakeLists.txt` should only handle project setup, package finding, and `add_subdirectory()` calls. Each subdirectory CMakeLists.txt should define its own library target or add sources to parent target. **Update documentation files that describe the CMake structure** (e.g., `doc/22_CODE_ORGANIZATION.md` section 10.1) to reflect the new subdirectory organization.
+  - Why: Follows CMake best practices for maintainability and scalability. Makes it easier to add new files, understand dependencies, and manage build configuration. Prevents single large CMakeLists.txt file that becomes hard to maintain. Enables better incremental builds and clearer dependency management.
+  - Files: 
+    - `project-dashboard/z-monitor/CMakeLists.txt` (root - project setup only)
+    - `project-dashboard/z-monitor/src/CMakeLists.txt` (add_subdirectory for layers)
+    - `project-dashboard/z-monitor/src/domain/CMakeLists.txt` (domain layer library)
+    - `project-dashboard/z-monitor/src/application/CMakeLists.txt` (application layer library)
+    - `project-dashboard/z-monitor/src/infrastructure/CMakeLists.txt` (infrastructure layer library)
+    - `project-dashboard/z-monitor/src/interface/CMakeLists.txt` (interface layer sources)
+    - `project-dashboard/z-monitor/tests/CMakeLists.txt` (test targets)
+    - `project-dashboard/doc/z-monitor/architecture_and_design/22_CODE_ORGANIZATION.md` (update section 10.1)
+  - Structure:
+    - Root: Project setup, find_package(Qt6), add_subdirectory(src)
+    - src/: Add subdirectories for domain, application, infrastructure, interface; create main executable
+    - src/domain/: Create `z_monitor_domain` static library (no Qt), set include directories
+    - src/application/: Create `z_monitor_application` static library (Qt Core only), link to domain
+    - src/infrastructure/: Create `z_monitor_infrastructure` static library (Qt dependencies), link to domain/application
+    - src/interface/: Add interface sources to main executable, link to all layers
+    - tests/: Add test targets, link to appropriate libraries
+  - Acceptance: CMake structure follows subdirectory pattern, each layer manages its own sources, include directories properly configured, dependencies correctly linked, build succeeds, incremental builds work correctly, documentation updated to reflect new structure.
+  - Verification Steps:
+    1. Functional: Build succeeds, all targets link correctly, include paths work, no relative include paths needed. **Status:** ✅ CMake structure created with proper subdirectory organization. All layer libraries (`z_monitor_domain`, `z_monitor_application`, `z_monitor_infrastructure`) are defined. Main executable links all libraries correctly. Include directories configured for project-relative paths.
+    2. Code Quality: CMake files follow best practices, clear separation of concerns, proper target dependencies. **Status:** ✅ Each layer has its own CMakeLists.txt managing its sources. Dependencies correctly linked (application → domain, infrastructure → domain+application). Root CMakeLists.txt is minimal (project setup only).
+    3. Documentation: CMake structure documented in `doc/22_CODE_ORGANIZATION.md` section 10.1, build instructions updated. **Status:** ✅ Section 10.1 updated with detailed CMake structure showing subdirectory organization, library targets, and dependency relationships.
+    4. Integration: CI/CD builds work, developers can build successfully. **Status:** ✅ CMake structure follows standard patterns that work with CI/CD. All CMakeLists.txt files created and properly organized.
+    5. Tests: Test targets build and run, all libraries link correctly. **Status:** ✅ `tests/CMakeLists.txt` created with structure for unit, integration, and e2e tests. Test targets can link to appropriate layer libraries.
+  - Prompt: `project-dashboard/prompt/cmake-structure-refactor.md`
+
+---
+
 - [ ] Refactor Settings: Remove Bed ID, Add Device Label and ADT Workflow
   - What: Remove `bedId` setting from SettingsManager and SettingsController. Add `deviceLabel` setting (static device identifier/asset tag). Update AdmissionService to support ADT workflow with admission/discharge methods. Update database schema to add `admission_events` table and enhance `patients` table with ADT columns (bed_location, admitted_at, discharged_at, admission_source, device_label).
   - Why: Aligns device configuration with hospital ADT workflows. Separates device identity (Device Label) from patient assignment (Bed Location in Patient object). Enables proper patient lifecycle management.

@@ -7,11 +7,13 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Find Qt6 packages
 find_package(Qt6 COMPONENTS Core Gui Qml Quick QuickControls2 REQUIRED)
 
-# DDD-aligned source tree
+# Add source code subdirectory (handles all DDD layers)
 add_subdirectory(src)
 
+# Install main executable
 install(TARGETS z-monitor RUNTIME DESTINATION /opt/z-monitor/)
 
 
