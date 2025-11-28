@@ -267,6 +267,35 @@ These infrastructure components should be implemented early as they are dependen
   - Prompt: `project-dashboard/prompt/37a-memfd-socket-documentation.md`
 
 - [ ] Update Sensor Simulator to write shared-memory ring buffer
+  - What: Replace the simulator's WebSocket publisher with a shared-memory writer (`memfd`) + Unix domain control socket that hands the `memfd` file descriptor to Z-Monitor. The simulator must create a shared-memory ring buffer using `memfd_create`, publish the file descriptor via Unix domain socket using `SCM_RIGHTS`, and write sensor data frames (60 Hz vitals, 250 Hz waveforms) directly into the ring buffer. The socket is ONLY used for the initial handshake to exchange the memfd descriptor - all data transfer happens through shared memory for zero-copy, low-latency (< 16ms) performance.
+  - Why: WebSocket JSON adds > 60ms latency; shared memory keeps the development transport under the 16ms requirement and matches the caching/monitoring design. This enables Z-Monitor to read sensor data with minimal latency for real-time alarm detection and UI updates. The socket+shared memory pattern is standard for high-performance IPC where file descriptors need to be exchanged.
+  - Files: 
+    - `project-dashboard/sensor-simulator/src/core/SharedMemoryWriter.cpp/h` (ring buffer writer, frame serialization, CRC32 calculation)
+    - `project-dashboard/sensor-simulator/src/core/ControlServer.cpp/h` (Unix domain socket server, memfd descriptor passing via SCM_RIGHTS)
+    - `project-dashboard/sensor-simulator/src/core/Simulator.cpp/h` (integrate SharedMemoryWriter and ControlServer, replace WebSocket publisher)
+    - `project-dashboard/sensor-simulator/CMakeLists.txt` (add new source files)
+    - `project-dashboard/sensor-simulator/README.md` (update with shared memory transport details)
+    - Update `project-dashboard/doc/z-monitor/architecture_and_design/37_SENSOR_INTEGRATION.md` (simulator implementation details)
+  - Dependencies: POSIX shared memory (`memfd_create`, `ftruncate`, `mmap`), Unix domain sockets (`AF_UNIX`, `SCM_RIGHTS`), `<atomic>` for ring buffer indices, CRC32 library for frame validation.
+  - Acceptance:
+    - Simulator creates `memfd` on startup, sizes it to `sizeof(SharedMemoryHeader) + slotCount * sizeof(SensorFrame)` (e.g., 2048 slots).
+    - Control server listens on Unix domain socket (`unix://run/zmonitor-sim.sock`), accepts connections, and sends memfd file descriptor via `SCM_RIGHTS` ancillary data.
+    - SharedMemoryWriter writes frames at 60 Hz (vitals) and 250 Hz (waveforms batched as 10-sample chunks), ensuring writes complete within 2ms.
+    - Ring buffer header includes magic number (0x534D5252), version (1), slotCount, atomic writeIndex, atomic heartbeatNs timestamp, frameSizeBytes, and CRC32.
+    - Each SensorFrame includes timestampNs, sampleCount, channelMask, VitalPayload, WaveformPayload array, and CRC32 for validation.
+    - Writer increments atomic `writeIndex` after copying frame, updates `heartbeatNs` every frame for stall detection.
+    - Supports multiple readers (new Z-Monitor instances can attach any time via control socket handshake).
+    - Provides CLI/GUI indicators for shared-memory status (connected readers, frame drops, buffer utilization).
+    - Includes watchdog to detect if all readers disconnect and optionally recreate buffer or pause writing.
+    - WebSocket publisher can remain as optional fallback (disabled by default, configurable via settings).
+  - Verification Steps:
+    1. Functional: Simulator creates memfd and publishes descriptor via socket, Z-Monitor receives descriptor and maps buffer, frames written at correct rates (60 Hz vitals, 250 Hz waveforms), data matches UI display, heartbeat updates correctly, multiple readers can attach, frame drops detected and logged.
+    2. Code Quality: Doxygen comments on all classes/methods, thread-safety verified (atomic operations for indices), no memory leaks, proper error handling, file descriptor cleanup, no info leaks (0600 permissions on memfd), CRC32 validation works.
+    3. Documentation: `sensor-simulator/README.md` updated with shared memory transport, control socket protocol, ring buffer layout, `doc/37_SENSOR_INTEGRATION.md` updated with simulator implementation details, code examples provided.
+    4. Integration: End-to-end latency measured < 16ms with real UI (simulator write → Z-Monitor signal emission), SharedMemorySensorDataSource successfully reads frames, integration test with Z-Monitor passes, fallback to WebSocket works if shared memory unavailable.
+    5. Tests: Unit tests for SharedMemoryWriter (slot wrap-around, CRC32 calculation, frame serialization, heartbeat updates), unit tests for ControlServer (socket handshake, descriptor passing, multiple connections), integration test with SharedMemorySensorDataSource (end-to-end data flow, latency measurement, stall detection), performance test (verify < 16ms latency target).
+  - Documentation: See `doc/37_SENSOR_INTEGRATION.md` section "Sensor Simulator Details" for ring buffer layout, simulator responsibilities, and data flow. See `doc/42_LOW_LATENCY_TECHNIQUES.md` for low-latency techniques context.
+  - Prompt: `project-dashboard/prompt/02d-shared-memory-simulator.md`
 - [ ] Implement PermissionRegistry (enum-based role mapping)
   - What: Create a compile-time `PermissionRegistry` service in domain layer that maps each `UserRole` to its default `Permission` bitset, exposes helper APIs (`permissionsForRole`, `toString`, `toDisplayName`), and seeds `SecurityService` / `UserSession` during login. Replace all ad-hoc string comparisons with enum checks wired through the registry.
   - Why: The RBAC matrix in `doc/38_AUTHENTICATION_WORKFLOW.md` requires a single source of truth for default permissions; relying on strings sprinkled throughout the codebase is brittle and hard to audit. Domain layer ensures business rules are centralized.
