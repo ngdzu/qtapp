@@ -11,7 +11,7 @@ This document defines the code organization, module structure, namespace convent
 
 > **📋 Related Documents:**
 > - [Architecture (02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure ⭐
-> - [Domain-Driven Design (28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines ⭐
+> - [System Components & DDD Strategy (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - DDD strategy and component inventory ⭐
 > - [Project Structure (27_PROJECT_STRUCTURE.md)](./27_PROJECT_STRUCTURE.md) - Directory layout reference
 
 ## 1. Guiding Principles
@@ -702,7 +702,7 @@ Each module should have a README documenting:
 ## 14. Related Documents
 
 - [02_ARCHITECTURE.md](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure ⭐
-- [28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines ⭐
+- [29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md) - DDD strategy and component inventory ⭐
 - [27_PROJECT_STRUCTURE.md](./27_PROJECT_STRUCTURE.md) - Directory layout reference
 - [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) - Memory management patterns and utility classes (ObjectPool, LockFreeQueue, LogBuffer) ⭐
 - [13_DEPENDENCY_INJECTION.md](./13_DEPENDENCY_INJECTION.md) - Dependency management

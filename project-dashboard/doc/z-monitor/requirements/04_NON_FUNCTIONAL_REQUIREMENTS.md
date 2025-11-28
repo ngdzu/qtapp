@@ -824,7 +824,7 @@ Modular code is easier to understand, test, and modify. Supports long-term maint
 - REQ-NFR-MAIN-010 (documentation)
 
 **Traces To:**
-- Design: [28_DOMAIN_DRIVEN_DESIGN.md](../architecture_and_design/28_DOMAIN_DRIVEN_DESIGN.md)
+- Design: [29_SYSTEM_COMPONENTS.md](../architecture_and_design/29_SYSTEM_COMPONENTS.md)
 - Design: [22_CODE_ORGANIZATION.md](../architecture_and_design/22_CODE_ORGANIZATION.md)
 - Design: [13_DEPENDENCY_INJECTION.md](../architecture_and_design/13_DEPENDENCY_INJECTION.md)
 - Test: Test-MAIN-001 (architectural tests)

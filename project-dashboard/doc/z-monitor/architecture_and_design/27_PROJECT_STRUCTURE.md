@@ -12,7 +12,7 @@ This document provides a **workspace-level map** of the `qtapp` repository, high
 > **📋 Related Documents:**
 > - [Code Organization (22_CODE_ORGANIZATION.md)](./22_CODE_ORGANIZATION.md) - **Detailed code structure and organization rules** ⭐ (see this for src/ directory details)
 > - [Architecture (02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure
-> - [Domain-Driven Design (28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines
+> - [System Components & DDD Strategy (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - DDD strategy and component inventory
 
 ---
 
@@ -124,7 +124,7 @@ Use this tree when you need specifications, design references, or automation scr
 - **Code Organization:** [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) - **Detailed code structure, conventions, and organization rules** ⭐ (use this for src/ directory details)
 - **Memory Management:** [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) - Memory management patterns, utility classes (ObjectPool, LockFreeQueue, LogBuffer), and resource lifecycle
 - **Architecture:** [02_ARCHITECTURE.md](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure
-- **DDD Guidance:** [28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines
+- **DDD Guidance:** [29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md) - DDD strategy and component inventory
 - **Developer Setup:** `07_SETUP_GUIDE.md` (includes quick tree + tooling steps).
 - **Testing:** `18_TESTING_WORKFLOW.md` and `scripts/run_tests.sh`.
 - **ZTODO:** `ZTODO.md` (documentation + verification requirements).

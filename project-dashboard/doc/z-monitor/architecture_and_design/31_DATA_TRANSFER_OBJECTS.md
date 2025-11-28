@@ -717,7 +717,7 @@ PatientAggregate AdmissionService::createAggregateFromCommand(
 ## 12. References
 
 - `doc/29_SYSTEM_COMPONENTS.md` – Complete DTO list (section 3.2)
-- `doc/28_DOMAIN_DRIVEN_DESIGN.md` – DDD strategy and DTOs in application layer
+- `doc/29_SYSTEM_COMPONENTS.md` – DDD strategy and DTOs in application layer
 - `doc/12_THREAD_MODEL.md` – DTOs for thread communication (section 4.8)
 - `doc/30_DATABASE_ACCESS_STRATEGY.md` – Repository pattern (DTOs vs. domain objects)
 

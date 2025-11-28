@@ -12,7 +12,7 @@ This document provides a high-level overview of the module-based class architect
 > **📋 Related Documents:**
 > - [Thread Model (12_THREAD_MODEL.md)](./12_THREAD_MODEL.md) - Complete thread and module architecture
 > - [System Components (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - Complete component inventory
-> - [Domain-Driven Design (28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD layering strategy
+> - [Domain-Driven Design (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - DDD layering strategy and component inventory
 
 ---
 
@@ -387,7 +387,7 @@ For detailed class designs within each module, see:
 - **[12_THREAD_MODEL.md](./12_THREAD_MODEL.md)** - Complete thread and module architecture
 - **[29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md)** - Complete component inventory
 - **[02_ARCHITECTURE.md](./02_ARCHITECTURE.md)** - High-level architecture
-- **[28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md)** - DDD layering strategy
+- **[29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md)** - DDD layering strategy and component inventory
 
 ---
 

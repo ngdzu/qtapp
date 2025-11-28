@@ -1,23 +1,24 @@
-# System Components Reference
+# System Components Reference & DDD Strategy
 
 **Document ID:** DESIGN-029  
-**Version:** 1.0  
+**Version:** 3.0  
 **Status:** Approved  
 **Last Updated:** 2025-11-27
 
 ---
 
-This document provides a complete, authoritative list of all system components in the Z Monitor application and their interactions. This serves as the single source of truth for component inventory.
+This document provides a complete, authoritative list of all system components in the Z Monitor application and their interactions. It also defines how the application applies Domain-Driven Design (DDD) principles. This serves as the single source of truth for component inventory and DDD guidelines.
 
 > **Related Documentation:**  
 > **Class Designs:** [09_CLASS_DESIGNS_OVERVIEW.md](./09_CLASS_DESIGNS_OVERVIEW.md) - Module-based class architecture ⭐  
 > **Thread Model:** [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) - Thread and module architecture ⭐  
+> **Code Organization:** [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) - Detailed directory structure ⭐  
 > **Data Caching:** [36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md) - Data caching architecture and strategy  
 > **Database Access:** [30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md) - Database access and ORM strategy
 
 ---
 
-## 1. Overview
+## 1. Domain-Driven Design (DDD) Overview
 
 The Z Monitor application is organized according to Domain-Driven Design (DDD) principles with the following layers:
 
@@ -25,6 +26,88 @@ The Z Monitor application is organized according to Domain-Driven Design (DDD) p
 - **Application Layer**: Use case orchestration (services, DTOs)
 - **Infrastructure Layer**: Technical implementations (persistence, networking, Qt adapters, caching)
 - **Interface Layer**: UI integration (QML controllers, QML components)
+
+### 1.1 DDD Guiding Principles
+
+1. **Explicit Ubiquitous Language** – Terms such as *Patient*, *DeviceSession*, *TelemetryBatch*, *Alarm*, *ProvisioningState* must be modeled as domain concepts, not incidental data structures.
+2. **Domain First** – Business rules live in domain entities/value objects. Application services orchestrate use cases; infrastructure concerns (Qt, SQL, HTTP) are delegated to adapters.
+3. **Isolation** – Each bounded context (Monitoring, Provisioning, Admission/ADT) has its own aggregates, repositories, and events.
+4. **Record Classes** – Use immutable `struct`/`class` types (e.g., `VitalRecord`, `AlarmSnapshot`, `PatientIdentity`) to model value objects and domain events.
+5. **Layered Architecture** – Code is organized into `domain/`, `application/`, `infrastructure/`, and `interface/` layers under `z-monitor/src/`.
+
+### 1.2 Bounded Contexts
+
+| Context | Description | Key Aggregates |
+| --- | --- | --- |
+| **Monitoring** | Real-time vitals, alarms, telemetry transmission. | `PatientAggregate`, `DeviceAggregate`, `TelemetryBatch`, `AlarmAggregate`. |
+| **Admission/ADT** | Patient admission, discharge, transfer workflow. | `AdmissionAggregate`, `PatientIdentity`, `BedAssignment`. |
+| **Provisioning** | Device pairing, certificate management. | `ProvisioningSession`, `CredentialBundle`. |
+| **Security** | Authentication, authorization, audit logging. | `UserSession`, `PinCredential`, `AuditTrailEntry`. |
+
+Each bounded context can expose domain services and repositories scoped to its aggregate roots.
+
+### 1.3 Layer Responsibilities
+
+- **Domain Layer** (`domain/`) – Pure business logic, aggregates, value objects, domain events, repository interfaces. No Qt or SQL includes. Organized by bounded contexts (monitoring, admission, provisioning, security).
+- **Application Layer** (`application/`) – Use cases (e.g., admit patient, push telemetry). Coordinates domain objects and repositories. Emits domain events for interface layer.
+- **Infrastructure Layer** (`infrastructure/`) – Implementations of repositories, network adapters, persistence, crypto, OS-specific utilities. Must depend on domain interfaces, not vice versa.
+- **Interface Layer** (`interface/`) – QML views and QObject controllers binding data to UI. Controllers depend on application services rather than infrastructure directly.
+
+> **📋 Detailed Structure:** For the complete directory structure with all files and subdirectories, see **[Code Organization (22_CODE_ORGANIZATION.md)](./22_CODE_ORGANIZATION.md)** Section 2.2.  
+> **📋 Workspace Overview:** For workspace-level project structure, see **[Project Structure (27_PROJECT_STRUCTURE.md)](./27_PROJECT_STRUCTURE.md)**.
+
+### 1.4 Domain Model Guidelines
+
+**Aggregates:** Domain entities that enforce business invariants. Each aggregate has a root entity and encapsulates related value objects and entities.
+
+**Value Objects:** Immutable objects defined by their attributes (e.g., `PatientIdentity`, `VitalRecord`). Use `struct`/`class` with const members or getters to enforce immutability.
+
+**Domain Events:** Plain structs that represent something that happened in the domain (e.g., `PatientAdmitted`, `AlarmRaised`). Consumed by application services or logging/persistence adapters.
+
+**Repository Interfaces:** Defined in domain layer; implementations live in infrastructure layer (e.g., `SQLitePatientRepository`, `MemoryRepository` for tests).
+
+**External Service Interfaces:** Domain layer defines interfaces for external services (e.g., `ISensorDataSource`, `ITelemetryServer`); implementations in infrastructure layer.
+
+### 1.5 Application Service Guidelines
+
+Application services should:
+- Validate commands (DTOs) before invoking domain logic.
+- Map domain entities to presentation models for controllers.
+- Publish domain events for logging/AuditService.
+- Coordinate between domain aggregates and infrastructure adapters.
+
+### 1.6 Infrastructure Mapping Principles
+
+**Key Principle:** Infrastructure classes must depend on domain interfaces, not vice versa. All infrastructure implementations are adapters that implement domain-defined interfaces.
+
+**Infrastructure Categories:**
+- **Persistence:** SQLite/SQLCipher via repositories
+- **Networking:** HTTPS/mTLS adapters implementing `ITelemetryServer`, `IPatientLookupService`, `IUserManagementService`
+- **Sensors:** Adapters implementing `ISensorDataSource`
+- **Caching:** In-memory caches for performance
+- **Security:** Certificate management, encryption, signing
+- **Qt Adapters:** Settings, logging
+- **System Services:** Health monitoring, firmware, time sync
+- **Utilities:** Object pools, lock-free queues, utility functions
+
+### 1.7 Interface Layer Pattern
+
+QObject controllers remain in `z-monitor/src/interface/controllers/` and should depend on application services.
+
+**Example Flow:**
+```
+DashboardView.qml
+  ↓ (signal/property binding)
+DashboardController (interface)
+  ↓
+MonitoringService (application)
+  ↓
+PatientAggregate / TelemetryBatch (domain) + Repositories
+  ↓
+SQLiteTelemetryRepository / NetworkTelemetryServer (infrastructure)
+```
+
+QML interacts with controllers via properties/signals; controllers call application services rather than infrastructure directly.
 
 ---
 
@@ -109,9 +192,9 @@ The Z Monitor application is organized according to Domain-Driven Design (DDD) p
 | `AdmissionService` | Executes admit/discharge/transfer use cases | `IPatientRepository`, `IAuditRepository` | `SecurityService` (for audit), `IPatientLookupService` (for lookup) |
 | `ProvisioningService` | Handles QR pairing, certificate installation, validation | `IProvisioningRepository` | `SecurityService` (for audit), `IProvisioningService` (external) |
 | `SecurityService` | **UPDATED:** Authentication, session management, RBAC enforcement, permission checking | `IUserRepository`, `IAuditRepository` | **`IUserManagementService` (hospital server authentication)** |
-| `DataArchiveService` | Archives old data per retention policies | `ITelemetryRepository`, `IAlarmRepository`, `IVitalsRepository` | None |
-| `FirmwareUpdateService` | Manages firmware updates | None | `SecurityService` (for signature validation) |
-| `BackupService` | Database backup and restore | All repositories | `SecurityService` (for encryption) |
+| `DataArchiveService` | Coordinates data archival workflow (orchestrates `DataArchiver`) | `ITelemetryRepository`, `IAlarmRepository`, `IVitalsRepository` | `DataArchiver` (infrastructure) |
+| `FirmwareUpdateService` | Manages firmware updates | None | `SecurityService` (for signature validation), `FirmwareManager` (infrastructure) |
+| `BackupService` | Coordinates database backup and restore workflow (orchestrates `BackupManager`) | All repositories | `SecurityService` (for encryption), `BackupManager` (infrastructure) |
 
 ### 3.2 DTOs (Data Transfer Objects)
 
@@ -203,6 +286,24 @@ The Z Monitor application is organized according to Domain-Driven Design (DDD) p
 | `ClockSyncService` | NTP time synchronization | NTP client |
 | `FirmwareManager` | Firmware update management | File I/O, signature verification |
 | `WatchdogService` | Application crash detection and recovery | OS watchdog APIs |
+| `BackupManager` | Database backup and recovery | File I/O, encryption |
+| `DataArchiver` | Data archival and retention management (exports old data to archive files) | File I/O, compression |
+| `DeviceRegistrationService` | Device registration with central server | HTTPS/REST |
+
+### 4.8 Infrastructure Utilities
+
+| Component | Purpose | Status | Location | Documentation |
+|-----------|---------|--------|----------|---------------|
+| `ObjectPool<T>` | Object pooling for high-frequency allocations | ⏳ Not implemented | `infrastructure/utils/` | [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) |
+| `LockFreeQueue<T>` | Lock-free queue for inter-thread communication | ⏳ Not implemented | External libraries recommended | [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) |
+| `LogBuffer` | Pre-allocated log buffer for high-frequency logging | ⏳ Not implemented | `infrastructure/utils/` | [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) |
+| `MemoryPool<T>` | Memory pool allocator for fixed-size objects | ⏳ Not implemented | `infrastructure/utils/` | [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) |
+| `CryptoUtils` | Cryptographic utilities (hashing, encoding) | ⏳ Not implemented | `infrastructure/utils/` | - |
+| `DateTimeUtils` | Date/time formatting and parsing utilities | ⏳ Not implemented | `infrastructure/utils/` | - |
+| `StringUtils` | String manipulation utilities | ⏳ Not implemented | `infrastructure/utils/` | - |
+| `ValidationUtils` | Input validation utilities | ⏳ Not implemented | `infrastructure/utils/` | - |
+
+**Note:** Utility classes are planned but not yet implemented. See [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) Section 12 for implementation status and recommendations.
 
 ---
 
@@ -294,17 +395,32 @@ This diagram shows the complete flow of data and control through all system laye
 | **Infrastructure** | User Management Service Adapters | 2 | ← **NEW:** Mock + Hospital adapters |
 | **Infrastructure** | Qt Adapters | 3 |
 | **Infrastructure** | Security Adapters | 6 |
-| **Infrastructure** | Device/Health Adapters | 4 |
+| **Infrastructure** | Device/Health Adapters | 7 | ← **Updated:** Added BackupManager, DataArchiver, DeviceRegistrationService |
+| **Infrastructure** | Utilities | 8 | ← **NEW:** Infrastructure utility classes (not yet implemented) |
 | **Interface** | QML Controllers | 10 |
 | **Interface** | QML Components (Reusable) | 12 |
 | **Interface** | QML Views | 7 |
-| **Total** | | **120** | ← **Updated:** 117 + 3 new components |
+| **Total** | | **128** | ← **Updated:** 120 + 3 infrastructure components + 8 utilities (planned) |
 
 ---
 
-## 9. Maintenance Guidelines
+## 9. DDD Migration Plan
 
-### 9.1 When Adding New Components
+When implementing the DDD structure:
+
+1. **Create directories** `z-monitor/src/domain`, `application`, `infrastructure`, `interface`.
+2. **Move domain logic** from monolithic classes (e.g., `PatientManager`) into aggregates/value objects.
+3. **Extract repositories** interfaces and implementations.
+4. **Refactor controllers** to depend on application services.
+5. **Update build files** (`CMakeLists.txt`) to reflect new structure.
+
+Tracking tasks for this migration should be added to `ZTODO.md` (see "DDD Refactor" entries).
+
+---
+
+## 10. Maintenance Guidelines
+
+### 10.1 When Adding New Components
 
 When adding a new component, update this document:
 1. Add the component to the appropriate section (Domain/Application/Infrastructure/Interface)
@@ -314,10 +430,9 @@ When adding a new component, update this document:
 5. Update related documents:
    - `doc/z-monitor/architecture_and_design/02_ARCHITECTURE.md` – Add to architecture descriptions
    - `doc/z-monitor/architecture_and_design/09_CLASS_DESIGNS.md` – Add class/interface documentation
-   - `doc/z-monitor/architecture_and_design/28_DOMAIN_DRIVEN_DESIGN.md` – Update if it's a domain component
 6. Add implementation tasks to `ZTODO.md`
 
-### 9.2 When Removing Components
+### 10.2 When Removing Components
 
 1. Remove from this document
 2. Update component count summary
@@ -325,17 +440,16 @@ When adding a new component, update this document:
 4. Update references in other documentation
 5. Mark as "removed" or "deprecated" in `ZTODO.md`
 
-### 9.3 When Refactoring
+### 10.3 When Refactoring
 
 If a component changes layers (e.g., moving from infrastructure to domain):
 1. Update this document to reflect new layer assignment
 2. Update interaction diagram
-3. Update `doc/z-monitor/architecture_and_design/28_DOMAIN_DRIVEN_DESIGN.md` if relevant
 4. Update `doc/z-monitor/architecture_and_design/27_PROJECT_STRUCTURE.md` with new file paths
 
 ---
 
-## 10. References
+## 11. References
 
 - [09_CLASS_DESIGNS_OVERVIEW.md](./09_CLASS_DESIGNS_OVERVIEW.md) – **Module-based class architecture overview** ⭐
   - [09a_INTERFACE_MODULE.md](./09a_INTERFACE_MODULE.md) – Interface Module class designs
@@ -346,7 +460,6 @@ If a component changes layers (e.g., moving from infrastructure to domain):
   - [09f_BACKGROUND_MODULE.md](./09f_BACKGROUND_MODULE.md) – Background Tasks Module class designs
 - [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) – Thread and module architecture
 - [02_ARCHITECTURE.md](./02_ARCHITECTURE.md) – High-level architecture and data flow
-- [28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md) – DDD strategy and guidelines
 - [27_PROJECT_STRUCTURE.md](./27_PROJECT_STRUCTURE.md) – File system organization
 - [30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md) – Database access and ORM strategy
 - [36_DATA_CACHING_STRATEGY.md](./36_DATA_CACHING_STRATEGY.md) – Data caching architecture
@@ -354,8 +467,8 @@ If a component changes layers (e.g., moving from infrastructure to domain):
 
 ---
 
-**Document Version:** 2.0  
+**Document Version:** 3.0  
 **Last Updated:** 2025-11-27  
-**Status:** Updated with data caching components and sensor interfaces
+**Status:** Merged DDD strategy from 28_DOMAIN_DRIVEN_DESIGN.md. Now serves as comprehensive DDD strategy and component inventory.
 
-*This document serves as the authoritative source for component inventory. Keep it synchronized with the codebase.*
+*This document serves as the authoritative source for component inventory and DDD guidelines. Keep it synchronized with the codebase.*

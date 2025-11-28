@@ -16,7 +16,7 @@ This document specifies the threading model, communication channels, latency tar
 > - [Sensor Integration (37_SENSOR_INTEGRATION.md)](./37_SENSOR_INTEGRATION.md) - ISensorDataSource interface and implementations ⭐
 > - [Database Access Strategy (30_DATABASE_ACCESS_STRATEGY.md)](./30_DATABASE_ACCESS_STRATEGY.md) - ORM integration, schema management, performance targets ⭐
 > - [Architecture (02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and data flow
-> - [DDD Strategy (28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - Domain-Driven Design principles
+> - [DDD Strategy (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - Domain-Driven Design principles and component inventory
 
 ---
 
@@ -1404,7 +1404,7 @@ Instrument with timestamped events for:
 - **[30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md)** – Database access strategy, ORM integration, performance targets
 - **[33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md)** – Schema management and code generation workflow
 - **[02_ARCHITECTURE.md](./02_ARCHITECTURE.md)** – High-level architecture and data flow
-- **[28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md)** – DDD strategy and layering
+- **[29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md)** – DDD strategy and component inventory
 - **[18_TESTING_WORKFLOW.md](./18_TESTING_WORKFLOW.md)** – Testing strategy and benchmarks
 
 ---

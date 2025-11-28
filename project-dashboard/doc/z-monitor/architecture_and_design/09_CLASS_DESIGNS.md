@@ -192,7 +192,7 @@ Existing classes in this document (`DeviceSimulator`, `AlarmManager`, `NetworkMa
 ### 2.4. Interface Layer
 Controllers (`DashboardController`, `PatientController`, etc.) belong in `z-monitor/src/interface/controllers/**`. They must depend only on application services, not on infrastructure classes directly.
 
-For detailed DDD guidance see `28_DOMAIN_DRIVEN_DESIGN.md`.
+For detailed DDD guidance see `29_SYSTEM_COMPONENTS.md`.
 
 ## 3. Core Service Classes
 

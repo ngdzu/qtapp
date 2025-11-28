@@ -1049,7 +1049,7 @@ graph TB
 
 - `doc/30_DATABASE_ACCESS_STRATEGY.md` – Repository pattern and database access
 - `doc/10_DATABASE_DESIGN.md` – Database schema
-- `doc/28_DOMAIN_DRIVEN_DESIGN.md` – DDD repository pattern
+- `doc/29_SYSTEM_COMPONENTS.md` – DDD repository pattern
 - Qt SQL Documentation: https://doc.qt.io/qt-6/qsqlquery.html
 
 ---

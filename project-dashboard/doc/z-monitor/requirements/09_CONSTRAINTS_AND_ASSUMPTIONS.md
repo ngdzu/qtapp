@@ -644,7 +644,7 @@ This document specifies constraints, limitations, and assumptions for the Z Moni
 
 **Traces To:**
 - Design: [30_DATABASE_ACCESS_STRATEGY.md](../architecture_and_design/30_DATABASE_ACCESS_STRATEGY.md)
-- Design: [28_DOMAIN_DRIVEN_DESIGN.md](../architecture_and_design/28_DOMAIN_DRIVEN_DESIGN.md)
+- Design: [29_SYSTEM_COMPONENTS.md](../architecture_and_design/29_SYSTEM_COMPONENTS.md)
 
 ---
 

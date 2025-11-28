@@ -984,7 +984,7 @@ class SQLiteTelemetryRepository : public ITelemetryRepository {
 - **[34_DATA_MIGRATION_WORKFLOW.md](./34_DATA_MIGRATION_WORKFLOW.md)** – Database migration strategy
 - **[31_DATA_TRANSFER_OBJECTS.md](./31_DATA_TRANSFER_OBJECTS.md)** – DTOs for data transfer between layers
 - **[10_DATABASE_DESIGN.md](./10_DATABASE_DESIGN.md)** – Database schema
-- **[28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md)** – DDD strategy and repository pattern
+- **[29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md)** – DDD strategy and repository pattern
 - **[29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md)** – Complete component list
 - **[12_THREAD_MODEL.md](./12_THREAD_MODEL.md)** – Thread assignment (Database I/O thread)
 - Qt SQL Documentation: https://doc.qt.io/qt-6/sql-programming.html
