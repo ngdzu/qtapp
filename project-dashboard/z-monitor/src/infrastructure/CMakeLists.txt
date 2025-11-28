@@ -5,6 +5,8 @@ set(INFRASTRUCTURE_SOURCES
     # Logging infrastructure
     logging/ILogBackend.h
     logging/LogEntry.h
+    logging/LogService.h
+    logging/LogService.cpp
     logging/utils/LogFormatter.h
     logging/utils/LogFormatter.cpp
     logging/backends/CustomBackend.h
