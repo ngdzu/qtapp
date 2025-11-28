@@ -33,6 +33,9 @@ set(DOMAIN_SOURCES
     repositories/ITelemetryRepository.h
     repositories/IVitalsRepository.h
     repositories/IAlarmRepository.h
+    repositories/IProvisioningRepository.h
+    repositories/IUserRepository.h
+    repositories/IAuditRepository.h
 )
 
 # Create domain layer static library

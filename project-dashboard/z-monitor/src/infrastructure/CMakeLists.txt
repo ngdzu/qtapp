@@ -17,6 +17,13 @@ set(INFRASTRUCTURE_SOURCES
     # Platform adapters (Qt-based)
     adapters/SettingsManager.h
     adapters/SettingsManager.cpp
+    
+    # Infrastructure interfaces
+    interfaces/IPatientLookupService.h
+    interfaces/ITelemetryServer.h
+    interfaces/ISensorDataSource.h
+    interfaces/IUserManagementService.h
+    interfaces/IArchiver.h
 )
 
 # Create infrastructure layer static library

@@ -11,6 +11,7 @@
 #include "domain/monitoring/TelemetryBatch.h"
 #include "domain/monitoring/AlarmAggregate.h"
 #include "domain/monitoring/VitalRecord.h"
+#include "infrastructure/interfaces/ISensorDataSource.h"
 
 namespace ZMonitor {
 namespace Application {
@@ -21,7 +22,7 @@ MonitoringService::MonitoringService(
     std::shared_ptr<Domain::Repositories::ITelemetryRepository> telemetryRepo,
     std::shared_ptr<Domain::Repositories::IAlarmRepository> alarmRepo,
     std::shared_ptr<Domain::Repositories::IVitalsRepository> vitalsRepo,
-    std::shared_ptr<ISensorDataSource> sensorDataSource,
+    std::shared_ptr<Infrastructure::Interfaces::ISensorDataSource> sensorDataSource,
     QObject* parent)
     : QObject(parent)
     , m_patientRepo(patientRepo)

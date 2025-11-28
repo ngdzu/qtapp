@@ -36,7 +36,11 @@ namespace Application {
 namespace Services {
 
 // Forward declaration for external service interface
-class ISensorDataSource;
+namespace Infrastructure {
+namespace Interfaces {
+    class ISensorDataSource;
+}
+}
 
 /**
  * @class MonitoringService
@@ -76,7 +80,7 @@ public:
         std::shared_ptr<Domain::Repositories::ITelemetryRepository> telemetryRepo,
         std::shared_ptr<Domain::Repositories::IAlarmRepository> alarmRepo,
         std::shared_ptr<Domain::Repositories::IVitalsRepository> vitalsRepo,
-        std::shared_ptr<ISensorDataSource> sensorDataSource,
+        std::shared_ptr<Infrastructure::Interfaces::ISensorDataSource> sensorDataSource,
         QObject* parent = nullptr);
     
     /**
@@ -154,7 +158,7 @@ private:
     std::shared_ptr<Domain::Repositories::ITelemetryRepository> m_telemetryRepo;
     std::shared_ptr<Domain::Repositories::IAlarmRepository> m_alarmRepo;
     std::shared_ptr<Domain::Repositories::IVitalsRepository> m_vitalsRepo;
-    std::shared_ptr<ISensorDataSource> m_sensorDataSource;
+    std::shared_ptr<Infrastructure::Interfaces::ISensorDataSource> m_sensorDataSource;
     
     std::shared_ptr<Domain::Monitoring::PatientAggregate> m_currentPatient;
     std::shared_ptr<Domain::Monitoring::AlarmAggregate> m_alarmAggregate;

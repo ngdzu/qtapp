@@ -4,7 +4,6 @@
 set(APPLICATION_SOURCES
     services/MonitoringService.h
     services/MonitoringService.cpp
-    services/ISensorDataSource.h
     services/AdmissionService.h
     services/AdmissionService.cpp
 )
