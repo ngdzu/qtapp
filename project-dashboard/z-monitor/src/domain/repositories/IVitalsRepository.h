@@ -18,10 +18,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Repositories {
-
+namespace zmon {
 /**
  * @class IVitalsRepository
  * @brief Repository interface for vital record persistence.
@@ -93,7 +90,5 @@ public:
     virtual size_t markAsSent(const std::vector<std::string>& vitalIds) = 0;
 };
 
-} // namespace Repositories
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

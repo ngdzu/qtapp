@@ -17,15 +17,11 @@
 #include <vector>
 #include <memory>
 
-namespace ZMonitor {
-namespace Domain {
+namespace zmon {
 namespace Security {
     class UserSession;
     class PinCredential;
 }
-
-namespace Repositories {
-
 /**
  * @class IUserRepository
  * @brief Repository interface for user data persistence.
@@ -138,7 +134,5 @@ public:
     virtual bool updateLastLogin(const std::string& userId, int64_t loginTimeMs) = 0;
 };
 
-} // namespace Repositories
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

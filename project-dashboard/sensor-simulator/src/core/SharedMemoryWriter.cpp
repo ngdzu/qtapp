@@ -14,7 +14,7 @@
 #include <chrono>
 #include <cstddef>
 
-namespace SensorSimulator {
+namespace zmon {
 
 // Simple CRC32 implementation (polynomial 0xEDB88320)
 static uint32_t crc32_table[256];
@@ -206,5 +206,5 @@ std::string SharedMemoryWriter::generateWaveformJson(const std::string& channel,
     return oss.str();
 }
 
-} // namespace SensorSimulator
+} // namespace zmon
 

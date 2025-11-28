@@ -33,9 +33,7 @@ namespace moodycamel {
     class ConcurrentQueue;
 }
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
+namespace zmon {
 
 /**
  * @class LogService
@@ -149,14 +147,14 @@ public:
      *
      * @param level Minimum log level (from LogEntry.h)
      */
-    void setLogLevel(::ZMonitor::Infrastructure::Logging::LogLevel level);
+    void setLogLevel(LogLevel level);
 
     /**
      * @brief Gets the current minimum log level.
      *
      * @return Current minimum log level (from LogEntry.h)
      */
-    ::ZMonitor::Infrastructure::Logging::LogLevel logLevel() const;
+    LogLevel logLevel() const;
 
     /**
      * @brief Enables or disables a log category.
@@ -226,7 +224,7 @@ private:
      * @param context Structured context data
      * @param category Optional category name (defaults to empty)
      */
-    void enqueueLog(::ZMonitor::Infrastructure::Logging::LogLevel level, const QString& message,
+    void enqueueLog(LogLevel level, const QString& message,
                     const QVariantMap& context = {},
                     const QString& category = QString());
 
@@ -238,7 +236,7 @@ private:
     static QString getCurrentThreadId();
 
     // Configuration
-    ::ZMonitor::Infrastructure::Logging::LogLevel m_minLevel{::ZMonitor::Infrastructure::Logging::LogLevel::Info};
+    LogLevel m_minLevel{LogLevel::Info};
     QMap<QString, bool> m_categoryEnabled;
 
     // Lock-free queue for async logging (MPSC - Multiple Producer Single Consumer)
@@ -260,7 +258,4 @@ private:
     bool m_initialized{false};
 };
 
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon

@@ -19,10 +19,7 @@
 #include <QVariantMap>
 #include <optional>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Interfaces {
-
+namespace zmon {
 /**
  * @enum UserRole
  * @brief Predefined user roles with hierarchical permissions.
@@ -271,7 +268,5 @@ signals:
     void healthCheckCompleted(bool available, int latencyMs);
 };
 
-} // namespace Interfaces
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

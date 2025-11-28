@@ -14,10 +14,7 @@
 
 #include <string>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-
+namespace zmon {
 /**
  * @enum AlarmPriority
  * @brief Alarm priority levels.
@@ -169,7 +166,5 @@ struct AlarmThreshold {
     }
 };
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

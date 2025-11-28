@@ -28,9 +28,7 @@
 #include "infrastructure/sensors/SharedMemoryRingBuffer.h"
 #include "infrastructure/sensors/SharedMemoryControlChannel.h"
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Sensors {
+namespace zmon {
 
 /**
  * @class SharedMemorySensorDataSource
@@ -56,7 +54,7 @@ namespace Sensors {
  * @see ISensorDataSource, SharedMemoryRingBuffer, SharedMemoryControlChannel
  * @ingroup Infrastructure
  */
-class SharedMemorySensorDataSource : public Interfaces::ISensorDataSource {
+class SharedMemorySensorDataSource : public ISensorDataSource {
     Q_OBJECT
 
 public:
@@ -204,7 +202,4 @@ private:
     uint32_t m_overrunCount;                                ///< Count of overruns detected
 };
 
-} // namespace Sensors
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon

@@ -19,12 +19,10 @@
 #include <QJsonArray>
 #include <QtMath>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Sensors {
+namespace zmon {
 
 SharedMemorySensorDataSource::SharedMemorySensorDataSource(const QString& socketPath, QObject* parent)
-    : Interfaces::ISensorDataSource(parent)
+    : ISensorDataSource(parent)
     , m_socketPath(socketPath)
     , m_controlChannel(std::make_unique<SharedMemoryControlChannel>(socketPath, this))
     , m_ringBuffer(nullptr)
@@ -277,7 +275,7 @@ void SharedMemorySensorDataSource::parseVitalsFrame(const SharedMemoryRingBuffer
     QJsonObject obj = doc.object();
     
     // Create VitalRecord
-    Domain::Monitoring::VitalRecord vital;
+    VitalRecord vital;
     vital.timestamp = QDateTime::fromMSecsSinceEpoch(frame->timestamp);
     vital.heartRate = obj.value("hr").toInt();
     vital.spo2 = obj.value("spo2").toDouble();
@@ -316,7 +314,7 @@ void SharedMemorySensorDataSource::parseWaveformFrame(const SharedMemoryRingBuff
     int64_t startTimestamp = obj.value("start_timestamp_ms").toVariant().toLongLong();
     
     for (int i = 0; i < valuesArray.size(); ++i) {
-        Domain::Monitoring::WaveformSample sample;
+        WaveformSample sample;
         sample.timestamp = QDateTime::fromMSecsSinceEpoch(
             startTimestamp + (i * 1000 / sampleRate));  // Calculate timestamp for each sample
         sample.waveformType = waveformType;
@@ -336,7 +334,4 @@ void SharedMemorySensorDataSource::handleOverrun() {
     }
 }
 
-} // namespace Sensors
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon

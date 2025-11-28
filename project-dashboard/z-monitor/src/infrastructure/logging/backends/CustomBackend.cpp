@@ -16,10 +16,7 @@
 #include <QIODevice>
 #include <algorithm>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
-
+namespace zmon {
 CustomBackend::CustomBackend()
     : m_logFile(nullptr)
     , m_stream(nullptr)
@@ -261,7 +258,5 @@ void CustomBackend::closeLogFile() {
     }
 }
 
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

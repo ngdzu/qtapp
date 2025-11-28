@@ -23,9 +23,7 @@
 #include <QSocketNotifier>
 #include <memory>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Sensors {
+namespace zmon {
 
 /**
  * @struct ControlMessage
@@ -190,7 +188,4 @@ private:
     bool parseControlMessage(const uint8_t* data, size_t size, ControlMessage& message);
 };
 
-} // namespace Sensors
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon

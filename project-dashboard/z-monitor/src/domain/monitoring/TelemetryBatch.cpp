@@ -12,10 +12,7 @@
 #include <iomanip>
 #include <chrono>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-
+namespace zmon {
 TelemetryBatch::TelemetryBatch()
     : m_batchId(generateBatchId())
     , m_deviceId("")
@@ -193,7 +190,5 @@ int64_t TelemetryBatch::getCurrentTimestampMs() const {
     return ms.count();
 }
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

@@ -21,10 +21,7 @@
 #include <QDateTime>
 #include <QDate>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
-
+namespace zmon {
 /**
  * @class CustomBackend
  * @brief Custom Qt-based logging backend (no external dependencies).
@@ -186,7 +183,5 @@ private:
     void closeLogFile();
 };
 
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

@@ -16,10 +16,7 @@
 #include <cstdint>
 #include <map>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Provisioning {
-
+namespace zmon {
 /**
  * @enum ProvisioningStatus
  * @brief Device provisioning status.
@@ -209,7 +206,5 @@ private:
                                      const std::string& caCertificateData) const;
 };
 
-} // namespace Provisioning
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

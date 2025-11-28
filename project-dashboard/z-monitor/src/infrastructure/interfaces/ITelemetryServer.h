@@ -21,10 +21,7 @@
 #include <QSslConfiguration>
 #include <functional>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Interfaces {
-
+namespace zmon {
 /**
  * @struct TelemetryData
  * @brief Telemetry data structure for transmission.
@@ -225,7 +222,5 @@ signals:
     void connectionStatusChanged(bool connected);
 };
 
-} // namespace Interfaces
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

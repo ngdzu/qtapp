@@ -19,10 +19,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-
+namespace zmon {
 /**
  * @class TelemetryBatch
  * @brief Domain aggregate managing telemetry data collection and batch preparation.
@@ -220,7 +217,5 @@ private:
     int64_t getCurrentTimestampMs() const;
 };
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

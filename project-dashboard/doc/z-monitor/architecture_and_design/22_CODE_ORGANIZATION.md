@@ -228,74 +228,44 @@ src/interface/qml/
 
 ### 3.1. Namespace Hierarchy
 
-Namespaces align with DDD layers:
+Namespaces use a flat structure:
 
 ```cpp
-namespace ZMonitor {
+namespace zmon {
     // Domain Layer
-    namespace Domain {
-        namespace Monitoring {
-            class PatientAggregate;
-            class TelemetryBatch;
-            class VitalRecord;  // Value object
-        }
-        namespace Admission {
-            class AdmissionAggregate;
-            class PatientIdentity;  // Value object
-        }
-        namespace Repositories {
-            class IPatientRepository;
-            class ITelemetryRepository;
-        }
-    }
+    class PatientAggregate;
+    class TelemetryBatch;
+    class VitalRecord;  // Value object
+    class AdmissionAggregate;
+    class PatientIdentity;  // Value object
+    class IPatientRepository;
+    class ITelemetryRepository;
     
     // Application Layer
-    namespace Application {
-        namespace Services {
-            class MonitoringService;
-            class AdmissionService;
-            class SecurityService;
-        }
-        namespace DTO {
-            struct AdmitPatientCommand;
-            struct TelemetrySubmission;
-        }
-    }
+    class MonitoringService;
+    class AdmissionService;
+    class SecurityService;
+    struct AdmitPatientCommand;
+    struct TelemetrySubmission;
     
     // Infrastructure Layer
-    namespace Infrastructure {
-        namespace Persistence {
-            class SQLitePatientRepository;
-            class DatabaseManager;
-        }
-        namespace Network {
-            class NetworkTelemetryServer;
-        }
-        namespace Sensors {
-            class SharedMemorySensorDataSource;
-        }
-        namespace Security {
-            class CertificateManager;
-            class EncryptionService;
-        }
-    }
+    class SQLitePatientRepository;
+    class DatabaseManager;
+    class NetworkTelemetryServer;
+    class SharedMemorySensorDataSource;
+    class CertificateManager;
+    class EncryptionService;
     
     // Interface Layer
-    namespace Interface {
-        namespace Controllers {
-            class DashboardController;
-            class AlarmController;
-        }
-    }
+    class DashboardController;
+    class AlarmController;
 }
 ```
 
 ### 3.2. Namespace Usage
 
-- **Domain Layer:** `ZMonitor::Domain::` (with bounded context sub-namespaces)
-- **Application Layer:** `ZMonitor::Application::`
-- **Infrastructure Layer:** `ZMonitor::Infrastructure::` (with adapter sub-namespaces)
-- **Interface Layer:** `ZMonitor::Interface::`
+- **All code:** `zmon::` (flat namespace, no nested layers)
+- **Rationale:** Single business domain, no name collisions expected
 
 ### 3.3. Using Declarations
 
@@ -303,17 +273,15 @@ Prefer explicit namespace usage in headers, allow `using` in implementation file
 
 ```cpp
 // Header file
-namespace ZMonitor {
-namespace Core {
+namespace zmon {
     class NetworkManager : public QObject {
         // ...
     };
 }
-}
 
 // Implementation file
 #include "NetworkManager.h"
-using namespace ZMonitor::Core;
+using namespace zmon;
 
 NetworkManager::NetworkManager() {
     // Can use NetworkManager without namespace prefix
@@ -469,12 +437,10 @@ Use `#pragma once` (preferred) or traditional include guards:
 
 #include <QObject>
 
-namespace ZMonitor {
-namespace Core {
+namespace zmon {
     class NetworkManager : public QObject {
         // ...
     };
-}
 }
 ```
 

@@ -19,16 +19,9 @@
 #include "domain/admission/PatientIdentity.h"
 #include "domain/admission/BedLocation.h"
 
-namespace ZMonitor {
-namespace Domain {
-namespace Admission {
-    // Forward declarations
-}
-}
+namespace zmon {
 
-namespace ZMonitor {
-namespace Application {
-namespace Services {
+// Forward declarations
 
 /**
  * @class AdmissionService
@@ -102,8 +95,8 @@ public:
      * @param admissionSource Source of admission
      * @return true if admission succeeded, false otherwise
      */
-    bool admitPatient(const Domain::Admission::PatientIdentity& patientIdentity,
-                      const Domain::Admission::BedLocation& bedLocation,
+    bool admitPatient(const PatientIdentity& patientIdentity,
+                      const BedLocation& bedLocation,
                       AdmissionSource admissionSource);
 
     /**
@@ -205,7 +198,4 @@ private:
     AdmissionInfo m_currentAdmission;
 };
 
-} // namespace Services
-} // namespace Application
-} // namespace ZMonitor
-
+} // namespace zmon

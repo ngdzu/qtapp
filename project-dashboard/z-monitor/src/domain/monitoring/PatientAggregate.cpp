@@ -12,10 +12,7 @@
 #include <chrono>
 #include <algorithm>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-
+namespace zmon {
 PatientAggregate::PatientAggregate()
     : m_admissionState(AdmissionState::NotAdmitted)
     , m_patientIdentity()
@@ -139,7 +136,4 @@ int64_t PatientAggregate::getCurrentTimestampMs() const {
     return ms.count();
 }
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon

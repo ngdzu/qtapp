@@ -14,8 +14,7 @@
 #include <QDebug>
 #include <QDateTime>
 
-namespace ZMonitor {
-namespace Infrastructure {
+namespace zmon {
 namespace Qt {
 
 // Singleton instance
@@ -235,7 +234,5 @@ QString SettingsManager::getDatabaseConnection() const
     return QSqlDatabase::defaultConnection;
 }
 
-} // namespace Qt
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

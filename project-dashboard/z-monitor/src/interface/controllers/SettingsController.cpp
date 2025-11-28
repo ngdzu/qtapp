@@ -11,20 +11,18 @@
 
 #include <QVariant>
 
-namespace ZMonitor {
-namespace Interface {
-namespace Controllers {
+namespace zmon {
 
 SettingsController::SettingsController(QObject* parent)
     : QObject(parent)
-    , m_settingsManager(&Infrastructure::Adapters::SettingsManager::instance())
+    , m_settingsManager(&SettingsManager::instance())
     , m_deviceLabel(m_settingsManager->deviceLabel())
     , m_measurementUnit(m_settingsManager->measurementUnit())
     , m_serverUrl(m_settingsManager->serverUrl())
     , m_useMockServer(m_settingsManager->useMockServer())
 {
     // Connect to SettingsManager signals
-    connect(m_settingsManager, &Infrastructure::Adapters::SettingsManager::settingChanged,
+    connect(m_settingsManager, &SettingsManager::settingChanged,
             this, &SettingsController::onSettingChanged);
 }
 
@@ -97,7 +95,4 @@ void SettingsController::onSettingChanged(const QString& key, const QVariant& va
     }
 }
 
-} // namespace Controllers
-} // namespace Interface
-} // namespace ZMonitor
-
+} // namespace zmon

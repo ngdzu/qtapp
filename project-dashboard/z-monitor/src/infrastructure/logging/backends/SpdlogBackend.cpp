@@ -58,10 +58,7 @@
     }
 #endif
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
-
+namespace zmon {
 SpdlogBackend::SpdlogBackend()
     : m_logger(nullptr)
     , m_logDir("")
@@ -361,7 +358,5 @@ QString SpdlogBackend::formatHuman(const LogEntry& entry) const
     return formatted;
 }
 
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

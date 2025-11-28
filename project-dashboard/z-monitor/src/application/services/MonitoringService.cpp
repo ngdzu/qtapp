@@ -13,16 +13,14 @@
 #include "domain/monitoring/VitalRecord.h"
 #include "infrastructure/interfaces/ISensorDataSource.h"
 
-namespace ZMonitor {
-namespace Application {
-namespace Services {
+namespace zmon {
 
 MonitoringService::MonitoringService(
-    std::shared_ptr<Domain::Repositories::IPatientRepository> patientRepo,
-    std::shared_ptr<Domain::Repositories::ITelemetryRepository> telemetryRepo,
-    std::shared_ptr<Domain::Repositories::IAlarmRepository> alarmRepo,
-    std::shared_ptr<Domain::Repositories::IVitalsRepository> vitalsRepo,
-    std::shared_ptr<Infrastructure::Interfaces::ISensorDataSource> sensorDataSource,
+    std::shared_ptr<IPatientRepository> patientRepo,
+    std::shared_ptr<ITelemetryRepository> telemetryRepo,
+    std::shared_ptr<IAlarmRepository> alarmRepo,
+    std::shared_ptr<IVitalsRepository> vitalsRepo,
+    std::shared_ptr<ISensorDataSource> sensorDataSource,
     QObject* parent)
     : QObject(parent)
     , m_patientRepo(patientRepo)
@@ -31,7 +29,7 @@ MonitoringService::MonitoringService(
     , m_vitalsRepo(vitalsRepo)
     , m_sensorDataSource(sensorDataSource)
     , m_currentPatient(nullptr)
-    , m_alarmAggregate(std::make_shared<Domain::Monitoring::AlarmAggregate>())
+    , m_alarmAggregate(std::make_shared<AlarmAggregate>())
     , m_currentBatch(nullptr)
 {
     // Note: Connect to sensor data source signals when ISensorDataSource interface is defined
@@ -64,7 +62,7 @@ void MonitoringService::stop() {
     // }
 }
 
-void MonitoringService::processVital(const Domain::Monitoring::VitalRecord& vital) {
+void MonitoringService::processVital(const VitalRecord& vital) {
     // Update patient aggregate if patient is admitted
     if (m_currentPatient && m_currentPatient->isAdmitted()) {
         m_currentPatient->updateVitals(vital);
@@ -92,16 +90,16 @@ void MonitoringService::processVital(const Domain::Monitoring::VitalRecord& vita
     emit vitalProcessed(vital);
 }
 
-std::shared_ptr<Domain::Monitoring::PatientAggregate> MonitoringService::getCurrentPatient() const {
+std::shared_ptr<PatientAggregate> MonitoringService::getCurrentPatient() const {
     return m_currentPatient;
 }
 
-void MonitoringService::onVitalReceived(const Domain::Monitoring::VitalRecord& vital) {
+void MonitoringService::onVitalReceived(const VitalRecord& vital) {
     processVital(vital);
 }
 
 void MonitoringService::createNewBatch() {
-    m_currentBatch = std::make_shared<Domain::Monitoring::TelemetryBatch>();
+    m_currentBatch = std::make_shared<TelemetryBatch>();
     
     // Set patient MRN if patient is admitted
     if (m_currentPatient && m_currentPatient->isAdmitted()) {
@@ -132,7 +130,7 @@ void MonitoringService::flushBatch() {
     emit telemetryBatchReady(QString::fromStdString(m_currentBatch->getBatchId()));
 }
 
-void MonitoringService::evaluateAlarms(const Domain::Monitoring::VitalRecord& vital) {
+void MonitoringService::evaluateAlarms(const VitalRecord& vital) {
     // Business rule: Evaluate alarms based on vital type and thresholds
     // For now, simplified alarm evaluation
     // In real implementation, use AlarmThreshold configuration
@@ -140,10 +138,10 @@ void MonitoringService::evaluateAlarms(const Domain::Monitoring::VitalRecord& vi
     // Example: Heart rate alarm
     if (vital.vitalType == "HR") {
         if (vital.value < 60.0 || vital.value > 100.0) {
-            Domain::Monitoring::AlarmPriority priority = 
+            AlarmPriority priority = 
                 (vital.value < 50.0 || vital.value > 120.0) 
-                    ? Domain::Monitoring::AlarmPriority::HIGH
-                    : Domain::Monitoring::AlarmPriority::MEDIUM;
+                    ? AlarmPriority::HIGH
+                    : AlarmPriority::MEDIUM;
             
             std::string alarmType = (vital.value < 60.0) ? "HR_LOW" : "HR_HIGH";
             double threshold = (vital.value < 60.0) ? 60.0 : 100.0;
@@ -168,7 +166,4 @@ void MonitoringService::evaluateAlarms(const Domain::Monitoring::VitalRecord& vi
     }
 }
 
-} // namespace Services
-} // namespace Application
-} // namespace ZMonitor
-
+} // namespace zmon

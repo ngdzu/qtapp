@@ -16,10 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Admission {
-
+namespace zmon {
 /**
  * @class PatientIdentity
  * @brief Immutable value object representing patient demographic information.
@@ -147,7 +144,5 @@ struct PatientIdentity {
     }
 };
 
-} // namespace Admission
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

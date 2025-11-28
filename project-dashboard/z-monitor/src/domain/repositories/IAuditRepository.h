@@ -17,10 +17,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Repositories {
-
+namespace zmon {
 /**
  * @class IAuditRepository
  * @brief Repository interface for audit log persistence.
@@ -132,7 +129,5 @@ public:
     virtual size_t archive(int64_t cutoffTimeMs) = 0;
 };
 
-} // namespace Repositories
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

@@ -17,10 +17,7 @@
 #include <cstdint>
 #include <string>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-
+namespace zmon {
 /**
  * @class VitalRecord
  * @brief Immutable value object representing a single vital sign measurement.
@@ -151,7 +148,5 @@ struct VitalRecord {
     }
 };
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

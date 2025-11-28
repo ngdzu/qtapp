@@ -18,10 +18,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Repositories {
-
+namespace zmon {
 /**
  * @class IAlarmRepository
  * @brief Repository interface for alarm aggregate persistence.
@@ -97,7 +94,5 @@ public:
                               const std::string& userId) = 0;
 };
 
-} // namespace Repositories
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

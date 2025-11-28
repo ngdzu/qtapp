@@ -18,14 +18,9 @@
 #include <memory>
 #include <cstdint>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
+namespace zmon {
     class TelemetryBatch;
 }
-
-namespace Repositories {
-
 /**
  * @class ITelemetryRepository
  * @brief Repository interface for telemetry batch persistence.
@@ -96,7 +91,5 @@ public:
     virtual bool markAsSent(const std::string& batchId) = 0;
 };
 
-} // namespace Repositories
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

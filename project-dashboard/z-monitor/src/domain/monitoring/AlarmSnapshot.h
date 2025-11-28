@@ -17,10 +17,7 @@
 #include <string>
 #include <cstdint>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-
+namespace zmon {
 /**
  * @enum AlarmStatus
  * @brief Alarm status/state.
@@ -202,7 +199,5 @@ struct AlarmSnapshot {
     }
 };
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

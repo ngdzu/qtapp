@@ -15,9 +15,7 @@
 #include "infrastructure/logging/LogEntry.h"
 #include <QString>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
+namespace zmon {
 namespace Utils {
 
 /**
@@ -81,8 +79,4 @@ QString escapeJsonString(const QString& str);
  */
 QString formatContextAsJson(const QVariantMap& context);
 
-} // namespace Utils
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon

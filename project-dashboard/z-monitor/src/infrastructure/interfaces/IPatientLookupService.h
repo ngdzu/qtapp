@@ -20,10 +20,7 @@
 #include <optional>
 #include <functional>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Interfaces {
-
+namespace zmon {
 /**
  * @struct PatientInfo
  * @brief Patient information structure returned by lookup service.
@@ -119,7 +116,5 @@ signals:
     void patientLookupFailed(const QString& patientId, const QString& error);
 };
 
-} // namespace Interfaces
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

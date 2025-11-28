@@ -12,9 +12,7 @@
 #include <QVariant>
 #include <QStringList>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
+namespace zmon {
 namespace Utils {
 
 QString formatHuman(const LogEntry& entry) {
@@ -204,8 +202,5 @@ QString formatContextAsJson(const QVariantMap& context) {
     return doc.toJson(QJsonDocument::Compact);
 }
 
-} // namespace Utils
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

@@ -17,10 +17,7 @@
 
 #include "LogEntry.h"
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
-
+namespace zmon {
 /**
  * @class ILogBackend
  * @brief Abstract interface for logging backends.
@@ -116,8 +113,5 @@ public:
     virtual void setMaxFiles(int maxFiles) = 0;
 };
 
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
-
+} // namespace zmon
+} // namespace zmon

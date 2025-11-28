@@ -18,10 +18,7 @@
 #include <QVariantMap>
 #include <cstdint>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Interfaces {
-
+namespace zmon {
 /**
  * @struct ArchiveResult
  * @brief Result of archival operation.
@@ -135,7 +132,5 @@ public:
     virtual ArchiveResult restoreFromArchive(const QString& archiveLocation) = 0;
 };
 
-} // namespace Interfaces
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

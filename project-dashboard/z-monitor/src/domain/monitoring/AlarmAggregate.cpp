@@ -13,10 +13,7 @@
 #include <algorithm>
 #include <chrono>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-
+namespace zmon {
 AlarmAggregate::AlarmAggregate()
     : m_activeAlarms()
     , m_alarmHistory()
@@ -263,7 +260,5 @@ bool AlarmAggregate::shouldSuppressDuplicate(const std::string& alarmType,
     return false;
 }
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

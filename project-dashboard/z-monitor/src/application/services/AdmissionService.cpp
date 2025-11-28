@@ -16,18 +16,15 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
-namespace ZMonitor {
-namespace Application {
-namespace Services {
-
+namespace zmon {
 AdmissionService::AdmissionService(QObject* parent)
     : QObject(parent)
     , m_admissionState(AdmissionState::NotAdmitted)
 {
 }
 
-bool AdmissionService::admitPatient(const Domain::Admission::PatientIdentity& patientIdentity,
-                                    const Domain::Admission::BedLocation& bedLocation,
+bool AdmissionService::admitPatient(const PatientIdentity& patientIdentity,
+                                    const BedLocation& bedLocation,
                                     AdmissionSource admissionSource)
 {
     if (!patientIdentity.isValid()) {
@@ -216,10 +213,7 @@ void AdmissionService::logAdmissionEvent(const QString& eventType,
 
 QString AdmissionService::getDeviceLabel() const
 {
-    return Infrastructure::Adapters::SettingsManager::instance().deviceLabel();
+    return SettingsManager::instance().deviceLabel();
 }
 
-} // namespace Services
-} // namespace Application
-} // namespace ZMonitor
-
+} // namespace zmon

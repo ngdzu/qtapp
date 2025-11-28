@@ -20,9 +20,7 @@
 #include <vector>
 #include <memory>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
+namespace zmon {
 
 // Forward declarations for domain events
 class PatientAdmitted;
@@ -200,7 +198,4 @@ private:
     int64_t getCurrentTimestampMs() const;
 };
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon

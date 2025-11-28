@@ -16,31 +16,18 @@
 #include <memory>
 #include <string>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-    class PatientAggregate;
-    class TelemetryBatch;
-    class AlarmAggregate;
-    class VitalRecord;
-}
-namespace Repositories {
-    class ITelemetryRepository;
-    class IPatientRepository;
-    class IAlarmRepository;
-    class IVitalsRepository;
-}
-}
+namespace zmon {
 
-namespace Application {
-namespace Services {
-
-// Forward declaration for external service interface
-namespace Infrastructure {
-namespace Interfaces {
-    class ISensorDataSource;
-}
-}
+// Forward declarations
+class PatientAggregate;
+class TelemetryBatch;
+class AlarmAggregate;
+class VitalRecord;
+class ITelemetryRepository;
+class IPatientRepository;
+class IAlarmRepository;
+class IVitalsRepository;
+class ISensorDataSource;
 
 /**
  * @class MonitoringService
@@ -76,11 +63,11 @@ public:
      * @param parent Parent QObject
      */
     explicit MonitoringService(
-        std::shared_ptr<Domain::Repositories::IPatientRepository> patientRepo,
-        std::shared_ptr<Domain::Repositories::ITelemetryRepository> telemetryRepo,
-        std::shared_ptr<Domain::Repositories::IAlarmRepository> alarmRepo,
-        std::shared_ptr<Domain::Repositories::IVitalsRepository> vitalsRepo,
-        std::shared_ptr<Infrastructure::Interfaces::ISensorDataSource> sensorDataSource,
+        std::shared_ptr<IPatientRepository> patientRepo,
+        std::shared_ptr<ITelemetryRepository> telemetryRepo,
+        std::shared_ptr<IAlarmRepository> alarmRepo,
+        std::shared_ptr<IVitalsRepository> vitalsRepo,
+        std::shared_ptr<ISensorDataSource> sensorDataSource,
         QObject* parent = nullptr);
     
     /**
@@ -112,14 +99,14 @@ public:
      * 
      * @param vital Vital record to process
      */
-    void processVital(const Domain::Monitoring::VitalRecord& vital);
+    void processVital(const VitalRecord& vital);
     
     /**
      * @brief Get current patient aggregate.
      * 
      * @return Shared pointer to patient aggregate, or nullptr if no patient admitted
      */
-    std::shared_ptr<Domain::Monitoring::PatientAggregate> getCurrentPatient() const;
+    std::shared_ptr<PatientAggregate> getCurrentPatient() const;
 
 signals:
     /**
@@ -127,7 +114,7 @@ signals:
      * 
      * @param vital Processed vital record
      */
-    void vitalProcessed(const Domain::Monitoring::VitalRecord& vital);
+    void vitalProcessed(const VitalRecord& vital);
     
     /**
      * @brief Signal emitted when an alarm is raised.
@@ -151,18 +138,18 @@ private slots:
      * 
      * @param vital Vital record from sensor
      */
-    void onVitalReceived(const Domain::Monitoring::VitalRecord& vital);
+    void onVitalReceived(const VitalRecord& vital);
 
 private:
-    std::shared_ptr<Domain::Repositories::IPatientRepository> m_patientRepo;
-    std::shared_ptr<Domain::Repositories::ITelemetryRepository> m_telemetryRepo;
-    std::shared_ptr<Domain::Repositories::IAlarmRepository> m_alarmRepo;
-    std::shared_ptr<Domain::Repositories::IVitalsRepository> m_vitalsRepo;
-    std::shared_ptr<Infrastructure::Interfaces::ISensorDataSource> m_sensorDataSource;
+    std::shared_ptr<IPatientRepository> m_patientRepo;
+    std::shared_ptr<ITelemetryRepository> m_telemetryRepo;
+    std::shared_ptr<IAlarmRepository> m_alarmRepo;
+    std::shared_ptr<IVitalsRepository> m_vitalsRepo;
+    std::shared_ptr<ISensorDataSource> m_sensorDataSource;
     
-    std::shared_ptr<Domain::Monitoring::PatientAggregate> m_currentPatient;
-    std::shared_ptr<Domain::Monitoring::AlarmAggregate> m_alarmAggregate;
-    std::shared_ptr<Domain::Monitoring::TelemetryBatch> m_currentBatch;
+    std::shared_ptr<PatientAggregate> m_currentPatient;
+    std::shared_ptr<AlarmAggregate> m_alarmAggregate;
+    std::shared_ptr<TelemetryBatch> m_currentBatch;
     
     /**
      * @brief Create a new telemetry batch.
@@ -179,10 +166,7 @@ private:
      * 
      * @param vital Vital record to evaluate
      */
-    void evaluateAlarms(const Domain::Monitoring::VitalRecord& vital);
+    void evaluateAlarms(const VitalRecord& vital);
 };
 
-} // namespace Services
-} // namespace Application
-} // namespace ZMonitor
-
+} // namespace zmon

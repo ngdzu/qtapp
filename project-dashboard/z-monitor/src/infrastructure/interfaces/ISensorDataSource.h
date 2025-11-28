@@ -21,9 +21,7 @@
 #include "domain/monitoring/VitalRecord.h"
 #include "domain/monitoring/WaveformSample.h"
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Interfaces {
+namespace zmon {
 
 /**
  * @struct DataSourceInfo
@@ -135,7 +133,7 @@ signals:
      * @note Emitted at 1 Hz (once per second) for vitals
      * @note CRITICAL PATH: < 50ms from sensor reading to this signal
      */
-    void vitalSignsReceived(const Domain::Monitoring::VitalRecord& vital);
+    void vitalSignsReceived(const VitalRecord& vital);
 
     /**
      * @brief Emitted when waveform sample available.
@@ -145,7 +143,7 @@ signals:
      * @note Emitted at high frequency (125-500 Hz depending on waveform type)
      * @note Only for display (not persisted to database)
      */
-    void waveformSampleReceived(const Domain::Monitoring::WaveformSample& waveform);
+    void waveformSampleReceived(const WaveformSample& waveform);
 
     /**
      * @brief Emitted when sensor connection status changes.
@@ -173,7 +171,4 @@ signals:
     void stopped();
 };
 
-} // namespace Interfaces
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon

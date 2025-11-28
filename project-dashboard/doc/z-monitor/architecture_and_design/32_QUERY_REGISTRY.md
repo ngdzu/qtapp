@@ -707,7 +707,7 @@ QSqlQuery DatabaseManager::getPreparedQuery(const QString& queryId) {
 
 ```cpp
 // Application startup
-void Application::initializeDatabase() {
+void initializeDatabase() {
     m_dbManager = new DatabaseManager(this);
     m_dbManager->open("/data/zmonitor.db", encryptionKey);
     

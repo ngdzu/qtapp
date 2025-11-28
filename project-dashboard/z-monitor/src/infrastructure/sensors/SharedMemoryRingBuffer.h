@@ -18,9 +18,7 @@
 #include <atomic>
 #include <string>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Sensors {
+namespace zmon {
 
 /**
  * @struct RingBufferHeader
@@ -243,7 +241,4 @@ private:
     static uint32_t calculateCrc32(const uint8_t* data, size_t size);
 };
 
-} // namespace Sensors
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon

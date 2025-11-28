@@ -31,10 +31,7 @@
 #include <QQueue>
 #include <QMutex>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
-
+namespace zmon {
 // Temporary lock-free queue wrapper using QQueue + mutex
 // TODO: Replace with moodycamel::ConcurrentQueue
 template<typename T>
@@ -134,45 +131,45 @@ bool LogService::initialize(const QString& logDir, const QString& logFileName)
 
 void LogService::trace(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::Infrastructure::Logging::LogLevel::Trace, message, context);
+    enqueueLog(::ZMonitor::LogLevel::Trace, message, context);
 }
 
 void LogService::debug(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::Infrastructure::Logging::LogLevel::Debug, message, context);
+    enqueueLog(::ZMonitor::LogLevel::Debug, message, context);
 }
 
 void LogService::info(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::Infrastructure::Logging::LogLevel::Info, message, context);
+    enqueueLog(::ZMonitor::LogLevel::Info, message, context);
 }
 
 void LogService::warning(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::Infrastructure::Logging::LogLevel::Warning, message, context);
+    enqueueLog(::ZMonitor::LogLevel::Warning, message, context);
 }
 
 void LogService::error(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::Infrastructure::Logging::LogLevel::Error, message, context);
+    enqueueLog(::ZMonitor::LogLevel::Error, message, context);
 }
 
 void LogService::critical(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::Infrastructure::Logging::LogLevel::Critical, message, context);
+    enqueueLog(::ZMonitor::LogLevel::Critical, message, context);
 }
 
 void LogService::fatal(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::Infrastructure::Logging::LogLevel::Fatal, message, context);
+    enqueueLog(::ZMonitor::LogLevel::Fatal, message, context);
 }
 
-void LogService::setLogLevel(::ZMonitor::Infrastructure::Logging::LogLevel level)
+void LogService::setLogLevel(::ZMonitor::LogLevel level)
 {
     m_minLevel = level;
 }
 
-::ZMonitor::Infrastructure::Logging::LogLevel LogService::logLevel() const
+::ZMonitor::LogLevel LogService::logLevel() const
 {
     return m_minLevel;
 }
@@ -259,7 +256,7 @@ void LogService::processLogQueue()
     }
 }
 
-void LogService::enqueueLog(::ZMonitor::Infrastructure::Logging::LogLevel level, const QString& message,
+void LogService::enqueueLog(::ZMonitor::LogLevel level, const QString& message,
                             const QVariantMap& context, const QString& category)
 {
     // Check log level filter
@@ -293,7 +290,5 @@ QString LogService::getCurrentThreadId()
     return QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId()), 16);
 }
 
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

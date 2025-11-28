@@ -20,10 +20,7 @@
 #include <memory>
 #include <cstdint>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-
+namespace zmon {
 // Forward declarations for domain events
 class AlarmRaised;
 class AlarmAcknowledged;
@@ -192,7 +189,5 @@ private:
     bool shouldSuppressDuplicate(const std::string& alarmType, const std::string& patientMrn) const;
 };
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

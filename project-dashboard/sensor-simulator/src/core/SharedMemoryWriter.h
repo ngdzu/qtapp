@@ -18,7 +18,7 @@
 #include <string>
 #include <memory>
 
-namespace SensorSimulator {
+namespace zmon {
 
 /**
  * @struct RingBufferHeader
@@ -227,5 +227,5 @@ private:
                                            int64_t startTimestamp, const std::vector<int>& values);
 };
 
-} // namespace SensorSimulator
+} // namespace zmon
 

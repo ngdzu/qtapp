@@ -15,16 +15,9 @@
 #include <QObject>
 #include <QString>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Adapters {
-    class SettingsManager;
-}
-}
+namespace zmon {
 
-namespace ZMonitor {
-namespace Interface {
-namespace Controllers {
+class SettingsManager;
 
 /**
  * @class SettingsController
@@ -153,14 +146,11 @@ private slots:
     void onSettingChanged(const QString& key, const QVariant& value);
 
 private:
-    Infrastructure::Qt::SettingsManager* m_settingsManager;
+    SettingsManager* m_settingsManager;
     QString m_deviceLabel;
     QString m_measurementUnit;
     QString m_serverUrl;
     bool m_useMockServer;
 };
 
-} // namespace Controllers
-} // namespace Interface
-} // namespace ZMonitor
-
+} // namespace zmon

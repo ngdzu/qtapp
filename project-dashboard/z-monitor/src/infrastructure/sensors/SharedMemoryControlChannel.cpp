@@ -15,9 +15,7 @@
 #include <cerrno>
 #include <QDebug>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Sensors {
+namespace zmon {
 
 SharedMemoryControlChannel::SharedMemoryControlChannel(const QString& socketPath, QObject* parent)
     : QObject(parent)
@@ -184,7 +182,4 @@ bool SharedMemoryControlChannel::parseControlMessage(const uint8_t* data, size_t
     return true;
 }
 
-} // namespace Sensors
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon

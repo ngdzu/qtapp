@@ -15,10 +15,7 @@
 #include <cstdint>
 #include <string>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-
+namespace zmon {
 /**
  * @class WaveformSample
  * @brief Immutable value object representing a single waveform sample.
@@ -123,7 +120,5 @@ struct WaveformSample {
     }
 };
 
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

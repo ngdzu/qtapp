@@ -271,19 +271,15 @@ Document namespaces:
 
 ```cpp
 /**
- * @namespace ZMonitor::Core
- * @brief Core services and business logic.
+ * @namespace zmon
+ * @brief Z Monitor application namespace.
  * 
- * This namespace contains all core services that implement the
- * business logic of the Z Monitor application. These services
- * have no UI dependencies and can be used independently.
- * 
- * @see ZMonitor::Controllers
+ * This namespace contains all classes and services for the
+ * Z Monitor application. All code is in the same business domain,
+ * so a flat namespace structure is used.
  */
-namespace ZMonitor {
-namespace Core {
+namespace zmon {
     // ...
-}
 }
 ```
 

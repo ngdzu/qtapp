@@ -23,10 +23,7 @@ namespace spdlog {
     class logger;
 }
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
-
+namespace zmon {
 /**
  * @class SpdlogBackend
  * @brief spdlog-based logging backend implementation.
@@ -175,7 +172,5 @@ private:
     bool m_initialized{false};
 };
 
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

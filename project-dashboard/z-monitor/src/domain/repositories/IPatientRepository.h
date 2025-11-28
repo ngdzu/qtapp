@@ -19,13 +19,9 @@
 #include <vector>
 #include <memory>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
-    class PatientAggregate;
-}
+namespace zmon {
 
-namespace Repositories {
+class PatientAggregate;
 
 /**
  * @class IPatientRepository
@@ -53,7 +49,7 @@ public:
      * @param mrn Medical Record Number
      * @return Shared pointer to patient aggregate, or nullptr if not found
      */
-    virtual std::shared_ptr<Monitoring::PatientAggregate> findByMrn(const std::string& mrn) = 0;
+    virtual std::shared_ptr<PatientAggregate> findByMrn(const std::string& mrn) = 0;
     
     /**
      * @brief Save patient aggregate.
@@ -64,7 +60,7 @@ public:
      * @param patient Patient aggregate to save
      * @return true if save succeeded, false otherwise
      */
-    virtual bool save(const Monitoring::PatientAggregate& patient) = 0;
+    virtual bool save(const PatientAggregate& patient) = 0;
     
     /**
      * @brief Get admission history for a patient.
@@ -83,7 +79,7 @@ public:
      * 
      * @return Vector of patient aggregates
      */
-    virtual std::vector<std::shared_ptr<Monitoring::PatientAggregate>> findAll() = 0;
+    virtual std::vector<std::shared_ptr<PatientAggregate>> findAll() = 0;
     
     /**
      * @brief Delete patient by MRN.
@@ -96,7 +92,4 @@ public:
     virtual bool remove(const std::string& mrn) = 0;
 };
 
-} // namespace Repositories
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon

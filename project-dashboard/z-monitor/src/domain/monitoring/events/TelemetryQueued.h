@@ -15,9 +15,7 @@
 #include <string>
 #include <cstdint>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Monitoring {
+namespace zmon {
 namespace Events {
 
 /**
@@ -96,8 +94,5 @@ struct TelemetryQueued {
     {}
 };
 
-} // namespace Events
-} // namespace Monitoring
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

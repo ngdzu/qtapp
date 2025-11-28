@@ -14,10 +14,7 @@
 
 #include <string>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Admission {
-
+namespace zmon {
 /**
  * @class BedLocation
  * @brief Immutable value object representing a bed/room location.
@@ -130,7 +127,5 @@ struct BedLocation {
     }
 };
 
-} // namespace Admission
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

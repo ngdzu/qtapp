@@ -9,10 +9,7 @@
 #include "DeviceAggregate.h"
 #include <chrono>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Provisioning {
-
+namespace zmon {
 DeviceAggregate::DeviceAggregate(const std::string& deviceId)
     : m_deviceId(deviceId)
     , m_provisioningStatus(ProvisioningStatus::Unprovisioned)
@@ -130,7 +127,5 @@ bool DeviceAggregate::validateProvisioningPayload(const std::string& serverUrl,
     return true;
 }
 
-} // namespace Provisioning
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

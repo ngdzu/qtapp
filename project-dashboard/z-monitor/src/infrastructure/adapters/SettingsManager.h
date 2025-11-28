@@ -17,10 +17,7 @@
 #include <QVariant>
 #include <QDateTime>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Adapters {
-
+namespace zmon {
 /**
  * @class SettingsManager
  * @brief Manages device configuration settings and user preferences.
@@ -207,7 +204,5 @@ private:
     static SettingsManager* s_instance;
 };
 
-} // namespace Adapters
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

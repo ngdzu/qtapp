@@ -16,15 +16,10 @@
 #include <string>
 #include <memory>
 
-namespace ZMonitor {
-namespace Domain {
-namespace Provisioning {
+namespace zmon {
     class DeviceAggregate;
     class ProvisioningSession;
 }
-
-namespace Repositories {
-
 /**
  * @class IProvisioningRepository
  * @brief Repository interface for provisioning aggregate persistence.
@@ -94,7 +89,5 @@ public:
     virtual size_t deleteExpiredSessions(int64_t currentTimeMs) = 0;
 };
 
-} // namespace Repositories
-} // namespace Domain
-} // namespace ZMonitor
-
+} // namespace zmon
+} // namespace zmon

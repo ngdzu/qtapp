@@ -11,3 +11,4 @@ appliesTo:
 - Use fenced code blocks with language identifiers (e.g., ```cpp) and ensure code samples compile or at least type-check.
 - When adding complex sections (callouts, nested lists), preview the file (e.g., via VS Code Markdown preview) to confirm formatting.
 - **Do not include comments in shell/bash code blocks** - comments make it difficult to copy and paste commands. Instead, write explanatory text outside the code block before or after it.
+- **Always use markdown links for file references** - When referencing other markdown files, use proper markdown link syntax `[link text](relative/path/to/file.md)` instead of just listing the path as plain text. This makes documents navigable and improves the reading experience. Example: Use `[Sensor Integration Summary](../z-monitor/architecture_and_design/37_SENSOR_INTEGRATION.md)` instead of `doc/z-monitor/architecture_and_design/37_SENSOR_INTEGRATION.md`.

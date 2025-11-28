@@ -17,10 +17,7 @@
 #include <QVariantMap>
 #include <QString>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
-
+namespace zmon {
 /**
  * @enum LogLevel
  * @brief Log severity levels.
@@ -102,8 +99,5 @@ struct LogEntry {
     QString function;
 };
 
-} // namespace Logging
-} // namespace Infrastructure
-} // namespace ZMonitor
-
-
+} // namespace zmon
+} // namespace zmon

@@ -12,9 +12,7 @@
 #include <chrono>
 #include <cstddef>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Sensors {
+namespace zmon {
 
 // Simple CRC32 implementation (polynomial 0xEDB88320)
 static uint32_t crc32_table[256];
@@ -184,7 +182,4 @@ uint64_t SharedMemoryRingBuffer::getWriteIndex() const {
     return m_header->writeIndex.load(std::memory_order_acquire);
 }
 
-} // namespace Sensors
-} // namespace Infrastructure
-} // namespace ZMonitor
-
+} // namespace zmon
