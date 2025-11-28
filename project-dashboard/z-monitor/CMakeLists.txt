@@ -36,6 +36,13 @@ endif()
 # Add source code subdirectory (handles all DDD layers)
 add_subdirectory(src)
 
+# Add tests subdirectory (optional, can be disabled)
+option(BUILD_TESTING "Build tests" ON)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
 # Install main executable
 install(TARGETS z-monitor RUNTIME DESTINATION /opt/z-monitor/)
 

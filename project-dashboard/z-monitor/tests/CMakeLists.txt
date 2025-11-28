@@ -3,33 +3,24 @@
 # Enable testing
 enable_testing()
 
-# Note: Test targets will be added here as tests are implemented
-# Example structure:
-#
-# # Unit tests
-# add_subdirectory(unit)
-#
-# # Integration tests
-# add_subdirectory(integration)
-#
-# # End-to-end tests
+# Find or download GoogleTest
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.14.0
+)
+set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+# Unit tests
+add_subdirectory(unit)
+
+# Integration tests
+add_subdirectory(integration)
+
+# End-to-end tests (to be implemented)
 # add_subdirectory(e2e)
-#
-# # Benchmarks
+
+# Benchmarks (to be implemented)
 # add_subdirectory(benchmarks)
-
-# Example unit test target (to be implemented):
-# add_executable(test_domain
-#     unit/domain/TestPatientAggregate.cpp
-#     unit/domain/TestTelemetryBatch.cpp
-# )
-#
-# target_link_libraries(test_domain
-#     PRIVATE
-#         z_monitor_domain
-#         Qt6::Core
-#         Qt6::Test
-# )
-#
-# add_test(NAME DomainTests COMMAND test_domain)
-
