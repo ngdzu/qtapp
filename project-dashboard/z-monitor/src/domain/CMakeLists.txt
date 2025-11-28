@@ -36,6 +36,12 @@ set(DOMAIN_SOURCES
     repositories/IProvisioningRepository.h
     repositories/IUserRepository.h
     repositories/IAuditRepository.h
+    
+    # Security (RBAC)
+    security/Permission.h
+    security/UserRole.h
+    security/PermissionRegistry.h
+    security/PermissionRegistry.cpp
 )
 
 # Create domain layer static library

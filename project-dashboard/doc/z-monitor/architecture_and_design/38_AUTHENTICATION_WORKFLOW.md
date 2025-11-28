@@ -175,22 +175,31 @@ void AlarmController::silenceAlarm(const QString& alarmId, int durationSeconds) 
 - Serving as the single source of truth for both `SecurityService` and UI controllers when they need to display human-readable permission descriptions.
 
 ```cpp
+// PermissionRegistry is implemented in domain/security/PermissionRegistry.h/cpp
+// Note: Uses std::string (not QString) to keep domain layer Qt-free
 class PermissionRegistry {
 public:
     static const PermissionRegistry& instance();
 
-    const PermissionSet& permissionsForRole(UserRole role) const;
-    QString toString(Permission perm) const;           // e.g. "VIEW_VITALS"
-    QString toDisplayName(Permission perm) const;      // e.g. "View Vitals"
+    PermissionSet permissionsForRole(UserRole role) const;
+    std::string toString(Permission perm) const;           // e.g. "VIEW_VITALS"
+    std::string toDisplayName(Permission perm) const;      // e.g. "View Vitals"
+    Permission fromString(const std::string& permissionStr) const;
 
 private:
     PermissionRegistry();
     std::array<PermissionSet, static_cast<size_t>(UserRole::Count)> m_roleMatrix;
+    std::array<std::string, static_cast<size_t>(Permission::Count)> m_permissionStrings;
+    std::array<std::string, static_cast<size_t>(Permission::Count)> m_permissionDisplayNames;
 };
 
-PermissionSet PermissionRegistry::permissionsForRole(UserRole role) const {
-    return m_roleMatrix.at(static_cast<size_t>(role));
-}
+// Usage example:
+const auto& registry = PermissionRegistry::instance();
+PermissionSet nursePerms = registry.permissionsForRole(UserRole::Nurse);
+bool canViewVitals = hasPermission(nursePerms, Permission::ViewVitals);
+
+// Application layer can convert std::string to QString when needed:
+QString permStr = QString::fromStdString(registry.toString(Permission::ViewVitals));
 ```
 
 `UserProfile::hasPermission()` simply checks membership within the `PermissionSet` returned by the registry. During authentication, once a role is resolved from the hospital server, `SecurityService` seeds the user profile with `PermissionRegistry::permissionsForRole(resolvedRole)` and optionally merges in any extra per-user overrides supplied by the server. This guarantees that every device start has the same default permission set defined by the design table above, without duplicating string literals throughout the codebase.
