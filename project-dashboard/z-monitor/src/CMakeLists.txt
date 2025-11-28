@@ -35,6 +35,10 @@ set(APPLICATION_SOURCES
 set(INFRASTRUCTURE_SOURCES
     infrastructure/logging/LogEntry.h
     infrastructure/logging/ILogBackend.h
+    infrastructure/logging/utils/LogFormatter.h
+    infrastructure/logging/utils/LogFormatter.cpp
+    infrastructure/logging/backends/CustomBackend.h
+    infrastructure/logging/backends/CustomBackend.cpp
 )
 
 # Interface layer sources (Qt Quick dependencies)
