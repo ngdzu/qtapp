@@ -495,9 +495,11 @@ QString deviceIp = "10.1.50.104";
 QRCodeData qrData = provisioningService->generateProvisioningQRCode(deviceId, deviceIp);
 
 // Display QR code in UI
-qDebug() << "Device ID:" << qrData.deviceId;
-qDebug() << "Pairing Code:" << qrData.pairingCode;
-qDebug() << "Expires in:" << qrData.secondsUntilExpiry() << "seconds";
+m_logService->info("Generated provisioning QR code", {
+    {"deviceId", qrData.deviceId},
+    {"pairingCode", qrData.pairingCode},
+    {"expiresInSeconds", QString::number(qrData.secondsUntilExpiry())}
+});
 
 // Show QR code image
 qrCodeDisplay->setPixmap(QPixmap::fromImage(qrData.qrCodeImage));
@@ -505,7 +507,7 @@ pairingCodeLabel->setText(qrData.pairingCode);
 
 // Setup expiry timer
 QTimer::singleShot(qrData.secondsUntilExpiry() * 1000, [this]() {
-    qWarning() << "QR code expired. Generate new code.";
+    m_logService->warning("QR code expired, generate new code", {});
     showExpiredMessage();
 });
 ```
@@ -524,9 +526,10 @@ auto future = provisioningService->applyConfiguration(payload, pairingCode);
 
 future.then([](const ProvisioningResult& result) {
     if (result.isSuccess()) {
-        qDebug() << "Provisioning completed successfully!";
-        qDebug() << "Server URL:" << result.serverUrl;
-        qDebug() << "Device Label:" << result.deviceLabel;
+        m_logService->info("Provisioning completed successfully", {
+            {"serverUrl", result.serverUrl},
+            {"deviceLabel", result.deviceLabel}
+        });
         
         // Update UI
         showProvisionedState();
@@ -534,7 +537,10 @@ future.then([](const ProvisioningResult& result) {
         // Connect to server
         connectToServer();
     } else {
-        qCritical() << "Provisioning failed:" << result.error.message;
+        m_logService->critical("Provisioning failed", {
+            {"error", result.error.message},
+            {"errorCode", QString::number(static_cast<int>(result.error.code))}
+        });
         
         // Handle specific errors
         switch (result.error.code) {
@@ -615,7 +621,7 @@ private:
         connectToServer(result.serverUrl);
         
         // Log success
-        qInfo() << "Device provisioned successfully";
+        m_logService->info("Device provisioned successfully", {});
     }
     
     void handleProvisioningFailure(const ProvisioningError& error) {
@@ -623,7 +629,9 @@ private:
         emit statusChanged(m_status);
         emit provisioningFailed(error);
         
-        qCritical() << "Provisioning failed:" << error.message;
+        m_logService->critical("Provisioning failed", {
+            {"error", error.message}
+        });
     }
 
     IProvisioningService* m_provisioningService;
@@ -667,9 +675,10 @@ void ProvisioningService::transitionToState(ProvisioningStatus newStatus) {
     
     // Validate transition
     if (!isValidTransition(oldStatus, newStatus)) {
-        qWarning() << "Invalid state transition:" 
-                   << provisioningStatusToString(oldStatus) << "->" 
-                   << provisioningStatusToString(newStatus);
+        m_logService->warning("Invalid state transition", {
+            {"fromState", provisioningStatusToString(oldStatus)},
+            {"toState", provisioningStatusToString(newStatus)}
+        });
         return;
     }
     
@@ -677,9 +686,10 @@ void ProvisioningService::transitionToState(ProvisioningStatus newStatus) {
     m_status = newStatus;
     
     // Log transition
-    qInfo() << "Provisioning state:" 
-            << provisioningStatusToString(oldStatus) << "->" 
-            << provisioningStatusToString(newStatus);
+    m_logService->info("Provisioning state transition", {
+        {"fromState", provisioningStatusToString(oldStatus)},
+        {"toState", provisioningStatusToString(newStatus)}
+    });
     
     // Emit signal
     emit statusChanged(newStatus);
@@ -738,14 +748,14 @@ bool ProvisioningPayload::verifySignature(const QByteArray& publicKey) const {
 bool validatePairingCode(const QString& provided, const QString& expected) {
     // Case-insensitive comparison
     if (provided.toUpper() != expected.toUpper()) {
-        qWarning() << "Pairing code mismatch";
+        m_logService->warning("Pairing code mismatch", {});
         logSecurityEvent("PAIRING_CODE_MISMATCH", provided);
         return false;
     }
     
     // Check QR code not expired
     if (isQRCodeExpired()) {
-        qWarning() << "Pairing code expired";
+        m_logService->warning("Pairing code expired", {});
         return false;
     }
     

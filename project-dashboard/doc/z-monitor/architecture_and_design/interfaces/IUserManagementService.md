@@ -761,11 +761,13 @@ void Application::initializeUserManagementService() {
     bool useMock = SettingsManager::instance()->getValue("user_mgmt_use_mock", true).toBool();
     
     if (useMock) {
-        qInfo() << "Using MOCK user management service (development mode)";
+        m_logService->info("Using MOCK user management service (development mode)", {});
         m_userMgmtService = new MockUserManagementService(this);
     } else {
         QString serverUrl = SettingsManager::instance()->getValue("user_mgmt_server_url").toString();
-        qInfo() << "Using PRODUCTION user management service:" << serverUrl;
+        m_logService->info("Using PRODUCTION user management service", {
+            {"serverUrl", serverUrl}
+        });
         m_userMgmtService = new HospitalUserManagementAdapter(serverUrl, m_certManager, this);
     }
     

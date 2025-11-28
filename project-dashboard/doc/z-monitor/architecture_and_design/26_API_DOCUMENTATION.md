@@ -486,9 +486,14 @@ Include examples in documentation:
  * 
  * auto result = network->sendTelemetry(data);
  * if (result.isSuccess()) {
- *     qDebug() << "Telemetry sent successfully";
+ *     m_logService->info("Telemetry sent successfully", {
+ *         {"deviceId", data.deviceId}
+ *     });
  * } else {
- *     qDebug() << "Error:" << result.error().message();
+ *     m_logService->error("Telemetry send failed", {
+ *         {"deviceId", data.deviceId},
+ *         {"error", result.error().message()}
+ *     });
  * }
  * @endcode
  */

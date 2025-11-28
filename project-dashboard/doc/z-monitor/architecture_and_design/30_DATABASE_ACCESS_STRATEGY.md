@@ -1,13 +1,15 @@
 # Database Access Strategy and ORM Plan
 
 **Document ID:** DESIGN-030  
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** Approved  
 **Last Updated:** 2025-11-27
 
 ---
 
 This document defines the database access strategy for the Z Monitor application, including ORM approach, repository pattern implementation, and query optimization.
+
+> **📋 Logging:** All code examples use `LogService` for structured logging (injected via dependency injection). Never use `qWarning()`, `qDebug()`, `qCritical()`, etc. See [21_LOGGING_STRATEGY.md](./21_LOGGING_STRATEGY.md) for logging guidelines.
 
 > **📊 Architecture Diagram:**  
 > [View Database Access Architecture (Mermaid)](./30_DATABASE_ACCESS_STRATEGY.mmd)  
@@ -336,7 +338,7 @@ public:
 
 class SQLitePatientRepository : public IPatientRepository {
 public:
-    explicit SQLitePatientRepository(DatabaseManager* dbManager);
+    explicit SQLitePatientRepository(DatabaseManager* dbManager, LogService* logService);
     
     std::optional<PatientAggregate> findByMrn(const QString& mrn) override;
     bool save(const PatientAggregate& patient) override;
@@ -346,6 +348,7 @@ public:
     
 private:
     DatabaseManager* m_dbManager;
+    LogService* m_logService;  // Injected dependency for structured logging
     
     // Mapping helpers
     PatientAggregate mapToAggregate(const QSqlQuery& query);
@@ -359,9 +362,15 @@ private:
 // z-monitor/src/infrastructure/persistence/SQLitePatientRepository.cpp
 #include "SQLitePatientRepository.h"
 #include "QueryRegistry.h"  // ✅ Include for QueryId constants
+#include "../../qt/LogService.h"  // ✅ Include for structured logging
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>
+
+// ✅ Constructor with dependency injection (LogService for structured logging)
+SQLitePatientRepository::SQLitePatientRepository(DatabaseManager* dbManager, LogService* logService)
+    : m_dbManager(dbManager), m_logService(logService) {
+}
 
 std::optional<PatientAggregate> SQLitePatientRepository::findByMrn(const QString& mrn) {
     // ✅ Type-safe query ID with autocomplete (no magic strings)
@@ -371,7 +380,11 @@ std::optional<PatientAggregate> SQLitePatientRepository::findByMrn(const QString
     query.bindValue(":mrn", mrn);
     
     if (!query.exec()) {
-        qWarning() << "Failed to find patient:" << query.lastError().text();
+        m_logService->warning("Failed to find patient", {
+            {"mrn", mrn},
+            {"error", query.lastError().text()},
+            {"query", "FIND_BY_MRN"}
+        });
         return std::nullopt;
     }
     
@@ -391,7 +404,11 @@ bool SQLitePatientRepository::save(const PatientAggregate& patient) {
     bindAggregateToQuery(query, patient);
     
     if (!query.exec()) {
-        qWarning() << "Failed to save patient:" << query.lastError().text();
+        m_logService->warning("Failed to save patient", {
+            {"mrn", patient.identity().mrn()},
+            {"error", query.lastError().text()},
+            {"query", "INSERT"}
+        });
         return false;
     }
     
@@ -454,7 +471,9 @@ void DatabaseManager::initialize() {
     // Initialize all queries from QueryCatalog
     QueryCatalog::initializeQueries(this);
     
-    qInfo() << "Initialized" << m_preparedQueries.size() << "prepared queries";
+    m_logService->info("Initialized prepared queries", {
+        {"count", QString::number(m_preparedQueries.size())}
+    });
 }
 
 // Repositories use type-safe QueryId constants:
@@ -497,7 +516,10 @@ bool SQLiteTelemetryRepository::saveBatch(const TelemetryBatch& batch) {
         query.bindValue(":batch_id", batch.getBatchId());
         
         if (!query.exec()) {
-            qWarning() << "Batch insert failed:" << query.lastError().text();
+            m_logService->warning("Batch insert failed", {
+                {"error", query.lastError().text()},
+                {"batchSize", QString::number(batch.size())}
+            });
             db.rollback();
             return false;
         }

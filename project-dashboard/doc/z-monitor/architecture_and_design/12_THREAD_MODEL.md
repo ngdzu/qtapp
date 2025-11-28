@@ -603,7 +603,10 @@ public:
         
         // If we're consuming too much CPU, yield
         if (duration > m_cpuBudget) {
-            qWarning() << "RT thread exceeding CPU budget!";
+            m_logService->warning("RT thread exceeding CPU budget", {
+                {"durationUs", QString::number(std::chrono::duration_cast<std::chrono::microseconds>(duration).count())},
+                {"budgetUs", QString::number(m_cpuBudget.count())}
+            });
             QThread::yieldCurrentThread(); // Give others a chance
         }
     }
@@ -688,7 +691,10 @@ public:
         
         // IF BACKGROUND HASN'T RUN IN 5 SECONDS → STARVATION!
         if (timeSinceLastBgHeartbeat > 5000ms) {
-            qCritical() << "STARVATION DETECTED: Background thread starved!";
+            m_logService->critical("Starvation detected: Background thread starved", {
+                {"thread", "Background"},
+                {"timeSinceLastHeartbeatMs", QString::number(timeSinceLastBgHeartbeat.count())}
+            });
             // Action: Temporarily lower RT thread priority
             lowerRtPriority();
         }
@@ -724,7 +730,9 @@ public:
     void adjustPriorities() {
         // If background queue is growing (starvation indicator)
         if (m_backgroundQueueDepth > 1000) {
-            qWarning() << "Background queue full, raising priority temporarily";
+            m_logService->warning("Background queue full, raising priority temporarily", {
+                {"queueDepth", QString::number(m_backgroundQueueDepth)}
+            });
             m_backgroundThread->setPriority(QThread::NormalPriority); // Boost
         } else {
             m_backgroundThread->setPriority(QThread::LowPriority); // Normal
@@ -1216,7 +1224,9 @@ public:
         
         // Wait for thread to finish (with timeout)
         if (!m_thread->wait(5000)) {
-            qWarning() << "Database thread did not quit in time, terminating";
+            m_logService->warning("Database thread did not quit in time, terminating", {
+                {"timeoutMs", "5000"}
+            });
             m_thread->terminate();
             m_thread->wait();
         }

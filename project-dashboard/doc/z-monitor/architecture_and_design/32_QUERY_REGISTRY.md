@@ -426,7 +426,10 @@ void QueryCatalog::initializeQueries(DatabaseManager* dbManager) {
         dbManager->registerPreparedQuery(def.id, def.sql);
     }
     
-    qInfo() << "Initialized" << queries.size() << "prepared queries";
+    // Note: LogService should be injected into DatabaseManager
+    // m_logService->info("Initialized prepared queries", {
+    //     {"count", QString::number(queries.size())}
+    // });
 }
 
 QString QueryCatalog::generateDocumentation() {
@@ -495,8 +498,11 @@ std::optional<PatientAggregate> SQLitePatientRepository::findByMrn(const QString
     query.bindValue(":mrn", mrn);
     
     if (!query.exec()) {
-        qWarning() << "Query failed:" << QueryId::Patient::FIND_BY_MRN 
-                   << query.lastError().text();
+        m_logService->warning("Query failed", {
+            {"queryId", QueryId::Patient::FIND_BY_MRN},
+            {"mrn", mrn},
+            {"error", query.lastError().text()}
+        });
         return std::nullopt;
     }
     
@@ -522,8 +528,11 @@ bool SQLitePatientRepository::save(const PatientAggregate& patient) {
     query.bindValue(":admission_source", patient.getAdmissionSource());
     
     if (!query.exec()) {
-        qWarning() << "Save failed:" << QueryId::Patient::INSERT 
-                   << query.lastError().text();
+        m_logService->warning("Save failed", {
+            {"queryId", QueryId::Patient::INSERT},
+            {"mrn", identity.getMrn()},
+            {"error", query.lastError().text()}
+        });
         return false;
     }
     
@@ -663,19 +672,26 @@ void DatabaseManager::registerPreparedQuery(const QString& queryId, const QStrin
     QSqlQuery query(m_writeDb);
     
     if (!query.prepare(sql)) {
-        qCritical() << "Failed to prepare query" << queryId 
-                    << ":" << query.lastError().text();
+        m_logService->critical("Failed to prepare query", {
+            {"queryId", queryId},
+            {"error", query.lastError().text()},
+            {"sql", sql}
+        });
         return;
     }
     
     m_preparedQueries[queryId] = query;
-    qDebug() << "Registered prepared query:" << queryId;
+    m_logService->debug("Registered prepared query", {
+        {"queryId", queryId}
+    });
 }
 
 QSqlQuery DatabaseManager::getPreparedQuery(const QString& queryId) {
     if (!m_preparedQueries.contains(queryId)) {
-        qCritical() << "Query not found:" << queryId;
-        qCritical() << "Available queries:" << m_preparedQueries.keys();
+        m_logService->critical("Query not found", {
+            {"queryId", queryId},
+            {"availableQueries", m_preparedQueries.keys().join(", ")}
+        });
         
         // Return invalid query
         return QSqlQuery();
@@ -718,7 +734,9 @@ int main() {
     file.write(doc.toUtf8());
     file.close();
     
-    qInfo() << "Generated query documentation";
+    m_logService->info("Generated query documentation", {
+        {"queryCount", QString::number(queries.size())}
+    });
 }
 ```
 

@@ -682,8 +682,11 @@ void DatabaseManager::monitorDatabaseSize() {
         case DatabaseSizeStatus::WARNING:
             {
                 int daysLeft = estimateDaysUntilFull();
-                qWarning() << "Database size warning:" << sizeMB << "MB (80% of limit)";
-                qWarning() << "Estimated days until full:" << daysLeft;
+                m_logService->warning("Database size warning", {
+                    {"sizeMB", QString::number(sizeMB)},
+                    {"limitPercent", "80"},
+                    {"daysUntilFull", QString::number(daysLeft)}
+                });
                 emit databaseSizeWarning(sizeMB, daysLeft);
                 
                 // Suggest cleanup
@@ -695,8 +698,11 @@ void DatabaseManager::monitorDatabaseSize() {
         case DatabaseSizeStatus::CRITICAL:
             {
                 int daysLeft = estimateDaysUntilFull();
-                qCritical() << "Database size critical:" << sizeMB << "MB (90% of limit)";
-                qCritical() << "Estimated days until full:" << daysLeft;
+                m_logService->critical("Database size critical", {
+                    {"sizeMB", QString::number(sizeMB)},
+                    {"limitPercent", "90"},
+                    {"daysUntilFull", QString::number(daysLeft)}
+                });
                 emit databaseSizeCritical(sizeMB, daysLeft);
                 
                 // Warn user
@@ -706,7 +712,10 @@ void DatabaseManager::monitorDatabaseSize() {
             break;
             
         case DatabaseSizeStatus::EXCEEDED:
-            qCritical() << "Database size EXCEEDED:" << sizeMB << "MB (over 500 MB limit)!";
+            m_logService->critical("Database size exceeded", {
+                {"sizeMB", QString::number(sizeMB)},
+                {"limitMB", "500"}
+            });
             emit databaseSizeExceeded(sizeMB);
             
             // Emergency cleanup
@@ -723,7 +732,7 @@ void DatabaseManager::monitorDatabaseSize() {
  * @brief Perform emergency cleanup when database exceeds limit.
  */
 void DatabaseManager::performEmergencyCleanup() {
-    qWarning() << "Performing emergency database cleanup...";
+    m_logService->warning("Performing emergency database cleanup", {});
     
     // 1. Delete vitals older than 3 days (instead of 7)
     cleanupOldData(3);
@@ -734,7 +743,9 @@ void DatabaseManager::performEmergencyCleanup() {
     // 3. Compact database (SQLite VACUUM)
     vacuum();
     
-    qInfo() << "Emergency cleanup complete. New size:" << getDatabaseSizeMB() << "MB";
+    m_logService->info("Emergency cleanup complete", {
+        {"newSizeMB", QString::number(getDatabaseSizeMB())}
+    });
 }
 ```
 

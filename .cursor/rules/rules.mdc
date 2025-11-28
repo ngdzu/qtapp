@@ -18,3 +18,4 @@ The detailed rules have been split into topic-specific files to reduce token usa
 - `ztodo_verification.mdc`
 - `mermaid_guidelines.mdc`
 - `qml_guidelines.mdc`
+- `no_hardcoded_values.mdc`

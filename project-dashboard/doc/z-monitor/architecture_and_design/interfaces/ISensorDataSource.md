@@ -473,9 +473,13 @@ connect(dataSource, &ISensorDataSource::sensorError,
 
 // Start acquisition
 if (dataSource->start()) {
-    qInfo() << "Data acquisition started";
+    m_logService->info("Data acquisition started", {
+        {"dataSource", dataSource->getInfo().name}
+    });
 } else {
-    qCritical() << "Failed to start data acquisition";
+    m_logService->critical("Failed to start data acquisition", {
+        {"dataSource", dataSource->getInfo().name}
+    });
 }
 ```
 
@@ -516,7 +520,9 @@ public:
             emit startFailed("Data source failed to start");
             return;
         }
-        qInfo() << "Monitoring started with data source:" << m_dataSource->getInfo().name;
+        m_logService->info("Monitoring started", {
+            {"dataSource", m_dataSource->getInfo().name}
+        });
     }
 
 private slots:
@@ -525,7 +531,9 @@ private slots:
         
         // 1. Validate vitals (< 1ms)
         if (!vital.isValid()) {
-            qWarning() << "Invalid vital signs received";
+            m_logService->warning("Invalid vital signs received", {
+                {"source", m_dataSource->getInfo().name}
+            });
             return;
         }
         

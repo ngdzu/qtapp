@@ -516,8 +516,8 @@ private:
 // Create telemetry batch
 TelemetryBatch batch;
 batch.batchId = QUuid::createUuid().toString();
-batch.deviceId = "ZM-ICU-MON-04";
-batch.patientMrn = "MRN-12345";
+batch.deviceId = m_deviceId;
+batch.patientMrn = m_currentPatientMrn;
 batch.created_at = QDateTime::currentDateTime();
 
 // Add vital signs records
@@ -540,14 +540,15 @@ auto future = telemetryServer->sendVitalsBatch(batch);
 // Handle result
 future.then([](const TransmissionResult& result) {
     if (result.isSuccess()) {
-        qDebug() << "Transmission succeeded";
-        qDebug() << "End-to-end latency:" << result.endToEndLatencyMs() << "ms";
-        qDebug() << "Quality:" << result.metrics.latencyQuality();
+        m_logService->info("Transmission succeeded", {
+            {"latencyMs", QString::number(result.endToEndLatencyMs())},
+            {"quality", result.metrics.latencyQuality()}
+        });
     } else {
-        qDebug() << "Transmission failed:" << result.error.message;
-        if (result.error.retryable) {
-            qDebug() << "Will retry...";
-        }
+        m_logService->warning("Transmission failed", {
+            {"error", result.error.message},
+            {"retryable", result.error.retryable ? "true" : "false"}
+        });
     }
 });
 ```
@@ -558,9 +559,9 @@ future.then([](const TransmissionResult& result) {
 // Create alarm event
 AlarmEvent alarm;
 alarm.alarmId = QUuid::createUuid().toString();
-alarm.deviceId = "ZM-ICU-MON-04";
-alarm.patientMrn = "MRN-12345";
-alarm.patientName = "John Doe";
+alarm.deviceId = m_deviceId;
+alarm.patientMrn = m_currentPatientMrn;
+alarm.patientName = m_currentPatientName;
 alarm.timestamp = QDateTime::currentDateTime();
 alarm.priority = "HIGH";
 alarm.alarmType = "HR_HIGH";
@@ -573,9 +574,15 @@ auto future = telemetryServer->sendAlarm(alarm);
 
 future.then([](const TransmissionResult& result) {
     if (result.isSuccess()) {
-        qDebug() << "Alarm sent to central server";
+        m_logService->info("Alarm sent to central server", {
+            {"alarmId", alarm.alarmId},
+            {"priority", alarm.priority}
+        });
     } else {
-        qCritical() << "Failed to send critical alarm:" << result.error.message;
+        m_logService->critical("Failed to send critical alarm", {
+            {"alarmId", alarm.alarmId},
+            {"error", result.error.message}
+        });
         // Alarm escalation logic here
     }
 });
@@ -599,14 +606,19 @@ auto future = telemetryServer->registerDevice(deviceInfo);
 
 future.then([](const RegistrationResult& result) {
     if (result.success) {
-        qDebug() << "Device registered successfully";
-        qDebug() << "Session ID:" << result.sessionId;
-        qDebug() << "Server time:" << result.serverTime;
+        m_logService->info("Device registered successfully", {
+            {"deviceId", deviceInfo.deviceId},
+            {"sessionId", result.sessionId},
+            {"serverTime", result.serverTime.toString()}
+        });
         
         // Apply server configuration
         Settings::instance()->setSyncInterval(result.configuration.syncInterval);
     } else {
-        qCritical() << "Device registration failed:" << result.error;
+        m_logService->critical("Device registration failed", {
+            {"deviceId", deviceInfo.deviceId},
+            {"error", result.error}
+        });
     }
 });
 ```
@@ -629,27 +641,40 @@ private:
         
         future.then([this, batch, attempt, maxRetries](const TransmissionResult& result) {
             if (result.isSuccess()) {
-                qDebug() << "Transmission succeeded on attempt" << (attempt + 1);
+                m_logService->info("Transmission succeeded", {
+                    {"attempt", QString::number(attempt + 1)},
+                    {"latencyMs", QString::number(result.metrics.endToEndLatencyMs)}
+                });
                 recordMetrics(result.metrics);
                 return;
             }
             
             // Failed
             if (!result.error.retryable) {
-                qCritical() << "Non-retryable error:" << result.error.message;
+                m_logService->critical("Non-retryable error", {
+                    {"error", result.error.message},
+                    {"attempt", QString::number(attempt + 1)}
+                });
                 return;
             }
             
             if (attempt < maxRetries) {
                 // Exponential backoff: 1s, 2s, 4s, 8s, ...
                 int delayMs = qPow(2, attempt) * 1000;
-                qDebug() << "Retrying in" << delayMs << "ms (attempt" << (attempt + 2) << ")";
+                m_logService->debug("Retrying transmission", {
+                    {"delayMs", QString::number(delayMs)},
+                    {"attempt", QString::number(attempt + 2)},
+                    {"maxRetries", QString::number(maxRetries)}
+                });
                 
                 QTimer::singleShot(delayMs, [this, batch, attempt, maxRetries]() {
                     sendBatchAttempt(batch, attempt + 1, maxRetries);
                 });
             } else {
-                qCritical() << "Max retries exceeded. Queuing for later.";
+                m_logService->critical("Max retries exceeded, queuing for later", {
+                    {"maxRetries", QString::number(maxRetries)},
+                    {"error", result.error.message}
+                });
                 queueForLater(batch);
             }
         });
@@ -706,7 +731,10 @@ future.then([](const TransmissionResult& result) {
 // DO: Monitor transmission metrics
 if (result.isSuccess()) {
     if (result.metrics.endToEndLatencyMs > 5000) {
-        qWarning() << "Slow transmission detected:" << result.metrics.endToEndLatencyMs << "ms";
+        m_logService->warning("Slow transmission detected", {
+            {"latencyMs", QString::number(result.metrics.endToEndLatencyMs)},
+            {"thresholdMs", "5000"}
+        });
         // Consider network diagnostics
     }
 }
@@ -840,7 +868,7 @@ TEST(ITelemetryServer, SendVitalsBatchSuccess) {
     TelemetryBatch batch;
     batch.batchId = "batch-001";
     batch.deviceId = "ZM-TEST-01";
-    batch.patientMrn = "MRN-12345";
+    batch.patientMrn = m_currentPatientMrn;
     
     VitalRecord vital;
     vital.timestamp = QDateTime::currentDateTime();

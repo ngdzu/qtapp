@@ -11,6 +11,8 @@
 
 The `IPatientLookupService` interface defines the contract for retrieving patient demographic information from external systems (HIS/EHR) by Medical Record Number (MRN).
 
+> **⚠️ Important:** All production code examples use variables for runtime data (e.g., `mrn` parameter). Never hardcode values like `"MRN-12345"` in production code. Test code may use hardcoded test data. See [.cursor/rules/no_hardcoded_values.mdc](../../../../.cursor/rules/no_hardcoded_values.mdc) for guidelines.
+
 **Purpose:**
 - Abstract HIS/EHR integration details
 - Enable testing with mock implementations
@@ -371,25 +373,33 @@ auto* lookupService = new HISPatientLookupAdapter(
 
 // Connect signals
 connect(lookupService, &IPatientLookupService::lookupCompleted,
-        this, [](const QString& mrn, const Result<PatientIdentity>& result) {
+        this, [this](const QString& mrn, const Result<PatientIdentity>& result) {
     if (result.isSuccess()) {
         const PatientIdentity& patient = result.value();
-        qDebug() << "Found patient:" << patient.name;
-        qDebug() << "Age:" << patient.age() << "years";
+        m_logService->info("Patient lookup succeeded", {
+            {"mrn", mrn},
+            {"name", patient.name},
+            {"age", QString::number(patient.age())}
+        });
     } else {
-        qDebug() << "Lookup failed:" << result.error().message;
+        m_logService->warning("Patient lookup failed", {
+            {"mrn", mrn},
+            {"error", result.error().message}
+        });
     }
 });
 
 // Perform lookup
-auto future = lookupService->lookupPatient("MRN-12345");
+QString mrn = getUserInputMrn();
+auto future = lookupService->lookupPatient(mrn);
 ```
 
 ### 5.2 Async/Await Style (Qt 6)
 
 ```cpp
 // Perform lookup (returns immediately)
-auto future = lookupService->lookupPatient("MRN-12345");
+QString mrn = getUserInputMrn();
+auto future = lookupService->lookupPatient(mrn);
 
 // Wait for result (in async context or use QFutureWatcher)
 auto result = future.result();
@@ -399,13 +409,18 @@ if (result.isSuccess()) {
     
     // Validate patient
     if (!patient.isValid()) {
-        qWarning() << "Invalid patient data";
+        m_logService->warning("Invalid patient data", {
+            {"mrn", mrn}
+        });
         return;
     }
     
     // Check if data is stale
     if (patient.isStale()) {
-        qWarning() << "Patient data is stale (> 24 hours old)";
+        m_logService->warning("Patient data is stale", {
+            {"mrn", mrn},
+            {"ageHours", QString::number(patient.ageHours())}
+        });
     }
     
     // Use patient data
@@ -421,7 +436,7 @@ if (result.isSuccess()) {
         case ErrorCode::NetworkError:
             showError("Network unavailable. Using cached data.");
             // Try cache fallback
-            tryCache("MRN-12345");
+            tryCache(mrn);
             break;
         case ErrorCode::Timeout:
             showError("HIS timeout. Retry?");
@@ -458,12 +473,16 @@ QFuture<Result<PatientIdentity>> lookupPatientWithFallback(
         if (result.error().code == ErrorCode::NetworkError ||
             result.error().code == ErrorCode::Timeout) {
             
-            qDebug() << "HIS unavailable, checking cache...";
+            m_logService->info("HIS unavailable, checking cache", {
+                {"mrn", mrn}
+            });
             
             // Check cache
             auto cachedPatient = cache->findByMrn(mrn);
             if (cachedPatient.has_value()) {
-                qDebug() << "Using cached patient data";
+                m_logService->info("Using cached patient data", {
+                    {"mrn", mrn}
+                });
                 return Result<PatientIdentity>::success(cachedPatient.value());
             }
         }
