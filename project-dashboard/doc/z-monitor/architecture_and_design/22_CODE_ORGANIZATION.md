@@ -9,6 +9,10 @@
 
 This document defines the code organization, module structure, namespace conventions, and file organization patterns for the Z Monitor application. The structure follows Domain-Driven Design (DDD) principles with clear separation between domain, application, infrastructure, and interface layers.
 
+> **Path convention:** In this document, all paths such as
+> `z-monitor/src/domain` are relative to the application root directory
+> `project-dashboard/z-monitor` in the repository.
+
 > **📋 Related Documents:**
 > - [Architecture (02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure ⭐
 > - [System Components & DDD Strategy (29_SYSTEM_COMPONENTS.md)](./29_SYSTEM_COMPONENTS.md) - DDD strategy and component inventory ⭐

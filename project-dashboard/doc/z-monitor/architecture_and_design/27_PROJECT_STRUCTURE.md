@@ -31,13 +31,18 @@ This document provides a **workspace-level map** of the `qtapp` repository, high
 
 ---
 
-## 2. `z-monitor/` Layout (Primary Application)
+## 2. `project-dashboard/z-monitor/` Layout (Primary Application)
 
 The Z Monitor application follows Domain-Driven Design (DDD) principles with a layered architecture.
 
+> **Path convention:** In this document and the related architecture and
+> code-organization docs, references to the **“`z-monitor` folder”** mean
+> the directory `project-dashboard/z-monitor` in this repository. All
+> relative paths below are rooted at `project-dashboard/z-monitor`.
+
 **High-Level Structure:**
 ```
-z-monitor/
+project-dashboard/z-monitor/
 ├── CMakeLists.txt              # Root build file for the device app
 ├── Dockerfile                  # Multi-stage build for Qt executable
 ├── README.md                   # App-level instructions
@@ -79,7 +84,7 @@ See [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) Section 2 for the compl
 
 ## 3. `project-dashboard/` (Documentation, Prompts, Automation)
 
-Although the executable runs from `z-monitor/`, most written guidance stays in `project-dashboard/`.
+Although the executable runs from `project-dashboard/z-monitor/`, most written guidance stays in `project-dashboard/`.
 
 | Directory | Purpose |
 | --- | --- |

@@ -30,7 +30,7 @@
   - Current State: `z-monitor/` source code has been removed. This task rebuilds the executable layout aligned with `doc/27_PROJECT_STRUCTURE.md` and `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
   - What: Create fresh CMake project with `src/domain`, `src/application`, `src/infrastructure`, `src/interface`, `resources/qml`, `tests`. Add minimal `main.cpp`, placeholder aggregates, baseline controllers, and wiring consistent with documentation.
   - Why: Provides a clean foundation that strictly follows Domain-Driven Design from the outset.
-  - Files: `z-monitor/CMakeLists.txt`, `z-monitor/src/**`, `z-monitor/resources/**`, `doc/27_PROJECT_STRUCTURE.md`.
+  - Files: `project-dashboard/z-monitor/CMakeLists.txt`, `project-dashboard/z-monitor/src/**`, `project-dashboard/z-monitor/resources/**`, `project-dashboard/doc/z-monitor/architecture_and_design/27_PROJECT_STRUCTURE.md`.
   - Acceptance: Project builds (even with stub implementations), directory layout matches docs, controllers compile and expose placeholder data.
   - Verification Steps:
     1. Functional – `z-monitor` binary launches (even if UI displays placeholders), Qt/QML loads without errors. **Status:** Verified locally by configuring and building the `z-monitor` target (Qt not available in CI sandbox, but CMake configuration and target wiring are correct).
@@ -43,7 +43,7 @@
 - [ ] Implement domain aggregates, value objects, repositories, and application services
   - What: Flesh out `PatientAggregate`, `DeviceAggregate`, `TelemetryBatch`, domain events, repositories, and application services as defined in `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
   - Why: Encodes business rules in pure domain code, enabling clear separation and testing.
-  - Files: `z-monitor/src/domain/**`, `z-monitor/src/application/**`, `z-monitor/tests/**`.
+  - Files: `project-dashboard/z-monitor/src/domain/**`, `project-dashboard/z-monitor/src/application/**`, `project-dashboard/z-monitor/tests/**`.
   - Acceptance: Domain files compile without Qt dependencies; repositories interface defined; unit tests cover aggregates and domain rules.
   - Verification Steps:
     1. Functional – Admission, telemetry, provisioning scenarios simulated via unit/integration tests.
@@ -141,7 +141,7 @@ These infrastructure components should be implemented early as they are dependen
 - [ ] Refactor Settings: Remove Bed ID, Add Device Label and ADT Workflow
   - What: Remove `bedId` setting from SettingsManager and SettingsController. Add `deviceLabel` setting (static device identifier/asset tag). Update AdmissionService to support ADT workflow with admission/discharge methods. Update database schema to add `admission_events` table and enhance `patients` table with ADT columns (bed_location, admitted_at, discharged_at, admission_source, device_label).
   - Why: Aligns device configuration with hospital ADT workflows. Separates device identity (Device Label) from patient assignment (Bed Location in Patient object). Enables proper patient lifecycle management.
-  - Files: `z-monitor/src/infrastructure/qt/SettingsManager.cpp/h`, `z-monitor/src/interface/controllers/SettingsController.cpp/h`, `z-monitor/src/application/services/AdmissionService.cpp/h`, `z-monitor/schema/migrations/0003_adt_workflow.sql`, update `doc/10_DATABASE_DESIGN.md`.
+  - Files: `project-dashboard/z-monitor/src/infrastructure/qt/SettingsManager.cpp/h`, `project-dashboard/z-monitor/src/interface/controllers/SettingsController.cpp/h`, `project-dashboard/z-monitor/src/application/services/AdmissionService.cpp/h`, `project-dashboard/z-monitor/schema/migrations/0003_adt_workflow.sql`, update `project-dashboard/doc/z-monitor/architecture_and_design/10_DATABASE_DESIGN.md`.
   - Changes:
     - Remove `bedId` from settings table and SettingsManager
     - Add `deviceLabel` to settings (static asset tag, e.g., "ICU-MON-04")
@@ -162,7 +162,7 @@ These infrastructure components should be implemented early as they are dependen
 - [ ] Create project scaffolding and repo checklist
   - What: Ensure `z-monitor/` contains the canonical folders following DDD structure: `src/domain/`, `src/application/`, `src/infrastructure/`, `src/interface/`, `resources/qml/`, `resources/assets/`, `resources/i18n/`, `resources/certs/`, `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/benchmarks/`, `schema/`, `doc/`, `proto/`, `openapi/`, `central-server-simulator/` and `doc/migrations/`.
   - Why: Provides a stable DDD-aligned structure to place interfaces, tests, and docs. Foundation for all subsequent development.
-  - Files: `z-monitor/CMakeLists.txt` (top-level), empty `proto/` and `openapi/` dirs, `doc/migrations/README.md`, `z-monitor/README.md`.
+  - Files: `project-dashboard/z-monitor/CMakeLists.txt` (top-level), empty `project-dashboard/z-monitor/proto/` and `project-dashboard/z-monitor/openapi/` dirs, `project-dashboard/z-monitor/doc/migrations/README.md`, `project-dashboard/z-monitor/README.md`.
   - Acceptance: All directories exist, CMakeLists.txt configured, README.md created, structure matches `doc/27_PROJECT_STRUCTURE.md` and `doc/22_CODE_ORGANIZATION.md`.
   - Verification Steps:
     1. Functional: Directory structure verified, CMakeLists.txt builds successfully (even if empty)
@@ -175,7 +175,7 @@ These infrastructure components should be implemented early as they are dependen
 - [ ] Define public C++ service interfaces (headers only)
   - What: Create minimal header-only interface sketches following DDD principles. Domain interfaces in `src/domain/interfaces/`, infrastructure interfaces in `src/infrastructure/interfaces/`. Interfaces: `IPatientRepository`, `ITelemetryRepository`, `IVitalsRepository`, `IAlarmRepository`, `IProvisioningRepository`, `IUserRepository`, `IAuditRepository`, `IPatientLookupService`, `ITelemetryServer`, `ISensorDataSource`, `IUserManagementService`, `IArchiver`, `ILogBackend`.
   - Why: Interfaces allow test-first development (mocks) and make DI decisions easier. DDD separation ensures domain interfaces are pure (no infrastructure dependencies).
-  - Files: `z-monitor/src/domain/interfaces/*.h` (repository interfaces), `z-monitor/src/infrastructure/interfaces/*.h` (infrastructure adapters), `doc/interfaces/*.md` with rationale and method signatures.
+  - Files: `project-dashboard/z-monitor/src/domain/interfaces/*.h` (repository interfaces), `project-dashboard/z-monitor/src/infrastructure/interfaces/*.h` (infrastructure adapters), `project-dashboard/doc/z-monitor/architecture_and_design/interfaces/*.md` with rationale and method signatures.
   - Note: `IPatientLookupService` interface is documented in `doc/interfaces/IPatientLookupService.md` and provides patient lookup from external systems (HIS/EHR) by patient ID.
   - Note: `ITelemetryServer` interface is documented in `doc/interfaces/ITelemetryServer.md` and provides server communication abstraction with support for configurable server URLs and mock implementations for testing.
   - Note: `ISensorDataSource` interface is documented in `doc/interfaces/ISensorDataSource.md` and provides sensor data acquisition abstraction (simulator, hardware, mock, replay).
@@ -191,7 +191,7 @@ These infrastructure components should be implemented early as they are dependen
 - [ ] Implement SharedMemorySensorDataSource (memfd reader)
   - What: Implement `SharedMemorySensorDataSource` (ISensorDataSource) that connects to the simulator's Unix control socket, maps the shared-memory ring buffer (`memfd`), and emits vitals/waveform signals with < 16 ms latency.
   - Why: WebSocket JSON adds > 60 ms latency; shared memory keeps the development transport under the 16 ms requirement and matches the caching/monitoring design.
-  - Files: `z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.cpp/h`, `SharedMemoryRingBuffer.h/cpp`, `SharedMemoryControlChannel.h/cpp`, unit tests in `tests/infrastructure/SharedMemorySensorDataSourceTests.cpp`.
+  - Files: `project-dashboard/z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.cpp/h`, `project-dashboard/z-monitor/src/infrastructure/sensors/SharedMemoryRingBuffer.h/cpp`, `project-dashboard/z-monitor/src/infrastructure/sensors/SharedMemoryControlChannel.h/cpp`, unit tests in `project-dashboard/z-monitor/tests/infrastructure/SharedMemorySensorDataSourceTests.cpp`.
   - Acceptance:
     - Maps ring buffer (validates header, version, CRC) and reads 60 Hz vitals / 250 Hz waveform batches.
     - Emits `vitalSignsReceived` and `waveformSampleReceived` within 1 ms of frame arrival.
@@ -211,7 +211,7 @@ These infrastructure components should be implemented early as they are dependen
 - [ ] Implement PermissionRegistry (enum-based role mapping)
   - What: Create a compile-time `PermissionRegistry` service in domain layer that maps each `UserRole` to its default `Permission` bitset, exposes helper APIs (`permissionsForRole`, `toString`, `toDisplayName`), and seeds `SecurityService` / `UserSession` during login. Replace all ad-hoc string comparisons with enum checks wired through the registry.
   - Why: The RBAC matrix in `doc/38_AUTHENTICATION_WORKFLOW.md` requires a single source of truth for default permissions; relying on strings sprinkled throughout the codebase is brittle and hard to audit. Domain layer ensures business rules are centralized.
-  - Files: `z-monitor/src/domain/security/Permission.h`, `z-monitor/src/domain/security/PermissionRegistry.h/cpp`, updates to `z-monitor/src/application/services/SecurityService.cpp/h`, `z-monitor/src/domain/security/UserSession.h`, `z-monitor/src/interface/controllers/AuthenticationController.cpp/h`, unit tests in `z-monitor/tests/unit/domain/security/PermissionRegistryTests.cpp`.
+  - Files: `project-dashboard/z-monitor/src/domain/security/Permission.h`, `project-dashboard/z-monitor/src/domain/security/PermissionRegistry.h/cpp`, updates to `project-dashboard/z-monitor/src/application/services/SecurityService.cpp/h`, `project-dashboard/z-monitor/src/domain/security/UserSession.h`, `project-dashboard/z-monitor/src/interface/controllers/AuthenticationController.cpp/h`, unit tests in `project-dashboard/z-monitor/tests/unit/domain/security/PermissionRegistryTests.cpp`.
   - Acceptance:
     - `PermissionRegistry` holds the exact mapping defined in section 3.2 (enum-based).
     - `SecurityService` uses the registry to populate profiles and perform permission checks.
@@ -238,12 +238,12 @@ These infrastructure components should be implemented early as they are dependen
   - What: Create `IUserManagementService` interface in domain layer for authenticating healthcare workers (nurses, physicians, technicians, administrators) against hospital user management server. Implement `MockUserManagementService` for development/testing (hardcoded test users, no network) and `HospitalUserManagementAdapter` for production (REST API or LDAP) in infrastructure layer. Integrate with `SecurityService` in application layer for session management, permission checking, and RBAC enforcement. Update `LoginView` and `AuthenticationController` in interface layer to use new interface.
   - Why: Healthcare workers need to log in with secret codes to access device. Hospital centrally manages users (add/remove without device reconfiguration). Mock server enables development/testing without real hospital infrastructure. Supports role-based permissions (nurse vs. physician vs. technician vs. admin). DDD separation ensures domain interface is pure, infrastructure adapters implement it.
   - Files: 
-    - `z-monitor/src/domain/interfaces/IUserManagementService.h` (interface - domain layer)
-    - `z-monitor/src/infrastructure/authentication/MockUserManagementService.cpp/h` (mock implementation - infrastructure)
-    - `z-monitor/src/infrastructure/authentication/HospitalUserManagementAdapter.cpp/h` (production implementation - infrastructure)
-    - `z-monitor/src/application/services/SecurityService.cpp/h` (integration - application layer)
-    - `z-monitor/resources/qml/views/LoginView.qml` (UI updates - interface layer)
-    - `z-monitor/src/interface/controllers/AuthenticationController.cpp/h` (UI controller - interface layer)
+    - `project-dashboard/z-monitor/src/domain/interfaces/IUserManagementService.h` (interface - domain layer)
+    - `project-dashboard/z-monitor/src/infrastructure/authentication/MockUserManagementService.cpp/h` (mock implementation - infrastructure)
+    - `project-dashboard/z-monitor/src/infrastructure/authentication/HospitalUserManagementAdapter.cpp/h` (production implementation - infrastructure)
+    - `project-dashboard/z-monitor/src/application/services/SecurityService.cpp/h` (integration - application layer)
+    - `project-dashboard/z-monitor/resources/qml/views/LoginView.qml` (UI updates - interface layer)
+    - `project-dashboard/z-monitor/src/interface/controllers/AuthenticationController.cpp/h` (UI controller - interface layer)
     - `project-dashboard/mock-servers/user_management_mock_server.py` (optional HTTP mock server for integration testing)
   - Hardcoded Test Users (Mock Service):
     - `NURSE001` / `1234` (Nurse role - basic clinical ops: view vitals, acknowledge alarms, admit/discharge patients)
