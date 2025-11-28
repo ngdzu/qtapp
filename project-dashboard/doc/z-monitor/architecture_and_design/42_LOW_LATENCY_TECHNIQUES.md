@@ -373,7 +373,7 @@ void logMessage(const LogEntry& entry) {
     logQueue.enqueue(entry);  // Lock-free, < 30 ns
 }
 
-// Single consumer (Log Thread)
+// Single consumer (Database I/O Thread)
 void flushLogs() {
     LogEntry entry;
     while (logQueue.try_dequeue(entry)) {
@@ -689,8 +689,8 @@ Is it high-frequency (> 1000 ops/sec)?
 - Custom `LogBuffer` (pre-allocated 1KB buffer)
 
 **Location:**
-- `src/infrastructure/qt/LogService.cpp` - Producer (all threads)
-- `src/infrastructure/qt/LogService.cpp` - Consumer (Log Thread)
+- `src/infrastructure/logging/LogService.cpp` - Producer (all threads, enqueues to lock-free queue)
+- `src/infrastructure/logging/LogService.cpp` - Consumer (Database I/O Thread)
 - `src/infrastructure/utils/LogBuffer.h/cpp` - Log buffer implementation
 
 ---

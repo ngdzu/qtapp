@@ -53,6 +53,91 @@
     5. Tests – Unit tests for aggregates, application services; coverage targets per `doc/18_TESTING_WORKFLOW.md`.
   - Prompt: `project-dashboard/prompt/28b-ddd-domain-implementation.md`.
 
+---
+
+## Infrastructure Foundation (Early Priority)
+
+These infrastructure components should be implemented early as they are dependencies for other components. They can be implemented in parallel with domain/application layer work.
+
+### Async Logging Infrastructure
+
+- [ ] Implement ILogBackend interface and logging abstraction layer
+  - What: Create `ILogBackend` interface in `src/infrastructure/logging/ILogBackend.h` that abstracts logging backend operations (initialize, write, flush, rotate). This allows switching between logging libraries (spdlog, custom, glog) without changing LogService code.
+  - Why: Provides abstraction layer for logging libraries, enabling early implementation of LogService with a simple backend, then switching to a production library later. Critical for non-blocking async logging architecture.
+  - Files: `src/infrastructure/logging/ILogBackend.h`, `src/infrastructure/logging/LogEntry.h`
+  - Acceptance: Interface defined with all required methods (initialize, write, flush, rotateIfNeeded, setFormat, setMaxFileSize, setMaxFiles). Interface is pure virtual with clear documentation. LogEntry structure defined.
+  - Verification Steps:
+    1. Functional: Interface compiles, can create mock backend for testing
+    2. Code Quality: Doxygen comments for all methods, interface follows C++ best practices
+    3. Documentation: Interface documented in `doc/43_ASYNC_LOGGING_ARCHITECTURE.md`
+    4. Integration: Interface can be used by LogService (even if backend not implemented)
+    5. Tests: Unit tests for mock backend implementation
+  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` section 2.2 for interface design.
+  - Prompt: `project-dashboard/prompt/43a-logging-backend-interface.md`
+
+- [ ] Implement CustomBackend (Qt-based fallback, no external dependencies)
+  - What: Implement `CustomBackend` class in `src/infrastructure/logging/backends/CustomBackend.h/cpp` that implements `ILogBackend` using pure Qt (QFile, QTextStream). Supports human-readable and JSON formats, log rotation, and file size limits.
+  - Why: Provides a working logging backend with no external dependencies. Can be used immediately while evaluating production logging libraries. Ensures logging works even if external libraries are not available.
+  - Files: `src/infrastructure/logging/backends/CustomBackend.h`, `src/infrastructure/logging/backends/CustomBackend.cpp`, `src/infrastructure/logging/utils/LogFormatter.h/cpp` (shared formatting utilities)
+  - Acceptance: CustomBackend implements all ILogBackend methods, supports both "human" and "json" formats, implements log rotation (size-based and time-based), handles file I/O errors gracefully, writes logs correctly to disk.
+  - Verification Steps:
+    1. Functional: Logs written to file in correct format, rotation works, file size limits enforced
+    2. Code Quality: Doxygen comments, error handling, no memory leaks
+    3. Documentation: Implementation documented, usage examples provided
+    4. Integration: Can be used by LogService, works with async queue
+    5. Tests: Unit tests for formatting, rotation, file I/O, error handling
+  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` section 2.4 for CustomBackend design.
+  - Prompt: `project-dashboard/prompt/43b-custom-logging-backend.md`
+
+- [ ] Refactor LogService to use async queue and dedicated log thread
+  - What: Refactor `LogService` in `src/infrastructure/logging/LogService.h/cpp` to use lock-free queue (MPSC) and dedicated background thread. All logging methods must return immediately (< 1μs) by enqueueing to queue. Background thread processes queue and calls ILogBackend::write().
+  - Why: Ensures logging never blocks calling threads, critical for real-time performance. Enables high-throughput logging without impacting application responsiveness.
+  - Files: `src/infrastructure/logging/LogService.h`, `src/infrastructure/logging/LogService.cpp`, update thread model to show dedicated log thread
+  - Dependencies: ILogBackend interface, lock-free queue library (moodycamel::ConcurrentQueue or boost::lockfree::queue), CustomBackend or SpdlogBackend
+  - Acceptance: All LogService methods return immediately (< 1μs measured), log entries are written to file asynchronously, queue doesn't block, thread safety verified, in-memory buffer for Diagnostics View works (last 1000 entries).
+  - Verification Steps:
+    1. Functional: Log calls return immediately, logs appear in file, queue processes correctly, Diagnostics View shows recent logs
+    2. Code Quality: No blocking operations, proper thread synchronization, Doxygen comments
+    3. Documentation: Updated `doc/21_LOGGING_STRATEGY.md`, `doc/12_THREAD_MODEL.md` reflects log thread
+    4. Integration: LogService can be injected into services, works from any thread
+    5. Tests: Performance tests (verify < 1μs latency), thread safety tests, integration tests, queue overflow tests
+  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` sections 2.1, 3, and 4 for complete architecture.
+  - Prompt: `project-dashboard/prompt/43c-async-logservice-refactor.md`
+
+- [ ] Implement SpdlogBackend (production logging library, optional)
+  - What: Implement `SpdlogBackend` class in `src/infrastructure/logging/backends/SpdlogBackend.h/cpp` that implements `ILogBackend` using spdlog library. Provides high-performance async logging with automatic rotation.
+  - Why: spdlog is a high-performance, header-only logging library with excellent async support. Optional - can be implemented later if CustomBackend performance is insufficient.
+  - Files: `src/infrastructure/logging/backends/SpdlogBackend.h`, `src/infrastructure/logging/backends/SpdlogBackend.cpp`
+  - Dependencies: spdlog library (header-only or compiled), CMake integration
+  - Acceptance: SpdlogBackend implements all ILogBackend methods, uses spdlog async mode, supports JSON formatting, automatic rotation works, performance meets targets (< 1μs per log call).
+  - Verification Steps:
+    1. Functional: Logs written via spdlog, rotation works, format correct, async mode enabled
+    2. Code Quality: Proper spdlog usage, error handling, Doxygen comments
+    3. Documentation: Integration guide, performance comparison with CustomBackend
+    4. Integration: Can replace CustomBackend in LogService, CMake finds spdlog
+    5. Tests: Performance benchmarks, format verification, rotation tests
+  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` section 2.3 and 5.1 for spdlog design.
+  - Note: This task is optional - CustomBackend can be used in production if performance is acceptable. SpdlogBackend can be implemented later if needed.
+  - Prompt: `project-dashboard/prompt/43d-spdlog-backend.md`
+
+- [ ] Add unit and integration tests for async logging
+  - What: Create comprehensive test suite for async logging infrastructure including: ILogBackend interface tests, CustomBackend tests, LogService async behavior tests, thread safety tests, performance tests, queue overflow handling tests.
+  - Why: Ensures logging infrastructure is reliable, performant, and thread-safe. Critical for production use.
+  - Files: `tests/unit/logging/ILogBackendTest.cpp`, `tests/unit/logging/CustomBackendTest.cpp`, `tests/unit/logging/LogServiceTest.cpp`, `tests/integration/logging/AsyncLoggingTest.cpp`
+  - Acceptance: All tests pass, performance tests verify < 1μs latency, thread safety verified, queue overflow handled gracefully, log rotation tested, format verification tests pass.
+  - Verification Steps:
+    1. Functional: All logging scenarios tested, edge cases covered, error conditions handled
+    2. Code Quality: Test code follows testing guidelines, good coverage (>80%)
+    3. Documentation: Test documentation updated, performance benchmarks documented
+    4. Integration: Tests run in CI, performance tests don't fail on slow machines
+    5. Tests: Tests are comprehensive, maintainable, and fast
+  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` section 10 for testing guidelines.
+  - Prompt: `project-dashboard/prompt/43e-logging-tests.md`
+
+**Note:** The abstraction layer (ILogBackend) allows starting with CustomBackend and switching to SpdlogBackend later if needed. This enables early implementation and use of logging throughout the application.
+
+---
+
 - [ ] Refactor Settings: Remove Bed ID, Add Device Label and ADT Workflow
   - What: Remove `bedId` setting from SettingsManager and SettingsController. Add `deviceLabel` setting (static device identifier/asset tag). Update PatientManager to support ADT workflow with admission/discharge methods. Update database schema to add `admission_events` table and enhance `patients` table with ADT columns (bed_location, admitted_at, discharged_at, admission_source, device_label).
   - Why: Aligns device configuration with hospital ADT workflows. Separates device identity (Device Label) from patient assignment (Bed Location in Patient object). Enables proper patient lifecycle management.
@@ -570,11 +655,13 @@
   - Prompt: `project-dashboard/prompt/20-error-handling-implementation.md`  (When finished: mark this checklist item done.)
 
 - [ ] Review and implement Logging Strategy
-  - What: Implement structured logging following `doc/21_LOGGING_STRATEGY.md`, including log levels, structured context, log rotation, and performance optimization.
-  - Why: Provides comprehensive, searchable logging with appropriate performance characteristics for real-time systems.
-  - Files: Update `src/core/LogService.cpp/h`, implement log rotation, add structured context support, implement async logging.
-  - Acceptance: Logging uses structured format, log rotation works, async logging doesn't block threads, sensitive data is not logged, logs are searchable and filterable.
-  - Tests: Logging tests, rotation tests, performance tests, security tests (verify no sensitive data).
+  - What: Implement structured logging following `doc/21_LOGGING_STRATEGY.md` and `doc/43_ASYNC_LOGGING_ARCHITECTURE.md`, including log levels, structured context, log rotation, and async non-blocking architecture. This task focuses on structured logging features (context, categories, levels) on top of the async infrastructure.
+  - Why: Provides comprehensive, searchable logging with appropriate performance characteristics for real-time systems. Builds on async logging infrastructure.
+  - Files: Update `src/infrastructure/logging/LogService.cpp/h` (already refactored for async), add structured context support, implement category filtering, add log level filtering.
+  - Dependencies: Async logging infrastructure must be completed first (ILogBackend, LogService async refactor).
+  - Acceptance: Logging uses structured format with context key-value pairs, log rotation works, async logging doesn't block threads (< 1μs per call), sensitive data is not logged, logs are searchable and filterable, categories can be enabled/disabled, log levels are respected.
+  - Tests: Structured logging tests, category filtering tests, log level filtering tests, context serialization tests, security tests (verify no sensitive data).
+  - Documentation: See `doc/21_LOGGING_STRATEGY.md` for logging strategy and `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` for async architecture.
   - Prompt: `project-dashboard/prompt/21-logging-strategy-implementation.md`  (When finished: mark this checklist item done.)
 
 - [ ] Review and implement Code Organization

@@ -25,7 +25,7 @@ flowchart TB
     Repos[7 SQLite Repositories<br/>+ VitalsRepository]
     PersistSched[PersistenceScheduler<br/>every 10 min]
     CleanupSvc[DataCleanupService<br/>daily at 3 AM]
-    LogSvc[LogService]
+    LogSvc[LogService<br/>async file logging<br/>shared thread]
     ArchiveSvc[DataArchiveService]
   end
 

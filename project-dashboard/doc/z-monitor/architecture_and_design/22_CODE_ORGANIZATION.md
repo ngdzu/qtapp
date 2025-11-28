@@ -134,9 +134,18 @@ src/
 │   │   ├── EncryptionService.h/cpp
 │   │   ├── SignatureService.h/cpp
 │   │   └── SecureStorage.h/cpp
+│   ├── logging/                  # Logging infrastructure
+│   │   ├── LogService.h/cpp
+│   │   ├── ILogBackend.h
+│   │   ├── LogEntry.h
+│   │   ├── backends/
+│   │   │   ├── SpdlogBackend.h/cpp
+│   │   │   ├── CustomBackend.h/cpp
+│   │   │   └── GlogBackend.h/cpp (optional)
+│   │   └── utils/
+│   │       └── LogFormatter.h/cpp
 │   ├── qt/                       # Qt-specific adapters
-│   │   ├── SettingsManager.h/cpp
-│   │   └── LogService.h/cpp
+│   │   └── SettingsManager.h/cpp
 │   ├── system/                   # System services
 │   │   ├── HealthMonitor.h/cpp
 │   │   ├── ClockSyncService.h/cpp

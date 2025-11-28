@@ -264,10 +264,11 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 | - `SQLiteAuditRepository` | Infrastructure | Repository | Security audit log persistence (Manual for append-only) |
 | `PersistenceScheduler` | Application | Service | **NEW:** Periodic persistence of in-memory cache (every 10 min or 10,000 records) |
 | `DataCleanupService` | Application | Service | **NEW:** Daily data cleanup (7-day retention, runs at 3 AM) |
-| `LogService` | Infrastructure | Adapter | Centralized logging mechanism |
 | `DataArchiveService` | Application | Service | Archives old data per retention policies |
+| `LogService` | Infrastructure | Adapter | Centralized logging mechanism (async, non-blocking, file-based) |
+| `ILogBackend` implementations | Infrastructure | Adapter | Logging backend (spdlog, custom, etc.) |
 
-**Workflow (Updated with Periodic Persistence):**
+**Workflow (Updated with Periodic Persistence and Logging):**
 1. **NEW:** `PersistenceScheduler` triggers every 10 minutes (or when 10,000 records accumulated)
 2. **NEW:** `PersistenceScheduler` reads data from `VitalsCache` (in-memory, RT thread)
 3. **NEW:** `PersistenceScheduler` passes batch to `SQLiteVitalsRepository`
@@ -301,9 +302,15 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 - **NEW:** Database writes are background tasks only (alarm latency decoupled)
 - **Benefit:** Database latency doesn't affect real-time monitoring or alarm detection
 
-**Count:** 1 infrastructure (DatabaseManager) + 7 repositories (added VitalsRepository) + 2 application services (added PersistenceScheduler) + 1 application service (DataCleanupService) + 1 infrastructure (LogService) + 1 application service (DataArchiveService) = **13 components** (was 9)
+**Logging Integration:**
+- **LogService** runs on Database I/O Thread (shares event loop with database operations)
+- **Rationale:** Both logging and database operations are non-critical background tasks that perform file I/O. Sharing the thread reduces overhead while maintaining non-blocking behavior.
+- **Architecture:** LogService uses lock-free queue (MPSC) for log entries. Queue is processed periodically via Qt timer/signal on Database I/O Thread event loop.
+- **Performance:** Log calls return immediately (< 1μs) by enqueueing to lock-free queue. Queue processing happens asynchronously on Database I/O Thread without blocking database operations.
 
----
+**See:** [43_ASYNC_LOGGING_ARCHITECTURE.md](./43_ASYNC_LOGGING_ARCHITECTURE.md) for complete async logging architecture and implementation details.
+
+**Count:** 1 infrastructure (DatabaseManager) + 7 repositories + 3 application services + 1 infrastructure (LogService) + backend implementations = **13-14 components** (was 12)
 
 ### 4.5 Network I/O Thread
 
@@ -406,7 +413,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 
 ---
 
-### 4.8 DTOs (Data Transfer Objects) - Thread-Agnostic
+### 4.8 DTOs (Data Transfer Objects) - Thread-Agnostic)
 
 **These are immutable data structures passed between threads:**
 
@@ -430,7 +437,7 @@ This section maps all 98 components from `doc/29_SYSTEM_COMPONENTS.md` to specif
 | **Main/UI Thread** | 30 | 11 controllers (added `WaveformController`) + 7 views + 12 QML components (added visualization components) |
 | **Real-Time Processing** | 12 | 2 infrastructure (sensors) + 2 infrastructure (caches) + 1 application + 3 aggregates + 4 value objects |
 | **Application Services** | 11 | 3 services + 4 aggregates + 4 value objects |
-| **Database I/O** | 13 | 1 infrastructure + 7 repositories + 4 application services + 1 infrastructure |
+| **Database I/O** | 13-14 | 1 infrastructure + 7 repositories + 3 application services + 1 infrastructure (LogService) + backend implementations |
 | **Network I/O** | 11 | 5 network + 3 security + 1 aggregate + 2 value objects |
 | **Background Tasks** | 9 | 2 services + 7 infrastructure |
 | **Domain Interfaces** | 7 | Repository interfaces (contracts, not implementations) - added `IVitalsRepository`, `ISensorDataSource` |
@@ -938,9 +945,11 @@ flowchart TB
   end
 
   subgraph DBThread[Database I/O Thread - Single Writer]
-    DBManager[DatabaseManager]
-    Repos[6 SQLite Repositories]
-    LogSvc[LogService]
+    DBManager[DatabaseManager<br/>+ Schema Management]
+    Repos[7 SQLite Repositories<br/>+ VitalsRepository]
+    PersistSched[PersistenceScheduler<br/>every 10 min]
+    CleanupSvc[DataCleanupService<br/>daily at 3 AM]
+    LogSvc[LogService<br/>async file logging<br/>shared thread]
     ArchiveSvc[DataArchiveService]
   end
 

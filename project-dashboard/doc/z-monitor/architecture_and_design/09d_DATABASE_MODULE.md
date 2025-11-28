@@ -280,7 +280,7 @@ All repository implementations run on the Database I/O Thread and use the same `
 
 **Responsibility:** Centralized logging mechanism for application events (file-based).
 
-**Thread:** Database I/O Thread (Background Log Thread)
+**Thread:** Database I/O Thread (shared with database operations)
 
 **Key Methods:**
 - `log(LogLevel level, const QString& message, const QVariantMap& context = {})`: Logs message

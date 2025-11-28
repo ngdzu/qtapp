@@ -19,7 +19,7 @@ graph TB
             PersistenceScheduler[PersistenceScheduler<br/>Every 10 min<br/>From VitalsCache]
             DataCleanup[DataCleanupService<br/>Daily at 3 AM<br/>7-day retention]
             DataArchive[DataArchiveService<br/>Data archival]
-            LogService[LogService<br/>File-based logs]
+            LogService[LogService<br/>Async file logging<br/>Lock-free queue]
         end
     end
 

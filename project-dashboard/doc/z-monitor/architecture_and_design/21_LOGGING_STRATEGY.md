@@ -269,6 +269,18 @@ CREATE TABLE security_audit_log (
 
 ### 3.1. LogService Design
 
+**Location:** `src/infrastructure/logging/LogService.h/cpp`
+
+**Thread:** Database I/O Thread (shared with database operations)
+
+**Key Characteristics:**
+- **Non-Blocking:** All methods return immediately (< 1μs)
+- **Async Buffering:** Log entries are buffered in a lock-free queue
+- **Library Abstraction:** Uses `ILogBackend` interface for easy library switching
+- **Thread-Safe:** Can be called from any thread without synchronization
+
+**See:** [43_ASYNC_LOGGING_ARCHITECTURE.md](./43_ASYNC_LOGGING_ARCHITECTURE.md) for complete async logging architecture and implementation details.
+
 ```cpp
 class LogService : public QObject {
     Q_OBJECT
@@ -284,9 +296,9 @@ public:
         Fatal = 6
     };
     
-    void log(LogLevel level, const QString& message, 
-             const QVariantMap& context = {});
+    explicit LogService(ILogBackend* backend, QObject* parent = nullptr);
     
+    // All methods return immediately (< 1μs) - non-blocking
     void trace(const QString& message, const QVariantMap& context = {});
     void debug(const QString& message, const QVariantMap& context = {});
     void info(const QString& message, const QVariantMap& context = {});
@@ -296,16 +308,19 @@ public:
     void fatal(const QString& message, const QVariantMap& context = {});
     
     void setLogLevel(LogLevel level);
-    void setOutputFile(const QString& path);
-    void enableConsoleOutput(bool enable);
+    LogLevel logLevel() const;
+    
+    void setCategoryEnabled(const QString& category, bool enabled);
+    bool isCategoryEnabled(const QString& category) const;
     
 signals:
     void logEntryAdded(const LogEntry& entry);
     
 private:
-    void writeToFile(const LogEntry& entry);
-    void writeToConsole(const LogEntry& entry);
-    void rotateLogsIfNeeded();
+    // Lock-free queue for async logging
+    std::unique_ptr<LockFreeQueue<LogEntry>> m_logQueue;
+    QThread* m_logThread;  // Dedicated background thread
+    std::unique_ptr<ILogBackend> m_backend;  // Backend abstraction
 };
 ```
 
@@ -757,21 +772,33 @@ void LogService::rotateLogsIfNeeded() {
 
 ### 8.1. Asynchronous Logging
 
-Logging should not block the calling thread:
+**Critical:** All logging operations are asynchronous and non-blocking. `LogService` methods return immediately (< 1μs) by enqueueing log entries to a lock-free queue. The Database I/O Thread processes the queue and writes to the file system (shared with database operations).
 
-```cpp
-class LogService {
-private:
-    QThread* logThread;
-    LockFreeQueue<LogEntry> logQueue;
-    
-    void log(LogLevel level, const QString& message, const QVariantMap& context) {
-        LogEntry entry = createLogEntry(level, message, context);
-        logQueue.enqueue(entry);  // Non-blocking
-        // Background thread processes queue
-    }
-};
+**Architecture:**
 ```
+Calling Thread (any thread)
+    ↓
+LogService::warning() → Returns immediately (< 1μs)
+    ↓
+Lock-Free Queue (MPSC - Multiple Producer Single Consumer)
+    ↓
+Database I/O Thread (shared with database operations)
+    ↓
+ILogBackend (abstraction layer)
+    ↓
+Concrete Backend (spdlog, custom, etc.)
+    ↓
+File System
+```
+
+**Implementation:**
+- **Queue:** Lock-free queue (moodycamel::ConcurrentQueue or boost::lockfree::queue)
+- **Thread:** Database I/O Thread (shared with database operations - both are non-critical background tasks)
+- **Backend Abstraction:** `ILogBackend` interface allows switching between logging libraries
+- **Performance:** < 1μs per log call, < 100ns queue enqueue
+- **Rationale:** Logging and database operations both perform file I/O and are non-critical, so sharing the thread reduces overhead
+
+**See:** [43_ASYNC_LOGGING_ARCHITECTURE.md](./43_ASYNC_LOGGING_ARCHITECTURE.md) for complete implementation details.
 
 ### 8.2. Pre-allocated Buffers
 
@@ -1009,10 +1036,12 @@ SettingsManager::instance()->setValue("log.category.DeviceSimulator.enabled", fa
 
 ## 16. Related Documents
 
+- [43_ASYNC_LOGGING_ARCHITECTURE.md](./43_ASYNC_LOGGING_ARCHITECTURE.md) - **Async logging architecture, ILogBackend abstraction, implementation details** ⭐
 - [39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md](./39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md) - Action logging workflow and IActionLogRepository interface
 - [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) - Error logging
 - [06_SECURITY.md](./06_SECURITY.md) - Security audit logging
 - [10_DATABASE_DESIGN.md](./10_DATABASE_DESIGN.md) - Database schema for `action_log` and `security_audit_log` tables
 - [09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md) - LogService, IActionLogRepository, IAuditRepository class designs
 - [13_DEPENDENCY_INJECTION.md](./13_DEPENDENCY_INJECTION.md) - Dependency injection strategy (required for logging)
+- [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) - Thread architecture (LogService shares Database I/O Thread)
 

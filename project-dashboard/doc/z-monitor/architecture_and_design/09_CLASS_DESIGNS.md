@@ -1110,7 +1110,7 @@ The KeyManager supports multiple secure storage backends:
 ### 2.8. LogService (Application Logs - File-Based)
 **Responsibility:** Provides centralized logging mechanism for application events (errors, warnings, info, debug messages). Writes to rotated text/JSON files.
 
-**Thread:** Background Log Thread (asynchronous, non-blocking)
+**Thread:** Database I/O Thread (shared with database operations, asynchronous, non-blocking)
 
 **Key Properties:**
 - `m_logLevel`: Minimum log level (Trace, Debug, Info, Warning, Error, Critical, Fatal)
