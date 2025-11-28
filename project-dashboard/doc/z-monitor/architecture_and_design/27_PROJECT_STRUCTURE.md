@@ -1,13 +1,18 @@
 # Project Structure Reference
 
 **Document ID:** DESIGN-027  
-**Version:** 1.0  
+**Version:** 2.1  
 **Status:** Approved  
 **Last Updated:** 2025-11-27
 
 ---
 
-This document maps the `qtapp` workspace, highlighting where the executable lives (`z-monitor/`), where the documentation resides (`project-dashboard/`), and how supporting utilities fit together.
+This document provides a **workspace-level map** of the `qtapp` repository, highlighting where the executable lives (`z-monitor/`), where the documentation resides (`project-dashboard/`), and how supporting utilities fit together.
+
+> **📋 Related Documents:**
+> - [Code Organization (22_CODE_ORGANIZATION.md)](./22_CODE_ORGANIZATION.md) - **Detailed code structure and organization rules** ⭐ (see this for src/ directory details)
+> - [Architecture (02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure
+> - [Domain-Driven Design (28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines
 
 ---
 
@@ -28,76 +33,46 @@ This document maps the `qtapp` workspace, highlighting where the executable live
 
 ## 2. `z-monitor/` Layout (Primary Application)
 
+The Z Monitor application follows Domain-Driven Design (DDD) principles with a layered architecture.
+
+**High-Level Structure:**
 ```
 z-monitor/
 ├── CMakeLists.txt              # Root build file for the device app
 ├── Dockerfile                  # Multi-stage build for Qt executable
 ├── README.md                   # App-level instructions
-├── src/                        # C++ backend (core services, controllers)
-├── resources/                  # QML UI, assets, translations, certs
-├── tests/                      # Unit/integration harness
+├── src/                        # C++ source code (DDD layers)
+│   ├── domain/                 # Domain layer (pure business logic)
+│   ├── application/            # Application layer (use cases)
+│   ├── infrastructure/         # Infrastructure layer (adapters)
+│   ├── interface/              # Interface layer (UI controllers)
+│   └── main.cpp                # Application entry point
+├── resources/                  # Resources (QML, assets, translations, certs)
+│   ├── qml/                    # QML UI files
+│   ├── assets/                 # Images, icons
+│   ├── i18n/                   # Translations
+│   └── certs/                  # Certificates (mTLS)
+├── tests/                      # Test code
+│   ├── unit/                   # Unit tests
+│   ├── integration/            # Integration tests
+│   └── e2e/                    # End-to-end tests
 └── ...                         # Additional helpers (configs, data)
 ```
 
-### 2.1. `src/` Highlights
-- `core/` – DeviceSimulator, AlarmManager, NetworkManager, DatabaseManager, PatientManager, SettingsManager, AuthenticationService, LogService, DataArchiver.
-- `controllers/` (sometimes named `ui/`) – DashboardController, AlarmController, SystemController, PatientController, SettingsController, TrendsController, NotificationController.
-- `interfaces/` & `models/` – Shared data contracts and abstract interfaces.
+> **📋 For Detailed Code Structure:** See [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) for:
+> - Complete `src/` directory tree with all files
+> - Layer boundaries and dependencies
+> - Namespace conventions
+> - File naming conventions
+> - Code organization rules
 
-### 2.2. `resources/`
-- `qml/` – `Main.qml`, `components/` (Sidebar, TopBar, StatCard, etc.), `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView).
-- `assets/`, `i18n/`, `certs/` – Icons, translations, mTLS material.
+**Layer Overview:**
+- **Domain Layer** (`src/domain/`) – Pure business logic, aggregates, value objects, domain events, repository interfaces
+- **Application Layer** (`src/application/`) – Use-case orchestration, application services, DTOs
+- **Infrastructure Layer** (`src/infrastructure/`) – Technical implementations (persistence, network, sensors, caching, security, Qt adapters, system services)
+- **Interface Layer** (`src/interface/`) – UI integration (QML controllers and QML UI)
 
-#### 2.2.1 Detailed Tree (based on `prompt-dashboard.md`)
-
-```text
-z-monitor/
-├── CMakeLists.txt
-├── Dockerfile
-├── README.md
-├── src/
-│   ├── main.cpp
-│   ├── core/
-│   │   ├── DeviceSimulator.cpp/h
-│   │   ├── AlarmManager.cpp/h
-│   │   ├── NetworkManager.cpp/h
-│   │   ├── DatabaseManager.cpp/h
-│   │   ├── PatientManager.cpp/h
-│   │   ├── SettingsManager.cpp/h
-│   │   ├── AuthenticationService.cpp/h
-│   │   ├── LogService.cpp/h
-│   │   └── DataArchiver.cpp/h
-│   └── controllers/
-│       ├── DashboardController.cpp/h
-│       ├── AlarmController.cpp/h
-│       ├── SystemController.cpp/h
-│       ├── PatientController.cpp/h
-│       ├── SettingsController.cpp/h
-│       ├── TrendsController.cpp/h
-│       └── NotificationController.cpp/h
-├── resources/
-│   ├── qml/
-│   │   ├── Main.qml
-│   │   ├── components/
-│   │   │   ├── Sidebar.qml
-│   │   │   ├── TopBar.qml
-│   │   │   ├── StatCard.qml
-│   │   │   ├── SparkLine.qml
-│   │   │   ├── PatientBanner.qml
-│   │   │   ├── AlarmIndicator.qml
-│   │   │   └── NotificationBell.qml
-│   │   └── views/
-│   │       ├── DashboardView.qml
-│   │       ├── DiagnosticsView.qml
-│   │       ├── TrendsView.qml
-│   │       ├── SettingsView.qml
-│   │       └── LoginView.qml
-│   ├── assets/
-│   ├── i18n/
-│   └── certs/
-├── tests/
-└── (additional helpers)
-```
+See [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) Section 2 for the complete directory structure and [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) Section 8 for dependency rules.
 
 ---
 
@@ -145,13 +120,16 @@ Use this tree when you need specifications, design references, or automation scr
 
 ## 7. Cross-References
 
+- **Code Organization:** [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) - **Detailed code structure, conventions, and organization rules** ⭐ (use this for src/ directory details)
+- **Architecture:** [02_ARCHITECTURE.md](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure
+- **DDD Guidance:** [28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines
 - **Developer Setup:** `07_SETUP_GUIDE.md` (includes quick tree + tooling steps).
-- **Architecture:** `02_ARCHITECTURE.md` + Mermaid diagrams.
 - **Testing:** `18_TESTING_WORKFLOW.md` and `scripts/run_tests.sh`.
 - **ZTODO:** `ZTODO.md` (documentation + verification requirements).
 - **Rules:** `.cursor/rules/*.mdc` (auto-applied coding/documentation policies).
-- **DDD Guidance:** `28_DOMAIN_DRIVEN_DESIGN.md`.
 - **Foundation Knowledge:** `../../foundation/00_FOUNDATIONAL_KNOWLEDGE_INDEX.md` (74 foundational topics).
 
-Use this document with the setup guide and architecture specs to stay oriented. When layout changes, update this reference and the related docs accordingly.
+---
+
+**Document Purpose:** This document provides a **workspace-level map** (where things are in the repository). For detailed code organization rules and conventions, see [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md).
 

@@ -1,13 +1,18 @@
 # Code Organization & Module Structure
 
 **Document ID:** DESIGN-022  
-**Version:** 1.0  
+**Version:** 2.0  
 **Status:** Approved  
 **Last Updated:** 2025-11-27
 
 ---
 
-This document defines the code organization, module structure, namespace conventions, and file organization patterns for the Z Monitor application.
+This document defines the code organization, module structure, namespace conventions, and file organization patterns for the Z Monitor application. The structure follows Domain-Driven Design (DDD) principles with clear separation between domain, application, infrastructure, and interface layers.
+
+> **📋 Related Documents:**
+> - [Architecture (02_ARCHITECTURE.md)](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure ⭐
+> - [Domain-Driven Design (28_DOMAIN_DRIVEN_DESIGN.md)](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines ⭐
+> - [Project Structure (27_PROJECT_STRUCTURE.md)](./27_PROJECT_STRUCTURE.md) - Directory layout reference
 
 ## 1. Guiding Principles
 
@@ -17,90 +22,161 @@ This document defines the code organization, module structure, namespace convent
 - **Maintainability:** Clear structure makes code easy to understand and modify
 - **Scalability:** Structure should support growth without refactoring
 
-## 2. Directory Structure
+## 2. Directory Structure (DDD-Based)
+
+The Z Monitor application follows Domain-Driven Design (DDD) principles with a layered architecture. The directory structure reflects this organization.
 
 ### 2.1. Top-Level Organization
 
 ```
 z-monitor/
-├── src/                          # Source code
-│   ├── core/                     # Core services (business logic)
-│   ├── controllers/              # UI controllers (Qt/QML bridge)
-│   ├── interfaces/               # Abstract interfaces
-│   ├── models/                   # Data models
-│   ├── utils/                    # Utility functions and helpers
+├── src/                          # Source code (DDD layers)
+│   ├── domain/                   # Domain layer (pure business logic)
+│   ├── application/              # Application layer (use cases)
+│   ├── infrastructure/           # Infrastructure layer (adapters)
+│   ├── interface/                # Interface layer (UI controllers)
 │   └── main.cpp                  # Application entry point
-├── qml/                          # QML UI files
-│   ├── views/                    # Full-screen views
-│   ├── components/               # Reusable QML components
-│   ├── dialogs/                  # Dialog components
-│   └── Main.qml                  # Root QML file
-├── resources/                    # Resources (images, fonts, etc.)
+├── resources/                    # Resources (QML, images, fonts, etc.)
+│   ├── qml/                      # QML UI files
+│   ├── assets/                   # Images, icons
+│   ├── i18n/                     # Translations
+│   └── certs/                    # Certificates
 ├── tests/                        # Test code
 │   ├── unit/                     # Unit tests
-│   ├── integration/               # Integration tests
+│   ├── integration/              # Integration tests
 │   └── e2e/                      # End-to-end tests
 ├── scripts/                      # Build and utility scripts
 ├── docs/                         # Documentation
 └── CMakeLists.txt               # Build configuration
 ```
 
-### 2.2. Source Code Organization (`src/`)
+### 2.2. Source Code Organization (`src/`) - DDD Layers
 
 ```
 src/
-├── core/                         # Core services (no UI dependencies)
-│   ├── DeviceSimulator.cpp/h
-│   ├── AlarmManager.cpp/h
-│   ├── NetworkManager.cpp/h
-│   ├── DatabaseManager.cpp/h
-│   ├── PatientManager.cpp/h
-│   ├── SettingsManager.cpp/h
-│   ├── AuthenticationService.cpp/h
-│   ├── LogService.cpp/h
-│   ├── DataArchiver.cpp/h
-│   ├── ProvisioningService.cpp/h
-│   └── AdmissionService.cpp/h
-├── controllers/                  # UI controllers (Qt/QML bridge)
-│   ├── DashboardController.cpp/h
-│   ├── AlarmController.cpp/h
-│   ├── TrendsController.cpp/h
-│   ├── SystemController.cpp/h
-│   ├── PatientController.cpp/h
-│   ├── SettingsController.cpp/h
-│   ├── NotificationController.cpp/h
-│   ├── ProvisioningController.cpp/h
-│   └── AdmissionController.cpp/h
-├── interfaces/                   # Abstract interfaces
-│   ├── IDeviceSimulator.h
-│   ├── IPatientLookupService.h
-│   ├── ITelemetryServer.h
-│   └── IProvisioningService.h
-├── models/                       # Data models
-│   ├── Patient.h
-│   ├── VitalSign.h
-│   ├── Alarm.h
-│   ├── TelemetryData.h
-│   └── User.h
-├── utils/                        # Utility functions
-│   ├── CryptoUtils.cpp/h
-│   ├── DateTimeUtils.cpp/h
-│   ├── StringUtils.cpp/h
-│   └── ValidationUtils.cpp/h
+├── domain/                       # Domain Layer (pure business logic)
+│   ├── monitoring/               # Monitoring bounded context
+│   │   ├── PatientAggregate.h/cpp
+│   │   ├── DeviceAggregate.h/cpp
+│   │   ├── TelemetryBatch.h/cpp
+│   │   ├── AlarmAggregate.h/cpp
+│   │   ├── VitalRecord.h         # Value object
+│   │   ├── WaveformSample.h      # Value object
+│   │   └── events/               # Domain events
+│   │       ├── PatientAdmitted.h
+│   │       ├── TelemetryQueued.h
+│   │       └── AlarmRaised.h
+│   ├── admission/                # Admission/ADT bounded context
+│   │   ├── AdmissionAggregate.h/cpp
+│   │   ├── PatientIdentity.h     # Value object
+│   │   └── events/
+│   ├── provisioning/             # Provisioning bounded context
+│   │   ├── ProvisioningSession.h/cpp
+│   │   ├── CredentialBundle.h     # Value object
+│   │   └── events/
+│   ├── security/                 # Security bounded context
+│   │   ├── UserSession.h/cpp
+│   │   ├── AuditTrailEntry.h/cpp
+│   │   └── events/
+│   └── repositories/             # Repository interfaces (domain)
+│       ├── IPatientRepository.h
+│       ├── ITelemetryRepository.h
+│       ├── IVitalsRepository.h
+│       ├── IAlarmRepository.h
+│       └── IProvisioningRepository.h
+│
+├── application/                  # Application Layer (use-case orchestration)
+│   ├── services/                 # Application services
+│   │   ├── MonitoringService.h/cpp
+│   │   ├── AdmissionService.h/cpp
+│   │   ├── ProvisioningService.h/cpp
+│   │   ├── SecurityService.h/cpp
+│   │   ├── DataArchiveService.h/cpp
+│   │   ├── FirmwareUpdateService.h/cpp
+│   │   └── BackupService.h/cpp
+│   └── dto/                      # Data Transfer Objects
+│       ├── AdmitPatientCommand.h
+│       ├── DischargePatientCommand.h
+│       ├── TelemetrySubmission.h
+│       └── ProvisioningPayload.h
+│
+├── infrastructure/               # Infrastructure Layer (adapters)
+│   ├── persistence/              # Repository implementations
+│   │   ├── SQLitePatientRepository.h/cpp
+│   │   ├── SQLiteTelemetryRepository.h/cpp
+│   │   ├── SQLiteVitalsRepository.h/cpp
+│   │   ├── SQLiteAlarmRepository.h/cpp
+│   │   ├── SQLiteProvisioningRepository.h/cpp
+│   │   ├── SQLiteUserRepository.h/cpp
+│   │   ├── SQLiteAuditRepository.h/cpp
+│   │   └── DatabaseManager.h/cpp
+│   ├── network/                  # Network adapters
+│   │   ├── NetworkTelemetryServer.h/cpp    # ITelemetryServer impl
+│   │   ├── MockTelemetryServer.h/cpp
+│   │   ├── HISPatientLookupAdapter.h/cpp    # IPatientLookupService impl
+│   │   ├── MockPatientLookupService.h/cpp
+│   │   ├── CentralStationClient.h/cpp
+│   │   └── HospitalUserManagementAdapter.h/cpp  # IUserManagementService impl
+│   ├── sensors/                  # Sensor data source adapters
+│   │   ├── WebSocketSensorDataSource.h/cpp     # ISensorDataSource impl
+│   │   ├── SimulatorDataSource.h/cpp
+│   │   ├── MockSensorDataSource.h/cpp
+│   │   ├── HardwareSensorAdapter.h/cpp
+│   │   └── ReplayDataSource.h/cpp
+│   ├── caching/                  # Data caching components
+│   │   ├── VitalsCache.h/cpp
+│   │   ├── WaveformCache.h/cpp
+│   │   ├── PersistenceScheduler.h/cpp
+│   │   └── DataCleanupService.h/cpp
+│   ├── security/                 # Security adapters
+│   │   ├── CertificateManager.h/cpp
+│   │   ├── KeyManager.h/cpp
+│   │   ├── EncryptionService.h/cpp
+│   │   ├── SignatureService.h/cpp
+│   │   └── SecureStorage.h/cpp
+│   ├── qt/                       # Qt-specific adapters
+│   │   ├── SettingsManager.h/cpp
+│   │   └── LogService.h/cpp
+│   └── system/                   # System services
+│       ├── HealthMonitor.h/cpp
+│       ├── ClockSyncService.h/cpp
+│       ├── FirmwareManager.h/cpp
+│       └── WatchdogService.h/cpp
+│
+├── interface/                    # Interface Layer (UI integration)
+│   ├── controllers/              # QML controllers (QObject bridges)
+│   │   ├── DashboardController.h/cpp
+│   │   ├── AlarmController.h/cpp
+│   │   ├── TrendsController.h/cpp
+│   │   ├── SystemController.h/cpp
+│   │   ├── PatientController.h/cpp
+│   │   ├── SettingsController.h/cpp
+│   │   ├── ProvisioningController.h/cpp
+│   │   ├── NotificationController.h/cpp
+│   │   ├── DiagnosticsController.h/cpp
+│   │   └── AuthenticationController.h/cpp
+│   └── qml/                      # QML UI files (moved from resources/qml)
+│       ├── views/                # Full-screen views
+│       ├── components/           # Reusable QML components
+│       ├── dialogs/              # Dialog components
+│       └── Main.qml             # Root QML file
+│
 └── main.cpp
 ```
 
-### 2.3. QML Organization (`qml/`)
+### 2.3. QML Organization (`src/interface/qml/`)
+
+QML files are organized under the interface layer to reflect their role as part of the UI interface:
 
 ```
-qml/
+src/interface/qml/
 ├── views/                        # Full-screen views
 │   ├── DashboardView.qml
 │   ├── TrendsView.qml
 │   ├── SettingsView.qml
 │   ├── DiagnosticsView.qml
 │   ├── LoginView.qml
-│   └── AdmissionModal.qml
+│   └── PatientAdmissionModal.qml
 ├── components/                   # Reusable components
 │   ├── StatCard.qml
 │   ├── PatientBanner.qml
@@ -108,7 +184,12 @@ qml/
 │   ├── NotificationBell.qml
 │   ├── Sidebar.qml
 │   ├── TopBar.qml
-│   └── WaveformDisplay.qml
+│   ├── WaveformDisplay.qml
+│   ├── TrendChart.qml
+│   ├── SettingsRow.qml
+│   ├── ConfirmDialog.qml
+│   ├── LoadingSpinner.qml
+│   └── QRCodeDisplay.qml
 ├── dialogs/                      # Dialog components
 │   ├── ConfirmationDialog.qml
 │   ├── ErrorDialog.qml
@@ -116,57 +197,80 @@ qml/
 └── Main.qml                      # Root QML file
 ```
 
-## 3. Namespace Conventions
+**Note:** QML files may also be placed in `resources/qml/` for resource embedding, but the logical organization follows the interface layer structure.
+
+## 3. Namespace Conventions (DDD-Aligned)
 
 ### 3.1. Namespace Hierarchy
 
+Namespaces align with DDD layers:
+
 ```cpp
 namespace ZMonitor {
-    // Core services
-    namespace Core {
-        class DeviceSimulator;
-        class AlarmManager;
-        class NetworkManager;
-        // ...
+    // Domain Layer
+    namespace Domain {
+        namespace Monitoring {
+            class PatientAggregate;
+            class TelemetryBatch;
+            class VitalRecord;  // Value object
+        }
+        namespace Admission {
+            class AdmissionAggregate;
+            class PatientIdentity;  // Value object
+        }
+        namespace Repositories {
+            class IPatientRepository;
+            class ITelemetryRepository;
+        }
     }
     
-    // UI controllers
-    namespace Controllers {
-        class DashboardController;
-        class AlarmController;
-        // ...
+    // Application Layer
+    namespace Application {
+        namespace Services {
+            class MonitoringService;
+            class AdmissionService;
+            class SecurityService;
+        }
+        namespace DTO {
+            struct AdmitPatientCommand;
+            struct TelemetrySubmission;
+        }
     }
     
-    // Interfaces
-    namespace Interfaces {
-        class IDeviceSimulator;
-        class IPatientLookupService;
-        // ...
+    // Infrastructure Layer
+    namespace Infrastructure {
+        namespace Persistence {
+            class SQLitePatientRepository;
+            class DatabaseManager;
+        }
+        namespace Network {
+            class NetworkTelemetryServer;
+        }
+        namespace Sensors {
+            class WebSocketSensorDataSource;
+        }
+        namespace Security {
+            class CertificateManager;
+            class EncryptionService;
+        }
     }
     
-    // Models
-    namespace Models {
-        struct Patient;
-        struct VitalSign;
-        // ...
-    }
-    
-    // Utilities
-    namespace Utils {
-        class CryptoUtils;
-        class DateTimeUtils;
-        // ...
+    // Interface Layer
+    namespace Interface {
+        namespace Controllers {
+            class DashboardController;
+            class AlarmController;
+        }
     }
 }
 ```
 
 ### 3.2. Namespace Usage
 
-- **Core Services:** `ZMonitor::Core::`
-- **Controllers:** `ZMonitor::Controllers::`
-- **Interfaces:** `ZMonitor::Interfaces::`
-- **Models:** `ZMonitor::Models::`
-- **Utilities:** `ZMonitor::Utils::`
+- **Domain Layer:** `ZMonitor::Domain::` (with bounded context sub-namespaces)
+- **Application Layer:** `ZMonitor::Application::`
+- **Infrastructure Layer:** `ZMonitor::Infrastructure::` (with adapter sub-namespaces)
+- **Interface Layer:** `ZMonitor::Interface::`
 
 ### 3.3. Using Declarations
 
@@ -191,56 +295,96 @@ NetworkManager::NetworkManager() {
 }
 ```
 
-## 4. Module Boundaries
+## 4. Layer Boundaries (DDD)
 
-### 4.1. Core Module
+### 4.1. Domain Layer
 
-**Purpose:** Business logic, no UI dependencies
+**Purpose:** Pure business logic, aggregates, value objects, domain events, repository interfaces
 
 **Dependencies:**
-- Qt Core (QObject, QThread, etc.)
-- Qt Network (for NetworkManager)
-- Qt SQL (for DatabaseManager)
-- Standard C++ library
+- Standard C++ library only
+- No Qt dependencies
+- No infrastructure dependencies
 
 **Dependencies NOT Allowed:**
+- Qt (any module)
+- SQL/database libraries
+- Network libraries
+- Any infrastructure code
+
+**Components:**
+- All aggregates in `src/domain/`
+- All value objects in `src/domain/`
+- All domain events in `src/domain/*/events/`
+- All repository interfaces in `src/domain/repositories/`
+- All external service interfaces (e.g., `ISensorDataSource`, `ITelemetryServer`)
+
+**Key Principle:** Domain layer is pure business logic with no external dependencies.
+
+### 4.2. Application Layer
+
+**Purpose:** Use-case orchestration, coordinates domain objects and repositories
+
+**Dependencies:**
+- Domain layer (aggregates, repositories, events)
+- Standard C++ library
+- Qt Core (QObject, signals/slots for events)
+
+**Dependencies NOT Allowed:**
+- Infrastructure implementations (use interfaces only)
 - Qt Widgets
 - Qt Quick
 - QML types
 
 **Components:**
-- All services in `src/core/`
-- All interfaces in `src/interfaces/`
-- All models in `src/models/`
+- All application services in `src/application/services/`
+- All DTOs in `src/application/dto/`
 
-### 4.2. Controller Module
+**Key Principle:** Application services orchestrate use cases but don't contain infrastructure details.
 
-**Purpose:** Bridge between Core and QML UI
+### 4.3. Infrastructure Layer
+
+**Purpose:** Technical implementations (persistence, networking, Qt adapters, caching)
 
 **Dependencies:**
-- Core module
-- Qt Core
-- Qt Quick (for Q_PROPERTY, signals/slots)
+- Domain layer (implements repository interfaces)
+- Application layer (provides implementations)
+- Qt modules (Core, Network, SQL, etc.)
+- Third-party libraries (OpenSSL, SQLCipher, etc.)
 
 **Dependencies NOT Allowed:**
-- Qt Widgets
-- Direct QML file access
+- Interface layer (controllers, QML)
 
 **Components:**
-- All controllers in `src/controllers/`
+- Repository implementations in `src/infrastructure/persistence/`
+- Network adapters in `src/infrastructure/network/`
+- Sensor adapters in `src/infrastructure/sensors/`
+- Caching components in `src/infrastructure/caching/`
+- Security adapters in `src/infrastructure/security/`
+- Qt adapters in `src/infrastructure/qt/`
+- System services in `src/infrastructure/system/`
 
-### 4.3. UI Module (QML)
+**Key Principle:** Infrastructure implements domain interfaces and provides technical capabilities.
 
-**Purpose:** User interface
+### 4.4. Interface Layer
+
+**Purpose:** UI integration (QML controllers and QML UI)
 
 **Dependencies:**
-- Controllers (via QML property bindings)
-- Qt Quick
-- Qt Quick Controls
+- Application layer (uses application services)
+- Domain layer (reads domain events, value objects)
+- Qt Quick (Q_PROPERTY, signals/slots)
+- Qt Core
 
 **Dependencies NOT Allowed:**
-- Direct C++ class access (except via controllers)
-- Core services (must go through controllers)
+- Direct infrastructure access (must go through application services)
+- Qt Widgets
+
+**Components:**
+- All controllers in `src/interface/controllers/`
+- All QML files in `src/interface/qml/`
+
+**Key Principle:** Interface layer is the only layer that knows about UI. It delegates to application services.
 
 ## 5. File Naming Conventions
 
@@ -357,18 +501,26 @@ private:
 };
 ```
 
-## 8. Dependency Rules
+## 8. Dependency Rules (DDD)
 
 ### 8.1. Dependency Direction
 
 ```
-QML → Controllers → Core → Interfaces
+Interface → Application → Domain ← Infrastructure
 ```
 
-- **QML** depends on **Controllers** (via property bindings)
-- **Controllers** depend on **Core** (use core services)
-- **Core** depends on **Interfaces** (program to interfaces)
-- **Interfaces** have no dependencies
+**Layer Dependency Rules:**
+- **Interface Layer** depends on **Application Layer** (controllers use application services)
+- **Application Layer** depends on **Domain Layer** (services use aggregates and repository interfaces)
+- **Infrastructure Layer** depends on **Domain Layer** (implements repository interfaces)
+- **Domain Layer** has **no dependencies** (pure business logic)
+
+**Key Principles:**
+- Dependencies flow inward (toward domain)
+- Domain layer is independent
+- Infrastructure implements domain interfaces
+- Application orchestrates domain objects
+- Interface delegates to application services
 
 ### 8.2. Circular Dependencies
 
@@ -539,9 +691,12 @@ Each module should have a README documenting:
 
 ## 14. Related Documents
 
+- [02_ARCHITECTURE.md](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure ⭐
+- [28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines ⭐
+- [27_PROJECT_STRUCTURE.md](./27_PROJECT_STRUCTURE.md) - Directory layout reference
 - [13_DEPENDENCY_INJECTION.md](./13_DEPENDENCY_INJECTION.md) - Dependency management
 - [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) - Thread organization
 - [18_TESTING_WORKFLOW.md](./18_TESTING_WORKFLOW.md) - Test organization
-- [09_CLASS_DESIGNS.md](./09_CLASS_DESIGNS.md) - Class structure
+- [09_CLASS_DESIGNS_OVERVIEW.md](./09_CLASS_DESIGNS_OVERVIEW.md) - Module-based class architecture
 - `26_API_DOCUMENTATION.md` - API documentation generation
 
