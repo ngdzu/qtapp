@@ -1062,16 +1062,39 @@ Per **Section 10 of 06_INTERFACE_REQUIREMENTS.md**, external APIs follow these s
 The workflow (`.github/workflows/doxygen-docs.yml`) automatically:
 
 1. **Generates documentation** on every push/PR
-2. **Checks coverage** against 95% threshold
-3. **Uploads artifacts** for review
-4. **Comments on PRs** with coverage status
-5. **Fails build** if coverage < 95% (REQ-NFR-MAIN-010)
+2. **Checks coverage** - Counts undocumented items (fails if > 10)
+3. **Validates documentation quality** - Checks for missing `@param` and `@return` tags (warns)
+4. **Generates quality report** - Creates summary in GitHub Actions step summary
+5. **Uploads artifacts** for review
+6. **Comments on PRs** with coverage status and quality issues
+7. **Fails build** if too many undocumented items (threshold: 10)
+
+**Automated Checks:**
+- ✅ Counts undocumented classes/methods (fails if > 10)
+- ⚠️ Warns about missing `@param` tags
+- ⚠️ Warns about missing `@return` tags
+- ✅ Generates documentation quality report in workflow summary
+
+**Manual Checks (Code Review):**
+The following items from the checklist (Section 23.2) are **not automatically validated** and must be checked during code review:
+- Examples provided for complex APIs
+- Cross-references (@see, @sa) included
+- Traceability to requirements (@see REQ-XXX)
+- Performance notes (@performance tag)
+- Thread assignment (@thread tag)
+- Safety classification (@safety tag)
 
 **Triggers:**
 - Nightly at 2 AM UTC
 - On push to main/master
 - On pull requests (optional, can be disabled)
 - Manual trigger via workflow_dispatch
+
+**Future Enhancements:**
+- Parse Doxygen XML output to calculate actual coverage percentage (target: 95%)
+- Validate presence of `@param` and `@return` tags (currently warns only)
+- Check for file headers automatically
+- Validate custom tags (@performance, @thread, @safety)
 
 ---
 

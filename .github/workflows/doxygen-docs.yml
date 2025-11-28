@@ -77,6 +77,57 @@ jobs:
               exit 1
             fi
           fi
+          
+      - name: Validate Documentation Quality
+        working-directory: project-dashboard
+        run: |
+          # Check for missing @param tags in warnings
+          if [ -f "docs/api/doxygen_warnings.log" ]; then
+            MISSING_PARAM=$(grep -c "The following parameter.*is not documented" docs/api/doxygen_warnings.log || echo "0")
+            MISSING_RETURN=$(grep -c "return value.*not documented" docs/api/doxygen_warnings.log || echo "0")
+            
+            echo "Missing @param tags: $MISSING_PARAM"
+            echo "Missing @return tags: $MISSING_RETURN"
+            
+            # Warn if parameters or return values are missing (non-blocking for now)
+            if [ "$MISSING_PARAM" -gt 0 ] || [ "$MISSING_RETURN" -gt 0 ]; then
+              echo "⚠️  Warning: Some parameters or return values are not documented."
+              echo "Please ensure all public methods have @param and @return tags."
+              echo "See doc/z-monitor/architecture_and_design/26_API_DOCUMENTATION.md for requirements"
+              # Don't fail build, but warn (can be made stricter later)
+            fi
+          fi
+          
+      - name: Generate Documentation Quality Report
+        working-directory: project-dashboard
+        run: |
+          # Generate a summary report of documentation quality
+          if [ -f "docs/api/doxygen_warnings.log" ]; then
+            echo "## Documentation Quality Report" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Undocumented Items" >> $GITHUB_STEP_SUMMARY
+            UNDOCUMENTED=$(grep -c "is not documented" docs/api/doxygen_warnings.log || echo "0")
+            echo "- Total undocumented: $UNDOCUMENTED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Missing Documentation Tags" >> $GITHUB_STEP_SUMMARY
+            MISSING_PARAM=$(grep -c "The following parameter.*is not documented" docs/api/doxygen_warnings.log || echo "0")
+            MISSING_RETURN=$(grep -c "return value.*not documented" docs/api/doxygen_warnings.log || echo "0")
+            echo "- Missing @param tags: $MISSING_PARAM" >> $GITHUB_STEP_SUMMARY
+            echo "- Missing @return tags: $MISSING_RETURN" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Code Review Checklist" >> $GITHUB_STEP_SUMMARY
+            echo "Please verify manually:" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] All new public classes have Doxygen class comments" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] All new public methods have @param and @return tags" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] Exceptions/errors documented" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] Examples provided for complex APIs" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] Cross-references (@see) included" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] File headers present" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] Performance notes (@performance tag) where applicable" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] Thread assignment (@thread tag) where applicable" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "See [26_API_DOCUMENTATION.md](doc/z-monitor/architecture_and_design/26_API_DOCUMENTATION.md) for complete requirements." >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Upload Documentation Artifacts
         uses: actions/upload-artifact@v4
@@ -95,15 +146,43 @@ jobs:
             
             // Check if documentation was generated
             const docsPath = 'project-dashboard/docs/api/html';
+            let undocumentedCount = 0;
+            let missingParamCount = 0;
+            let missingReturnCount = 0;
+            
+            // Parse warnings log if it exists
+            const warningsPath = 'project-dashboard/docs/api/doxygen_warnings.log';
+            if (fs.existsSync(warningsPath)) {
+              const warnings = fs.readFileSync(warningsPath, 'utf8');
+              const undocumentedMatches = warnings.match(/is not documented/g);
+              const paramMatches = warnings.match(/The following parameter.*is not documented/g);
+              const returnMatches = warnings.match(/return value.*not documented/g);
+              
+              undocumentedCount = undocumentedMatches ? undocumentedMatches.length : 0;
+              missingParamCount = paramMatches ? paramMatches.length : 0;
+              missingReturnCount = returnMatches ? returnMatches.length : 0;
+            }
+            
             if (fs.existsSync(docsPath)) {
               const files = fs.readdirSync(docsPath);
+              let commentBody = `✅ API documentation generated successfully.\n\n`;
+              commentBody += `📚 Documentation includes ${files.length} files.\n\n`;
+              
+              if (undocumentedCount > 0 || missingParamCount > 0 || missingReturnCount > 0) {
+                commentBody += `⚠️  Documentation Quality Issues:\n`;
+                commentBody += `- Undocumented items: ${undocumentedCount}\n`;
+                commentBody += `- Missing @param tags: ${missingParamCount}\n`;
+                commentBody += `- Missing @return tags: ${missingReturnCount}\n\n`;
+                commentBody += `Please review the [documentation checklist](doc/z-monitor/architecture_and_design/26_API_DOCUMENTATION.md#232-code-review-checklist) and add missing documentation.\n\n`;
+              }
+              
+              commentBody += `Download the documentation artifact to view locally.`;
+              
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `✅ API documentation generated successfully.\n\n` +
-                      `📚 Documentation includes ${files.length} files.\n\n` +
-                      `Download the documentation artifact to view locally.`
+                body: commentBody
               });
             } else {
               github.rest.issues.createComment({
@@ -111,7 +190,8 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: `⚠️  API documentation generation completed with warnings.\n\n` +
-                      `Check the workflow logs for details.`
+                      `Check the workflow logs for details.\n\n` +
+                      `See [documentation requirements](doc/z-monitor/architecture_and_design/26_API_DOCUMENTATION.md) for guidelines.`
               });
             }
 
