@@ -41,7 +41,7 @@ foundation/
 │   └── ... (8 documents total)
 ├── 03_security_and_cryptography/ (8 documents)
 ├── 04_concurrency_and_threading/ (6 documents)
-├── 05_memory_and_performance/ (5 documents)
+├── 05_memory_and_performance/ (6 documents)
 ├── 06_error_handling_and_resilience/ (5 documents)
 ├── 07_logging_and_observability/ (4 documents)
 ├── 08_testing_strategies/ (5 documents)
@@ -53,7 +53,7 @@ foundation/
 └── 14_build_systems/ (3 documents)
 ```
 
-**Total:** 74 topic documents + index + README = 76 markdown files
+**Total:** 75 topic documents + index + README = 77 markdown files
 
 Each document follows a consistent format with:
 - Status indicator (✅/🔶/⏳)
@@ -531,6 +531,22 @@ Each document follows a consistent format with:
   - Profiler-guided optimization
   - Benchmarking strategies
 - **Applies to:** Performance optimization, bottleneck identification
+
+### 5.6 Shared Memory IPC with memfd and Unix Domain Sockets
+- **Status:** ✅ Complete
+- **Document:** `05_memory_and_performance/07_shared_memory_ipc.md`
+- **Z Monitor Reference:** `../z-monitor/architecture_and_design/37_SENSOR_INTEGRATION.md` (Section "Understanding memfd and Socket Handshake Architecture")
+- **Coverage:**
+  - `memfd_create` system call and advantages
+  - Unix domain sockets with `SCM_RIGHTS` for file descriptor passing
+  - Control channel + data channel architecture pattern
+  - Performance comparison (shared memory vs. WebSocket vs. socket)
+  - Security considerations for shared memory IPC
+  - Code examples for handshake and data transfer
+  - Ring buffer patterns for high-frequency data
+  - Multiple reader support
+  - Heartbeat mechanisms for stall detection
+- **Applies to:** Sensor integration, high-performance IPC, real-time data transfer
 
 ---
 

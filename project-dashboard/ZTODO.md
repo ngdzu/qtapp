@@ -240,7 +240,7 @@ These infrastructure components should be implemented early as they are dependen
   - Dependencies: POSIX shared memory (`memfd_create`, `shm_open`), Unix domain sockets, `<atomic>`. **Status:** ✅ Implementation uses POSIX shared memory (mmap), Unix domain sockets (AF_UNIX), and atomic operations (std::atomic for ring buffer indices).
   - Prompt: `project-dashboard/prompt/02c-shared-memory-sensor-datasource.md`
 
-- [ ] Add comprehensive documentation explaining memfd and socket handshake architecture
+- [x] Add comprehensive documentation explaining memfd and socket handshake architecture
   - What: Add detailed explanation to `doc/37_SENSOR_INTEGRATION.md` (or create new section/document) that explains:
     1. **What is memfd?** - Memory file descriptor (`memfd_create`), anonymous shared memory, advantages over traditional `shm_open` (no filesystem namespace pollution, better security, automatic cleanup)
     2. **Why do we need a socket connection?** - File descriptors cannot be passed through shared memory itself. Unix domain sockets support `SCM_RIGHTS` ancillary data to pass file descriptors between processes. The socket is ONLY used for the initial handshake to exchange the memfd file descriptor - all actual data transfer happens through shared memory (zero-copy, < 16ms latency).
@@ -258,11 +258,11 @@ These infrastructure components should be implemented early as they are dependen
     - Performance comparison with alternative approaches
     - Security considerations documented
   - Verification Steps:
-    1. Functional: Documentation clearly explains memfd concept, socket handshake purpose, and architecture pattern. Developers can understand why both are needed.
-    2. Code Quality: Documentation follows project documentation standards, includes diagrams/code examples, cross-references related documents.
-    3. Documentation: Documentation is complete, accurate, and matches implementation. Diagrams are updated if needed.
-    4. Integration: Documentation aligns with actual code implementation (SharedMemoryControlChannel, SharedMemoryRingBuffer, SharedMemorySensorDataSource).
-    5. Tests: Documentation reviewed for accuracy, examples verified against actual code.
+    1. Functional: Documentation clearly explains memfd concept, socket handshake purpose, and architecture pattern. Developers can understand why both are needed. **Status:** ✅ Comprehensive section "Understanding memfd and Socket Handshake Architecture" added to `37_SENSOR_INTEGRATION.md`. Explains what memfd is, why socket is needed, architecture pattern (control channel + data channel), security considerations, performance comparison, and includes code examples for handshake flow, memfd creation, socket handshake, and shared memory mapping. Foundation document created at `doc/foundation/05_memory_and_performance/07_shared_memory_ipc.md` for general reference.
+    2. Code Quality: Documentation follows project documentation standards, includes diagrams/code examples, cross-references related documents. **Status:** ✅ Documentation follows project standards with clear sections, ASCII diagrams showing handshake vs. data transfer phases, comprehensive code examples from actual implementation (Simulator.cpp, ControlServer.cpp, SharedMemoryControlChannel.cpp, SharedMemorySensorDataSource.cpp), cross-references to related documents. Foundation document includes references to Z-Monitor implementation.
+    3. Documentation: Documentation is complete, accurate, and matches implementation. Diagrams are updated if needed. **Status:** ✅ Documentation is complete and accurate. Code examples match actual implementation. ASCII diagrams clearly show the two-phase architecture (connection setup via socket, data transfer via shared memory). Performance comparison table included. Security considerations documented with best practices.
+    4. Integration: Documentation aligns with actual code implementation (SharedMemoryControlChannel, SharedMemoryRingBuffer, SharedMemorySensorDataSource). **Status:** ✅ Code examples extracted from actual implementation files. Handshake flow matches `ControlServer::sendFileDescriptor()` and `SharedMemoryControlChannel::onSocketDataAvailable()`. Shared memory mapping matches `SharedMemorySensorDataSource::mapSharedMemory()`. Ring buffer structure matches `SharedMemoryRingBuffer` implementation.
+    5. Tests: Documentation reviewed for accuracy, examples verified against actual code. **Status:** ✅ Code examples verified against actual implementation. memfd creation code matches `Simulator::initializeSharedMemory()`. Socket handshake code matches `ControlServer::sendFileDescriptor()` and `SharedMemoryControlChannel::receiveFileDescriptor()`. Shared memory mapping matches `SharedMemorySensorDataSource::mapSharedMemory()`. Foundation document added to `00_FOUNDATIONAL_KNOWLEDGE_INDEX.md`.
   - Documentation: See `doc/37_SENSOR_INTEGRATION.md` for current sensor integration documentation. See `doc/42_LOW_LATENCY_TECHNIQUES.md` for low-latency techniques context.
   - Prompt: `project-dashboard/prompt/37a-memfd-socket-documentation.md`
 
