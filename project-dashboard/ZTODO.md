@@ -40,7 +40,7 @@
     5. Tests – Add placeholder unit test verifying project links/starts (can be smoke test). **Status:** Test directory skeletons (`tests/unit`, `tests/integration`, `tests/e2e`, `tests/benchmarks`) added with `.gitkeep` placeholders; actual smoke test will be implemented as part of the testing workflow task in `doc/18_TESTING_WORKFLOW.md`.
   - Prompt: `project-dashboard/prompt/28a-ddd-bootstrap.md` (create if needed).
 
-- [ ] Implement domain aggregates, value objects, repositories, and application services
+- [x] Implement domain aggregates, value objects, repositories, and application services
   - What: Flesh out `PatientAggregate`, `DeviceAggregate`, `TelemetryBatch`, domain events, repositories, and application services as defined in `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
   - Why: Encodes business rules in pure domain code, enabling clear separation and testing.
   - Files: `project-dashboard/z-monitor/src/domain/**`, `project-dashboard/z-monitor/src/application/**`, `project-dashboard/z-monitor/tests/**`.
