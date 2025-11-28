@@ -137,11 +137,20 @@ src/
 │   ├── qt/                       # Qt-specific adapters
 │   │   ├── SettingsManager.h/cpp
 │   │   └── LogService.h/cpp
-│   └── system/                   # System services
-│       ├── HealthMonitor.h/cpp
-│       ├── ClockSyncService.h/cpp
-│       ├── FirmwareManager.h/cpp
-│       └── WatchdogService.h/cpp
+│   ├── system/                   # System services
+│   │   ├── HealthMonitor.h/cpp
+│   │   ├── ClockSyncService.h/cpp
+│   │   ├── FirmwareManager.h/cpp
+│   │   └── WatchdogService.h/cpp
+│   └── utils/                    # Shared utility classes
+│       ├── ObjectPool.h/cpp      # Object pooling utility (see 23_MEMORY_RESOURCE_MANAGEMENT.md)
+│       ├── LockFreeQueue.h/cpp   # Lock-free queue (or use external library)
+│       ├── LogBuffer.h/cpp       # Pre-allocated log buffer
+│       ├── MemoryPool.h/cpp       # Memory pool allocator
+│       ├── CryptoUtils.h/cpp     # Cryptographic utilities
+│       ├── DateTimeUtils.h/cpp   # Date/time utilities
+│       ├── StringUtils.h/cpp     # String manipulation utilities
+│       └── ValidationUtils.h/cpp # Input validation utilities
 │
 ├── interface/                    # Interface Layer (UI integration)
 │   ├── controllers/              # QML controllers (QObject bridges)
@@ -363,6 +372,7 @@ NetworkManager::NetworkManager() {
 - Security adapters in `src/infrastructure/security/`
 - Qt adapters in `src/infrastructure/qt/`
 - System services in `src/infrastructure/system/`
+- Utility classes in `src/infrastructure/utils/` (ObjectPool, LockFreeQueue, LogBuffer, etc. - see [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md))
 
 **Key Principle:** Infrastructure implements domain interfaces and provides technical capabilities.
 
@@ -429,9 +439,9 @@ Order of includes:
 #include <memory>                      // 3. Standard library
 #include <chrono>
 
-#include "core/DatabaseManager.h"      // 4. Project headers (core)
-#include "interfaces/ITelemetryServer.h"
-#include "utils/CryptoUtils.h"
+#include "infrastructure/persistence/DatabaseManager.h"  // 4. Project headers (infrastructure)
+#include "domain/repositories/ITelemetryRepository.h"    // Domain interfaces
+#include "infrastructure/utils/CryptoUtils.h"            // Utility classes
 ```
 
 ### 6.2. Include Guards
@@ -694,6 +704,7 @@ Each module should have a README documenting:
 - [02_ARCHITECTURE.md](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure ⭐
 - [28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines ⭐
 - [27_PROJECT_STRUCTURE.md](./27_PROJECT_STRUCTURE.md) - Directory layout reference
+- [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) - Memory management patterns and utility classes (ObjectPool, LockFreeQueue, LogBuffer) ⭐
 - [13_DEPENDENCY_INJECTION.md](./13_DEPENDENCY_INJECTION.md) - Dependency management
 - [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) - Thread organization
 - [18_TESTING_WORKFLOW.md](./18_TESTING_WORKFLOW.md) - Test organization

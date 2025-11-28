@@ -77,8 +77,14 @@ QString* deviceId = new QString("ZM-001");  // Don't do this
 
 ### 2.4. Object Pools (For Hot Paths)
 
-Use object pools for frequently allocated/deallocated objects:
+Use object pools for frequently allocated/deallocated objects to avoid heap allocation overhead in performance-critical paths.
 
+**Implementation Status:**
+- ⏳ **Not yet implemented** - Example pattern shown below
+- **Location:** Would be implemented in `src/infrastructure/utils/` or as a shared utility library
+- **Qt Support:** Qt does **not** provide built-in object pooling (only `QThreadPool` for thread recycling)
+
+**Example Pattern:**
 ```cpp
 template<typename T>
 class ObjectPool {
@@ -99,6 +105,7 @@ public:
     
 private:
     std::vector<std::unique_ptr<T>> pool;
+    std::mutex m_mutex;  // Thread-safe if needed
 };
 ```
 
@@ -106,6 +113,12 @@ private:
 - High-frequency allocations (e.g., per-sample processing)
 - Real-time threads
 - Performance-critical paths
+- TelemetryBatch objects (as mentioned in [12_THREAD_MODEL.md](./12_THREAD_MODEL.md))
+
+**Implementation Options:**
+1. **Custom Implementation:** Create `ObjectPool<T>` in `src/infrastructure/utils/`
+2. **External Library:** Consider lightweight C++ object pool libraries if available
+3. **Qt Alternative:** Use `QThreadPool` for thread recycling (different use case)
 
 ## 3. Resource Lifecycle Management
 
@@ -234,34 +247,66 @@ public:
 
 ### 4.2. Queue Buffers
 
-Pre-allocate queue buffers:
+Pre-allocate queue buffers for high-performance inter-thread communication.
 
+**Implementation Status:**
+- ⏳ **Not yet implemented** - Example pattern shown below
+- **Location:** Would be implemented in `src/infrastructure/utils/` or use external libraries
+- **Qt Support:** Qt does **not** provide lock-free queues (only `QQueue` which is not lock-free)
+
+**Recommended Approach:** Use external libraries for production-quality lock-free queues (see [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) Section 6):
+- **SPSC (Single Producer, Single Consumer):** `boost::lockfree::spsc_queue`, `folly::ProducerConsumerQueue`
+- **MPSC (Multiple Producer, Single Consumer):** `boost::lockfree::queue`, `moodycamel::ConcurrentQueue`
+
+**Example Pattern (Simple SPSC Ring Buffer):**
 ```cpp
+template<typename T, size_t QueueSize>
 class LockFreeQueue {
 private:
-    static constexpr size_t QUEUE_SIZE = 4096;
-    std::array<LogEntry, QUEUE_SIZE> m_buffer;  // Pre-allocated
+    static constexpr size_t QUEUE_SIZE = QueueSize;
+    std::array<T, QUEUE_SIZE> m_buffer;  // Pre-allocated
     std::atomic<size_t> m_writeIndex{0};
     std::atomic<size_t> m_readIndex{0};
     
 public:
-    bool enqueue(const LogEntry& entry) {
+    bool enqueue(const T& entry) {
         // Use pre-allocated buffer, no allocation
-        size_t next = (m_writeIndex + 1) % QUEUE_SIZE;
-        if (next == m_readIndex) {
+        size_t next = (m_writeIndex.load() + 1) % QUEUE_SIZE;
+        if (next == m_readIndex.load()) {
             return false;  // Queue full
         }
-        m_buffer[m_writeIndex] = entry;
-        m_writeIndex = next;
+        m_buffer[m_writeIndex.load()] = entry;
+        m_writeIndex.store(next, std::memory_order_release);
+        return true;
+    }
+    
+    bool dequeue(T& entry) {
+        if (m_readIndex.load() == m_writeIndex.load()) {
+            return false;  // Queue empty
+        }
+        entry = m_buffer[m_readIndex.load()];
+        m_readIndex.store((m_readIndex.load() + 1) % QUEUE_SIZE, std::memory_order_acquire);
         return true;
     }
 };
 ```
 
+**When to Use:**
+- High-frequency data transfer between threads
+- Real-time thread communication
+- Logging queue (as mentioned in [21_LOGGING_STRATEGY.md](./21_LOGGING_STRATEGY.md))
+- Telemetry batch queuing (RT Thread → Database Thread)
+
 ### 4.3. String Buffers
 
-Pre-allocate string buffers for logging:
+Pre-allocate string buffers for logging to avoid repeated allocations.
 
+**Implementation Status:**
+- ⏳ **Not yet implemented** - Example pattern shown below
+- **Location:** Would be implemented in `src/infrastructure/utils/` or as part of `LogService`
+- **Qt Support:** Qt's `QString` uses implicit sharing, but pre-allocated buffers can still help in hot paths
+
+**Example Pattern:**
 ```cpp
 class LogBuffer {
 private:
@@ -281,8 +326,17 @@ public:
     void reset() {
         m_pos = 0;
     }
+    
+    QString toString() const {
+        return QString::fromUtf8(m_buffer, m_pos);
+    }
 };
 ```
+
+**When to Use:**
+- High-frequency logging operations
+- Building log messages incrementally
+- Reducing allocations in logging hot paths
 
 ## 5. Memory Allocation Rules
 
@@ -479,8 +533,20 @@ public:
 
 ### 9.2. Lock-Free Structures
 
-Use lock-free data structures for high-performance:
+Use lock-free data structures for high-performance inter-thread communication.
 
+**Implementation Status:**
+- ⏳ **Not yet implemented** - Use external libraries for production code
+- **Location:** External libraries (boost, folly, moodycamel) or custom implementation in `src/infrastructure/utils/`
+- **Qt Support:** Qt does **not** provide lock-free data structures
+
+**Recommended Libraries:**
+- **boost::lockfree::spsc_queue** - Single producer, single consumer (fastest)
+- **boost::lockfree::queue** - Multiple producer, multiple consumer
+- **folly::ProducerConsumerQueue** - Facebook's high-performance queue
+- **moodycamel::ConcurrentQueue** - Lock-free concurrent queue
+
+**Example Pattern (Node-based, not recommended for production):**
 ```cpp
 template<typename T>
 class LockFreeQueue {
@@ -495,12 +561,14 @@ private:
     
 public:
     void enqueue(const T& data) {
-        Node* node = new Node{nullptr, data};
+        Node* node = new Node{nullptr, data};  // ⚠️ Still allocates!
         Node* prev = m_tail.exchange(node, std::memory_order_acq_rel);
         prev->next.store(node, std::memory_order_release);
     }
 };
 ```
+
+**Note:** The node-based approach above still allocates memory. For true zero-allocation, use ring buffers (see Section 4.2) or external libraries with pre-allocated buffers.
 
 ## 10. Resource Monitoring
 
@@ -570,9 +638,67 @@ public:
 - ❌ Don't ignore memory leaks
 - ❌ Don't allocate large objects on stack
 
-## 12. Related Documents
+## 12. Utility Classes and Shared Libraries
 
-- [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) - Memory management in multi-threaded context
-- [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) - Code organization
+### 12.1. Implementation Status
+
+The following utility classes are **mentioned in design documents but not yet implemented**:
+
+| Utility Class | Status | Location | Notes |
+|--------------|--------|----------|-------|
+| `ObjectPool<T>` | ⏳ Not implemented | `src/infrastructure/utils/` | Example pattern in Section 2.4 |
+| `LockFreeQueue<T>` | ⏳ Not implemented | External libraries recommended | Use `boost::lockfree` or `moodycamel::ConcurrentQueue` |
+| `LogBuffer` | ⏳ Not implemented | `src/infrastructure/utils/` or `LogService` | Example pattern in Section 4.3 |
+| `MemoryPool<T>` | ⏳ Not implemented | `src/infrastructure/utils/` | Example pattern in Section 8.2 |
+
+### 12.2. Where Utility Classes Should Live
+
+Based on DDD structure (see [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md)):
+
+```
+src/infrastructure/utils/          # Shared utility classes
+├── ObjectPool.h/cpp               # Object pooling utility
+├── MemoryPool.h/cpp               # Memory pool allocator
+├── LogBuffer.h/cpp                # Pre-allocated log buffer
+├── LockFreeQueue.h/cpp            # Custom lock-free queue (if not using external lib)
+└── ...                            # Other utilities
+```
+
+**Alternative:** If utilities are used across layers, consider a separate `src/common/` or `src/shared/` directory, but this violates DDD principles. Prefer keeping utilities in infrastructure layer.
+
+### 12.3. Qt's Built-in Options
+
+**What Qt Provides:**
+- ✅ `QThreadPool` - Thread recycling (not object pooling)
+- ✅ `QQueue<T>` - Standard queue (not lock-free, uses mutexes)
+- ✅ `QString` - Implicit sharing (reduces copies)
+- ✅ `QByteArray` - Pre-allocated buffer support
+- ❌ **No object pooling** - Must implement custom or use external library
+- ❌ **No lock-free queues** - Must use external libraries or custom implementation
+
+**Recommendation:** Use Qt's built-in classes where appropriate, but for high-performance lock-free structures, use external libraries (`boost::lockfree`, `moodycamel::ConcurrentQueue`).
+
+### 12.4. External Library Recommendations
+
+For production use, prefer battle-tested external libraries:
+
+1. **Lock-Free Queues:**
+   - `boost::lockfree::spsc_queue` - Single producer, single consumer (fastest)
+   - `boost::lockfree::queue` - Multiple producer, multiple consumer
+   - `moodycamel::ConcurrentQueue` - Header-only, very fast
+
+2. **Object Pools:**
+   - Custom implementation recommended (simple enough to implement)
+   - Or lightweight C++ object pool libraries
+
+3. **Memory Pools:**
+   - Custom implementation for specific use cases
+   - Or `boost::pool` for general-purpose memory pooling
+
+## 13. Related Documents
+
+- [12_THREAD_MODEL.md](./12_THREAD_MODEL.md) - Memory management in multi-threaded context, lock-free queue recommendations
+- [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) - Code organization and directory structure
 - [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) - Error handling for resource failures
+- [21_LOGGING_STRATEGY.md](./21_LOGGING_STRATEGY.md) - Logging implementation using lock-free queues
 

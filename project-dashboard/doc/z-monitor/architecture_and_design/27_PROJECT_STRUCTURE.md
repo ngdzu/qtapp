@@ -69,7 +69,8 @@ z-monitor/
 **Layer Overview:**
 - **Domain Layer** (`src/domain/`) – Pure business logic, aggregates, value objects, domain events, repository interfaces
 - **Application Layer** (`src/application/`) – Use-case orchestration, application services, DTOs
-- **Infrastructure Layer** (`src/infrastructure/`) – Technical implementations (persistence, network, sensors, caching, security, Qt adapters, system services)
+- **Infrastructure Layer** (`src/infrastructure/`) – Technical implementations (persistence, network, sensors, caching, security, Qt adapters, system services, utilities)
+  - Includes `utils/` subdirectory for shared utility classes (ObjectPool, LockFreeQueue, LogBuffer, etc.) - see [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) Section 12
 - **Interface Layer** (`src/interface/`) – UI integration (QML controllers and QML UI)
 
 See [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) Section 2 for the complete directory structure and [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) Section 8 for dependency rules.
@@ -121,6 +122,7 @@ Use this tree when you need specifications, design references, or automation scr
 ## 7. Cross-References
 
 - **Code Organization:** [22_CODE_ORGANIZATION.md](./22_CODE_ORGANIZATION.md) - **Detailed code structure, conventions, and organization rules** ⭐ (use this for src/ directory details)
+- **Memory Management:** [23_MEMORY_RESOURCE_MANAGEMENT.md](./23_MEMORY_RESOURCE_MANAGEMENT.md) - Memory management patterns, utility classes (ObjectPool, LockFreeQueue, LogBuffer), and resource lifecycle
 - **Architecture:** [02_ARCHITECTURE.md](./02_ARCHITECTURE.md) - High-level architecture and DDD layer structure
 - **DDD Guidance:** [28_DOMAIN_DRIVEN_DESIGN.md](./28_DOMAIN_DRIVEN_DESIGN.md) - DDD strategy and guidelines
 - **Developer Setup:** `07_SETUP_GUIDE.md` (includes quick tree + tooling steps).
