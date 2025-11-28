@@ -1,104 +1,54 @@
-# Z Monitor
+Z Monitor Bootstrap
+====================
 
-A modern, real-time patient monitoring system that reads data from sensors and attached devices, built with Qt 6 and QML.
+This directory contains the Z Monitor executable, organized according to the
+Domain-Driven Design (DDD) structure described in the architecture documents.
 
-## What is Z Monitor?
+At this bootstrap stage the project provides:
 
-**Z Monitor** is a patient monitoring device application that:
-- Reads real-time data from medical sensors (ECG, SpO2, respiration, infusion pumps)
-- Displays vital signs and waveforms on an embedded touch-screen interface
-- Manages multi-level alarms and notifications for clinical staff
-- Securely transmits telemetry data to a central monitoring server
-- Stores encrypted patient data locally with archival capabilities
-- Provides device configuration including Device ID, Bed ID, and measurement unit preferences (metric/imperial)
+- A minimal Qt/QML executable (`z-monitor`) with a placeholder UI.
+- A DDD-aligned source tree (`src/domain`, `src/application`,
+  `src/infrastructure`, `src/interface`).
+- Resource structure for QML under `resources/qml`.
 
-The Z Monitor is designed for embedded touch-screen devices (8-inch, 1280x800 resolution) and provides continuous patient monitoring with modern UI/UX, comprehensive alarm management, and enterprise-grade security.
+Directory layout
+----------------
 
-## Build & Run
+- `src/`
+  - `domain/` – Domain layer (aggregates, value objects, domain events,
+    repository interfaces).
+  - `application/` – Application layer (services, DTOs, orchestration).
+  - `infrastructure/` – Infrastructure layer (persistence, network, sensors,
+    logging, Qt adapters).
+  - `interface/` – Interface layer (QObject controllers, QML-related C++).
+  - `main.cpp` – Application entry point.
+- `resources/`
+  - `qml/` – QML entry point and views (`Main.qml`, etc.).
+  - `assets/` – Images, icons (placeholder).
+  - `i18n/` – Translation files (placeholder).
+  - `certs/` – Development certificates for mTLS (placeholder).
+- `tests/`
+  - `unit/`, `integration/`, `e2e/`, `benchmarks/` – Test suites (placeholders).
+- `schema/` – YAML schema definitions and generated DDL/migrations (placeholder).
+- `proto/` – Protobuf schema definitions (placeholder).
+- `openapi/` – OpenAPI specifications (placeholder).
 
-### Prerequisites
-- Docker
-- X11 Server (for macOS/Linux GUI)
+Build and run
+-------------
 
-### Build
-
-```bash
-cd z-monitor
-docker build -t z-monitor .
-```
-
-### Run (macOS)
-
-```bash
-# Allow X11 connections
-xhost +localhost
-
-# Run container with Qt software rendering
-docker run -it --rm \
-    -e DISPLAY=host.docker.internal:0 \
-    -e QT_QUICK_BACKEND=software \
-    z-monitor
-```
-
-### Run (Linux)
+From the repository root:
 
 ```bash
-docker run -it --rm \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
-    -e DISPLAY=$DISPLAY \
-    z-monitor
+cmake -S . -B build
+cmake --build build
+./build/z-monitor/z-monitor
 ```
 
-### Local Build (without Docker)
+Expected behavior
+-----------------
 
-```bash
-cd z-monitor
-mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build .
-./z-monitor
-```
+The application starts a QML-based window sized for 1280x800 and displays a
+simple placeholder dashboard message indicating that the DDD structure is in
+place. No real device logic, controllers, or services are wired yet.
 
-## Project Structure
-
-- `src/core`: Backend logic and data services
-- `src/ui`: QML integration and controllers
-- `resources/qml`: UI definitions and components
-- `tests`: Unit tests
-
-## Configuration
-
-The Z Monitor supports the following device configuration options accessible through the Settings View:
-
-- **Device ID**: Unique identifier for the monitoring device, used for telemetry transmission and device identification
-- **Bed ID**: Identifier for the bed/room location where the device is deployed, used for patient context and location tracking
-- **Measurement Unit**: System preference for displaying measurements in either metric or imperial units
-
-These settings are persisted locally and can be modified by authorized users (Technician role) through the Settings View in the application UI.
-
-## Documentation
-
-See `../doc/` for comprehensive documentation including:
-- Architecture overview
-- UI/UX guidelines
-- Security architecture
-- Database design
-- Threading model
-- Configuration and settings
-- API documentation (auto-generated from code)
-- And more
-
-### Generating API Documentation
-
-API documentation is automatically generated from source code comments using Doxygen:
-
-```bash
-# Generate API documentation
-cmake --build build --target docs
-
-# Or directly with Doxygen
-doxygen Doxyfile
-```
-
-The generated documentation is available in `docs/api/html/`. See `doc/26_API_DOCUMENTATION.md` for complete API documentation strategy and guidelines.
 
