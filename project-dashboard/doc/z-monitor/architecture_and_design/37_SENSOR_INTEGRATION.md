@@ -7,11 +7,11 @@
 
 ---
 
----
-
 ## Overview
 
-For local development we run the Sensor Simulator on the **same machine** as Z-Monitor. To achieve < 16 ms transport latency (60 Hz vitals + 250 Hz waveforms), the simulator and device exchange data through a shared-memory ring buffer backed by `memfd`/POSIX shared memory. The `ISensorDataSource` abstraction is still honored, but the concrete implementation is now `SharedMemorySensorDataSource`, which reads directly from the ring buffer instead of a WebSocket.
+For local development we run the Sensor Simulator on the **same machine** as Z-Monitor. To achieve < 16 ms transport latency (60 Hz vitals + 250 Hz waveforms), the simulator and device exchange data through a shared-memory ring buffer backed by `memfd`/POSIX shared memory. The `ISensorDataSource` abstraction is still honored, but the concrete implementation is now `SharedMemorySensorDataSource`, which reads directly from the ring buffer instead of a WebSocket.
+
+**Key Architecture Point:** The Unix domain socket is **ONLY** used for the initial handshake to exchange the `memfd` file descriptor. **All actual data transfer happens through shared memory** (zero-copy, < 16ms latency). The socket is NOT used for data transfer.
 
 ---
 
@@ -22,7 +22,7 @@ For local development we run the Sensor Simulator on the **same machine** as Z-M
 > **📊 Sensor Integration Diagram**  
 > [View Sensor Integration (Mermaid)](./37_SENSOR_INTEGRATION.mmd)
 
-The simulator now writes binary frames into a lock-free shared-memory ring buffer. Z-Monitor maps the same buffer, and `SharedMemorySensorDataSource` pulls frames, converts them to `VitalRecord` / `WaveformSample`, and emits the usual Qt signals. The diagram shows the writer, shared buffer, and reader chain, all staying within the < 16 ms target from simulator write to UI update.
+The simulator now writes binary frames into a lock-free shared-memory ring buffer. Z-Monitor maps the same buffer, and `SharedMemorySensorDataSource` pulls frames, converts them to `VitalRecord` / `WaveformSample`, and emits the usual Qt signals. The diagram shows the writer, shared buffer, and reader chain, all staying within the < 16 ms target from simulator write to UI update.
 
 ---
 
@@ -35,10 +35,19 @@ project-dashboard/sensor-simulator/
 
 ### Shared Memory Transport
 
-- **Control Socket:** `unix://run/zmonitor-sim.sock` – simulator publishes new `memfd` handles and status.
-- **Data Buffer:** `memfd://zmonitor-sim-ring` (mirrored at `/dev/shm/zmonitor-sim-ring` for diagnostic tooling).
-- **Synchronization:** lock-free ring buffer with atomic write index + heartbeat timestamp; reader polls using CPU-friendly backoff (< 50 µs).
-- **Data Rate:** 60 Hz vitals (one frame every 16.67 ms) and 250 Hz ECG waveform samples (batched into 10-sample chunks per frame).
+**Architecture Overview:**
+- **Control Socket (Unix Domain Socket):** `unix://run/zmonitor-sim.sock` – Used **ONLY** for the initial handshake to exchange the `memfd` file descriptor. This is a one-time operation during connection setup. The socket is **NOT used for data transfer** - all sensor data flows through shared memory.
+- **Data Buffer (Shared Memory):** `memfd://zmonitor-sim-ring` (mirrored at `/dev/shm/zmonitor-sim-ring` for diagnostic tooling) – **All actual sensor data** (60 Hz vitals, 250 Hz waveforms) is transferred through this shared memory ring buffer for zero-copy, low-latency performance.
+
+**Why Socket + Shared Memory?**
+- File descriptors (like `memfd`) cannot be easily passed through shared memory itself
+- Unix domain sockets support `SCM_RIGHTS` ancillary data to pass file descriptors
+- Once the file descriptor is exchanged, all data transfer happens through shared memory
+- This pattern avoids socket I/O overhead for every frame (which would add > 60ms latency)
+
+**Transport Details:**
+- **Synchronization:** lock-free ring buffer with atomic write index + heartbeat timestamp; reader polls using CPU-friendly backoff (< 50 µs).
+- **Data Rate:** 60 Hz vitals (one frame every 16.67 ms) and 250 Hz ECG waveform samples (batched into 10-sample chunks per frame).
 
 ### Ring Buffer Layout
 
@@ -71,8 +80,8 @@ project-dashboard/sensor-simulator/
 ### Simulator Responsibilities
 
 1. On startup, create `memfd`, size it (`ftruncate`) to `sizeof(Header) + slotCount * frameSize`.
-2. Publish the `memfd` file descriptor over the Unix domain control socket.
-3. Stream data into the ring buffer at 60 Hz / 250 Hz, ensuring writes complete within 2 ms.
+2. Publish the `memfd` file descriptor over the Unix domain control socket (one-time handshake).
+3. Stream data into the ring buffer at 60 Hz / 250 Hz, ensuring writes complete within 2 ms.
 4. Update `heartbeatNs` every frame so Z-Monitor can detect stalled writers.
 5. Provide tooling (`simctl`) to dump the buffer for debugging.
 
@@ -130,12 +139,20 @@ signals:
 **Location:** `z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.cpp/h`
 
 **Responsibilities:**
-1. Connect to the Unix-domain control socket, receive the latest `memfd` handle.
-2. `mmap` the header + slots into process space (read-only).
-3. Poll `writeIndex` / `heartbeatNs`, detect new frames, and copy them into local buffers.
-4. Convert binary payloads into `VitalRecord` and `WaveformSample` structs (no JSON parsing).
-5. Emit Qt signals to `MonitoringService`.
-6. Detect stalled simulator (no heartbeat for >250 ms) and raise `sensorError`.
+1. Connect to the Unix-domain control socket **ONLY for initial handshake**, receive the `memfd` file descriptor (one-time operation). **The socket is NOT used for data transfer.**
+2. `mmap` the header + slots into process space (read-only) using the received file descriptor.
+3. **Disconnect from socket** - no further socket I/O needed. All data transfer happens through shared memory.
+4. Poll `writeIndex` / `heartbeatNs` in shared memory (direct memory access, no socket I/O), detect new frames, and copy them into local buffers.
+5. Convert binary payloads into `VitalRecord` and `WaveformSample` structs (no JSON parsing).
+6. Emit Qt signals to `MonitoringService`.
+7. Detect stalled simulator (no heartbeat for >250 ms) and raise `sensorError`.
+
+**Why Socket + Shared Memory?**
+- **File descriptors cannot be passed through shared memory itself** - you need a mechanism to exchange the `memfd` file descriptor between processes
+- Unix domain sockets support `SCM_RIGHTS` ancillary data to pass file descriptors between processes
+- Once the file descriptor is exchanged, **all data transfer happens through shared memory** (zero-copy, < 16ms latency)
+- This pattern avoids socket I/O overhead for every frame (which would add > 60ms latency)
+- The socket is only used during connection setup/teardown, not during normal data transfer
 
 **Key Features:**
 - **Microsecond latency:** Reader copies directly from shared memory, no syscalls on the hot path.
@@ -145,13 +162,26 @@ signals:
 
 ### Data Flow
 
+**Connection Setup (One-Time, via Socket):**
+```
+Sensor Simulator creates memfd
+  ↓ (Unix domain socket handshake)
+SharedMemoryControlChannel::connect()
+  ↓ (SCM_RIGHTS - pass file descriptor)
+SharedMemorySensorDataSource receives memfd
+  ↓ (mmap shared memory)
+SharedMemorySensorDataSource::mapSharedMemory()
+  ↓ (Socket disconnected - no longer used)
+```
+
+**Data Transfer (Continuous, via Shared Memory - Zero Socket I/O):**
 ```
 Sensor Simulator (local process)
-  ↓ (memfd write @ 60 Hz / 250 Hz)
+  ↓ (memfd write @ 60 Hz / 250 Hz - DIRECT MEMORY WRITE)
 SharedMemoryRingBuffer::writeFrame()
-  ↓ (atomic writeIndex)
+  ↓ (atomic writeIndex - NO SOCKET I/O)
 SharedMemorySensorDataSource::pollFrames()
-  ↓ (binary decode)
+  ↓ (binary decode - NO SOCKET I/O)
 emit ISensorDataSource::vitalSignsReceived(VitalRecord)
 emit ISensorDataSource::waveformSampleReceived(WaveformSample)
   ↓ (Qt Signal)
@@ -162,6 +192,8 @@ MonitoringService::onVitalsReceived(VitalRecord)
   ├─ UI update
   └─ TelemetryBatch::addVital()
 ```
+
+**Key Point:** After the initial handshake, the socket is disconnected and **all data flows through shared memory only**. No socket I/O occurs during normal operation, achieving < 16ms latency.
 
 ---
 
@@ -273,9 +305,9 @@ TEST(MonitoringService, ReceivesVitalsFromSharedMemory) {
 ## Performance Considerations
 
 ### Data Rate
-- **Vitals:** 60 Hz (16.67 ms intervals), 32 bytes per payload.
-- **Waveforms:** 250 Hz (~4 ms intervals) batched as 10-sample chunks (ECG Lead II + SpO₂ pleth).
-- **Total Shared Memory Throughput:** ≈ 1.2 MB/s (fits comfortably in L3 cache).
+- **Vitals:** 60 Hz (16.67 ms intervals), 32 bytes per payload.
+- **Waveforms:** 250 Hz (~4 ms intervals) batched as 10-sample chunks (ECG Lead II + SpO₂ pleth).
+- **Total Shared Memory Throughput:** ≈ 1.2 MB/s (fits comfortably in L3 cache).
 
 ### Critical Path Timing
 ```
@@ -292,7 +324,7 @@ MonitoringService processing (< 15ms budget)
   └─ Telemetry batch (< 2ms)
 ```
 
-**Total: < 16 ms from simulator write to UI update** ✅
+**Total: < 16 ms from simulator write to UI update** ✅
 
 ---
 

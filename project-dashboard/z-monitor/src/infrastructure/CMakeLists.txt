@@ -24,6 +24,14 @@ set(INFRASTRUCTURE_SOURCES
     interfaces/ISensorDataSource.h
     interfaces/IUserManagementService.h
     interfaces/IArchiver.h
+    
+    # Sensor adapters
+    sensors/SharedMemoryRingBuffer.h
+    sensors/SharedMemoryRingBuffer.cpp
+    sensors/SharedMemoryControlChannel.h
+    sensors/SharedMemoryControlChannel.cpp
+    sensors/SharedMemorySensorDataSource.h
+    sensors/SharedMemorySensorDataSource.cpp
 )
 
 # Create infrastructure layer static library
