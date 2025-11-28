@@ -11,6 +11,8 @@ set(INFRASTRUCTURE_SOURCES
     logging/utils/LogFormatter.cpp
     logging/backends/CustomBackend.h
     logging/backends/CustomBackend.cpp
+    logging/backends/SpdlogBackend.h
+    logging/backends/SpdlogBackend.cpp
 )
 
 # Create infrastructure layer static library
@@ -37,4 +39,12 @@ target_link_libraries(z_monitor_infrastructure
         Qt6::Core
         Qt6::Gui
 )
+
+# Link spdlog if enabled
+if(Z_MONITOR_USE_SPDLOG)
+    target_link_libraries(z_monitor_infrastructure
+        PUBLIC
+            spdlog::spdlog
+    )
+endif()
 
