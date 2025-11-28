@@ -1008,44 +1008,6 @@ echo "Generated doc/QUERY_REFERENCE.md"
 [View Query Registry Architecture (Mermaid)](./32_QUERY_REGISTRY.mmd)  
 [View Query Registry Architecture (SVG)](./32_QUERY_REGISTRY.svg)
 
-```mermaid
-graph TB
-    subgraph "Query Definition - QueryRegistry.h"
-        QueryIdNS[QueryId Namespace<br/>━━━━━━━━━━━━━━━━<br/>Patient::<br/>• FIND_BY_MRN<br/>• INSERT<br/>• UPDATE<br/>━━━━━━━━━━━━━━━━<br/>Vitals::<br/>• INSERT<br/>• FIND_BY_TIME_RANGE<br/>• MARK_SYNCED<br/>━━━━━━━━━━━━━━━━<br/>Alarms::<br/>• INSERT<br/>• ACKNOWLEDGE<br/>━━━━━━━━━━━━━━━━<br/>... 9 namespaces total]
-    end
-
-    subgraph "Query Catalog - QueryCatalog.cpp"
-        Catalog[QueryCatalog<br/>━━━━━━━━━━━━━━━━<br/>getAllQueries<br/>Returns Map of:<br/>• Query ID<br/>• SQL statement<br/>• Description<br/>• Parameters<br/>• Example usage<br/>━━━━━━━━━━━━━━━━<br/>initializeQueries<br/>Registers all in DBManager<br/>━━━━━━━━━━━━━━━━<br/>generateDocumentation<br/>Auto-generates MD file]
-    end
-
-    subgraph "Database Manager"
-        DBManager[DatabaseManager<br/>━━━━━━━━━━━━━━━━<br/>registerPreparedQuery<br/>getPreparedQuery<br/>hasQuery<br/>━━━━━━━━━━━━━━━━<br/>m_preparedQueries<br/>Map of QueryId to QSqlQuery]
-    end
-
-    subgraph "Repositories - Usage"
-        PatientRepo[SQLitePatientRepository<br/>━━━━━━━━━━━━━━━━<br/>findByMrn:<br/>  query = getPreparedQuery<br/>    QueryId::Patient::FIND_BY_MRN<br/>  query.bindValue...<br/>  query.exec]
-        VitalsRepo[SQLiteTelemetryRepository<br/>━━━━━━━━━━━━━━━━<br/>saveBatch:<br/>  query = getPreparedQuery<br/>    QueryId::Vitals::INSERT<br/>  for each vital:<br/>    query.bindValue...<br/>    query.exec]
-    end
-
-    QueryIdNS -->|Constants used by| Catalog
-    Catalog -->|initializeQueries| DBManager
-    DBManager -->|getPreparedQuery| PatientRepo
-    DBManager -->|getPreparedQuery| VitalsRepo
-    
-    PatientRepo -->|Uses constant| QueryIdNS
-    VitalsRepo -->|Uses constant| QueryIdNS
-
-    classDef registry fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    classDef catalog fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    classDef dbmgr fill:#d1c4e9,stroke:#512da8,stroke-width:2px
-    classDef repo fill:#ffccbc,stroke:#d84315,stroke-width:2px
-
-    class QueryIdNS registry
-    class Catalog catalog
-    class DBManager dbmgr
-    class PatientRepo,VitalsRepo repo
-```
-
 ---
 
 ## 15. Implementation Checklist
@@ -1065,9 +1027,10 @@ graph TB
 
 ## 16. References
 
-- `doc/30_DATABASE_ACCESS_STRATEGY.md` – Repository pattern and database access
-- `doc/10_DATABASE_DESIGN.md` – Database schema
-- `doc/29_SYSTEM_COMPONENTS.md` – DDD repository pattern
+- [30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md) – Repository pattern and database access
+- [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) – Error handling guidelines (when to return vs. log vs. emit errors)
+- [10_DATABASE_DESIGN.md](./10_DATABASE_DESIGN.md) – Database schema
+- [29_SYSTEM_COMPONENTS.md](./29_SYSTEM_COMPONENTS.md) – DDD repository pattern
 - Qt SQL Documentation: https://doc.qt.io/qt-6/qsqlquery.html
 
 ---
