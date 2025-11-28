@@ -1,4 +1,6 @@
 #include "Simulator.h"
+#include "src/core/SharedMemoryWriter.h"
+#include "src/core/ControlServer.h"
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -11,10 +13,83 @@
 #include <cstdlib>
 #include <cmath>
 #include <QVariant>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstring>
+#include <cerrno>
+
+// memfd_create support (Linux-specific)
+#ifdef __linux__
+#include <sys/syscall.h>
+#ifndef MFD_CLOEXEC
+#define MFD_CLOEXEC 0x0001U
+#endif
+#ifndef MFD_ALLOW_SEALING
+#define MFD_ALLOW_SEALING 0x0002U
+#endif
+#ifndef SYS_memfd_create
+#define SYS_memfd_create 319
+#endif
+static int memfd_create(const char *name, unsigned int flags) {
+    return syscall(SYS_memfd_create, name, flags);
+}
+#else
+// Fallback for non-Linux systems (use shm_open instead)
+#include <sys/stat.h>
+#include <sys/shm.h>
+#ifndef MFD_CLOEXEC
+#define MFD_CLOEXEC 0x0001U
+#endif
+#ifndef MFD_ALLOW_SEALING
+#define MFD_ALLOW_SEALING 0x0002U
+#endif
+static int memfd_create(const char *name, unsigned int flags) {
+    // Use shm_open as fallback
+    int fd = shm_open(name, O_CREAT | O_RDWR | O_TRUNC, 0600);
+    if (fd >= 0) {
+        // Set close-on-exec if requested
+        if (flags & MFD_CLOEXEC) {
+            fcntl(fd, F_SETFD, FD_CLOEXEC);
+        }
+    }
+    return fd;
+}
+#endif
 
 Simulator::Simulator(QObject *parent)
     : QObject(parent)
 {
+    // Initialize shared memory transport (primary)
+    if (initializeSharedMemory()) {
+        // Setup vitals timer (60 Hz = 16.67 ms)
+        connect(&m_vitalsTimer, &QTimer::timeout, this, &Simulator::sendVitals);
+        m_vitalsTimer.setInterval(VITALS_INTERVAL_MS);
+        m_vitalsTimer.setTimerType(Qt::PreciseTimer);
+        m_vitalsTimer.start();
+        
+        // Setup waveform timer (250 Hz = 4 ms)
+        connect(&m_waveformTimer, &QTimer::timeout, this, &Simulator::sendWaveform);
+        m_waveformTimer.setInterval(WAVEFORM_INTERVAL_MS);
+        m_waveformTimer.setTimerType(Qt::PreciseTimer);
+        m_waveformTimer.start();
+        
+        // Setup heartbeat timer (update every frame)
+        connect(&m_heartbeatTimer, &QTimer::timeout, this, [this]() {
+            if (m_sharedMemoryWriter) {
+                uint64_t timestamp = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch());
+                m_sharedMemoryWriter->writeHeartbeat(timestamp);
+            }
+        });
+        m_heartbeatTimer.setInterval(10); // Update every 10ms
+        m_heartbeatTimer.start();
+        
+        qInfo() << "Simulator: Shared memory transport initialized (60 Hz vitals, 250 Hz waveforms)";
+    } else {
+        qWarning() << "Simulator: Failed to initialize shared memory, falling back to WebSocket only";
+    }
+    
+    // Legacy WebSocket timer (for fallback/compatibility)
     connect(&m_telemetryTimer, &QTimer::timeout, this, &Simulator::sendTelemetry);
     // Send telemetry several times per second (e.g. 5Hz => 200ms)
     m_telemetryTimer.start(200);
@@ -36,6 +111,8 @@ Simulator::Simulator(QObject *parent)
 
 Simulator::~Simulator()
 {
+    cleanupSharedMemory();
+    
     if (m_server)
     {
         m_server->close();
@@ -272,4 +349,135 @@ void Simulator::requestQuit()
     {
         QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
     }
+}
+
+void Simulator::sendVitals()
+{
+    // Update vitals using random walk
+    m_hr = qRound(randomWalk(m_hr, 50, 160, 2));
+    m_spo2 = qRound(randomWalk(m_spo2, 85, 100, 0.5));
+    m_rr = qRound(randomWalk(m_rr, 8, 30, 0.5));
+    
+    // Write to shared memory ring buffer
+    if (m_sharedMemoryWriter) {
+        uint64_t timestamp = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch());
+        if (!m_sharedMemoryWriter->writeVitalsFrame(timestamp, m_hr, m_spo2, m_rr)) {
+            qWarning() << "Simulator: Failed to write vitals frame to shared memory";
+        }
+    }
+    
+    // Notify QML/UI
+    emit vitalsUpdated(m_hr, m_spo2, m_rr);
+    
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty()) {
+        qDebug() << "Simulator: Vitals written (hr=" << m_hr << " spo2=" << m_spo2 << " rr=" << m_rr << ")";
+    }
+}
+
+void Simulator::sendWaveform()
+{
+    // Generate ECG waveform samples (10 samples per frame at 250 Hz)
+    QVariantList waveformSamples = generateECGChunk(WAVEFORM_SAMPLES_PER_FRAME, m_ecgPhase, m_hr);
+    
+    // Convert to vector of ints
+    std::vector<int> values;
+    for (const QVariant &sample : waveformSamples) {
+        values.push_back(sample.toInt());
+    }
+    
+    // Write to shared memory ring buffer
+    if (m_sharedMemoryWriter) {
+        uint64_t timestamp = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch());
+        int64_t startTimestamp = static_cast<int64_t>(QDateTime::currentMSecsSinceEpoch());
+        
+        if (!m_sharedMemoryWriter->writeWaveformFrame(timestamp, "ecg", SAMPLE_RATE,
+                                                       startTimestamp, values)) {
+            qWarning() << "Simulator: Failed to write waveform frame to shared memory";
+        }
+    }
+    
+    // Notify QML/UI for visualization
+    emit waveformUpdated(waveformSamples);
+}
+
+bool Simulator::initializeSharedMemory() {
+    // Calculate ring buffer size
+    size_t headerSize = sizeof(SensorSimulator::RingBufferHeader);
+    size_t framesSize = FRAME_SIZE * FRAME_COUNT;
+    m_mappedSize = headerSize + framesSize;
+    
+    // Create memfd
+    m_memfdFd = memfd_create("zmonitor-sim-ring", MFD_CLOEXEC | MFD_ALLOW_SEALING);
+    if (m_memfdFd < 0) {
+        qCritical() << "Simulator: Failed to create memfd:" << strerror(errno);
+        return false;
+    }
+    
+    // Set size
+    if (ftruncate(m_memfdFd, m_mappedSize) < 0) {
+        qCritical() << "Simulator: Failed to set memfd size:" << strerror(errno);
+        ::close(m_memfdFd);
+        m_memfdFd = -1;
+        return false;
+    }
+    
+    // Map shared memory
+    m_mappedMemory = mmap(nullptr, m_mappedSize, PROT_READ | PROT_WRITE, MAP_SHARED, m_memfdFd, 0);
+    if (m_mappedMemory == MAP_FAILED) {
+        qCritical() << "Simulator: Failed to mmap memfd:" << strerror(errno);
+        ::close(m_memfdFd);
+        m_memfdFd = -1;
+        return false;
+    }
+    
+    // Initialize SharedMemoryWriter
+    m_sharedMemoryWriter = std::make_unique<SensorSimulator::SharedMemoryWriter>(
+        m_mappedMemory, m_mappedSize, FRAME_SIZE, FRAME_COUNT);
+    
+    if (!m_sharedMemoryWriter->initialize()) {
+        qCritical() << "Simulator: Failed to initialize shared memory writer";
+        cleanupSharedMemory();
+        return false;
+    }
+    
+    // Start control server (socket path matches Z-Monitor default: /tmp/z-monitor-sensor.sock)
+    // Note: Documentation mentions unix://run/zmonitor-sim.sock but code uses /tmp/z-monitor-sensor.sock
+    m_controlServer = std::make_unique<SensorSimulator::ControlServer>("/tmp/z-monitor-sensor.sock", this);
+    m_controlServer->setMemfdInfo(m_memfdFd, m_mappedSize);
+    
+    if (!m_controlServer->start()) {
+        qCritical() << "Simulator: Failed to start control server";
+        cleanupSharedMemory();
+        return false;
+    }
+    
+    qInfo() << "Simulator: Shared memory initialized (size:" << m_mappedSize 
+            << " bytes, frames:" << FRAME_COUNT << ", frame size:" << FRAME_SIZE << " bytes)";
+    
+    return true;
+}
+
+void Simulator::cleanupSharedMemory() {
+    // Stop control server
+    if (m_controlServer) {
+        m_controlServer->stop();
+        m_controlServer.reset();
+    }
+    
+    // Cleanup writer
+    m_sharedMemoryWriter.reset();
+    
+    // Unmap memory
+    if (m_mappedMemory && m_mappedMemory != MAP_FAILED) {
+        munmap(m_mappedMemory, m_mappedSize);
+        m_mappedMemory = nullptr;
+    }
+    
+    // Close memfd
+    if (m_memfdFd >= 0) {
+        ::close(m_memfdFd);
+        m_memfdFd = -1;
+    }
+    
+    m_mappedSize = 0;
 }

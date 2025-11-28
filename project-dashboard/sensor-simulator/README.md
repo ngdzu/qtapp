@@ -58,25 +58,50 @@ docker compose -f docker-compose.simulator.yml up --build
 
 ### Ring Buffer Layout
 
+The ring buffer uses the following structure (matches Z-Monitor's `SharedMemoryRingBuffer` reader):
+
 ```
-SharedMemoryHeader {
-  magic = 'SMRR'
+RingBufferHeader {
+  magic = 0x534D5242 ('SMRB')
   version = 1
-  slotCount = 2048
-  frameSize = 1024 bytes
-  std::atomic<uint32_t> writeIndex
-  std::atomic<uint64_t> heartbeatNs
+  frameSize = 4096 bytes
+  frameCount = 2048
+  std::atomic<uint64_t> writeIndex
+  std::atomic<uint64_t> heartbeatTimestamp (ms since epoch)
+  uint32_t crc32
 }
 
 SensorFrame {
-  uint64_t timestampNs
-  VitalPayload vital   // HR, SpO₂, RR, etc.
-  WaveformPayload waveform[2]  // ECG + SpO₂, 10 samples per payload
+  uint8_t type (Vitals=0x01, Waveform=0x02, Heartbeat=0x03)
+  uint64_t timestamp (ms since epoch)
+  uint32_t sequenceNumber
+  uint32_t dataSize
   uint32_t crc32
+  // JSON data payload follows (variable length)
 }
 ```
 
-Each frame writes into `slots[writeIndex % slotCount]`, then increments `writeIndex`. The control socket pushes the `memfd` descriptor to Z-Monitor whenever the simulator starts.
+**Frame Types:**
+- **Vitals Frame:** JSON payload with `{"hr":72,"spo2":98,"rr":16}`
+- **Waveform Frame:** JSON payload with `{"channel":"ecg","sample_rate":250,"start_timestamp_ms":...,"values":[...]}`
+
+**Writing Process:**
+1. Writer gets next write index (atomic read)
+2. Serializes data as JSON
+3. Writes frame to `slots[writeIndex % frameCount]`
+4. Calculates CRC32 and stores in frame
+5. Atomically increments `writeIndex` (release semantics)
+6. Updates `heartbeatTimestamp` in header
+
+**Reading Process (Z-Monitor):**
+1. Reader tracks local `readIndex`
+2. Polls `writeIndex` in header (atomic read, acquire semantics)
+3. If `writeIndex != readIndex`, reads frame
+4. Validates CRC32
+5. Parses JSON and emits Qt signals
+6. Advances `readIndex`
+
+The control socket (`/tmp/z-monitor-sensor.sock`) is used **ONLY** for the initial handshake to pass the `memfd` file descriptor via `SCM_RIGHTS`. After the handshake, the socket is disconnected and all data flows through shared memory only.
 
 ## Notes
 
