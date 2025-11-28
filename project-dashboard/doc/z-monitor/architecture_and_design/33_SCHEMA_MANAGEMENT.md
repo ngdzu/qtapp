@@ -1,13 +1,24 @@
 # Database Schema Management and Code Generation
 
 **Document ID:** DESIGN-033  
-**Version:** 1.0  
+**Version:** 1.2  
 **Status:** Approved  
 **Last Updated:** 2025-11-27
+
+> **📋 Related Documents:**
+> - [34_DATA_MIGRATION_WORKFLOW.md](./34_DATA_MIGRATION_WORKFLOW.md) – Complete migration workflow (schema + data migrations, rollback procedures) ⭐
+> - [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md) – Query string management (works with SchemaInfo.h constants)
+> - [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) – Error handling guidelines (when to return vs. log vs. emit errors)
 
 ---
 
 This document defines the schema management strategy for Z Monitor, including schema definition files, code generation, migration workflow, and tooling.
+
+**Key Workflows Covered:**
+- ✅ **Adding new tables/columns** (Section 12.1, 12.2)
+- ✅ **Deprecating columns/tables** (Section 12.3, 12.4) - 3-phase process with 6-month deprecation period
+- ✅ **Removing deprecated items** (Section 12.3, 12.4) - After deprecation period
+- ✅ **Best practices and checklists** (Section 12.5, 12.6, 12.7)
 
 > **📊 Schema Management Workflow Diagram:**  
 > [View Schema Management Workflow (Mermaid)](./33_SCHEMA_MANAGEMENT.mmd)  
@@ -888,6 +899,8 @@ if __name__ == "__main__":
 
 ## 7. Migration Workflow
 
+> **📋 Note:** This section covers basic schema migrations. For complete migration workflow including data migrations, rollback procedures, backup strategies, and testing, see [34_DATA_MIGRATION_WORKFLOW.md](./34_DATA_MIGRATION_WORKFLOW.md).
+
 ### **7.1 Migration Files**
 
 **Directory Structure:**
@@ -923,6 +936,7 @@ Usage:
 
 import sqlite3
 import os
+import sys
 import argparse
 from pathlib import Path
 
@@ -945,19 +959,28 @@ def apply_migration(conn: sqlite3.Connection, migration_file: Path, version: int
     """Apply a single migration file."""
     print(f"📦 Applying migration {version}: {migration_file.name}")
     
-    with open(migration_file, 'r') as f:
-        sql = f.read()
-    
-    cursor = conn.cursor()
-    cursor.executescript(sql)
-    
-    cursor.execute("""
-        INSERT INTO schema_version (version, applied_at, description)
-        VALUES (?, datetime('now'), ?)
-    """, (version, migration_file.stem))
-    
-    conn.commit()
-    print(f"✅ Migration {version} applied successfully")
+    try:
+        with open(migration_file, 'r') as f:
+            sql = f.read()
+        
+        cursor = conn.cursor()
+        cursor.executescript(sql)
+        
+        cursor.execute("""
+            INSERT INTO schema_version (version, applied_at, description)
+            VALUES (?, datetime('now'), ?)
+        """, (version, migration_file.stem))
+        
+        conn.commit()
+        print(f"✅ Migration {version} applied successfully")
+    except sqlite3.Error as e:
+        conn.rollback()
+        print(f"❌ Migration {version} FAILED: {e}")
+        raise  # Re-raise to stop migration process
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Unexpected error in migration {version}: {e}")
+        raise
 
 def main():
     parser = argparse.ArgumentParser(description='Database Migration Runner')
@@ -1137,16 +1160,609 @@ git commit -m "Add emergency_contact column to patients table"
 
 ---
 
-## 12. Implementation Checklist
+## 12. Schema Change Workflows
+
+### 12.1. Adding New Tables
+
+**Workflow for adding a new table:**
+
+**Step 1: Update Schema YAML**
+```yaml
+# schema/database.yaml
+tables:
+  # ... existing tables ...
+  
+  # NEW TABLE
+  notifications:
+    description: "User notifications and alerts"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+      message:
+        type: TEXT
+        not_null: true
+      severity:
+        type: TEXT
+        not_null: true
+        check: "severity IN ('INFO', 'WARNING', 'ERROR')"
+      created_at:
+        type: INTEGER
+        not_null: true
+    indices:
+      - name: idx_notifications_created_at
+        columns: [created_at]
+```
+
+**Step 2: Regenerate Schema**
+```bash
+python3 scripts/generate_schema.py
+```
+
+**Step 3: Create Migration SQL**
+```sql
+-- schema/migrations/schema/0010_create_notifications_table.sql
+BEGIN TRANSACTION;
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    severity TEXT NOT NULL CHECK(severity IN ('INFO', 'WARNING', 'ERROR')),
+    created_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_notifications_created_at ON notifications(created_at);
+
+INSERT INTO schema_version (version, applied_at, description, migration_type)
+VALUES (10, datetime('now'), 'Create notifications table', 'schema');
+
+COMMIT;
+```
+
+**Step 4: Update QueryRegistry (if needed)**
+```cpp
+// QueryRegistry.h - Add query IDs for new table
+namespace QueryId {
+    namespace Notifications {
+        constexpr const char* INSERT = "notifications.insert";
+        constexpr const char* FIND_ALL = "notifications.find_all";
+        constexpr const char* DELETE = "notifications.delete";
+    }
+}
+
+// QueryCatalog.cpp - Add SQL queries
+queries[QueryId::Notifications::INSERT] = {
+    .id = QueryId::Notifications::INSERT,
+    .sql = R"(
+        INSERT INTO notifications (message, severity, created_at)
+        VALUES (:message, :severity, :created_at)
+    )",
+    .description = "Insert notification",
+    .parameters = {":message", ":severity", ":created_at"},
+    .isReadOnly = false
+};
+```
+
+**Step 5: Apply Migration**
+```bash
+python3 scripts/migrate.py --db data/zmonitor.db
+```
+
+**Step 6: Use in Code**
+```cpp
+// ✅ Use new constants
+#include "generated/SchemaInfo.h"
+#include "QueryRegistry.h"
+
+QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Notifications::INSERT);
+query.bindValue(":message", "Patient admitted");
+query.bindValue(":severity", "INFO");
+query.bindValue(":created_at", QDateTime::currentMSecsSinceEpoch());
+query.exec();
+```
+
+**Step 7: Commit**
+```bash
+git add schema/database.yaml
+git add schema/migrations/schema/0010_create_notifications_table.sql
+git add src/infrastructure/persistence/generated/SchemaInfo.h
+git add src/infrastructure/persistence/QueryRegistry.h
+git add src/infrastructure/persistence/QueryCatalog.cpp
+git commit -m "Add notifications table"
+```
+
+### 12.2. Adding New Columns
+
+**Workflow for adding a new column to existing table:**
+
+**Step 1: Update Schema YAML**
+```yaml
+# schema/database.yaml
+patients:
+  columns:
+    # ... existing columns ...
+    emergency_contact:  # NEW COLUMN
+      type: TEXT
+      nullable: true
+      description: "Emergency contact phone number"
+```
+
+**Step 2: Regenerate Schema**
+```bash
+python3 scripts/generate_schema.py
+```
+
+**Step 3: Create Migration SQL**
+```sql
+-- schema/migrations/schema/0011_add_emergency_contact.sql
+BEGIN TRANSACTION;
+
+ALTER TABLE patients ADD COLUMN emergency_contact TEXT NULL;
+
+INSERT INTO schema_version (version, applied_at, description, migration_type)
+VALUES (11, datetime('now'), 'Add emergency_contact column to patients', 'schema');
+
+COMMIT;
+```
+
+**Step 4: Update Queries (if needed)**
+```cpp
+// QueryCatalog.cpp - Update SELECT queries to include new column
+queries[QueryId::Patient::FIND_BY_MRN] = {
+    .sql = R"(
+        SELECT mrn, name, dob, sex, bed_location, emergency_contact
+        FROM patients
+        WHERE mrn = :mrn
+    )",
+    // ... updated parameters
+};
+```
+
+**Step 5: Apply Migration**
+```bash
+python3 scripts/migrate.py --db data/zmonitor.db
+```
+
+**Step 6: Use in Code**
+```cpp
+// ✅ New constant available
+QString emergency = query.value(Schema::Columns::Patients::EMERGENCY_CONTACT).toString();
+```
+
+**Step 7: Commit**
+```bash
+git add schema/database.yaml
+git add schema/migrations/schema/0011_add_emergency_contact.sql
+git add src/infrastructure/persistence/generated/SchemaInfo.h
+git add src/infrastructure/persistence/QueryCatalog.cpp
+git commit -m "Add emergency_contact column to patients table"
+```
+
+### 12.3. Deprecating Columns or Tables
+
+**⚠️ CRITICAL: Deprecation must follow a multi-phase process to avoid breaking existing code.**
+
+**Deprecation Policy:**
+1. **Phase 1: Mark as Deprecated** (6 months before removal)
+2. **Phase 2: Remove from Active Use** (update all code to stop using)
+3. **Phase 3: Final Removal** (after deprecation period)
+
+**Workflow for Deprecating a Column:**
+
+**Phase 1: Mark as Deprecated in Schema YAML**
+
+```yaml
+# schema/database.yaml
+patients:
+  columns:
+    patient_id:  # DEPRECATED
+      type: TEXT
+      nullable: true
+      description: "DEPRECATED: Use patient_mrn instead. Will be removed in v2.0.0"
+      deprecated: true
+      deprecated_since: "2025-11-27"
+      removal_version: "2.0.0"
+      replacement: "patient_mrn"
+```
+
+**Step 2: Regenerate Schema (Constant Still Generated, But Marked)**
+
+```cpp
+// SchemaInfo.h - Constant still exists but marked deprecated
+namespace Schema::Columns::Patients {
+    constexpr const char* PATIENT_ID = "patient_id";  // DEPRECATED: Use PATIENT_MRN instead
+    constexpr const char* PATIENT_MRN = "patient_mrn";
+}
+```
+
+**Step 3: Add Deprecation Warnings in Code**
+
+```cpp
+// ✅ GOOD: Log warning when deprecated column is accessed
+std::optional<PatientAggregate> SQLitePatientRepository::findByMrn(const QString& mrn) {
+    QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Patient::FIND_BY_MRN);
+    query.bindValue(":mrn", mrn);
+    
+    if (!query.exec()) {
+        return std::nullopt;
+    }
+    
+    if (query.next()) {
+        // ✅ Check if deprecated column is being used
+        if (query.value(Schema::Columns::Patients::PATIENT_ID).isValid()) {
+            m_logService->warning("Using deprecated column patient_id", {
+                {"mrn", mrn},
+                {"deprecated_since", "2025-11-27"},
+                {"removal_version", "2.0.0"},
+                {"replacement", "patient_mrn"}
+            });
+        }
+        
+        // ✅ Use new column instead
+        return mapToAggregate(query);  // Uses PATIENT_MRN, not PATIENT_ID
+    }
+    
+    return std::nullopt;
+}
+```
+
+**Step 4: Update All Code to Stop Using Deprecated Column**
+
+```cpp
+// ❌ BAD: Still using deprecated column
+QString oldId = query.value(Schema::Columns::Patients::PATIENT_ID).toString();
+
+// ✅ GOOD: Use replacement column
+QString mrn = query.value(Schema::Columns::Patients::PATIENT_MRN).toString();
+```
+
+**Phase 2: Remove from Active Use (After 6 Months)**
+
+**Step 1: Verify No Usages**
+```bash
+# Search for all usages of deprecated constant
+grep -r "PATIENT_ID" src/
+# Should return zero results (or only in deprecation warnings)
+```
+
+**Step 2: Update Schema YAML (Mark for Removal)**
+```yaml
+# schema/database.yaml
+patients:
+  columns:
+    patient_id:  # REMOVED IN v2.0.0
+      type: TEXT
+      nullable: true
+      description: "REMOVED: Use patient_mrn instead"
+      removed: true
+      removed_in: "2.0.0"
+      replacement: "patient_mrn"
+```
+
+**Phase 3: Final Removal (After Deprecation Period)**
+
+**Step 1: Create Migration to Remove Column**
+
+```sql
+-- schema/migrations/schema/0020_remove_deprecated_patient_id.sql
+-- ⚠️ WARNING: This migration removes a deprecated column
+-- Only run after all code has been updated and deprecation period has passed
+
+BEGIN TRANSACTION;
+
+-- SQLite doesn't support DROP COLUMN directly, must recreate table
+-- 1. Create new table without deprecated column
+CREATE TABLE patients_new (
+    mrn TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    dob TEXT NULL,
+    sex TEXT NULL,
+    patient_mrn TEXT NOT NULL,  -- ✅ Using replacement column
+    -- patient_id removed  -- ❌ Deprecated column removed
+    bed_location TEXT NULL,
+    -- ... other columns ...
+);
+
+-- 2. Copy data (excluding deprecated column)
+INSERT INTO patients_new (mrn, name, dob, sex, patient_mrn, bed_location, ...)
+SELECT mrn, name, dob, sex, patient_mrn, bed_location, ...
+FROM patients;
+
+-- 3. Drop old table
+DROP TABLE patients;
+
+-- 4. Rename new table
+ALTER TABLE patients_new RENAME TO patients;
+
+-- 5. Recreate indices
+CREATE UNIQUE INDEX idx_patients_mrn ON patients(mrn);
+-- ... other indices ...
+
+-- 6. Update schema version
+INSERT INTO schema_version (version, applied_at, description, migration_type)
+VALUES (20, datetime('now'), 'Remove deprecated patient_id column', 'schema');
+
+COMMIT;
+```
+
+**Step 2: Remove from Schema YAML**
+```yaml
+# schema/database.yaml
+patients:
+  columns:
+    # patient_id removed - no longer in schema
+    patient_mrn:
+      type: TEXT
+      not_null: true
+      description: "Patient MRN (replaced deprecated patient_id)"
+```
+
+**Step 3: Regenerate Schema**
+```bash
+python3 scripts/generate_schema.py
+```
+
+**Output:**
+```cpp
+// SchemaInfo.h - Deprecated constant removed
+namespace Schema::Columns::Patients {
+    // PATIENT_ID constant removed → compile error if still used!
+    constexpr const char* PATIENT_MRN = "patient_mrn";
+}
+```
+
+**Step 4: Build Will Fail if Deprecated Column Still Used**
+```bash
+cmake --build build
+
+# ❌ Compile error if deprecated constant still used:
+# error: 'PATIENT_ID' is not a member of 'Schema::Columns::Patients'
+#     query.value(Schema::Columns::Patients::PATIENT_ID)
+#                                            ^~~~~~~~~~~
+```
+
+**Step 5: Fix All Compile Errors**
+```cpp
+// ✅ Update all code to use replacement
+QString mrn = query.value(Schema::Columns::Patients::PATIENT_MRN).toString();
+```
+
+**Step 6: Apply Migration**
+```bash
+python3 scripts/migrate.py --db data/zmonitor.db
+```
+
+**Step 7: Commit**
+```bash
+git add schema/database.yaml
+git add schema/migrations/schema/0020_remove_deprecated_patient_id.sql
+git add src/infrastructure/persistence/generated/SchemaInfo.h
+git add src/  # All code updates
+git commit -m "Remove deprecated patient_id column (replaced by patient_mrn)"
+```
+
+### 12.4. Deprecating Tables
+
+**Workflow for Deprecating an Entire Table:**
+
+**Phase 1: Mark Table as Deprecated**
+
+```yaml
+# schema/database.yaml
+old_telemetry:  # DEPRECATED TABLE
+  description: "DEPRECATED: Use telemetry_metrics instead. Will be removed in v2.0.0"
+  deprecated: true
+  deprecated_since: "2025-11-27"
+  removal_version: "2.0.0"
+  replacement: "telemetry_metrics"
+  columns:
+    # ... existing columns ...
+```
+
+**Phase 2: Update All Code to Use Replacement Table**
+
+```cpp
+// ❌ BAD: Using deprecated table
+QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::OldTelemetry::FIND_ALL);
+
+// ✅ GOOD: Use replacement table
+QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::TelemetryMetrics::FIND_ALL);
+```
+
+**Phase 3: Create Data Migration (if needed)**
+
+```sql
+-- schema/migrations/data/0021_migrate_old_telemetry_to_new.sql
+-- Migrate data from deprecated table to replacement table
+
+BEGIN TRANSACTION;
+
+INSERT INTO telemetry_metrics (
+    batch_id, device_id, patient_mrn, data_created_at, ...
+)
+SELECT 
+    batch_id, device_id, patient_mrn, data_created_at, ...
+FROM old_telemetry;
+
+-- Verify migration
+SELECT COUNT(*) FROM old_telemetry;  -- Should match count in telemetry_metrics
+
+INSERT INTO schema_version (version, applied_at, description, migration_type)
+VALUES (21, datetime('now'), 'Migrate data from deprecated old_telemetry to telemetry_metrics', 'data');
+
+COMMIT;
+```
+
+**Phase 4: Final Removal**
+
+```sql
+-- schema/migrations/schema/0022_drop_deprecated_old_telemetry.sql
+-- ⚠️ WARNING: This migration drops a deprecated table
+-- Only run after data migration and deprecation period has passed
+
+BEGIN TRANSACTION;
+
+-- Verify data has been migrated
+SELECT COUNT(*) FROM old_telemetry;  -- Should be 0 or verify manually
+
+-- Drop deprecated table
+DROP TABLE IF EXISTS old_telemetry;
+
+-- Drop related indices
+DROP INDEX IF EXISTS idx_old_telemetry_batch_id;
+
+INSERT INTO schema_version (version, applied_at, description, migration_type)
+VALUES (22, datetime('now'), 'Drop deprecated old_telemetry table', 'schema');
+
+COMMIT;
+```
+
+**Step 5: Remove from Schema YAML**
+```yaml
+# schema/database.yaml
+# old_telemetry table removed - no longer in schema
+telemetry_metrics:
+  description: "Telemetry transmission timing and performance metrics"
+  # ... columns ...
+```
+
+**Step 6: Remove from QueryRegistry**
+```cpp
+// QueryRegistry.h - Remove deprecated namespace
+namespace QueryId {
+    // OldTelemetry namespace removed
+    namespace TelemetryMetrics {
+        // ... queries ...
+    }
+}
+```
+
+**Step 7: Regenerate and Apply**
+```bash
+python3 scripts/generate_schema.py
+python3 scripts/migrate.py --db data/zmonitor.db
+```
+
+### 12.5. Deprecation Checklist
+
+**Before Deprecating:**
+- [ ] Identify replacement (column/table)
+- [ ] Document deprecation reason
+- [ ] Set deprecation date and removal version
+- [ ] Update schema YAML with deprecation metadata
+- [ ] Regenerate SchemaInfo.h
+
+**During Deprecation Period (6 months):**
+- [ ] Add deprecation warnings in code
+- [ ] Update all code to use replacement
+- [ ] Remove deprecated constant/table from active use
+- [ ] Verify no new code uses deprecated item
+- [ ] Document migration path for existing data (if needed)
+
+**Before Final Removal:**
+- [ ] Verify deprecation period has passed (6 months minimum)
+- [ ] Search codebase for all usages (should be zero)
+- [ ] Create data migration (if data needs to be preserved)
+- [ ] Test migration on staging database
+- [ ] Create removal migration SQL
+- [ ] Update schema YAML (remove deprecated item)
+- [ ] Regenerate SchemaInfo.h
+- [ ] Verify build succeeds (no compile errors)
+- [ ] Apply migration to production
+
+**After Removal:**
+- [ ] Verify migration applied successfully
+- [ ] Monitor for errors (should be none if done correctly)
+- [ ] Update documentation
+- [ ] Remove deprecation warnings from code
+
+### 12.6. Best Practices for Schema Changes
+
+#### **Adding New Items:**
+- ✅ **Always add, never remove** (during active development)
+- ✅ **Use nullable columns** for new fields (allows gradual rollout)
+- ✅ **Provide default values** when possible
+- ✅ **Update QueryRegistry** if queries affected
+- ✅ **Test migration** on copy of production data
+- ✅ **Commit YAML + migration + generated files** together
+
+#### **Deprecating Items:**
+- ✅ **6-month minimum deprecation period** (gives time for code updates)
+- ✅ **Document replacement** clearly in schema YAML
+- ✅ **Log warnings** when deprecated items are accessed
+- ✅ **Update all code** before removal
+- ✅ **Verify zero usages** before final removal
+- ✅ **Create data migration** if data needs preservation
+
+#### **Removing Items:**
+- ✅ **Only remove after deprecation period**
+- ✅ **Backup database** before removal migration
+- ✅ **Test migration** on staging first
+- ✅ **Verify data migration** completed (if applicable)
+- ✅ **Remove from YAML** and regenerate
+- ✅ **Remove from QueryRegistry** (if applicable)
+- ✅ **Verify build succeeds** (compile errors catch remaining usages)
+
+### 12.7. Common Scenarios
+
+#### **Scenario 1: Rename Column**
+
+**Workflow:**
+1. Add new column with new name
+2. Create data migration to copy data from old to new
+3. Update all code to use new column
+4. Deprecate old column (6 months)
+5. Remove old column
+
+**Example:**
+```yaml
+# Step 1: Add new column
+patients:
+  columns:
+    dob:  # OLD - will be deprecated
+      deprecated: true
+      replacement: "date_of_birth"
+    date_of_birth:  # NEW
+      type: TEXT
+      nullable: true
+```
+
+```sql
+-- Step 2: Data migration
+UPDATE patients SET date_of_birth = dob WHERE date_of_birth IS NULL;
+```
+
+#### **Scenario 2: Split Column**
+
+**Workflow:**
+1. Add new columns (first_name, last_name)
+2. Create data migration to split full name
+3. Update all code to use new columns
+4. Deprecate old column (name)
+5. Remove old column
+
+#### **Scenario 3: Merge Tables**
+
+**Workflow:**
+1. Add columns to target table
+2. Create data migration to copy data
+3. Update all code to use target table
+4. Deprecate source table (6 months)
+5. Remove source table
+
+## 13. Implementation Checklist
 
 - [ ] Create `schema/database.yaml` with complete schema
 - [ ] Create `scripts/generate_schema.py` (Python generator)
-- [ ] Create `scripts/migrate.py` (migration runner)
+- [ ] Create `scripts/migrate.py` (migration runner with error handling)
 - [ ] Update CMakeLists.txt to run generator
 - [ ] Add pre-commit hook for schema sync
 - [ ] Update all repositories to use `Schema::` constants
 - [ ] Remove all hardcoded column name strings
+- [ ] Integrate with QueryRegistry (use SchemaInfo constants in queries)
 - [ ] Create initial migration (`0001_initial_schema.sql`)
+- [ ] Add error handling to migration script (rollback, logging)
 - [ ] Document workflow in this file
 - [ ] Add to `ZTODO.md`
 
@@ -1347,10 +1963,226 @@ if __name__ == "__main__":
 
 ---
 
-## 14. References
+## 14. Integration with Query Registry
+
+### 14.1 SchemaInfo.h vs. QueryRegistry.h
+
+**Both patterns work together:**
+
+| Pattern | Purpose | Generated From | Use Case |
+|---------|---------|----------------|----------|
+| **SchemaInfo.h** | Column/table name constants | `schema/database.yaml` | Type-safe column names in queries |
+| **QueryRegistry.h** | Query ID constants | `QueryCatalog.cpp` (manual) | Type-safe query IDs for prepared statements |
+
+**Example: Using Both Together**
+
+```cpp
+// ✅ GOOD: Use SchemaInfo for column names, QueryRegistry for query IDs
+#include "generated/SchemaInfo.h"
+#include "QueryRegistry.h"
+
+std::optional<PatientAggregate> SQLitePatientRepository::findByMrn(const QString& mrn) {
+    // Query ID from QueryRegistry (type-safe)
+    QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Patient::FIND_BY_MRN);
+    
+    // Column names from SchemaInfo (type-safe)
+    query.bindValue(":mrn", mrn);
+    
+    if (!query.exec()) {
+        m_logService->error("Query failed", {
+            {"queryId", QueryId::Patient::FIND_BY_MRN},
+            {"mrn", mrn},
+            {"error", query.lastError().text()}
+        });
+        return std::nullopt;
+    }
+    
+    if (!query.next()) {
+        return std::nullopt;
+    }
+    
+    // Use SchemaInfo constants for column access (type-safe)
+    PatientIdentity identity(
+        query.value(Schema::Columns::Patients::MRN).toString(),
+        query.value(Schema::Columns::Patients::NAME).toString(),
+        query.value(Schema::Columns::Patients::DOB).toDate(),
+        query.value(Schema::Columns::Patients::SEX).toString()
+    );
+    
+    return PatientAggregate(identity);
+}
+```
+
+**Key Insight:**
+- **SchemaInfo.h** = Column/table names (generated from YAML)
+- **QueryRegistry.h** = Query IDs (manual constants in C++)
+- **Both provide type safety** and autocomplete
+- **Use together** for complete type-safe database access
+
+### 14.2 Workflow: Schema Change Affects Both
+
+**Scenario:** Add new column `emergency_contact` to `patients` table
+
+**Step 1: Update Schema YAML**
+```yaml
+# schema/database.yaml
+patients:
+  columns:
+    emergency_contact:
+      type: TEXT
+      nullable: true
+```
+
+**Step 2: Regenerate SchemaInfo.h**
+```bash
+python3 scripts/generate_schema.py
+```
+
+**Output:** New constant in `SchemaInfo.h`
+```cpp
+namespace Schema::Columns::Patients {
+    constexpr const char* EMERGENCY_CONTACT = "emergency_contact";  // ✅ New constant
+}
+```
+
+**Step 3: Update QueryRegistry (if needed)**
+```cpp
+// QueryRegistry.h - No change needed (query IDs unchanged)
+// QueryCatalog.cpp - Update SQL if query needs new column
+queries[QueryId::Patient::FIND_BY_MRN] = {
+    .sql = R"(
+        SELECT mrn, name, dob, sex, emergency_contact  -- ✅ Added new column
+        FROM patients
+        WHERE mrn = :mrn
+    )",
+    // ...
+};
+```
+
+**Step 4: Use in Repository**
+```cpp
+// ✅ Use both constants
+QString emergency = query.value(Schema::Columns::Patients::EMERGENCY_CONTACT).toString();
+```
+
+## 15. Error Handling in Migrations
+
+### 15.1 Migration Error Handling
+
+**Critical:** Migration failures must be handled carefully to prevent database corruption.
+
+**Error Handling Strategy:**
+- ✅ **Log all migration errors** (infrastructure failures need audit trail)
+- ✅ **Rollback on failure** (transaction safety)
+- ✅ **Stop migration process** (don't continue with partial migration)
+- ✅ **Return error status** (caller needs to know migration failed)
+
+**See:** [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) Section 4 for guidelines on when to return vs. log vs. emit errors.
+
+**Example: Enhanced Migration Script with Error Handling**
+
+```python
+def apply_migration(conn: sqlite3.Connection, migration_file: Path, version: int) -> bool:
+    """Apply a single migration file.
+    
+    Returns:
+        True if successful, False if failed
+    """
+    print(f"📦 Applying migration {version}: {migration_file.name}")
+    
+    sql = None
+    try:
+        # Read migration file
+        with open(migration_file, 'r') as f:
+            sql = f.read()
+        
+        # Begin transaction
+        conn.execute("BEGIN TRANSACTION")
+        
+        cursor = conn.cursor()
+        cursor.executescript(sql)
+        
+        # Record migration in schema_version table
+        cursor.execute("""
+            INSERT INTO schema_version (version, applied_at, description)
+            VALUES (?, datetime('now'), ?)
+        """, (version, migration_file.stem))
+        
+        # Commit transaction
+        conn.commit()
+        print(f"✅ Migration {version} applied successfully")
+        return True
+        
+    except sqlite3.Error as e:
+        # ✅ Log database error (infrastructure failure)
+        conn.rollback()
+        print(f"❌ Migration {version} FAILED (database error): {e}")
+        print(f"   File: {migration_file}")
+        if sql:
+            print(f"   SQL: {sql[:200]}...")  # First 200 chars for debugging
+        return False  # ✅ Return error status
+        
+    except FileNotFoundError as e:
+        # ✅ Log file error (infrastructure failure)
+        print(f"❌ Migration {version} FAILED (file not found): {e}")
+        return False
+        
+    except Exception as e:
+        # ✅ Log unexpected error (infrastructure failure)
+        conn.rollback()
+        print(f"❌ Migration {version} FAILED (unexpected error): {e}")
+        return False
+
+def main():
+    parser = argparse.ArgumentParser(description='Database Migration Runner')
+    parser.add_argument('--db', required=True, help='Path to database file')
+    args = parser.parse_args()
+    
+    migrations_dir = Path("schema/migrations")
+    conn = sqlite3.connect(args.db)
+    
+    current_version = get_current_version(conn)
+    print(f"📊 Current schema version: {current_version}")
+    
+    # Get all migration files
+    migration_files = sorted(migrations_dir.glob("*.sql"))
+    
+    for migration_file in migration_files:
+        version = int(migration_file.stem.split('_')[0])
+        
+        if version > current_version:
+            success = apply_migration(conn, migration_file, version)
+            if not success:
+                # ✅ Stop on first failure (don't continue with partial migration)
+                print(f"❌ Migration process stopped at version {version}")
+                conn.close()
+                sys.exit(1)  # ✅ Return error status
+    
+    final_version = get_current_version(conn)
+    print(f"✅ Database is up to date (version {final_version})")
+    
+    conn.close()
+    sys.exit(0)
+```
+
+### 15.2 Migration Error Categories
+
+| Error Type | Handling | Log? | Return? | Rationale |
+|------------|----------|------|---------|-----------|
+| **SQL syntax error** | Rollback, stop | ✅ Yes | ✅ Yes | Infrastructure failure, needs audit |
+| **Constraint violation** | Rollback, stop | ✅ Yes | ✅ Yes | Data integrity issue, needs audit |
+| **File not found** | Stop | ✅ Yes | ✅ Yes | Infrastructure failure, needs audit |
+| **Database locked** | Retry or stop | ✅ Yes | ✅ Yes | Infrastructure failure, needs audit |
+| **Disk full** | Rollback, stop | ✅ Yes | ✅ Yes | Critical system failure, needs audit |
+
+**Key Principle:** All migration errors are infrastructure failures and should be logged and returned (see [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) Section 4.3).
+
+## 16. References
 
 - **[30_DATABASE_ACCESS_STRATEGY.md](./30_DATABASE_ACCESS_STRATEGY.md)** – **Repository pattern and ORM integration** ⭐
-- **[32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md)** – Query string management (similar pattern, for manual Qt SQL)
+- **[32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md)** – Query string management (works with SchemaInfo.h)
+- **[20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md)** – Error handling guidelines (when to return vs. log vs. emit errors)
+- **[34_DATA_MIGRATION_WORKFLOW.md](./34_DATA_MIGRATION_WORKFLOW.md)** – Complete migration workflow (schema + data migrations)
 - **[10_DATABASE_DESIGN.md](./10_DATABASE_DESIGN.md)** – Database schema
 - YAML Specification: https://yaml.org/spec/1.2.2/
 - SQLite Documentation: https://www.sqlite.org/lang.html
