@@ -192,17 +192,17 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow specification.
   - Prompt: `project-dashboard/prompt/08a-refactor-settings-adt.md`  (When finished: mark this checklist item done.)
 
-- [ ] Create project scaffolding and repo checklist
+- [x] Create project scaffolding and repo checklist
   - What: Ensure `z-monitor/` contains the canonical folders following DDD structure: `src/domain/`, `src/application/`, `src/infrastructure/`, `src/interface/`, `resources/qml/`, `resources/assets/`, `resources/i18n/`, `resources/certs/`, `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/benchmarks/`, `schema/`, `doc/`, `proto/`, `openapi/`, `central-server-simulator/` and `doc/migrations/`.
   - Why: Provides a stable DDD-aligned structure to place interfaces, tests, and docs. Foundation for all subsequent development.
   - Files: `project-dashboard/z-monitor/CMakeLists.txt` (top-level), empty `project-dashboard/z-monitor/proto/` and `project-dashboard/z-monitor/openapi/` dirs, `project-dashboard/z-monitor/doc/migrations/README.md`, `project-dashboard/z-monitor/README.md`.
   - Acceptance: All directories exist, CMakeLists.txt configured, README.md created, structure matches `doc/27_PROJECT_STRUCTURE.md` and `doc/22_CODE_ORGANIZATION.md`.
   - Verification Steps:
-    1. Functional: Directory structure verified, CMakeLists.txt builds successfully (even if empty)
-    2. Code Quality: Structure follows DDD layers (domain, application, infrastructure, interface)
-    3. Documentation: README.md created, structure documented
-    4. Integration: CMake configuration works, no build errors
-    5. Tests: Structure ready for test scaffolding
+    1. Functional: Directory structure verified, CMakeLists.txt builds successfully (even if empty). **Status:** ✅ All required directories exist: `src/domain/`, `src/application/`, `src/infrastructure/`, `src/interface/`, `resources/qml/`, `resources/assets/`, `resources/i18n/`, `resources/certs/`, `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/benchmarks/`, `schema/`, `doc/`, `proto/`, `openapi/`, `central-server-simulator/`, `doc/migrations/`. All CMakeLists.txt files exist and are properly configured.
+    2. Code Quality: Structure follows DDD layers (domain, application, infrastructure, interface). **Status:** ✅ Structure follows DDD principles with clear layer separation. Domain layer has no Qt dependencies, application layer uses Qt Core only, infrastructure layer has full Qt dependencies, interface layer handles UI integration.
+    3. Documentation: README.md created, structure documented. **Status:** ✅ README.md updated with comprehensive project structure, build instructions, development status, and documentation references. `doc/migrations/README.md` exists with migration documentation.
+    4. Integration: CMake configuration works, no build errors. **Status:** ✅ CMakeLists.txt properly configured with Qt6 dependencies, subdirectory structure, test support, and install targets. Structure matches documentation in `27_PROJECT_STRUCTURE.md` and `22_CODE_ORGANIZATION.md`.
+    5. Tests: Structure ready for test scaffolding. **Status:** ✅ Test directories exist (`tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/benchmarks/`). Test infrastructure already in place with GoogleTest. CMake test configuration working.
   - Prompt: `project-dashboard/prompt/01-create-project-scaffold.md`  (When finished: mark this checklist item done.)
 
 - [ ] Define public C++ service interfaces (headers only)
