@@ -7,6 +7,8 @@ set(INTERFACE_SOURCES
     # Controllers
     controllers/SettingsController.h
     controllers/SettingsController.cpp
+    controllers/AuthenticationController.h
+    controllers/AuthenticationController.cpp
     # Example:
     # controllers/DashboardController.h
     # controllers/DashboardController.cpp

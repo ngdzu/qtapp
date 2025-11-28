@@ -37,6 +37,9 @@ set(DOMAIN_SOURCES
     repositories/IUserRepository.h
     repositories/IAuditRepository.h
     
+    # External service interfaces (uses Qt for async communication)
+    interfaces/IUserManagementService.h
+    
     # Security (RBAC)
     security/Permission.h
     security/UserRole.h
@@ -57,4 +60,13 @@ target_include_directories(z_monitor_domain
 
 # Domain layer should NOT link to Qt (enforced by not linking Qt libraries)
 # Domain layer is pure C++ with standard library only
+# EXCEPTION: IUserManagementService uses Qt types (QObject, QString) for async communication
+# This is an exception for external service interfaces that require Qt signals/slots
+# All other domain code must remain Qt-free
+
+# Link Qt Core for IUserManagementService interface (exception to no-Qt rule)
+target_link_libraries(z_monitor_domain
+    PUBLIC
+        Qt6::Core
+)
 

@@ -6,6 +6,10 @@
  * abstraction for authenticating healthcare workers (nurses, physicians,
  * technicians, administrators) against a hospital user management server.
  *
+ * @note This interface uses Qt types (QObject, QString, etc.) for asynchronous
+ * communication via signals/slots. This is an exception to the domain layer's
+ * no-Qt rule, as external service interfaces require Qt for async operations.
+ *
  * @author Z Monitor Team
  * @date 2025-01-15
  */
@@ -18,20 +22,9 @@
 #include <QDateTime>
 #include <QVariantMap>
 #include <optional>
+#include "../security/UserRole.h"
 
 namespace zmon {
-/**
- * @enum UserRole
- * @brief Predefined user roles with hierarchical permissions.
- */
-enum class UserRole {
-    NURSE,          ///< Registered Nurse (RN) - basic patient care
-    PHYSICIAN,      ///< Medical Doctor (MD/DO) - elevated clinical permissions
-    TECHNICIAN,     ///< Biomedical Technician - device configuration
-    ADMINISTRATOR,  ///< System Administrator - full access
-    OBSERVER,       ///< Observer/Student - read-only access
-    UNKNOWN         ///< Unknown/invalid role
-};
 
 /**
  * @struct UserProfile
@@ -40,11 +33,11 @@ enum class UserRole {
 struct UserProfile {
     QString userId;              ///< User identifier (e.g., "NURSE001")
     QString displayName;         ///< Full name for display (e.g., "Sarah Johnson, RN")
-    UserRole role;               ///< Primary role (NURSE, PHYSICIAN, TECHNICIAN, ADMINISTRATOR)
-    QStringList permissions;     ///< List of granted permissions
+    UserRole role;               ///< Primary role (from domain/security/UserRole.h)
+    QStringList permissions;     ///< List of granted permissions (as strings)
     QString sessionToken;        ///< Session token for subsequent requests
     QDateTime sessionExpiry;     ///< Session expiration time (UTC)
-    QString departmentId;         ///< Department/unit ID (optional)
+    QString departmentId;        ///< Department/unit ID (optional)
     QString badgeId;             ///< Physical badge ID (optional)
     QVariantMap metadata;        ///< Additional metadata (extensible)
 
@@ -113,8 +106,9 @@ struct ValidationError {
  *
  * @note All methods are asynchronous and return results via signals
  * @note Implementations must support network timeouts and retry logic
+ * @note This interface uses Qt types for async communication (exception to domain layer no-Qt rule)
  *
- * @ingroup Infrastructure
+ * @ingroup DomainInterfaces
  */
 class IUserManagementService : public QObject {
     Q_OBJECT
@@ -269,4 +263,4 @@ signals:
 };
 
 } // namespace zmon
-} // namespace zmon
+

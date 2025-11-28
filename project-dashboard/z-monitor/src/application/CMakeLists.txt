@@ -6,6 +6,8 @@ set(APPLICATION_SOURCES
     services/MonitoringService.cpp
     services/AdmissionService.h
     services/AdmissionService.cpp
+    services/SecurityService.h
+    services/SecurityService.cpp
 )
 
 # Create application layer static library

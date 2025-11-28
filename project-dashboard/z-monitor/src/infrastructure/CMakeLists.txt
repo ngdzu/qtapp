@@ -22,8 +22,13 @@ set(INFRASTRUCTURE_SOURCES
     interfaces/IPatientLookupService.h
     interfaces/ITelemetryServer.h
     interfaces/ISensorDataSource.h
-    interfaces/IUserManagementService.h
     interfaces/IArchiver.h
+    
+    # Authentication adapters
+    authentication/MockUserManagementService.h
+    authentication/MockUserManagementService.cpp
+    authentication/HospitalUserManagementAdapter.h
+    authentication/HospitalUserManagementAdapter.cpp
     
     # Sensor adapters
     sensors/SharedMemoryRingBuffer.h
@@ -58,6 +63,7 @@ target_link_libraries(z_monitor_infrastructure
         Qt6::Core
         Qt6::Gui
         Qt6::Sql
+        Qt6::Network
 )
 
 # Link spdlog if enabled
