@@ -6,11 +6,11 @@
  * @date 2025-01-15
  */
 
-#include "MonitoringService.h"
-#include "../../domain/monitoring/PatientAggregate.h"
-#include "../../domain/monitoring/TelemetryBatch.h"
-#include "../../domain/monitoring/AlarmAggregate.h"
-#include "../../domain/monitoring/VitalRecord.h"
+#include "application/services/MonitoringService.h"
+#include "domain/monitoring/PatientAggregate.h"
+#include "domain/monitoring/TelemetryBatch.h"
+#include "domain/monitoring/AlarmAggregate.h"
+#include "domain/monitoring/VitalRecord.h"
 
 namespace ZMonitor {
 namespace Application {

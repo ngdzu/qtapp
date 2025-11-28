@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "../LogEntry.h"
+#include "infrastructure/logging/LogEntry.h"
 #include <QString>
 
 namespace ZMonitor {

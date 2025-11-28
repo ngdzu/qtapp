@@ -11,10 +11,10 @@
 
 #include <cassert>
 #include <iostream>
-#include "../../src/domain/monitoring/PatientAggregate.h"
-#include "../../src/domain/admission/PatientIdentity.h"
-#include "../../src/domain/admission/BedLocation.h"
-#include "../../src/domain/monitoring/VitalRecord.h"
+#include "domain/monitoring/PatientAggregate.h"
+#include "domain/admission/PatientIdentity.h"
+#include "domain/admission/BedLocation.h"
+#include "domain/monitoring/VitalRecord.h"
 
 using namespace ZMonitor::Domain::Monitoring;
 using namespace ZMonitor::Domain::Admission;

@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "../admission/PatientIdentity.h"
-#include "../admission/BedLocation.h"
+#include "domain/admission/PatientIdentity.h"
+#include "domain/admission/BedLocation.h"
 #include <string>
 #include <vector>
 #include <memory>

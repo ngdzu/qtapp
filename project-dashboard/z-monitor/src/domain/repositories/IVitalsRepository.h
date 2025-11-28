@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "../monitoring/VitalRecord.h"
+#include "domain/monitoring/VitalRecord.h"
 #include <string>
 #include <vector>
 #include <cstdint>

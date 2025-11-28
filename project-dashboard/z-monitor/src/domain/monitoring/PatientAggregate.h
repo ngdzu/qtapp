@@ -12,9 +12,9 @@
 
 #pragma once
 
-#include "../admission/PatientIdentity.h"
-#include "../admission/BedLocation.h"
-#include "VitalRecord.h"
+#include "domain/admission/PatientIdentity.h"
+#include "domain/admission/BedLocation.h"
+#include "domain/monitoring/VitalRecord.h"
 #include <chrono>
 #include <string>
 #include <vector>

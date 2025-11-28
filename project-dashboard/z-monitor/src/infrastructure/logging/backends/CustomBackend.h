@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "../ILogBackend.h"
-#include "../LogEntry.h"
+#include "infrastructure/logging/ILogBackend.h"
+#include "infrastructure/logging/LogEntry.h"
 #include <QFile>
 #include <QTextStream>
 #include <QString>

@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "../monitoring/AlarmSnapshot.h"
+#include "domain/monitoring/AlarmSnapshot.h"
 #include <string>
 #include <vector>
 #include <cstdint>

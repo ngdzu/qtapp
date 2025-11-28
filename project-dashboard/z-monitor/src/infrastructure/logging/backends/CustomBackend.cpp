@@ -6,8 +6,8 @@
  * @date 2025-01-15
  */
 
-#include "CustomBackend.h"
-#include "../utils/LogFormatter.h"
+#include "infrastructure/logging/backends/CustomBackend.h"
+#include "infrastructure/logging/utils/LogFormatter.h"
 #include <QDir>
 #include <QFileInfo>
 #include <QDateTime>

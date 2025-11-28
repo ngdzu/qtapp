@@ -18,3 +18,4 @@ appliesTo:
 - Use `#pragma once` in headers and keep include order: own header, project headers, Qt headers, then STL/system.
 - For Qt signal-slot connections, prefer function/lambda overloads with context objects to prevent leaks.
 - Document tricky logic with concise comments explaining the “why,” not the “what.”
+- **Do not use relative include paths** like `#include "../SomeHeader.h"` or `#include "../../other/Thing.h"`. Instead, configure include search paths in `CMakeLists.txt` (using `target_include_directories` or similar) and include headers by their project-relative path (for example, `#include "domain/monitoring/PatientAggregate.h"`). This keeps includes stable when files move and centralizes path management in the build system.

@@ -67,6 +67,11 @@ target_link_libraries(z-monitor
         Qt6::QuickControls2
 )
 
+target_include_directories(z-monitor
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 # Domain layer target (for testing - no Qt dependencies)
 add_library(z_monitor_domain STATIC
     domain/monitoring/PatientAggregate.cpp

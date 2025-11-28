@@ -17,8 +17,8 @@
 #include <QFileInfo>
 #include <QTextStream>
 #include <QTemporaryDir>
-#include "../../src/infrastructure/logging/backends/CustomBackend.h"
-#include "../../src/infrastructure/logging/LogEntry.h"
+#include "infrastructure/logging/backends/CustomBackend.h"
+#include "infrastructure/logging/LogEntry.h"
 
 using namespace ZMonitor::Infrastructure::Logging;
 

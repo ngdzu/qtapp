@@ -6,9 +6,9 @@
  * @date 2025-01-15
  */
 
-#include "PatientAggregate.h"
-#include "../admission/PatientIdentity.h"
-#include "../admission/BedLocation.h"
+#include "domain/monitoring/PatientAggregate.h"
+#include "domain/admission/PatientIdentity.h"
+#include "domain/admission/BedLocation.h"
 #include <chrono>
 #include <algorithm>
 

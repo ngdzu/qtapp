@@ -15,7 +15,7 @@
 
 #include <QString>
 
-#include "../../src/infrastructure/logging/ILogBackend.h"
+#include "infrastructure/logging/ILogBackend.h"
 
 using ZMonitor::Infrastructure::Logging::ILogBackend;
 using ZMonitor::Infrastructure::Logging::LogEntry;
