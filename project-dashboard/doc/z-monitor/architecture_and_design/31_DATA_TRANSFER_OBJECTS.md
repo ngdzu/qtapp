@@ -5,6 +5,8 @@
 **Status:** Approved  
 **Last Updated:** 2025-11-27
 
+> **📋 Error Handling:** See [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) Section 4 for guidelines on when to return errors vs. when to log errors. Validation errors should be returned (not logged), while infrastructure failures should be logged (and returned).
+
 ---
 
 This document defines the Data Transfer Objects (DTOs) used in the Z Monitor application, their purpose, structure, validation rules, and usage patterns.
