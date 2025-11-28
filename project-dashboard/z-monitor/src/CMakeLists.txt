@@ -33,7 +33,8 @@ set(APPLICATION_SOURCES
 
 # Infrastructure layer sources (Qt dependencies)
 set(INFRASTRUCTURE_SOURCES
-    # Will be added as we implement infrastructure adapters
+    infrastructure/logging/LogEntry.h
+    infrastructure/logging/ILogBackend.h
 )
 
 # Interface layer sources (Qt Quick dependencies)
