@@ -240,6 +240,32 @@ These infrastructure components should be implemented early as they are dependen
   - Dependencies: POSIX shared memory (`memfd_create`, `shm_open`), Unix domain sockets, `<atomic>`. **Status:** ✅ Implementation uses POSIX shared memory (mmap), Unix domain sockets (AF_UNIX), and atomic operations (std::atomic for ring buffer indices).
   - Prompt: `project-dashboard/prompt/02c-shared-memory-sensor-datasource.md`
 
+- [ ] Add comprehensive documentation explaining memfd and socket handshake architecture
+  - What: Add detailed explanation to `doc/37_SENSOR_INTEGRATION.md` (or create new section/document) that explains:
+    1. **What is memfd?** - Memory file descriptor (`memfd_create`), anonymous shared memory, advantages over traditional `shm_open` (no filesystem namespace pollution, better security, automatic cleanup)
+    2. **Why do we need a socket connection?** - File descriptors cannot be passed through shared memory itself. Unix domain sockets support `SCM_RIGHTS` ancillary data to pass file descriptors between processes. The socket is ONLY used for the initial handshake to exchange the memfd file descriptor - all actual data transfer happens through shared memory (zero-copy, < 16ms latency).
+    3. **Architecture pattern:** Control channel (socket) for setup/teardown, data channel (shared memory) for high-frequency data transfer. This is a standard pattern for high-performance IPC.
+    4. **Security considerations:** How memfd permissions work, why socket is needed for secure descriptor passing, access control mechanisms.
+    5. **Performance comparison:** Why this approach achieves < 16ms latency vs. > 60ms for WebSocket/JSON.
+    6. **Code examples:** Show the handshake flow, how memfd is created, how it's passed via socket, how it's mapped in the reader process.
+  - Why: The current documentation mentions memfd and socket but doesn't explain WHY both are needed. Developers may be confused about why we use shared memory to avoid sockets but still need a socket connection. This documentation will clarify the architecture pattern and help developers understand the design decisions.
+  - Files: `project-dashboard/doc/z-monitor/architecture_and_design/37_SENSOR_INTEGRATION.md` (add new section or expand existing sections), potentially create `project-dashboard/doc/z-monitor/architecture_and_design/37a_MEMFD_AND_SOCKET_ARCHITECTURE.md` if the explanation is too long for the main document.
+  - Acceptance:
+    - Clear explanation of what memfd is and why it's used
+    - Clear explanation of why socket is needed (file descriptor passing)
+    - Architecture diagram showing handshake vs. data transfer phases
+    - Code examples showing memfd creation, socket handshake, and shared memory mapping
+    - Performance comparison with alternative approaches
+    - Security considerations documented
+  - Verification Steps:
+    1. Functional: Documentation clearly explains memfd concept, socket handshake purpose, and architecture pattern. Developers can understand why both are needed.
+    2. Code Quality: Documentation follows project documentation standards, includes diagrams/code examples, cross-references related documents.
+    3. Documentation: Documentation is complete, accurate, and matches implementation. Diagrams are updated if needed.
+    4. Integration: Documentation aligns with actual code implementation (SharedMemoryControlChannel, SharedMemoryRingBuffer, SharedMemorySensorDataSource).
+    5. Tests: Documentation reviewed for accuracy, examples verified against actual code.
+  - Documentation: See `doc/37_SENSOR_INTEGRATION.md` for current sensor integration documentation. See `doc/42_LOW_LATENCY_TECHNIQUES.md` for low-latency techniques context.
+  - Prompt: `project-dashboard/prompt/37a-memfd-socket-documentation.md`
+
 - [ ] Update Sensor Simulator to write shared-memory ring buffer
 - [ ] Implement PermissionRegistry (enum-based role mapping)
   - What: Create a compile-time `PermissionRegistry` service in domain layer that maps each `UserRole` to its default `Permission` bitset, exposes helper APIs (`permissionsForRole`, `toString`, `toDisplayName`), and seeds `SecurityService` / `UserSession` during login. Replace all ad-hoc string comparisons with enum checks wired through the registry.
