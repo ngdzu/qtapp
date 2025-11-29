@@ -14,7 +14,7 @@ target_link_libraries(result_test
 
 target_include_directories(result_test
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/z-monitor/src
+        ${Z_MONITOR_ROOT}  # z-monitor root (for src/ includes)
 )
 
 add_test(NAME ResultTest COMMAND result_test)
@@ -33,7 +33,7 @@ target_link_libraries(retry_policy_test
 
 target_include_directories(retry_policy_test
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/z-monitor/src
+        ${Z_MONITOR_ROOT}  # z-monitor root (for src/ includes)
 )
 
 add_test(NAME RetryPolicyTest COMMAND retry_policy_test)
@@ -52,7 +52,7 @@ target_link_libraries(circuit_breaker_test
 
 target_include_directories(circuit_breaker_test
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/z-monitor/src
+        ${Z_MONITOR_ROOT}  # z-monitor root (for src/ includes)
 )
 
 add_test(NAME CircuitBreakerTest COMMAND circuit_breaker_test)

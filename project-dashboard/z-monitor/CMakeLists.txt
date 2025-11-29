@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(z-monitor VERSION 0.1.0 LANGUAGES CXX)
 
+# Set project root directory (used by all subdirectories)
+set(Z_MONITOR_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+set(Z_MONITOR_SOURCE_DIR ${Z_MONITOR_ROOT}/src)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
