@@ -1,5 +1,5 @@
 -- Auto-generated DDL for index creation
--- Generated: 2025-11-29 14:02:48 UTC
+-- Generated: 2025-11-29 16:24:25 UTC
 -- ⚠️ DO NOT EDIT MANUALLY - Edit schema/database.yaml and regenerate
 
 CREATE INDEX IF NOT EXISTS idx_action_log_timestamp ON action_log (timestamp_ms);

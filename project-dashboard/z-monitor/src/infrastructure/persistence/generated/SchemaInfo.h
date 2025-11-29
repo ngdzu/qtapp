@@ -10,7 +10,7 @@
  *   2. Run: python3 scripts/generate_schema.py
  *   3. Commit both files together
  * 
- * Generated: 2025-11-29 14:02:48 UTC
+ * Generated: 2025-11-29 16:24:25 UTC
  * Schema Version: 1.0.0
  */
 

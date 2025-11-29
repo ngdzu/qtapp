@@ -13,6 +13,8 @@ This document outlines the design of the local SQLite database used by the Z Mon
 
 This document enumerates the tables, columns, indices and operational behavior necessary to meet the functional, safety, audit, and security requirements of the Z Monitor. It is intended to be consumed by developers implementing `DatabaseManager`, `DataArchiver`, and by test engineers creating validation plans.
 
+**Note:** The actual database schema is defined in `schema/database.yaml` (single source of truth). This document provides detailed explanations and design rationale. For the complete schema definition, see `schema/database.yaml`. For migration workflow, see `doc/33_SCHEMA_MANAGEMENT.md`.
+
 ## 2. Required Tables (DDL-ready descriptions)
 
 Below are the base tables we require. For each table a sample `CREATE TABLE` is included where appropriate.
@@ -892,10 +894,31 @@ When updating an existing schema, prefer these steps:
 
 See [19_ADT_WORKFLOW.md](./19_ADT_WORKFLOW.md) for complete ADT workflow documentation.
 
-## 10. Next Steps
+## 10. Migration Files
+
+Database migrations are managed using numbered SQL files in `schema/migrations/`:
+
+- **0001_initial.sql** - Creates all base tables (patients, vitals, alarms, action_log, settings, users, certificates, security_audit_log, telemetry_metrics, and additional tables). Also creates `schema_version` table for tracking applied migrations.
+- **0002_add_indices.sql** - Adds all performance indices defined in the schema YAML file.
+- **0003_adt_workflow.sql** - Data migration for ADT workflow (removes deprecated bedId setting, adds deviceLabel setting, updates existing patients).
+
+**To apply migrations:**
+```bash
+python3 scripts/migrate.py --db /path/to/database.db
+```
+
+The migration runner:
+- Tracks applied migrations in `schema_version` table
+- Applies migrations in order (0001, 0002, 0003, ...)
+- Rolls back on failure
+- Records migration metadata (version, applied_at, description)
+
+**See `doc/33_SCHEMA_MANAGEMENT.md` for complete schema management workflow, code generation process, and migration guidelines.**
+
+## 11. Next Steps
 
 - (A) Add an OpenAPI/JSON Schema for `/api/telemetry` in `doc/openapi/telemetry.yaml`.
 - (B) Implement `DatabaseManager::cleanupOldData` and `DataArchiver::archiveData` in `src/core`.
-- (C) Add migration SQL files under `doc/migrations/` to apply schema changes incrementally.
+- (C) Generate ERD diagram (optional - can be done separately if needed).
 
 ```

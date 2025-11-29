@@ -72,3 +72,23 @@ target_include_directories(test_query_registry
 
 add_test(NAME QueryRegistryTest COMMAND test_query_registry)
 
+# Migration tests
+add_executable(test_migrations
+    test_migrations.cpp
+)
+
+target_link_libraries(test_migrations
+    PRIVATE
+        GTest::gtest
+        GTest::gtest_main
+        Qt6::Core
+        Qt6::Sql
+)
+
+target_include_directories(test_migrations
+    PRIVATE
+        ${Z_MONITOR_ROOT}
+)
+
+add_test(NAME MigrationTest COMMAND test_migrations)
+
