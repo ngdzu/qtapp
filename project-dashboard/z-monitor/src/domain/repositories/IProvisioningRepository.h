@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "domain/common/Result.h"
 #include <string>
 #include <memory>
 
@@ -44,9 +45,9 @@ public:
      * Persists device aggregate to storage.
      * 
      * @param device Device aggregate to save
-     * @return true if save succeeded, false otherwise
+     * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual bool saveDevice(const Provisioning::DeviceAggregate& device) = 0;
+    virtual Result<void> saveDevice(const Provisioning::DeviceAggregate& device) = 0;
     
     /**
      * @brief Find device by device ID.
@@ -64,9 +65,9 @@ public:
      * Persists provisioning session to storage.
      * 
      * @param session Provisioning session to save
-     * @return true if save succeeded, false otherwise
+     * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual bool saveSession(const Provisioning::ProvisioningSession& session) = 0;
+    virtual Result<void> saveSession(const Provisioning::ProvisioningSession& session) = 0;
     
     /**
      * @brief Find provisioning session by pairing code.

@@ -15,6 +15,7 @@
 
 #include <QString>
 
+#include "domain/common/Result.h"
 #include "LogEntry.h"
 
 namespace zmon {
@@ -52,9 +53,9 @@ public:
      *
      * @param logDir Directory where log files should be written.
      * @param logFileName Base name for log files (for example, "z-monitor").
-     * @return true if initialization succeeded, false otherwise.
+     * @return Result<void> - Success if initialization succeeded, Error with details if failed
      */
-    virtual bool initialize(const QString& logDir, const QString& logFileName) = 0;
+    virtual Result<void> initialize(const QString& logDir, const QString& logFileName) = 0;
 
     /**
      * @brief Writes a log entry to the backend.

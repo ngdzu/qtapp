@@ -18,6 +18,7 @@
 #include <QDateTime>
 #include <QDateTime>
 
+#include "domain/common/Result.h"
 #include "domain/monitoring/VitalRecord.h"
 #include "domain/monitoring/WaveformSample.h"
 
@@ -87,12 +88,12 @@ public:
      *
      * Begins acquiring vital signs data and emitting signals.
      *
-     * @return true if started successfully, false otherwise
+     * @return Result<void> - Success if started successfully, Error with details if failed
      *
      * @note Non-blocking (data emitted via signals)
      * @note Call stop() before destroying object
      */
-    virtual bool start() = 0;
+    virtual Result<void> start() = 0;
 
     /**
      * @brief Stop data acquisition.

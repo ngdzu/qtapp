@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "domain/common/Result.h"
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -57,9 +58,9 @@ public:
      * Persists audit log entry to storage. Entries are immutable once written.
      * 
      * @param entry Audit log entry to save
-     * @return true if save succeeded, false otherwise
+     * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual bool save(const AuditEntry& entry) = 0;
+    virtual Result<void> save(const AuditEntry& entry) = 0;
     
     /**
      * @brief Get audit log entries within a time range.
@@ -114,9 +115,9 @@ public:
      * 
      * Verifies that the audit log hash chain is intact (no tampering).
      * 
-     * @return true if hash chain is valid, false if tampering detected
+     * @return Result<bool> - Success with verification result (true if valid, false if tampering detected), Error if verification failed (e.g., database error)
      */
-    virtual bool verifyIntegrity() = 0;
+    virtual Result<bool> verifyIntegrity() = 0;
     
     /**
      * @brief Archive old audit log entries.

@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "domain/common/Result.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -45,9 +46,9 @@ public:
      * Persists telemetry batch to storage.
      * 
      * @param batch Telemetry batch to save
-     * @return true if save succeeded, false otherwise
+     * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual bool save(const Monitoring::TelemetryBatch& batch) = 0;
+    virtual Result<void> save(const Monitoring::TelemetryBatch& batch) = 0;
     
     /**
      * @brief Get historical telemetry batches.
@@ -86,9 +87,9 @@ public:
      * Updates batch status to indicate successful transmission.
      * 
      * @param batchId Batch identifier
-     * @return true if update succeeded, false otherwise
+     * @return Result<void> - Success if update succeeded, Error with details if failed
      */
-    virtual bool markAsSent(const std::string& batchId) = 0;
+    virtual Result<void> markAsSent(const std::string& batchId) = 0;
 };
 
 } // namespace zmon

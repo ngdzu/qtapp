@@ -872,12 +872,48 @@ These infrastructure components should be implemented early as they are dependen
 
 ## Software Engineering Best Practices & Design Decisions
 
-- [ ] Review and implement Error Handling Strategy
-  - What: Implement comprehensive error handling following `doc/20_ERROR_HANDLING_STRATEGY.md`, including Result<T,E> pattern, error codes, recovery strategies, and error propagation.
-  - Why: Ensures consistent, type-safe error handling across the application with proper recovery and user feedback.
-  - Files: Create `src/utils/Result.h`, update all service classes to use Result pattern, implement error codes enum, add error recovery logic.
-  - Acceptance: All operations use Result pattern or signals for error propagation, error codes are standardized, recovery strategies are implemented, errors are logged appropriately.
-  - Tests: Error handling tests, recovery tests, error propagation tests.
+- [ ] Implement comprehensive Error Handling Strategy
+  - What: Complete implementation of error handling system following `doc/20_ERROR_HANDLING_STRATEGY.md`. **Status:** `Result<T, Error>` type exists at `domain/common/Result.h` (pure C++, Qt-free). Some services already converted (AdmissionService, SQLiteActionLogRepository, MonitoringService::start). **Remaining work:** Convert remaining high-impact functions from `bool` to `Result<void>` or `Result<T>`, update all callers to handle Result types, implement error recovery patterns (retry with exponential backoff, circuit breaker), add error propagation via signals for async operations, ensure proper error logging per layer guidelines (domain: return only, application: log infrastructure failures, infrastructure: log all failures).
+  - Why: **CRITICAL FOUNDATION** - Error handling must be standardized before implementing other features. Ensures consistent, type-safe error handling across the application with proper recovery and user feedback. Prevents silent failures and provides actionable error information. Required for production reliability and debugging.
+  - Files:
+    - ✅ `z-monitor/src/domain/common/Result.h` (already exists - pure C++, Qt-free)
+    - ✅ `z-monitor/src/domain/common/CMakeLists.txt` (zmon_domain_common interface library)
+    - ⏳ Update remaining repository interfaces: `IPatientRepository::remove()`, `IAlarmRepository::updateStatus()`, `ITelemetryRepository::markAsSent()`, `IVitalsRepository::saveBatch()` → `Result<void>` or `Result<T>`
+    - ⏳ Update remaining infrastructure: `ISensorDataSource::start()`, `LogService::initialize()`, `CustomBackend::initialize()`, `SpdlogBackend::initialize()`, `SettingsManager` methods → `Result<void>` or `Result<T>`
+    - ⏳ Update domain aggregates: `PatientAggregate` methods (`admit`, `discharge`, `transfer`, `updateVitals`) → `Result<void>`
+    - ⏳ Update all callers to handle Result types (check `isError()`, propagate errors, log appropriately)
+    - ⏳ Implement retry with exponential backoff pattern for recoverable errors
+    - ⏳ Implement circuit breaker pattern for external services (network, patient lookup)
+    - ⏳ Add error signals to async operations (NetworkManager, PatientLookupService, etc.)
+    - ⏳ Ensure error logging follows layer guidelines (see doc section 4.6)
+  - Key Requirements (from doc/20_ERROR_HANDLING_STRATEGY.md):
+    - **Result<T, E> Pattern:** Use for synchronous operations that can fail (network, database, file I/O, validation)
+    - **Signal/Slot Error Propagation:** Use for asynchronous operations, cross-thread communication, long-running operations
+    - **Error Logging Guidelines:**
+      - Domain layer: Return errors only (no logging)
+      - Application layer: Return validation errors (don't log), log infrastructure failures (before returning)
+      - Infrastructure layer: Log all failures (before returning)
+    - **Error Recovery:** Implement retry with exponential backoff for recoverable errors, circuit breaker for external services
+    - **Error Codes:** Use standardized `ErrorCode` enum (InvalidArgument, NotFound, DatabaseError, etc.)
+  - Acceptance:
+    - ✅ `Result<T, Error>` type exists and is pure C++ (no Qt dependencies)
+    - ⏳ All high-impact functions return `Result<void>` or `Result<T>` instead of `bool`
+    - ⏳ All callers check `result.isError()` and handle errors appropriately
+    - ⏳ Error logging follows layer guidelines (domain: return only, application: log infrastructure failures, infrastructure: log all failures)
+    - ⏳ Retry with exponential backoff implemented for recoverable errors (network timeouts, database locks)
+    - ⏳ Circuit breaker pattern implemented for external services (network, patient lookup)
+    - ⏳ Async operations emit error signals (telemetrySendFailed, patientLookupFailed, etc.)
+    - ⏳ Error codes are standardized and used consistently
+    - ⏳ No silent failures - all errors are either returned, logged, or emitted
+  - Verification Steps:
+    1. Functional: All operations use Result pattern or signals, error handling works correctly, retry logic works, circuit breaker works, error propagation works across layers. **Status:** ⏳ Partial - Result type exists, some services converted, remaining work in progress.
+    2. Code Quality: No `bool` return types for operations that can fail (grep verification), all Result types handled, error logging follows guidelines, Doxygen comments on error handling. **Status:** ⏳ In progress - need to scan and convert remaining functions.
+    3. Documentation: `doc/20_ERROR_HANDLING_STRATEGY.md` is complete and accurate, error handling patterns documented, examples provided. **Status:** ✅ Documentation exists and is comprehensive.
+    4. Integration: Result type works across all layers, error propagation works, recovery patterns work, tests pass. **Status:** ⏳ Partial - Result type works, need to complete conversion and add recovery patterns.
+    5. Tests: Error handling tests (Result type, error codes, error context), recovery tests (retry logic, circuit breaker), error propagation tests (signals, cross-thread), integration tests. **Status:** ⏳ Tests needed for Result type, recovery patterns, error propagation.
+  - Priority: **HIGH** - Must be completed before implementing other features that depend on error handling (network operations, database operations, patient management, etc.)
+  - Dependencies: None (Result type already exists)
+  - Documentation: See `doc/20_ERROR_HANDLING_STRATEGY.md` for complete error handling strategy, patterns, error codes, recovery strategies, and layer-specific guidelines.
   - Prompt: `project-dashboard/prompt/20-error-handling-implementation.md`  (When finished: mark this checklist item done.)
 
 - [ ] Review and implement Logging Strategy

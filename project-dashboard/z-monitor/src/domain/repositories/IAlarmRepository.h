@@ -14,6 +14,7 @@
 #pragma once
 
 #include "domain/monitoring/AlarmSnapshot.h"
+#include "domain/common/Result.h"
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -43,9 +44,9 @@ public:
      * Persists alarm snapshot to storage.
      * 
      * @param alarm Alarm snapshot to save
-     * @return true if save succeeded, false otherwise
+     * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual bool save(const Monitoring::AlarmSnapshot& alarm) = 0;
+    virtual Result<void> save(const Monitoring::AlarmSnapshot& alarm) = 0;
     
     /**
      * @brief Get active alarms.
@@ -87,9 +88,9 @@ public:
      * @param alarmId Alarm identifier
      * @param status New alarm status
      * @param userId User ID who performed the action
-     * @return true if update succeeded, false otherwise
+     * @return Result<void> - Success if update succeeded, Error with details if failed
      */
-    virtual bool updateStatus(const std::string& alarmId, 
+    virtual Result<void> updateStatus(const std::string& alarmId, 
                               Monitoring::AlarmStatus status,
                               const std::string& userId) = 0;
 };

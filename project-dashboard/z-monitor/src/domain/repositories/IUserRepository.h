@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "domain/common/Result.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -77,9 +78,9 @@ public:
      * Persists user information to storage.
      * 
      * @param user User information to save
-     * @return true if save succeeded, false otherwise
+     * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual bool save(const UserInfo& user) = 0;
+    virtual Result<void> save(const UserInfo& user) = 0;
     
     /**
      * @brief Save user PIN credential.
@@ -88,9 +89,9 @@ public:
      * 
      * @param userId User identifier
      * @param credential Hashed PIN credential
-     * @return true if save succeeded, false otherwise
+     * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual bool saveCredential(const std::string& userId, const Security::PinCredential& credential) = 0;
+    virtual Result<void> saveCredential(const std::string& userId, const Security::PinCredential& credential) = 0;
     
     /**
      * @brief Verify user PIN.
@@ -99,9 +100,9 @@ public:
      * 
      * @param userId User identifier
      * @param pin Plain-text PIN to verify
-     * @return true if PIN is correct, false otherwise
+     * @return Result<bool> - Success with verification result (true if correct, false if incorrect), Error if verification failed (e.g., user not found, database error)
      */
-    virtual bool verifyPin(const std::string& userId, const std::string& pin) = 0;
+    virtual Result<bool> verifyPin(const std::string& userId, const std::string& pin) = 0;
     
     /**
      * @brief Get all users.
@@ -118,9 +119,9 @@ public:
      * Removes user from storage.
      * 
      * @param userId User identifier
-     * @return true if deletion succeeded, false otherwise
+     * @return Result<void> - Success if deletion succeeded, Error with details if failed
      */
-    virtual bool remove(const std::string& userId) = 0;
+    virtual Result<void> remove(const std::string& userId) = 0;
     
     /**
      * @brief Update last login timestamp.
@@ -129,9 +130,9 @@ public:
      * 
      * @param userId User identifier
      * @param loginTimeMs Login time in milliseconds (epoch milliseconds)
-     * @return true if update succeeded, false otherwise
+     * @return Result<void> - Success if update succeeded, Error with details if failed
      */
-    virtual bool updateLastLogin(const std::string& userId, int64_t loginTimeMs) = 0;
+    virtual Result<void> updateLastLogin(const std::string& userId, int64_t loginTimeMs) = 0;
 };
 
 } // namespace zmon

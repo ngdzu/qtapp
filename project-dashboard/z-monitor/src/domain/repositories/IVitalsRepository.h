@@ -14,6 +14,7 @@
 #pragma once
 
 #include "domain/monitoring/VitalRecord.h"
+#include "domain/common/Result.h"
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -43,9 +44,9 @@ public:
      * Persists a vital record to storage.
      * 
      * @param vital Vital record to save
-     * @return true if save succeeded, false otherwise
+     * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual bool save(const Monitoring::VitalRecord& vital) = 0;
+    virtual Result<void> save(const Monitoring::VitalRecord& vital) = 0;
     
     /**
      * @brief Save multiple vital records in batch.
@@ -53,9 +54,9 @@ public:
      * Persists multiple vital records in a single transaction for efficiency.
      * 
      * @param vitals Vector of vital records to save
-     * @return Number of records saved
+     * @return Result<size_t> - Success with number of records saved, Error with details if failed
      */
-    virtual size_t saveBatch(const std::vector<Monitoring::VitalRecord>& vitals) = 0;
+    virtual Result<size_t> saveBatch(const std::vector<Monitoring::VitalRecord>& vitals) = 0;
     
     /**
      * @brief Get vital records within a time range.

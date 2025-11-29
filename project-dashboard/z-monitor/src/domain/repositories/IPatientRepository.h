@@ -15,6 +15,7 @@
 
 #include "domain/admission/PatientIdentity.h"
 #include "domain/admission/BedLocation.h"
+#include "domain/common/Result.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -58,9 +59,9 @@ public:
      * doesn't exist, updates existing record otherwise.
      * 
      * @param patient Patient aggregate to save
-     * @return true if save succeeded, false otherwise
+     * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual bool save(const PatientAggregate& patient) = 0;
+    virtual Result<void> save(const PatientAggregate& patient) = 0;
     
     /**
      * @brief Get admission history for a patient.
@@ -87,9 +88,9 @@ public:
      * Removes patient aggregate from storage.
      * 
      * @param mrn Medical Record Number
-     * @return true if deletion succeeded, false otherwise
+     * @return Result<void> - Success if deletion succeeded, Error with details if failed
      */
-    virtual bool remove(const std::string& mrn) = 0;
+    virtual Result<void> remove(const std::string& mrn) = 0;
 };
 
 } // namespace zmon
