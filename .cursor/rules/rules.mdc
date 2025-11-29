@@ -43,10 +43,10 @@ Follow this exact workflow:
 1. **Implement all requirements** from the "What" section
 2. **Follow all coding guidelines:**
    - Doxygen comments for all public APIs (see `api_documentation.mdc`)
-   - No hardcoded values (see `no_hardcoded_values.mdc`)
+   - No hardcoded values (see `cpp_guidelines.mdc` - Constants and Magic Numbers section)
    - Error handling with `Result<T, Error>` (see `cpp_guidelines.mdc`)
    - DDD layer separation (domain, application, infrastructure, interface)
-   - Code style guidelines (see `code_style.mdc`)
+   - Code style guidelines (see `cpp_guidelines.mdc`)
 
 3. **Complete all subtasks** if the task has sub-items:
    - Check off each subtask as you complete it: `- [x]`
@@ -158,17 +158,21 @@ User: "Do the next task"
 
 The detailed rules have been split into topic-specific files to reduce token usage. Each file in `.cursor/rules/` with the `alwaysApply` front-matter is loaded automatically. Refer to:
 
-- `project_overview.mdc` - Project structure and overview
-- `lesson_structure.mdc` - Lesson file requirements
-- `docker_architecture.mdc` - Docker build patterns
-- `code_style.mdc` - C++ coding guidelines
-- `lesson_progression.mdc` - Lesson difficulty levels
-- `common_patterns.mdc` - Common Qt/C++ patterns
-- `quality_checklist.mdc` - Quality standards
-- `maintenance_notes.mdc` - Maintenance procedures
-- `documentation_maintenance.mdc` - Documentation update workflow
-- `api_documentation.mdc` - Doxygen documentation requirements
-- `ztodo_verification.mdc` - Complete verification workflow (CRITICAL)
-- `mermaid_guidelines.mdc` - Diagram creation guidelines
-- `qml_guidelines.mdc` - QML coding standards
-- `no_hardcoded_values.mdc` - Constants and configuration rules
+### Core Guidelines
+- `cpp_guidelines.mdc` - C++ coding standards, error handling, constants, and best practices
+- `api_documentation.mdc` - Doxygen documentation requirements for all public APIs
+- `qml_guidelines.mdc` - QML coding standards and best practices
+- `md_guidelines.mdc` - Markdown documentation standards and formatting
+
+### Workflow and Process
+- `ztodo_verification.mdc` - Complete verification workflow (CRITICAL) - Required for all ZTODO tasks
+- `documentation_guidelines.mdc` - Documentation creation and maintenance standards
+- `mermaid_guidelines.mdc` - Diagram creation guidelines (Mermaid syntax and best practices)
+
+### Project-Specific
+- `lesson_guidelines.mdc` - Lesson file requirements, structure, and quality standards
+- `common_patterns.mdc` - Common Qt/C++ patterns (GUI, console, CMake templates)
+- `docker_guidelines.mdc` - Docker build patterns, multi-stage builds, and best practices
+
+### Note on Constants and Hardcoded Values
+The "No Hardcoded Values" rule is covered in `cpp_guidelines.mdc` (Section 4: Constants and Magic Numbers). Always use constants, configuration, or constants files instead of hardcoded strings, numbers, or paths in production code.

@@ -189,3 +189,16 @@ Before marking documentation updates complete:
 - `mermaid_guidelines.mdc` - Mermaid diagram creation and maintenance
 - `quality_checklist.mdc` - Quality standards for documentation
 - `maintenance_notes.mdc` - General maintenance procedures
+
+# Maintenance Notes
+
+- Keep `table_of_contents.md` in sync with lesson changes.
+- Rebuild base images when Qt dependencies update:
+  - `docker build --target qt-dev-env -t qtapp-qt-dev-env:latest .`
+  - `docker build --target qt-runtime -t qtapp-qt-runtime:latest .`
+- Regularly test lesson builds to ensure compatibility.
+- Document deviations from standard patterns in the lesson README.
+- When editing Mermaid diagrams (`*.mmd`), render to SVG and verify there are no parser errors:
+  ```bash
+  npx @mermaid-js/mermaid-cli -i doc/12_THREAD_MODEL.mmd -o doc/12_THREAD_MODEL.svg
+  ```
