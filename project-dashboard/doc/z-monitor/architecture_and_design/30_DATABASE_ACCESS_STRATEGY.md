@@ -110,7 +110,9 @@ PRIORITY 4 (LOW - Database Thread):
 || **Qt SQL (Manual)** | Zero overhead, full control | More boilerplate code | ✅ **FALLBACK** |
 || **sqlpp11** | Modern C++, type-safe | Not Qt-native, complex setup | ❌ Not recommended |
 
-### **3.3 Recommended Approach: QxOrm**
+### **3.3 Recommended Approach: Hybrid QxOrm + Manual SQL**
+
+**Decision: Use QxOrm for simple CRUD, manual SQL for complex queries**
 
 **Rationale:**
 - **Lightweight**: Minimal overhead, small binary footprint
@@ -120,10 +122,14 @@ PRIORITY 4 (LOW - Database Thread):
 - **Non-Intrusive**: POCOs (Plain Old C++ Objects) - no inheritance required
 - **Compile-Time Type Safety**: Catch errors at compile time
 - **Schema Integration**: Can use schema constants for table/column names
+- **Hybrid Flexibility**: Use ORM for simple operations, manual SQL for complex queries
 
 > **🔗 Schema Integration:**  
 > QxOrm registration uses column name constants from `SchemaInfo.h` (generated from `schema/database.yaml`).  
 > See [33_SCHEMA_MANAGEMENT.md](./33_SCHEMA_MANAGEMENT.md) for schema definition workflow.
+
+> **📋 Implementation Status:**  
+> ORM integration is planned but not yet implemented. See ZTODO.md task "Implement QxOrm Integration (Hybrid ORM + Stored Procedures)" for implementation plan. Schema management infrastructure is ready for ORM integration.
 
 **Example with QxOrm + Schema Constants:**
 
@@ -192,9 +198,58 @@ public:
 - ✅ **Refactoring**: Rename column in YAML → regenerate → compile error if ORM mapping outdated
 - ✅ **No Duplication**: No hardcoded strings in ORM registration
 
-### **3.4 Alternative: Manual Qt SQL (No ORM)**
+### **3.4 Hybrid Strategy: When to Use ORM vs Manual SQL**
 
-**If ORM complexity is not worth the benefits, use manual Qt SQL:**
+**Decision: Use hybrid approach - ORM for simple CRUD, manual SQL for complex queries**
+
+**Use ORM (QxOrm) for:**
+- ✅ Simple CRUD operations (Patient, User, Settings aggregates)
+- ✅ Single-record lookups (findByMrn, findById, findByUsername)
+- ✅ Simple inserts/updates (save, update single record)
+- ✅ Type-safe object mapping
+- ✅ Operations that benefit from ORM's automatic INSERT/UPDATE detection
+
+**Use Manual SQL/Stored Procedures for:**
+- ✅ Time-series queries (vitals with date ranges, aggregations)
+- ✅ Complex joins (multi-table queries)
+- ✅ Performance-critical paths (real-time queries)
+- ✅ Batch operations (bulk inserts, bulk updates)
+- ✅ Custom queries that don't map well to ORM
+- ✅ Aggregation queries (COUNT, SUM, AVG, GROUP BY)
+- ✅ Complex WHERE clauses with multiple conditions
+
+**Example Hybrid Repository:**
+
+```cpp
+class SQLitePatientRepository : public IPatientRepository {
+public:
+    // ✅ Use ORM for simple CRUD
+    std::optional<PatientAggregate> findByMrn(const QString& mrn) override {
+        PatientAggregate patient;
+        patient.mrn = mrn;
+        qx::dao::fetch_by_id(patient);  // ORM - simple lookup
+        return patient.name.isEmpty() ? std::nullopt : std::make_optional(patient);
+    }
+    
+    Result<void> save(const PatientAggregate& patient) override {
+        auto error = qx::dao::save(patient);  // ORM - automatic INSERT/UPDATE
+        return error.isValid() 
+            ? Result<void>::error(Error::create(ErrorCode::DatabaseError, error.text().toStdString()))
+            : Result<void>::ok();
+    }
+    
+    // ✅ Use manual SQL for complex queries
+    QList<PatientAggregate> findAdmittedPatientsInDateRange(
+        const QDateTime& startDate, 
+        const QDateTime& endDate) override {
+        // Manual SQL with Query Registry + Schema constants
+        QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Patient::FIND_ADMITTED_IN_RANGE);
+        query.bindValue(":start_date", startDate.toMSecsSinceEpoch());
+        query.bindValue(":end_date", endDate.toMSecsSinceEpoch());
+        // ... complex query logic with joins, aggregations ...
+    }
+};
+```
 
 > **🔗 Related Documentation:**  
 > **Query Management:** See [32_QUERY_REGISTRY.md](./32_QUERY_REGISTRY.md) for type-safe query string management using the Query Registry pattern. All repositories use `QueryId::` constants instead of magic strings for compile-time safety and autocomplete support.  
@@ -202,7 +257,67 @@ public:
 
 ---
 
-## 4. Recommended Approach: Repository Pattern with Qt SQL
+## 4. Recommended Approach: Hybrid ORM + Manual SQL (Repository Pattern)
+
+### **4.1 Hybrid Strategy Decision**
+
+**Decision: Use QxOrm for simple CRUD operations, manual SQL for complex queries**
+
+After evaluation, we will use a **hybrid approach**:
+- **QxOrm** for simple CRUD operations (Patient, User, Settings aggregates)
+- **Manual SQL/Stored Procedures** for complex queries (time-series vitals, aggregations, performance-critical paths)
+
+**Rationale:**
+- ✅ **Developer Productivity**: ORM reduces boilerplate for simple operations
+- ✅ **Performance**: Manual SQL maintains full control for complex queries
+- ✅ **Flexibility**: Can use best tool for each use case
+- ✅ **Type Safety**: Schema constants provide compile-time safety for both approaches
+- ✅ **DDD Alignment**: Repository pattern abstracts both ORM and SQL implementations
+
+**When to Use ORM:**
+- Simple CRUD operations (findById, save, update, delete)
+- Single-record lookups (findByMrn, findByUsername)
+- Type-safe object mapping
+- Operations that benefit from ORM's automatic INSERT/UPDATE detection
+
+**When to Use Manual SQL:**
+- Time-series queries (vitals with date ranges, aggregations)
+- Complex joins (multi-table queries)
+- Performance-critical paths (real-time queries)
+- Batch operations (bulk inserts, bulk updates)
+- Custom queries that don't map well to ORM
+- Aggregation queries (COUNT, SUM, AVG, GROUP BY)
+
+**Example Hybrid Repository:**
+
+```cpp
+class SQLitePatientRepository : public IPatientRepository {
+public:
+    // ✅ Use ORM for simple CRUD
+    std::optional<PatientAggregate> findByMrn(const QString& mrn) override {
+        PatientAggregate patient;
+        patient.mrn = mrn;
+        qx::dao::fetch_by_id(patient);  // ORM
+        return patient.name.isEmpty() ? std::nullopt : std::make_optional(patient);
+    }
+    
+    Result<void> save(const PatientAggregate& patient) override {
+        auto error = qx::dao::save(patient);  // ORM
+        return error.isValid() 
+            ? Result<void>::error(Error::create(ErrorCode::DatabaseError, error.text().toStdString()))
+            : Result<void>::ok();
+    }
+    
+    // ✅ Use manual SQL for complex queries
+    QList<PatientAggregate> findAdmittedPatients() override {
+        QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Patient::FIND_ADMITTED);
+        // Manual SQL with Query Registry + Schema constants
+        // ... complex query logic ...
+    }
+};
+```
+
+## 5. Repository Pattern with Qt SQL (Current Implementation)
 
 ### **Architecture:**
 
@@ -719,9 +834,12 @@ project-dashboard/doc/migrations/
 
 ## 11. Integration with Schema Management
 
+> **📋 Implementation Status:**  
+> ORM integration is planned but not yet implemented. See ZTODO.md task "Implement QxOrm Integration (Hybrid ORM + Stored Procedures)" for implementation plan. This section documents how ORM will integrate with schema management when implemented.
+
 ### **11.1 ORM + Schema Workflow**
 
-QxOrm integrates with the schema management system to ensure type safety and single source of truth:
+When QxOrm is integrated, it will integrate with the schema management system to ensure type safety and single source of truth:
 
 ```
 ┌─────────────────────────────────────────┐

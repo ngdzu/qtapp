@@ -1,0 +1,5 @@
+# Python dependencies for Z Monitor schema management scripts
+# Install with: pip3 install -r scripts/requirements.txt
+
+PyYAML>=6.0
+

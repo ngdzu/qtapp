@@ -37,6 +37,25 @@ else()
     message(STATUS "spdlog backend disabled (using CustomBackend)")
 endif()
 
+# Schema Management: Generate SchemaInfo.h from YAML
+# Find Python3 (required for schema generation)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+# Add custom target to generate schema
+add_custom_target(generate_schema
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_schema.py
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating schema constants from YAML"
+    BYPRODUCTS
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/infrastructure/persistence/generated/SchemaInfo.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_tables.sql
+        ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_indices.sql
+    VERBATIM
+)
+
+# Ensure generated directory exists
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/infrastructure/persistence/generated)
+
 # Add source code subdirectory (handles all DDD layers)
 add_subdirectory(src)
 
@@ -46,6 +65,9 @@ if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+# Ensure schema is generated before building main executable
+add_dependencies(z-monitor generate_schema)
 
 # Install main executable
 install(TARGETS z-monitor RUNTIME DESTINATION /opt/z-monitor/)

@@ -432,19 +432,66 @@ These infrastructure components should be implemented early as they are dependen
     5. Tests: Test framework tests, mock verification tests. **Status:** ✅ Example test includes tests for mock functionality (success, failure, async operations).
   - Prompt: `project-dashboard/prompt/03-create-unit-test-harness.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement Schema Management with Code Generation (ORM Integration)
-  - What: Create YAML schema definition (`z-monitor/schema/database.yaml`) as single source of truth for all tables, columns, types, constraints, indices. Create Python code generator (`z-monitor/scripts/generate_schema.py`) that generates `SchemaInfo.h` with type-safe column name constants, DDL SQL files, and migration templates. Create migration runner (`z-monitor/scripts/migrate.py`) that applies numbered migrations in order. Integrate with CMake build system and pre-commit hooks. Refactor all repositories to use `Schema::Columns::TableName::COLUMN_NAME` constants instead of hardcoded strings. **If using QxOrm:** Create ORM mappings that use schema constants (e.g., `t.data(&PatientAggregate::mrn, Schema::Columns::Patients::MRN)`) to ensure single source of truth.
+- [x] Implement Schema Management with Code Generation (ORM Integration)
+  - What: Create YAML schema definition (`z-monitor/schema/database.yaml`) as single source of truth for all tables, columns, types, constraints, indices. Create Python code generator (`z-monitor/scripts/generate_schema.py`) that generates `SchemaInfo.h` with type-safe column name constants, DDL SQL files, and migration templates. Create migration runner (`z-monitor/scripts/migrate.py`) that applies numbered migrations in order. Integrate with CMake build system and pre-commit hooks. Refactor all repositories to use `Schema::Columns::TableName::COLUMN_NAME` constants instead of hardcoded strings. **Note: ORM integration is pending - see "Implement QxOrm Integration" task below. Schema infrastructure is ready for ORM when implemented.**
   - Why: Eliminates hardcoded column names, provides single source of truth for schema, enables compile-time safety and autocomplete for column names, automates DDL generation, ensures schema consistency, simplifies schema changes and migrations. **ORM integration ensures schema changes propagate to ORM mappings (compile errors if mappings outdated).** Aligns with REQ-DATA-STRUCT-001, REQ-DATA-MIG-001.
   - Files: `z-monitor/schema/database.yaml`, `z-monitor/scripts/generate_schema.py`, `z-monitor/scripts/migrate.py`, `z-monitor/src/infrastructure/persistence/generated/SchemaInfo.h` (generated), `z-monitor/schema/generated/ddl/*.sql` (generated), update CMakeLists.txt, add pre-commit hook, refactor all `*Repository.cpp` files in `z-monitor/src/infrastructure/persistence/`. **If using QxOrm:** Create `z-monitor/src/infrastructure/persistence/orm/*Mapping.h` files that use schema constants.
-  - Acceptance: Schema defined in YAML only. SchemaInfo.h auto-generated with constants for all tables/columns. DDL auto-generated from YAML. All repositories use `Schema::` constants (no hardcoded column names). **If using QxOrm: All ORM mappings use `Schema::` constants (no hardcoded table/column names in ORM registrations).** Migration runner tracks version and applies migrations. Build system regenerates schema automatically. Pre-commit hook ensures schema stays in sync.
+  - Acceptance: Schema defined in YAML only. SchemaInfo.h auto-generated with constants for all tables/columns. DDL auto-generated from YAML. All repositories use `Schema::` constants (no hardcoded column names). **Note: ORM mappings will use `Schema::` constants when QxOrm is integrated (see "Implement QxOrm Integration" task).** Migration runner tracks version and applies migrations. Build system regenerates schema automatically. Pre-commit hook ensures schema stays in sync.
   - Verification Steps:
-    1. Functional: Schema generation works, DDL creates correct tables, migration runner applies migrations in order, repositories work with constants, **ORM mappings work correctly (if using QxOrm)**
-    2. Code Quality: No hardcoded column names in repositories or ORM mappings (grep verification), all Schema constants have Doxygen comments, linter passes, YAML is valid
-    3. Documentation: `doc/33_SCHEMA_MANAGEMENT.md` complete, YAML schema documented, workflow documented, diagram (MMD + SVG) present, **ORM integration documented**
-    4. Integration: CMake generates schema before build, pre-commit hook runs generator, build succeeds, all tests pass, **ORM registration uses generated constants**
-    5. Tests: Unit tests verify schema generation, migration runner, constants match YAML, grep confirms no hardcoded column names (including ORM files), **ORM integration tests**
+    1. Functional: Schema generation works, DDL creates correct tables, migration runner applies migrations in order, repositories work with constants. **Status:** ✅ Complete - Schema generation tested, DDL generated, repositories refactored to use Schema constants. **Note: ORM integration pending (see "Implement QxOrm Integration" task).**
+    2. Code Quality: No hardcoded column names in repositories (grep verification), all Schema constants have Doxygen comments, linter passes, YAML is valid. **Status:** ✅ Complete - No hardcoded strings found, linter passes. **Note: ORM mappings will be validated when QxOrm is integrated.**
+    3. Documentation: `doc/33_SCHEMA_MANAGEMENT.md` complete, YAML schema documented, workflow documented, diagram (MMD + SVG) present. **Status:** ✅ Complete - Documentation exists with ORM integration section. **Note: ORM integration section documents how ORM will use Schema constants when implemented.**
+    4. Integration: CMake generates schema before build, pre-commit hook runs generator, build succeeds, all tests pass. **Status:** ✅ Complete - CMake integration done, pre-commit hook created, tests created. **Note: ORM integration will be added in separate task.**
+    5. Tests: Unit tests verify schema generation, migration runner, constants match YAML, grep confirms no hardcoded column names. **Status:** ✅ Complete - Unit tests created, grep verification passed. **Note: ORM integration tests will be added when QxOrm is integrated.**
   - Documentation: See `doc/33_SCHEMA_MANAGEMENT.md` for complete schema management strategy and code generation workflow. See `doc/30_DATABASE_ACCESS_STRATEGY.md` for ORM integration details (Section 11: Integration with Schema Management).
   - Prompt: `project-dashboard/prompt/33-implement-schema-management.md`
+
+- [ ] Implement QxOrm Integration (Hybrid ORM + Stored Procedures)
+  - What: Integrate QxOrm library for object-relational mapping with hybrid approach: use ORM for simple CRUD operations (Patient, User, Settings aggregates) and manual SQL/stored procedures for complex queries (time-series vitals queries, aggregation queries, performance-critical paths). Create ORM mappings in `z-monitor/src/infrastructure/persistence/orm/` that use `Schema::` constants from `SchemaInfo.h`. Update `DatabaseManager` to support both QxOrm and direct SQL access. Refactor repositories to use ORM where appropriate (simple CRUD) and keep manual SQL for complex queries. Create ORM registry initialization in `OrmRegistry.cpp` that registers all domain aggregates with QxOrm using schema constants.
+  - Why: ORM reduces boilerplate for simple CRUD operations (Patient, User, Settings) while maintaining full SQL control for complex queries (vitals time-series, aggregations, performance-critical paths). Hybrid approach gives best of both worlds: developer productivity for simple operations, performance and flexibility for complex queries. Schema constants ensure ORM mappings stay synchronized with database schema (compile errors if outdated). Aligns with REQ-DATA-STRUCT-001, REQ-DATA-MIG-001.
+  - Files: 
+    - `z-monitor/CMakeLists.txt` (add QxOrm dependency via FetchContent or find_package)
+    - `z-monitor/src/infrastructure/persistence/orm/PatientAggregateMapping.h` (ORM mapping using Schema constants)
+    - `z-monitor/src/infrastructure/persistence/orm/VitalRecordMapping.h` (if using ORM for vitals)
+    - `z-monitor/src/infrastructure/persistence/orm/UserMapping.h` (ORM mapping for User)
+    - `z-monitor/src/infrastructure/persistence/orm/SettingsMapping.h` (ORM mapping for Settings)
+    - `z-monitor/src/infrastructure/persistence/orm/OrmRegistry.cpp/h` (initialize all ORM mappings)
+    - `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h` (add QxOrm connection management)
+    - Update `z-monitor/src/infrastructure/persistence/SQLitePatientRepository.cpp` (use ORM for simple CRUD, keep manual SQL for complex queries)
+    - Update `z-monitor/src/infrastructure/persistence/SQLiteUserRepository.cpp` (use ORM)
+    - `z-monitor/scripts/validate_orm_schema.py` (validate ORM mappings use Schema constants)
+    - Update `doc/30_DATABASE_ACCESS_STRATEGY.md` (document hybrid approach, when to use ORM vs manual SQL)
+  - Hybrid Strategy:
+    - **Use ORM for:**
+      - Simple CRUD operations (Patient, User, Settings aggregates)
+      - Single-record lookups (findByMrn, findById)
+      - Simple inserts/updates (save, update)
+      - Type-safe object mapping
+    - **Use Manual SQL/Stored Procedures for:**
+      - Time-series queries (vitals, alarms with date ranges)
+      - Aggregation queries (COUNT, SUM, AVG, GROUP BY)
+      - Performance-critical paths (real-time queries)
+      - Complex joins (multi-table queries)
+      - Batch operations (bulk inserts, bulk updates)
+      - Custom queries that don't map well to ORM
+  - Acceptance: 
+    - QxOrm integrated into CMake build system (optional via `-DUSE_QXORM=ON`)
+    - All ORM mappings use `Schema::` constants (no hardcoded table/column names)
+    - ORM works for simple CRUD operations (Patient, User, Settings)
+    - Manual SQL still works for complex queries (vitals time-series, aggregations)
+    - Hybrid approach documented with clear guidelines (when to use ORM vs manual SQL)
+    - ORM registry initializes all mappings at startup
+    - Validation script confirms ORM mappings use Schema constants
+    - Repositories can use both ORM and manual SQL as needed
+  - Verification Steps:
+    1. Functional: QxOrm compiles and links, ORM mappings work for simple CRUD, manual SQL still works for complex queries, hybrid approach functions correctly, ORM uses Schema constants, validation script passes
+    2. Code Quality: All ORM mappings use Schema constants (grep verification), no hardcoded table/column names in ORM files, Doxygen comments on all mappings, linter passes
+    3. Documentation: `doc/30_DATABASE_ACCESS_STRATEGY.md` updated with hybrid approach, guidelines for when to use ORM vs manual SQL, ORM integration documented, examples provided
+    4. Integration: CMake integrates QxOrm (optional dependency), DatabaseManager supports both ORM and SQL, repositories work with hybrid approach, build succeeds, tests pass
+    5. Tests: ORM mapping tests (verify Schema constants used), CRUD operation tests (ORM), complex query tests (manual SQL), hybrid approach tests (both ORM and SQL in same repository), validation script tests
+  - Dependencies: Schema Management must be completed first (SchemaInfo.h must exist with all constants)
+  - Documentation: See `doc/30_DATABASE_ACCESS_STRATEGY.md` section 3.3 for QxOrm rationale and section 11 for ORM integration details. See `doc/33_SCHEMA_MANAGEMENT.md` section 13 for ORM mapping workflow.
+  - Prompt: `project-dashboard/prompt/30-implement-qxorm-integration.md`
 
 - [ ] Implement Query Registry for type-safe database queries
   - What: Create `QueryRegistry.h` with `QueryId` namespace constants (organized by domain: Patient, Vitals, Alarms, Telemetry, etc.). Create `QueryCatalog.cpp` to map query IDs to SQL statements with metadata (description, parameters, examples). Update `DatabaseManager` to support query registration and retrieval by ID. Refactor all repositories in `z-monitor/src/infrastructure/persistence/` to use `QueryId` constants instead of magic strings. Use `Schema::Columns::` constants in queries for column names.

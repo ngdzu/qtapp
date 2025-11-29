@@ -41,12 +41,16 @@ set(INFRASTRUCTURE_SOURCES
     # Persistence adapters
     persistence/SQLiteActionLogRepository.h
     persistence/SQLiteActionLogRepository.cpp
+    persistence/generated/SchemaInfo.h  # Generated from schema/database.yaml
 )
 
 # Create infrastructure layer static library
 add_library(z_monitor_infrastructure STATIC
     ${INFRASTRUCTURE_SOURCES}
 )
+
+# Ensure schema is generated before building infrastructure
+add_dependencies(z_monitor_infrastructure generate_schema)
 
 # Set include directories (project-relative paths)
 target_include_directories(z_monitor_infrastructure

@@ -7,6 +7,7 @@
  */
 
 #include "SQLiteActionLogRepository.h"
+#include "generated/SchemaInfo.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -120,11 +121,18 @@ QString SQLiteActionLogRepository::computePreviousHash(qint64 previousId) {
     }
     
     QSqlQuery query(m_database);
-    query.prepare(R"(
-        SELECT id, timestamp_ms, action_type, user_id, target_id, details, result
-        FROM action_log
-        WHERE id = ?
-    )");
+    using namespace Schema::Tables;
+    using namespace Schema::Columns::ActionLog;
+    
+    query.prepare(QString("SELECT %1, %2, %3, %4, %5, %6, %7 FROM %8 WHERE %1 = ?")
+                  .arg(ID)
+                  .arg(TIMESTAMP_MS)
+                  .arg(ACTION_TYPE)
+                  .arg(USER_ID)
+                  .arg(TARGET_ID)
+                  .arg(DETAILS)
+                  .arg(RESULT)
+                  .arg(ACTION_LOG));
     query.addBindValue(previousId);
     
     if (!query.exec() || !query.next()) {
@@ -132,13 +140,13 @@ QString SQLiteActionLogRepository::computePreviousHash(qint64 previousId) {
     }
     
     // Build hash input string
-    QString hashInput = QString::number(query.value("id").toLongLong()) +
-                       QString::number(query.value("timestamp_ms").toLongLong()) +
-                       query.value("action_type").toString() +
-                       query.value("user_id").toString() +
-                       query.value("target_id").toString() +
-                       query.value("details").toString() +
-                       query.value("result").toString();
+    QString hashInput = QString::number(query.value(ID).toLongLong()) +
+                       QString::number(query.value(TIMESTAMP_MS).toLongLong()) +
+                       query.value(ACTION_TYPE).toString() +
+                       query.value(USER_ID).toString() +
+                       query.value(TARGET_ID).toString() +
+                       query.value(DETAILS).toString() +
+                       query.value(RESULT).toString();
     
     // Compute SHA-256 hash
     QCryptographicHash hash(QCryptographicHash::Sha256);
@@ -148,27 +156,46 @@ QString SQLiteActionLogRepository::computePreviousHash(qint64 previousId) {
 
 Result<void> SQLiteActionLogRepository::createTableIfNotExists() {
     QSqlQuery query(m_database);
+    using namespace Schema::Tables;
+    using namespace Schema::Columns::ActionLog;
     
-    QString createTableSql = R"(
-        CREATE TABLE IF NOT EXISTS action_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp_ms INTEGER NOT NULL,
-            timestamp_iso TEXT NOT NULL,
-            user_id TEXT NULL,
-            user_role TEXT NULL,
-            action_type TEXT NOT NULL,
-            target_type TEXT NULL,
-            target_id TEXT NULL,
-            details TEXT NULL,
-            result TEXT NOT NULL,
-            error_code TEXT NULL,
-            error_message TEXT NULL,
-            device_id TEXT NOT NULL,
-            session_token_hash TEXT NULL,
-            ip_address TEXT NULL,
-            previous_hash TEXT NULL
+    QString createTableSql = QString(R"(
+        CREATE TABLE IF NOT EXISTS %1 (
+            %2 INTEGER PRIMARY KEY AUTOINCREMENT,
+            %3 INTEGER NOT NULL,
+            %4 TEXT NOT NULL,
+            %5 TEXT NULL,
+            %6 TEXT NULL,
+            %7 TEXT NOT NULL,
+            %8 TEXT NULL,
+            %9 TEXT NULL,
+            %10 TEXT NULL,
+            %11 TEXT NOT NULL,
+            %12 TEXT NULL,
+            %13 TEXT NULL,
+            %14 TEXT NOT NULL,
+            %15 TEXT NULL,
+            %16 TEXT NULL,
+            %17 TEXT NULL
         )
-    )";
+    )")
+        .arg(ACTION_LOG)
+        .arg(ID)
+        .arg(TIMESTAMP_MS)
+        .arg(TIMESTAMP_ISO)
+        .arg(USER_ID)
+        .arg(USER_ROLE)
+        .arg(ACTION_TYPE)
+        .arg(TARGET_TYPE)
+        .arg(TARGET_ID)
+        .arg(DETAILS)
+        .arg(RESULT)
+        .arg(ERROR_CODE)
+        .arg(ERROR_MESSAGE)
+        .arg(DEVICE_ID)
+        .arg(SESSION_TOKEN_HASH)
+        .arg(IP_ADDRESS)
+        .arg(PREVIOUS_HASH);
     
     if (!query.exec(createTableSql)) {
         return Result<void>::error(
@@ -179,11 +206,16 @@ Result<void> SQLiteActionLogRepository::createTableIfNotExists() {
     
     // Create indexes
     QStringList indexSqls = {
-        "CREATE INDEX IF NOT EXISTS idx_action_log_timestamp ON action_log(timestamp_ms DESC)",
-        "CREATE INDEX IF NOT EXISTS idx_action_log_user ON action_log(user_id, timestamp_ms DESC)",
-        "CREATE INDEX IF NOT EXISTS idx_action_log_action_type ON action_log(action_type, timestamp_ms DESC)",
-        "CREATE INDEX IF NOT EXISTS idx_action_log_target ON action_log(target_type, target_id, timestamp_ms DESC)",
-        "CREATE INDEX IF NOT EXISTS idx_action_log_device ON action_log(device_id, timestamp_ms DESC)"
+        QString("CREATE INDEX IF NOT EXISTS idx_action_log_timestamp ON %1(%2 DESC)")
+            .arg(ACTION_LOG, TIMESTAMP_MS),
+        QString("CREATE INDEX IF NOT EXISTS idx_action_log_user ON %1(%2, %3 DESC)")
+            .arg(ACTION_LOG, USER_ID, TIMESTAMP_MS),
+        QString("CREATE INDEX IF NOT EXISTS idx_action_log_action_type ON %1(%2, %3 DESC)")
+            .arg(ACTION_LOG, ACTION_TYPE, TIMESTAMP_MS),
+        QString("CREATE INDEX IF NOT EXISTS idx_action_log_target ON %1(%2, %3, %4 DESC)")
+            .arg(ACTION_LOG, TARGET_TYPE, TARGET_ID, TIMESTAMP_MS),
+        QString("CREATE INDEX IF NOT EXISTS idx_action_log_device ON %1(%2, %3 DESC)")
+            .arg(ACTION_LOG, DEVICE_ID, TIMESTAMP_MS)
     };
     
     for (const QString& indexSql : indexSqls) {
@@ -196,7 +228,12 @@ Result<void> SQLiteActionLogRepository::createTableIfNotExists() {
 
 qint64 SQLiteActionLogRepository::getLastEntryId() {
     QSqlQuery query(m_database);
-    query.prepare("SELECT MAX(id) as max_id FROM action_log");
+    using namespace Schema::Tables;
+    using namespace Schema::Columns::ActionLog;
+    
+    query.prepare(QString("SELECT MAX(%1) as max_id FROM %2")
+                  .arg(ID)
+                  .arg(ACTION_LOG));
     
     if (!query.exec() || !query.next()) {
         return 0;
@@ -220,15 +257,34 @@ Result<void> SQLiteActionLogRepository::writeEntriesToDatabase(const QList<Actio
     
     qint64 previousId = getLastEntryId();
     
+    using namespace Schema::Tables;
+    using namespace Schema::Columns::ActionLog;
+    
     for (const auto& entry : entries) {
         QSqlQuery query(m_database);
-        query.prepare(R"(
-            INSERT INTO action_log (
-                timestamp_ms, timestamp_iso, user_id, user_role, action_type,
-                target_type, target_id, details, result, error_code, error_message,
-                device_id, session_token_hash, ip_address, previous_hash
+        query.prepare(QString(R"(
+            INSERT INTO %1 (
+                %2, %3, %4, %5, %6,
+                %7, %8, %9, %10, %11, %12,
+                %13, %14, %15, %16
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        )");
+        )")
+            .arg(ACTION_LOG)
+            .arg(TIMESTAMP_MS)
+            .arg(TIMESTAMP_ISO)
+            .arg(USER_ID)
+            .arg(USER_ROLE)
+            .arg(ACTION_TYPE)
+            .arg(TARGET_TYPE)
+            .arg(TARGET_ID)
+            .arg(DETAILS)
+            .arg(RESULT)
+            .arg(ERROR_CODE)
+            .arg(ERROR_MESSAGE)
+            .arg(DEVICE_ID)
+            .arg(SESSION_TOKEN_HASH)
+            .arg(IP_ADDRESS)
+            .arg(PREVIOUS_HASH));
         
         qint64 timestampMs = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
         QString timestampIso = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);

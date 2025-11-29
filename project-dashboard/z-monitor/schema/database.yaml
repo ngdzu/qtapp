@@ -1,0 +1,1237 @@
+# Z Monitor Database Schema Definition
+# This is the single source of truth for all database tables and columns.
+# DO NOT edit generated files directly - edit this file and regenerate.
+#
+# To regenerate:
+#   python3 scripts/generate_schema.py
+#
+# Schema Version: 1.0.0
+
+version: "1.0.0"
+database: zmonitor
+
+tables:
+  # ═══════════════════════════════════════════════════════════
+  # PATIENTS TABLE
+  # ═══════════════════════════════════════════════════════════
+  patients:
+    description: "Patient demographic and admission information. Serves as both local patient registry and cache for external system lookups."
+    columns:
+      mrn:
+        type: TEXT
+        primary_key: true
+        not_null: true
+        description: "Medical Record Number (unique patient identifier, primary key)"
+        
+      name:
+        type: TEXT
+        not_null: true
+        description: "Patient full name"
+        
+      dob:
+        type: TEXT
+        nullable: true
+        description: "Date of birth (ISO 8601 format: YYYY-MM-DD)"
+        
+      sex:
+        type: TEXT
+        nullable: true
+        description: "Biological sex (M/F/O/U)"
+        check: "sex IS NULL OR sex IN ('M', 'F', 'O', 'U')"
+        
+      allergies:
+        type: TEXT
+        nullable: true
+        description: "Known allergies (comma-separated or JSON)"
+        
+      room:
+        type: TEXT
+        nullable: true
+        description: "Legacy room/bed assignment (deprecated, use bed_location instead)"
+        
+      created_at:
+        type: INTEGER
+        not_null: true
+        description: "Unix milliseconds timestamp when patient record was created"
+        
+      last_lookup_at:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp of last HIS lookup (for caching)"
+        
+      lookup_source:
+        type: TEXT
+        nullable: true
+        description: "Source of last lookup (HIS/Mock/Manual)"
+        
+      bed_location:
+        type: TEXT
+        nullable: true
+        description: "Current bed/room assignment (e.g., ICU-4B) - part of ADT workflow"
+        
+      admitted_at:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp when patient was admitted to device (NULL if not currently admitted)"
+        
+      discharged_at:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp when patient was discharged (NULL if currently admitted)"
+        
+      admission_source:
+        type: TEXT
+        nullable: true
+        description: "Source of admission (Manual/Barcode/Central/Emergency)"
+        check: "admission_source IS NULL OR admission_source IN ('manual', 'barcode', 'central_station', 'emergency', 'transfer')"
+        
+      admission_status:
+        type: TEXT
+        default: "'DISCHARGED'"
+        description: "Admission status (ADMITTED/DISCHARGED/TRANSFERRED)"
+        check: "admission_status IN ('ADMITTED', 'DISCHARGED', 'TRANSFERRED')"
+        
+      device_label:
+        type: TEXT
+        nullable: true
+        description: "Device identifier that admitted this patient (e.g., ICU-MON-04)"
+    
+    indices:
+      - name: idx_patients_mrn
+        columns: [mrn]
+        unique: true
+        
+      - name: idx_patients_admission_status
+        columns: [admission_status]
+        
+      - name: idx_patients_bed_location
+        columns: [bed_location]
+        where: "bed_location IS NOT NULL"
+    
+    constraints:
+      - name: chk_admission_dates
+        check: "admitted_at IS NULL OR discharged_at IS NULL OR discharged_at >= admitted_at"
+  
+  # ═══════════════════════════════════════════════════════════
+  # VITALS TABLE (Time-Series)
+  # ═══════════════════════════════════════════════════════════
+  vitals:
+    description: "Vital signs time-series data. Largest table with high-frequency writes."
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        description: "Primary key"
+        
+      uuid:
+        type: TEXT
+        nullable: true
+        description: "UUID for distributed systems"
+        
+      timestamp:
+        type: INTEGER
+        not_null: true
+        description: "Unix milliseconds when data was measured"
+        
+      timestamp_iso:
+        type: TEXT
+        nullable: true
+        description: "ISO 8601 timestamp (for readability)"
+        
+      patient_id:
+        type: TEXT
+        nullable: true
+        description: "DEPRECATED: Use patient_mrn instead"
+        
+      patient_mrn:
+        type: TEXT
+        not_null: true
+        description: "Patient MRN (FK to patients.mrn, REQUIRED for patient association)"
+        foreign_key:
+          table: patients
+          column: mrn
+          on_delete: CASCADE
+          
+      device_id:
+        type: TEXT
+        nullable: true
+        description: "Device serial number"
+        
+      device_label:
+        type: TEXT
+        nullable: true
+        description: "Device asset tag (e.g., ICU-MON-04)"
+        
+      heart_rate:
+        type: REAL
+        nullable: true
+        description: "Heart rate in BPM"
+        check: "heart_rate IS NULL OR (heart_rate >= 0 AND heart_rate <= 300)"
+        
+      spo2:
+        type: REAL
+        nullable: true
+        description: "SpO2 oxygen saturation (0-100%)"
+        check: "spo2 IS NULL OR (spo2 >= 0 AND spo2 <= 100)"
+        
+      respiration_rate:
+        type: REAL
+        nullable: true
+        description: "Respiration rate in breaths per minute"
+        check: "respiration_rate IS NULL OR (respiration_rate >= 0 AND respiration_rate <= 100)"
+        
+      signal_quality:
+        type: INTEGER
+        nullable: true
+        description: "Signal quality (0-100)"
+        check: "signal_quality IS NULL OR (signal_quality >= 0 AND signal_quality <= 100)"
+        
+      sample_rate_hz:
+        type: REAL
+        nullable: true
+        description: "Sample rate in Hz"
+        
+      source:
+        type: TEXT
+        nullable: true
+        description: "Data source (Simulator/Device/Test)"
+        
+      is_synced:
+        type: BOOLEAN
+        default: 0
+        description: "Whether data has been synced to server"
+        
+      batch_id:
+        type: TEXT
+        nullable: true
+        description: "Telemetry batch ID (FK to telemetry_metrics.batch_id)"
+        foreign_key:
+          table: telemetry_metrics
+          column: batch_id
+          on_delete: SET NULL
+          on_update: CASCADE
+    
+    indices:
+      - name: idx_vitals_timestamp
+        columns: [timestamp]
+        
+      - name: idx_vitals_patient_mrn
+        columns: [patient_mrn]
+        
+      - name: idx_vitals_patient_time
+        columns: [patient_mrn, timestamp]
+        
+      - name: idx_vitals_unsynced
+        columns: [is_synced]
+        where: "is_synced = 0"
+        
+      - name: idx_vitals_batch_id
+        columns: [batch_id]
+        where: "batch_id IS NOT NULL"
+    
+    retention:
+      policy: "DELETE data older than 7 days"
+      column: timestamp
+      days: 7
+
+  # ═══════════════════════════════════════════════════════════
+  # TELEMETRY METRICS TABLE
+  # ═══════════════════════════════════════════════════════════
+  telemetry_metrics:
+    description: "Telemetry transmission timing and performance metrics for benchmarking and diagnostics"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        description: "Primary key"
+        
+      batch_id:
+        type: TEXT
+        not_null: true
+        unique: true
+        description: "Unique batch identifier (UUID, referenced by vitals.batch_id)"
+        
+      device_id:
+        type: TEXT
+        not_null: true
+        description: "Device serial number"
+        
+      device_label:
+        type: TEXT
+        nullable: true
+        description: "Device asset tag"
+        
+      patient_mrn:
+        type: TEXT
+        nullable: true
+        description: "Patient MRN (NULL if no patient admitted)"
+        
+      data_created_at:
+        type: INTEGER
+        not_null: true
+        description: "Timestamp of oldest data point in batch (Unix milliseconds)"
+        
+      batch_created_at:
+        type: INTEGER
+        not_null: true
+        description: "Timestamp when batch object was created (Unix milliseconds)"
+        
+      signed_at:
+        type: INTEGER
+        nullable: true
+        description: "Timestamp when batch was digitally signed (Unix milliseconds)"
+        
+      queued_for_tx_at:
+        type: INTEGER
+        nullable: true
+        description: "Timestamp when batch was queued for transmission (Unix milliseconds)"
+        
+      transmitted_at:
+        type: INTEGER
+        nullable: true
+        description: "Timestamp when transmission started (Unix milliseconds)"
+        
+      server_received_at:
+        type: INTEGER
+        nullable: true
+        description: "Timestamp when server received batch (Unix milliseconds)"
+        
+      server_processed_at:
+        type: INTEGER
+        nullable: true
+        description: "Timestamp when server processed batch (Unix milliseconds)"
+        
+      server_ack_at:
+        type: INTEGER
+        nullable: true
+        description: "Timestamp when server sent acknowledgment (Unix milliseconds)"
+        
+      batch_creation_latency_ms:
+        type: INTEGER
+        nullable: true
+        description: "Computed: batch_created_at - data_created_at"
+        
+      signing_latency_ms:
+        type: INTEGER
+        nullable: true
+        description: "Computed: signed_at - batch_created_at"
+        
+      queue_wait_latency_ms:
+        type: INTEGER
+        nullable: true
+        description: "Computed: transmitted_at - queued_for_tx_at"
+        
+      network_latency_ms:
+        type: INTEGER
+        nullable: true
+        description: "Computed: server_received_at - transmitted_at"
+        
+      server_processing_latency_ms:
+        type: INTEGER
+        nullable: true
+        description: "Computed: server_processed_at - server_received_at"
+        
+      end_to_end_latency_ms:
+        type: INTEGER
+        nullable: true
+        description: "Computed: server_ack_at - data_created_at"
+        
+      record_count:
+        type: INTEGER
+        nullable: true
+        description: "Number of records in batch"
+        
+      batch_size_bytes:
+        type: INTEGER
+        nullable: true
+        description: "Size of raw payload in bytes"
+        
+      compressed_size_bytes:
+        type: INTEGER
+        nullable: true
+        description: "Size after compression (if applicable)"
+        
+      status:
+        type: TEXT
+        not_null: true
+        description: "Status (success/failed/timeout/retrying)"
+        check: "status IN ('success', 'failed', 'timeout', 'retrying')"
+        
+      error_message:
+        type: TEXT
+        nullable: true
+        description: "Error message if status is failed"
+        
+      retry_count:
+        type: INTEGER
+        default: 0
+        description: "Number of retry attempts"
+        
+      latency_class:
+        type: TEXT
+        nullable: true
+        description: "Latency classification (excellent/good/acceptable/slow)"
+        check: "latency_class IS NULL OR latency_class IN ('excellent', 'good', 'acceptable', 'slow')"
+        
+      created_at:
+        type: INTEGER
+        not_null: true
+        description: "Timestamp when metrics record was created (Unix milliseconds)"
+        
+      updated_at:
+        type: INTEGER
+        nullable: true
+        description: "Timestamp when metrics record was last updated (Unix milliseconds)"
+    
+    indices:
+      - name: idx_telemetry_metrics_batch_id
+        columns: [batch_id]
+        unique: true
+        
+      - name: idx_telemetry_metrics_device_id
+        columns: [device_id]
+        
+      - name: idx_telemetry_metrics_patient_mrn
+        columns: [patient_mrn]
+        where: "patient_mrn IS NOT NULL"
+        
+      - name: idx_telemetry_metrics_status
+        columns: [status]
+        
+      - name: idx_telemetry_metrics_created_at
+        columns: [created_at]
+        
+      - name: idx_telemetry_metrics_latency_class
+        columns: [latency_class]
+        where: "latency_class IS NOT NULL"
+    
+    retention:
+      policy: "DELETE metrics older than 30 days"
+      column: created_at
+      days: 30
+
+  # ═══════════════════════════════════════════════════════════
+  # ALARMS TABLE
+  # ═══════════════════════════════════════════════════════════
+  alarms:
+    description: "Alarm events and lifecycle metadata"
+    columns:
+      alarm_id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        description: "Primary key"
+        
+      patient_id:
+        type: TEXT
+        nullable: true
+        description: "Patient identifier (deprecated, use patient_mrn)"
+        
+      patient_mrn:
+        type: TEXT
+        not_null: true
+        description: "Medical Record Number (REQUIRED for patient association)"
+        
+      start_time:
+        type: INTEGER
+        not_null: true
+        description: "Unix milliseconds timestamp when alarm started"
+        
+      end_time:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp when alarm ended"
+        
+      alarm_type:
+        type: TEXT
+        not_null: true
+        description: "Type of alarm (HR_HIGH, SPO2_LOW, etc.)"
+        
+      priority:
+        type: TEXT
+        not_null: true
+        description: "Alarm priority (CRITICAL/HIGH/MEDIUM/LOW)"
+        check: "priority IN ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW')"
+        
+      status:
+        type: TEXT
+        nullable: true
+        description: "Alarm status (ACTIVE/ACKNOWLEDGED/SILENCED/CLEARED)"
+        
+      acknowledged_by:
+        type: TEXT
+        nullable: true
+        description: "User ID who acknowledged the alarm"
+        
+      acknowledged_time:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp when alarm was acknowledged"
+        
+      silenced_until:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp until which alarm is silenced"
+        
+      raw_value:
+        type: REAL
+        nullable: true
+        description: "Raw value that triggered the alarm"
+        
+      threshold_value:
+        type: REAL
+        nullable: true
+        description: "Threshold that was exceeded (historical snapshot for audit)"
+        
+      context_snapshot_id:
+        type: INTEGER
+        nullable: true
+        description: "Reference to snapshot table (if applicable)"
+    
+    indices:
+      - name: idx_alarms_patient_priority
+        columns: [patient_mrn, priority, start_time]
+        
+      - name: idx_alarms_start_time
+        columns: [start_time]
+    
+    retention:
+      policy: "DELETE alarms older than 90 days"
+      column: start_time
+      days: 90
+
+  # ═══════════════════════════════════════════════════════════
+  # ADMISSION EVENTS TABLE
+  # ═══════════════════════════════════════════════════════════
+  admission_events:
+    description: "Patient admission, discharge, and transfer events for audit and compliance"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        description: "Primary key"
+        
+      timestamp:
+        type: INTEGER
+        not_null: true
+        description: "Unix milliseconds timestamp of event"
+        
+      event_type:
+        type: TEXT
+        not_null: true
+        description: "Type of event (admission/discharge/transfer)"
+        check: "event_type IN ('admission', 'discharge', 'transfer')"
+        
+      patient_mrn:
+        type: TEXT
+        not_null: true
+        description: "Medical Record Number"
+        
+      patient_name:
+        type: TEXT
+        nullable: true
+        description: "Patient name"
+        
+      device_label:
+        type: TEXT
+        not_null: true
+        description: "Device identifier/asset tag that performed the action"
+        
+      bed_location:
+        type: TEXT
+        nullable: true
+        description: "Bed/room location associated with the event"
+        
+      admission_source:
+        type: TEXT
+        nullable: true
+        description: "Source of admission (manual/barcode/central_station/transfer)"
+        
+      user_id:
+        type: TEXT
+        nullable: true
+        description: "Clinician/Technician who performed the action (NULL if automated)"
+        
+      details:
+        type: TEXT
+        nullable: true
+        description: "Additional event details (JSON format)"
+    
+    indices:
+      - name: idx_admission_events_patient
+        columns: [patient_mrn, timestamp]
+        
+      - name: idx_admission_events_device
+        columns: [device_label, timestamp]
+        
+      - name: idx_admission_events_timestamp
+        columns: [timestamp]
+        
+      - name: idx_admission_events_type
+        columns: [event_type, timestamp]
+
+  # ═══════════════════════════════════════════════════════════
+  # ACTION LOG TABLE
+  # ═══════════════════════════════════════════════════════════
+  action_log:
+    description: "Immutable audit trail for all user actions with hash chain for tamper detection"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        description: "Primary key"
+        
+      timestamp_ms:
+        type: INTEGER
+        not_null: true
+        description: "Unix timestamp in milliseconds"
+        
+      timestamp_iso:
+        type: TEXT
+        not_null: true
+        description: "ISO 8601 timestamp for readability"
+        
+      user_id:
+        type: TEXT
+        nullable: true
+        description: "User who performed action (NULL if no login required)"
+        
+      user_role:
+        type: TEXT
+        nullable: true
+        description: "User role (NURSE, PHYSICIAN, TECHNICIAN, ADMINISTRATOR)"
+        
+      action_type:
+        type: TEXT
+        not_null: true
+        description: "Action type (LOGIN, LOGOUT, AUTO_LOGOUT, ADMIT_PATIENT, etc.)"
+        
+      target_type:
+        type: TEXT
+        nullable: true
+        description: "Type of target (PATIENT, SETTING, NOTIFICATION, etc.)"
+        
+      target_id:
+        type: TEXT
+        nullable: true
+        description: "Target identifier (MRN, setting name, notification ID)"
+        
+      details:
+        type: TEXT
+        nullable: true
+        description: "JSON string with additional context"
+        
+      result:
+        type: TEXT
+        not_null: true
+        description: "SUCCESS, FAILURE, PARTIAL"
+        check: "result IN ('SUCCESS', 'FAILURE', 'PARTIAL')"
+        
+      error_code:
+        type: TEXT
+        nullable: true
+        description: "Error code if result is FAILURE"
+        
+      error_message:
+        type: TEXT
+        nullable: true
+        description: "Error message if result is FAILURE"
+        
+      device_id:
+        type: TEXT
+        not_null: true
+        description: "Device identifier"
+        
+      session_token_hash:
+        type: TEXT
+        nullable: true
+        description: "SHA-256 hash of session token (for audit trail)"
+        
+      ip_address:
+        type: TEXT
+        nullable: true
+        description: "IP address (if available, for network actions)"
+        
+      previous_hash:
+        type: TEXT
+        nullable: true
+        description: "SHA-256 hash of previous entry (hash chain for tamper detection)"
+    
+    indices:
+      - name: idx_action_log_timestamp
+        columns: [timestamp_ms]
+        
+      - name: idx_action_log_user
+        columns: [user_id, timestamp_ms]
+        
+      - name: idx_action_log_action_type
+        columns: [action_type, timestamp_ms]
+        
+      - name: idx_action_log_target
+        columns: [target_type, target_id, timestamp_ms]
+        
+      - name: idx_action_log_device
+        columns: [device_id, timestamp_ms]
+    
+    retention:
+      policy: "Retain for 90 days minimum (configurable)"
+      column: timestamp_ms
+      days: 90
+
+  # ═══════════════════════════════════════════════════════════
+  # SETTINGS TABLE
+  # ═══════════════════════════════════════════════════════════
+  settings:
+    description: "Device configuration settings and user preferences"
+    columns:
+      key:
+        type: TEXT
+        primary_key: true
+        description: "Setting key (e.g., deviceId, deviceLabel, measurementUnit)"
+        
+      value:
+        type: TEXT
+        not_null: true
+        description: "Setting value"
+        
+      updated_at:
+        type: INTEGER
+        not_null: true
+        description: "Unix milliseconds timestamp when setting was last updated"
+        
+      updated_by:
+        type: TEXT
+        nullable: true
+        description: "User ID who updated the setting (NULL if system/default)"
+    
+    indices:
+      - name: idx_settings_key
+        columns: [key]
+        unique: true
+
+  # ═══════════════════════════════════════════════════════════
+  # USERS TABLE
+  # ═══════════════════════════════════════════════════════════
+  users:
+    description: "Local device accounts (PIN-based metadata) used for audit and RBAC"
+    columns:
+      user_id:
+        type: TEXT
+        primary_key: true
+        description: "User identifier"
+        
+      username:
+        type: TEXT
+        not_null: true
+        unique: true
+        description: "Username (unique)"
+        
+      role:
+        type: TEXT
+        not_null: true
+        description: "User role (NURSE, PHYSICIAN, TECHNICIAN, ADMINISTRATOR, OBSERVER)"
+        check: "role IN ('NURSE', 'PHYSICIAN', 'TECHNICIAN', 'ADMINISTRATOR', 'OBSERVER')"
+        
+      pin_hash:
+        type: TEXT
+        not_null: true
+        description: "Hashed PIN (never store plaintext)"
+        
+      created_at:
+        type: INTEGER
+        not_null: true
+        description: "Unix milliseconds timestamp when user was created"
+        
+      last_login:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp of last login"
+    
+    indices:
+      - name: idx_users_username
+        columns: [username]
+        unique: true
+        
+      - name: idx_users_role
+        columns: [role]
+
+  # ═══════════════════════════════════════════════════════════
+  # CERTIFICATES TABLE
+  # ═══════════════════════════════════════════════════════════
+  certificates:
+    description: "Certificate metadata for installed device/server certs (no private keys stored)"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        description: "Primary key"
+        
+      device_id:
+        type: TEXT
+        not_null: true
+        description: "Device identifier this certificate belongs to"
+        
+      cert_serial:
+        type: TEXT
+        not_null: true
+        description: "Certificate serial number (unique identifier)"
+        
+      cert_subject:
+        type: TEXT
+        nullable: true
+        description: "Certificate subject (CN, O, etc.)"
+        
+      cert_issuer:
+        type: TEXT
+        nullable: true
+        description: "Certificate issuer (CA information)"
+        
+      issued_at:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp when certificate was issued"
+        
+      expires_at:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp when certificate expires"
+        
+      status:
+        type: TEXT
+        not_null: true
+        description: "Certificate status (active/expired/revoked/pending_renewal)"
+        check: "status IN ('active', 'expired', 'revoked', 'pending_renewal')"
+        
+      last_validated_at:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp of last successful certificate validation"
+        
+      revocation_reason:
+        type: TEXT
+        nullable: true
+        description: "Reason for revocation if revoked (e.g., compromised, key_rotation)"
+        
+      revoked_at:
+        type: INTEGER
+        nullable: true
+        description: "Unix milliseconds timestamp when certificate was revoked"
+        
+      cert_fingerprint:
+        type: TEXT
+        nullable: true
+        description: "SHA-256 fingerprint of certificate for quick lookup"
+        
+      created_at:
+        type: INTEGER
+        not_null: true
+        description: "Unix milliseconds timestamp when record was created"
+    
+    indices:
+      - name: idx_certificates_device_status
+        columns: [device_id, status]
+        
+      - name: idx_certificates_expires
+        columns: [expires_at]
+        where: "status = 'active'"
+
+  # ═══════════════════════════════════════════════════════════
+  # SECURITY AUDIT LOG TABLE
+  # ═══════════════════════════════════════════════════════════
+  security_audit_log:
+    description: "Security-relevant events for audit, forensics, and compliance with hash chain for tamper detection"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        description: "Primary key"
+        
+      timestamp:
+        type: INTEGER
+        not_null: true
+        description: "Unix milliseconds timestamp"
+        
+      event_type:
+        type: TEXT
+        not_null: true
+        description: "Event type (authentication, connection, data_transmission, etc.)"
+        
+      severity:
+        type: TEXT
+        not_null: true
+        description: "Severity level (info/warning/error/critical)"
+        check: "severity IN ('info', 'warning', 'error', 'critical')"
+        
+      device_id:
+        type: TEXT
+        nullable: true
+        description: "Device identifier"
+        
+      user_id:
+        type: TEXT
+        nullable: true
+        description: "User ID (if applicable)"
+        
+      source_ip:
+        type: TEXT
+        nullable: true
+        description: "Source IP address"
+        
+      event_category:
+        type: TEXT
+        not_null: true
+        description: "Event category (authentication/connection/data_transmission/certificate/authorization/security_config)"
+        
+      success:
+        type: BOOLEAN
+        not_null: true
+        description: "Whether operation succeeded"
+        
+      details:
+        type: TEXT
+        nullable: true
+        description: "Additional event details (JSON)"
+        
+      error_code:
+        type: TEXT
+        nullable: true
+        description: "Error code if success is false"
+        
+      error_message:
+        type: TEXT
+        nullable: true
+        description: "Error message if success is false"
+        
+      previous_hash:
+        type: TEXT
+        nullable: true
+        description: "SHA-256 hash of previous entry (hash chain for tamper detection)"
+    
+    indices:
+      - name: idx_security_audit_timestamp
+        columns: [timestamp]
+        
+      - name: idx_security_audit_category
+        columns: [event_category, timestamp]
+        
+      - name: idx_security_audit_device
+        columns: [device_id, timestamp]
+    
+    retention:
+      policy: "Retain for 90 days minimum (configurable, required for compliance)"
+      column: timestamp
+      days: 90
+
+  # ═══════════════════════════════════════════════════════════
+  # ADDITIONAL TABLES (Simplified for initial implementation)
+  # ═══════════════════════════════════════════════════════════
+  # Note: These tables can be expanded later as needed
+  
+  snapshots:
+    description: "Captured waveform or contextual snapshot data (blobs) with metadata"
+    columns:
+      snapshot_id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        
+      patient_id:
+        type: TEXT
+        not_null: true
+        
+      capture_time:
+        type: INTEGER
+        not_null: true
+        
+      waveform_type:
+        type: TEXT
+        not_null: true
+        
+      data:
+        type: BLOB
+        not_null: true
+        
+      encoding:
+        type: TEXT
+        nullable: true
+        
+      sample_rate:
+        type: REAL
+        nullable: true
+        
+      length:
+        type: INTEGER
+        nullable: true
+        
+      compression:
+        type: TEXT
+        nullable: true
+        
+      checksum:
+        type: TEXT
+        nullable: true
+    
+    indices:
+      - name: idx_snapshots_patient_time
+        columns: [patient_id, capture_time]
+
+  annotations:
+    description: "User-added notes for specific snapshots or records"
+    columns:
+      annotation_id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        
+      snapshot_id:
+        type: INTEGER
+        not_null: true
+        
+      author_id:
+        type: TEXT
+        nullable: true
+        
+      sensitivity:
+        type: TEXT
+        nullable: true
+        
+      note:
+        type: TEXT
+        not_null: true
+        
+      creation_time:
+        type: INTEGER
+        not_null: true
+    
+    indices:
+      - name: idx_annotations_snapshot
+        columns: [snapshot_id]
+
+  infusion_events:
+    description: "Detailed infusion pump logging (start/stop/pause/errors)"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        
+      patient_id:
+        type: TEXT
+        not_null: true
+        
+      timestamp:
+        type: INTEGER
+        not_null: true
+        
+      drug_name:
+        type: TEXT
+        nullable: true
+        
+      flow_rate_ml_per_hr:
+        type: REAL
+        nullable: true
+        
+      total_volume_infused_ml:
+        type: REAL
+        nullable: true
+        
+      time_remaining_sec:
+        type: INTEGER
+        nullable: true
+        
+      occlusion_pressure_mmHg:
+        type: REAL
+        nullable: true
+        
+      event_type:
+        type: TEXT
+        not_null: true
+        
+      is_synced:
+        type: BOOLEAN
+        default: 0
+    
+    indices:
+      - name: idx_infusion_events_patient_time
+        columns: [patient_id, timestamp]
+
+  device_events:
+    description: "Device health and telemetry events"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        
+      timestamp:
+        type: INTEGER
+        not_null: true
+        
+      device_id:
+        type: TEXT
+        not_null: true
+        
+      battery_percent:
+        type: REAL
+        nullable: true
+        
+      cpu_temp_c:
+        type: REAL
+        nullable: true
+        
+      mem_percent:
+        type: REAL
+        nullable: true
+        
+      network_latency_ms:
+        type: REAL
+        nullable: true
+        
+      event_type:
+        type: TEXT
+        nullable: true
+        
+      details:
+        type: TEXT
+        nullable: true
+    
+    indices:
+      - name: idx_device_events_timestamp
+        columns: [timestamp]
+        
+      - name: idx_device_events_device
+        columns: [device_id, timestamp]
+
+  notifications:
+    description: "UI notifications history for NotificationBell and audit"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        
+      timestamp:
+        type: INTEGER
+        not_null: true
+        
+      level:
+        type: TEXT
+        not_null: true
+        
+      message:
+        type: TEXT
+        not_null: true
+        
+      is_read:
+        type: BOOLEAN
+        default: 0
+        
+      related_alarm_id:
+        type: INTEGER
+        nullable: true
+        
+      expiration:
+        type: INTEGER
+        nullable: true
+    
+    indices:
+      - name: idx_notifications_timestamp
+        columns: [timestamp]
+
+  predictive_scores:
+    description: "Predictive analytics outputs and provenance"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        
+      timestamp:
+        type: INTEGER
+        not_null: true
+        
+      patient_id:
+        type: TEXT
+        nullable: true
+        
+      score_type:
+        type: TEXT
+        not_null: true
+        
+      score_value:
+        type: REAL
+        not_null: true
+        
+      model_version:
+        type: TEXT
+        nullable: true
+        
+      details:
+        type: TEXT
+        nullable: true
+    
+    indices:
+      - name: idx_predictive_scores_patient_time
+        columns: [patient_id, timestamp]
+
+  archival_jobs:
+    description: "Tracks archival/export jobs and their status"
+    columns:
+      archive_id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        
+      table_name:
+        type: TEXT
+        not_null: true
+        
+      record_count:
+        type: INTEGER
+        not_null: true
+        
+      archived_before_ts:
+        type: INTEGER
+        not_null: true
+        
+      archive_location:
+        type: TEXT
+        nullable: true
+        
+      archived_at:
+        type: INTEGER
+        not_null: true
+        
+      status:
+        type: TEXT
+        not_null: true
+    
+    indices:
+      - name: idx_archival_jobs_status
+        columns: [status]
+
+  db_encryption_meta:
+    description: "Metadata about DB encryption key and algorithm (not the key itself)"
+    columns:
+      key_version:
+        type: TEXT
+        nullable: true
+        
+      algorithm:
+        type: TEXT
+        nullable: true
+        
+      salt:
+        type: TEXT
+        nullable: true
+        
+      created_at:
+        type: INTEGER
+        nullable: true
+

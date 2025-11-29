@@ -1770,9 +1770,12 @@ UPDATE patients SET date_of_birth = dob WHERE date_of_birth IS NULL;
 
 ## 13. Integration with ORM (QxOrm)
 
+> **📋 Implementation Status:**  
+> ORM integration is planned but not yet implemented. See ZTODO.md task "Implement QxOrm Integration (Hybrid ORM + Stored Procedures)" for implementation plan. This section documents how ORM will integrate with schema management when implemented.
+
 ### **13.1 ORM Uses Schema Constants**
 
-If using QxOrm for object-relational mapping, the ORM registration **must use schema constants** to maintain single source of truth:
+When QxOrm is integrated, the ORM registration **must use schema constants** to maintain single source of truth:
 
 **File:** `z-monitor/src/infrastructure/persistence/orm/PatientAggregateMapping.h`
 

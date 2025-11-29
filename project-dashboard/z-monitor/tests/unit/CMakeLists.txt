@@ -12,3 +12,6 @@ add_subdirectory(logging)
 # Core service tests
 add_subdirectory(core)
 
+# Infrastructure persistence tests
+add_subdirectory(infrastructure/persistence)
+
