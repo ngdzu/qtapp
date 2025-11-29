@@ -75,6 +75,8 @@ signals:
 
 ### Data Structures
 
+**Note:** The canonical data structures for telemetry transmission are defined in the Protocol Buffers schema (`proto/telemetry.proto`) and OpenAPI specification (`openapi/telemetry.yaml`). The C++ structures below are Qt-friendly wrappers that map to the proto messages. See `46_TELEMETRY_PROTO_DESIGN.md` for complete schema documentation.
+
 ```cpp
 struct TelemetryData {
     QString deviceId;
@@ -91,6 +93,11 @@ struct TelemetryData {
     QString nonce;  // Nonce for replay attack prevention
 };
 ```
+
+**Schema Reference:**
+- **Protocol Buffers:** `proto/telemetry.proto` - Defines `BatchContainer`, `TelemetryBatch`, `VitalsRecord`, `AlarmEvent`, `DeviceStatus`, etc.
+- **OpenAPI:** `openapi/telemetry.yaml` - JSON schema equivalents for REST API compatibility
+- **Documentation:** `46_TELEMETRY_PROTO_DESIGN.md` - Complete message structure documentation and usage examples
 
 **Critical Requirement:** All telemetry data MUST include `patientMrn` to associate data with the patient. If no patient is admitted (`patientMrn` is empty), the device should either:
 - Not send telemetry data (device in STANDBY state)
@@ -319,4 +326,5 @@ For development and testing, a `MockTelemetryServer` should be used:
   - Faster test execution
   - Deterministic test behavior
   - Can verify data format without network overhead
+
 

@@ -146,12 +146,16 @@ The Z Monitor implements a comprehensive security architecture for transmitting 
 #### Layer 3: Data Integrity
 - **Message Signing:** Each telemetry payload includes a digital signature
   - Signature algorithm: ECDSA with P-256 curve or RSA-2048
-  - Signature computed over: deviceId + timestamp + payload hash
-  - Signature included in request header: `X-Device-Signature`
-- **Timestamp Validation:** Server validates timestamps to prevent replay attacks
-  - Clock skew tolerance: ±1 minute for production, ±5 minutes for development/testing
-  - Replay window: 1 minute (reject duplicate timestamps within window)
+  - Signature computed over: deviceId + timestamp + nonce + SHA256(payload)
+  - Signature stored in `BatchContainer.signature` field (see `proto/telemetry.proto`)
+  - Signature format: Base64-encoded string
+- **Replay Prevention:**
+  - **Nonce:** Each message includes a unique nonce (UUID) in `BatchContainer.nonce` field
+  - **Timestamp Validation:** Server validates timestamps to prevent replay attacks
+    - Clock skew tolerance: ±1 minute for production, ±5 minutes for development/testing
+    - Replay window: 1 minute (reject duplicate timestamps within window)
   - **Clock Synchronization:** NTP synchronization required in production to maintain accurate timestamps
+- **Schema Reference:** See `proto/telemetry.proto` and `46_TELEMETRY_PROTO_DESIGN.md` for complete message structure with digital signature and security metadata fields
 
 #### Layer 4: Payload Encryption (Optional, for Extra Sensitive Data)
 - **Field-Level Encryption:** Critical PHI fields can be encrypted within the payload

@@ -103,6 +103,71 @@ else()
     message(STATUS "SQLCipher disabled (using standard SQLite)")
 endif()
 
+# Protocol Buffers: Required for telemetry schema code generation
+# Try to find protobuf using find_package first (if installed system-wide)
+find_package(Protobuf QUIET)
+
+if(NOT Protobuf_FOUND)
+    # Use FetchContent to download protobuf from GitHub
+    include(FetchContent)
+    FetchContent_Declare(
+        protobuf
+        GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
+        GIT_TAG v21.12
+    )
+    # Set protobuf options before making it available
+    set(protobuf_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(protobuf)
+    
+    message(STATUS "Protobuf enabled (downloaded via FetchContent)")
+else()
+    message(STATUS "Protobuf enabled (found via find_package)")
+endif()
+
+# Generate C++ classes from telemetry.proto
+set(PROTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/proto)
+set(PROTO_OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/infrastructure/telemetry/generated)
+set(PROTO_FILE ${PROTO_DIR}/telemetry.proto)
+
+# Ensure generated directory exists
+file(MAKE_DIRECTORY ${PROTO_OUTPUT_DIR})
+
+# Generate proto C++ files
+protobuf_generate_cpp(
+    PROTO_SRCS PROTO_HDRS
+    PROTO_PATH ${PROTO_DIR}
+    ${PROTO_FILE}
+)
+
+# Create a library for generated proto files
+add_library(z_monitor_proto STATIC
+    ${PROTO_SRCS}
+    ${PROTO_HDRS}
+)
+
+target_link_libraries(z_monitor_proto
+    PUBLIC
+        protobuf::libprotobuf
+)
+
+target_include_directories(z_monitor_proto
+    PUBLIC
+        ${PROTO_OUTPUT_DIR}
+        ${PROTO_DIR}
+)
+
+# Add custom target for proto generation (for manual regeneration)
+add_custom_target(generate_proto
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_proto_cpp.sh
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating C++ classes from telemetry.proto"
+    DEPENDS ${PROTO_FILE}
+)
+
+# Ensure proto is generated before building main executable
+add_dependencies(z-monitor z_monitor_proto)
+
 # Schema Management: Generate SchemaInfo.h from YAML
 # Find Python3 (required for schema generation)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)

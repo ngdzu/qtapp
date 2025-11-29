@@ -949,7 +949,7 @@ TEST_F(AuthenticationIntegrationTest, LoginWorkflow_ValidNurse_CreatesSessionAnd
 
 - **[interfaces/IUserManagementService.md](./interfaces/IUserManagementService.md)** - **Complete interface specification** ⭐
 - [interfaces/IPatientLookupService.md](./interfaces/IPatientLookupService.md) - Similar external service pattern
-- [interfaces/ITelemetryServer.md](./interfaces/ITelemetryServer.md) - Similar network service pattern
+- [45_ITELEMETRY_SERVER.md](./45_ITELEMETRY_SERVER.md) - Similar network service pattern
 
 ---
 

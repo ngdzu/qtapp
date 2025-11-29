@@ -1,0 +1,306 @@
+/**
+ * @file telemetry.proto
+ * @brief Protocol Buffers schema for Z Monitor telemetry data transmission.
+ * 
+ * This file defines the canonical data structures for all telemetry data
+ * transmitted from Z Monitor device to central server. The schema supports
+ * batching, patient association (HIPAA compliance), digital signatures,
+ * and schema versioning for backward compatibility.
+ * 
+ * @author Z Monitor Team
+ * @date 2025-01-15
+ * @version 1.0.0
+ */
+
+syntax = "proto3";
+
+package zmonitor.telemetry;
+
+option java_package = "com.zmonitor.telemetry";
+option java_outer_classname = "TelemetryProto";
+
+// ═══════════════════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * @enum MessageType
+ * @brief Type of telemetry message.
+ */
+enum MessageType {
+    MESSAGE_TYPE_UNSPECIFIED = 0;  ///< Unspecified message type
+    MESSAGE_TYPE_VITALS = 1;        ///< Vital signs data
+    MESSAGE_TYPE_ALARM = 2;        ///< Alarm event
+    MESSAGE_TYPE_DEVICE_STATUS = 3; ///< Device health metrics
+    MESSAGE_TYPE_BATCH = 4;         ///< Batched telemetry data
+    MESSAGE_TYPE_HEARTBEAT = 5;     ///< Periodic heartbeat
+    MESSAGE_TYPE_REGISTRATION = 6;  ///< Device registration
+}
+
+/**
+ * @enum AlarmPriority
+ * @brief Alarm priority level.
+ */
+enum AlarmPriority {
+    PRIORITY_UNSPECIFIED = 0;
+    PRIORITY_CRITICAL = 1;  ///< Critical alarm (immediate attention required)
+    PRIORITY_HIGH = 2;       ///< High priority alarm
+    PRIORITY_MEDIUM = 3;     ///< Medium priority alarm
+    PRIORITY_LOW = 4;        ///< Low priority alarm (informational)
+}
+
+/**
+ * @enum AlarmStatus
+ * @brief Current status of an alarm.
+ */
+enum AlarmStatus {
+    ALARM_STATUS_UNSPECIFIED = 0;
+    ALARM_STATUS_ACTIVE = 1;        ///< Alarm is active
+    ALARM_STATUS_ACKNOWLEDGED = 2;  ///< Alarm has been acknowledged
+    ALARM_STATUS_SILENCED = 3;     ///< Alarm is silenced
+    ALARM_STATUS_CLEARED = 4;      ///< Alarm condition cleared
+}
+
+/**
+ * @enum ConnectionState
+ * @brief Network connection state.
+ */
+enum ConnectionState {
+    CONNECTION_STATE_UNSPECIFIED = 0;
+    CONNECTION_STATE_DISCONNECTED = 1;  ///< Not connected
+    CONNECTION_STATE_CONNECTING = 2;     ///< Connection in progress
+    CONNECTION_STATE_CONNECTED = 3;      ///< Connected to server
+    CONNECTION_STATE_ERROR = 4;         ///< Connection error
+}
+
+/**
+ * @enum QualityIndicator
+ * @brief Signal/data quality indicator.
+ */
+enum QualityIndicator {
+    QUALITY_UNSPECIFIED = 0;
+    QUALITY_EXCELLENT = 1;   ///< Excellent signal quality (90-100%)
+    QUALITY_GOOD = 2;        ///< Good signal quality (70-89%)
+    QUALITY_FAIR = 3;        ///< Fair signal quality (50-69%)
+    QUALITY_POOR = 4;        ///< Poor signal quality (30-49%)
+    QUALITY_UNUSABLE = 5;   ///< Unusable signal quality (<30%)
+}
+
+// ═══════════════════════════════════════════════════════════
+// VITALS DATA
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * @message VitalsRecord
+ * @brief Individual vital sign measurement.
+ * 
+ * Represents a single vital sign measurement with timestamp, patient
+ * association, value, unit, and quality indicators.
+ */
+message VitalsRecord {
+    int64 timestamp = 1;              ///< Unix milliseconds timestamp when data was measured
+    string patient_mrn = 2;            ///< Patient Medical Record Number (REQUIRED for patient data)
+    string metric_name = 3;            ///< Metric name (e.g., "heart_rate", "spo2", "respiration_rate")
+    double value = 4;                  ///< Measured value
+    string unit = 5;                   ///< Unit of measurement (e.g., "bpm", "%", "°C")
+    QualityIndicator quality = 6;      ///< Signal quality indicator
+    string sensor_id = 7;              ///< Sensor identifier (optional)
+    string device_id = 8;              ///< Device serial number (optional)
+    string device_label = 9;           ///< Device asset tag (e.g., "ICU-MON-04", optional)
+}
+
+/**
+ * @message TelemetryBatch
+ * @brief Container for batched vital signs data.
+ * 
+ * Groups multiple VitalsRecord entries into a single batch for efficient
+ * transmission. Includes batch metadata, patient association, and digital
+ * signature for data integrity.
+ */
+message TelemetryBatch {
+    string batch_id = 1;               ///< Unique batch identifier (UUID)
+    string device_id = 2;               ///< Device serial number
+    string device_label = 3;           ///< Device asset tag (e.g., "ICU-MON-04")
+    string patient_mrn = 4;            ///< Patient MRN (nullable if device in STANDBY state)
+    int64 timestamp_start = 5;         ///< Unix milliseconds timestamp of oldest record in batch
+    int64 timestamp_end = 6;           ///< Unix milliseconds timestamp of newest record in batch
+    int32 record_count = 7;            ///< Number of VitalsRecord entries in this batch
+    repeated VitalsRecord records = 8; ///< Array of vital sign records
+    string digital_signature = 9;      ///< Digital signature of batch (ECDSA or RSA)
+    int64 signed_at = 10;              ///< Unix milliseconds timestamp when batch was signed
+}
+
+// ═══════════════════════════════════════════════════════════
+// ALARM EVENTS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * @message AlarmEvent
+ * @brief Alarm occurrence and lifecycle metadata.
+ * 
+ * Represents an alarm event with type, priority, status, acknowledgment
+ * information, and context data. Patient MRN is required for patient-related
+ * alarms.
+ */
+message AlarmEvent {
+    string alarm_id = 1;               ///< Unique alarm identifier (UUID)
+    string patient_mrn = 2;           ///< Patient MRN (REQUIRED for patient alarms)
+    string alarm_type = 3;             ///< Alarm type (e.g., "HR_HIGH", "SPO2_LOW", "RESPIRATION_HIGH")
+    AlarmPriority priority = 4;        ///< Alarm priority level
+    AlarmStatus status = 5;            ///< Current alarm status
+    int64 start_timestamp = 6;         ///< Unix milliseconds timestamp when alarm started
+    string acknowledged_by = 7;        ///< User ID who acknowledged alarm (nullable)
+    int64 acknowledged_at = 8;         ///< Unix milliseconds timestamp when acknowledged (nullable)
+    string context_data = 9;           ///< JSON string with alarm context (vital values, thresholds, etc.)
+    string related_vitals_snapshot_id = 10; ///< Reference to vitals snapshot at alarm time (optional)
+    string device_id = 11;             ///< Device serial number (optional)
+    string device_label = 12;          ///< Device asset tag (optional)
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEVICE STATUS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * @message DeviceStatus
+ * @brief Device health metrics and status information.
+ * 
+ * Contains device health metrics including battery, CPU temperature,
+ * memory usage, network latency, connection state, firmware version,
+ * and device capabilities. Patient MRN is NOT required (device may be
+ * in STANDBY state).
+ */
+message DeviceStatus {
+    string device_id = 1;              ///< Device serial number
+    string device_label = 2;           ///< Device asset tag (e.g., "ICU-MON-04")
+    int64 timestamp = 3;               ///< Unix milliseconds timestamp
+    double battery_percent = 4;         ///< Battery level (0-100%)
+    double cpu_temp_c = 5;             ///< CPU temperature in Celsius
+    double memory_percent = 6;         ///< Memory usage (0-100%)
+    int32 network_latency_ms = 7;      ///< Network latency to server in milliseconds
+    ConnectionState connection_state = 8; ///< Current connection state
+    string firmware_version = 9;       ///< Firmware version string
+    repeated string capabilities = 10;   ///< Array of device capabilities (e.g., "ECG", "SpO2", "NIBP")
+    string patient_mrn = 11;           ///< Patient MRN (nullable, NULL if device in STANDBY)
+}
+
+// ═══════════════════════════════════════════════════════════
+// HEARTBEAT
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * @message Heartbeat
+ * @brief Periodic heartbeat message for connection monitoring.
+ * 
+ * Sent periodically to indicate device is alive and maintain connection
+ * with central server. Includes connection quality metrics.
+ */
+message Heartbeat {
+    string device_id = 1;              ///< Device serial number
+    string device_label = 2;           ///< Device asset tag (optional)
+    int64 timestamp = 3;               ///< Unix milliseconds timestamp
+    int32 connection_quality = 4;      ///< Connection quality score (0-100)
+    int64 last_successful_transmission = 5; ///< Unix milliseconds timestamp of last successful transmission
+}
+
+// ═══════════════════════════════════════════════════════════
+// REGISTRATION
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * @message RegistrationRequest
+ * @brief Device registration payload.
+ * 
+ * Sent during initial device registration or re-registration to
+ * establish device identity and capabilities with central server.
+ */
+message RegistrationRequest {
+    string device_id = 1;              ///< Device serial number
+    string device_label = 2;           ///< Device asset tag (e.g., "ICU-MON-04")
+    string firmware_version = 3;       ///< Firmware version string
+    repeated string capabilities = 4;  ///< Array of device capabilities
+    string certificate_fingerprint = 5; ///< SHA-256 fingerprint of device certificate
+    int64 timestamp = 6;               ///< Unix milliseconds timestamp
+}
+
+/**
+ * @message RegistrationResponse
+ * @brief Server response to device registration.
+ * 
+ * Contains session information, server timestamp, configuration updates,
+ * and optional firmware version requirements.
+ */
+message RegistrationResponse {
+    string session_id = 1;             ///< Session identifier (UUID)
+    int64 server_timestamp = 2;        ///< Server timestamp (Unix milliseconds)
+    string configuration_updates = 3; ///< JSON string with configuration updates
+    string required_firmware_version = 4; ///< Required firmware version (nullable, empty if no update required)
+    bool success = 5;                  ///< Registration success status
+    string error_message = 6;         ///< Error message if registration failed (nullable)
+}
+
+// ═══════════════════════════════════════════════════════════
+// BATCH CONTAINER (Top-Level Message)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * @message BatchContainer
+ * @brief Top-level container for all telemetry messages.
+ * 
+ * Wraps individual telemetry messages (batch, alarm, device status, etc.)
+ * with version information, message type, device identification,
+ * timestamp, digital signature, and nonce for replay prevention.
+ */
+message BatchContainer {
+    int32 schema_version = 1;         ///< Schema version (for backward compatibility)
+    MessageType message_type = 2;      ///< Type of message in payload
+    string device_id = 3;              ///< Device serial number
+    string device_label = 4;           ///< Device asset tag (optional)
+    int64 timestamp = 5;               ///< Unix milliseconds timestamp
+    string nonce = 6;                  ///< Nonce for replay attack prevention (UUID)
+    string signature = 7;              ///< Digital signature (ECDSA or RSA) computed over: device_id + timestamp + nonce + payload_hash
+    
+    // Payload (oneof ensures only one message type per container)
+    oneof payload {
+        TelemetryBatch batch = 10;     ///< Batched vital signs data
+        AlarmEvent alarm = 11;         ///< Alarm event
+        DeviceStatus device_status = 12; ///< Device health metrics
+        Heartbeat heartbeat = 13;      ///< Heartbeat message
+        RegistrationRequest registration_request = 14; ///< Registration request
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ERROR RESPONSES
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * @message ErrorResponse
+ * @brief Server error response structure.
+ * 
+ * Standardized error response from server for failed requests.
+ * Includes error code, message, and optional retry information.
+ */
+message ErrorResponse {
+    int32 error_code = 1;              ///< Error code (HTTP status code or custom error code)
+    string error_message = 2;          ///< Human-readable error message
+    bool retryable = 3;                ///< Whether request can be retried
+    int32 retry_after_seconds = 4;     ///< Recommended retry delay in seconds (0 if not retryable)
+    string error_context = 5;          ///< Additional error context (JSON string, optional)
+}
+
+/**
+ * @message Acknowledgment
+ * @brief Server acknowledgment for received telemetry.
+ * 
+ * Confirms receipt and processing of telemetry data. Includes
+ * processed record IDs and server timestamp.
+ */
+message Acknowledgment {
+    bool success = 1;                  ///< Processing success status
+    repeated string processed_batch_ids = 2; ///< Array of processed batch IDs (UUIDs)
+    int64 server_timestamp = 3;        ///< Server timestamp (Unix milliseconds)
+    string message = 4;                 ///< Acknowledgment message (optional)
+    ErrorResponse error = 5;           ///< Error details if processing failed (nullable)
+}
+

@@ -1,0 +1,607 @@
+openapi: 3.0.3
+info:
+  title: Z Monitor Telemetry API
+  description: |
+    OpenAPI specification for Z Monitor telemetry data transmission.
+    This specification defines the JSON schema equivalents of the Protocol Buffers
+    schema defined in `proto/telemetry.proto`. Both formats are supported for
+    maximum interoperability.
+    
+    **Key Features:**
+    - Patient MRN association (HIPAA compliance)
+    - Digital signatures for data integrity
+    - Schema versioning for backward compatibility
+    - Batching support for efficient transmission
+    - Support for vitals, alarms, device status, heartbeats, and registration
+    
+  version: 1.0.0
+  contact:
+    name: Z Monitor Team
+    email: support@zmonitor.example.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://monitoring.example.com:8443/api/v1
+    description: Production server
+  - url: https://localhost:8443/api/v1
+    description: Local development server
+
+tags:
+  - name: telemetry
+    description: Telemetry data transmission endpoints
+  - name: registration
+    description: Device registration endpoints
+  - name: health
+    description: Health check and heartbeat endpoints
+
+paths:
+  /telemetry:
+    post:
+      tags:
+        - telemetry
+      summary: Send telemetry data
+      description: |
+        Send telemetry data (vitals, alarms, device status) to the central server.
+        Supports both Protocol Buffers (binary) and JSON formats.
+        
+        **Patient MRN Requirement:** All patient-related telemetry data MUST include
+        `patient_mrn` field. Device status messages may have `patient_mrn` set to null
+        if device is in STANDBY state.
+      operationId: sendTelemetry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchContainer'
+          application/x-protobuf:
+            schema:
+              type: string
+              format: binary
+              description: Protocol Buffers binary format
+      responses:
+        '200':
+          description: Telemetry received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Acknowledgment'
+        '400':
+          description: Bad request (invalid schema, missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (mTLS authentication failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /register:
+    post:
+      tags:
+        - registration
+      summary: Register device with central server
+      description: |
+        Register device identity and capabilities with central server.
+        Returns session information and configuration updates.
+      operationId: registerDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+      responses:
+        '200':
+          description: Device registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /heartbeat:
+    post:
+      tags:
+        - health
+      summary: Send heartbeat
+      description: Periodic heartbeat message to maintain connection
+      operationId: sendHeartbeat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Heartbeat'
+      responses:
+        '200':
+          description: Heartbeat received
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  server_timestamp:
+                    type: integer
+                    format: int64
+                    description: Server timestamp (Unix milliseconds)
+
+components:
+  schemas:
+    # ═══════════════════════════════════════════════════════════
+    # ENUMS
+    # ═══════════════════════════════════════════════════════════
+    MessageType:
+      type: string
+      enum:
+        - MESSAGE_TYPE_UNSPECIFIED
+        - MESSAGE_TYPE_VITALS
+        - MESSAGE_TYPE_ALARM
+        - MESSAGE_TYPE_DEVICE_STATUS
+        - MESSAGE_TYPE_BATCH
+        - MESSAGE_TYPE_HEARTBEAT
+        - MESSAGE_TYPE_REGISTRATION
+      description: Type of telemetry message
+
+    AlarmPriority:
+      type: string
+      enum:
+        - PRIORITY_UNSPECIFIED
+        - PRIORITY_CRITICAL
+        - PRIORITY_HIGH
+        - PRIORITY_MEDIUM
+        - PRIORITY_LOW
+      description: Alarm priority level
+
+    AlarmStatus:
+      type: string
+      enum:
+        - ALARM_STATUS_UNSPECIFIED
+        - ALARM_STATUS_ACTIVE
+        - ALARM_STATUS_ACKNOWLEDGED
+        - ALARM_STATUS_SILENCED
+        - ALARM_STATUS_CLEARED
+      description: Current status of an alarm
+
+    ConnectionState:
+      type: string
+      enum:
+        - CONNECTION_STATE_UNSPECIFIED
+        - CONNECTION_STATE_DISCONNECTED
+        - CONNECTION_STATE_CONNECTING
+        - CONNECTION_STATE_CONNECTED
+        - CONNECTION_STATE_ERROR
+      description: Network connection state
+
+    QualityIndicator:
+      type: string
+      enum:
+        - QUALITY_UNSPECIFIED
+        - QUALITY_EXCELLENT
+        - QUALITY_GOOD
+        - QUALITY_FAIR
+        - QUALITY_POOR
+        - QUALITY_UNUSABLE
+      description: Signal/data quality indicator
+
+    # ═══════════════════════════════════════════════════════════
+    # VITALS DATA
+    # ═══════════════════════════════════════════════════════════
+    VitalsRecord:
+      type: object
+      required:
+        - timestamp
+        - patient_mrn
+        - metric_name
+        - value
+        - unit
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp when data was measured
+        patient_mrn:
+          type: string
+          description: Patient Medical Record Number (REQUIRED for patient data)
+        metric_name:
+          type: string
+          description: Metric name (e.g., "heart_rate", "spo2", "respiration_rate")
+        value:
+          type: number
+          format: double
+          description: Measured value
+        unit:
+          type: string
+          description: Unit of measurement (e.g., "bpm", "%", "°C")
+        quality:
+          $ref: '#/components/schemas/QualityIndicator'
+        sensor_id:
+          type: string
+          description: Sensor identifier (optional)
+        device_id:
+          type: string
+          description: Device serial number (optional)
+        device_label:
+          type: string
+          description: Device asset tag (e.g., "ICU-MON-04", optional)
+
+    TelemetryBatch:
+      type: object
+      required:
+        - batch_id
+        - device_id
+        - timestamp_start
+        - timestamp_end
+        - record_count
+        - records
+      properties:
+        batch_id:
+          type: string
+          format: uuid
+          description: Unique batch identifier (UUID)
+        device_id:
+          type: string
+          description: Device serial number
+        device_label:
+          type: string
+          description: Device asset tag (e.g., "ICU-MON-04")
+        patient_mrn:
+          type: string
+          nullable: true
+          description: Patient MRN (nullable if device in STANDBY state)
+        timestamp_start:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp of oldest record in batch
+        timestamp_end:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp of newest record in batch
+        record_count:
+          type: integer
+          format: int32
+          description: Number of VitalsRecord entries in this batch
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/VitalsRecord'
+          description: Array of vital sign records
+        digital_signature:
+          type: string
+          description: Digital signature of batch (ECDSA or RSA)
+        signed_at:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp when batch was signed
+
+    # ═══════════════════════════════════════════════════════════
+    # ALARM EVENTS
+    # ═══════════════════════════════════════════════════════════
+    AlarmEvent:
+      type: object
+      required:
+        - alarm_id
+        - patient_mrn
+        - alarm_type
+        - priority
+        - status
+        - start_timestamp
+      properties:
+        alarm_id:
+          type: string
+          format: uuid
+          description: Unique alarm identifier (UUID)
+        patient_mrn:
+          type: string
+          description: Patient MRN (REQUIRED for patient alarms)
+        alarm_type:
+          type: string
+          description: Alarm type (e.g., "HR_HIGH", "SPO2_LOW", "RESPIRATION_HIGH")
+        priority:
+          $ref: '#/components/schemas/AlarmPriority'
+        status:
+          $ref: '#/components/schemas/AlarmStatus'
+        start_timestamp:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp when alarm started
+        acknowledged_by:
+          type: string
+          nullable: true
+          description: User ID who acknowledged alarm (nullable)
+        acknowledged_at:
+          type: integer
+          format: int64
+          nullable: true
+          description: Unix milliseconds timestamp when acknowledged (nullable)
+        context_data:
+          type: string
+          description: JSON string with alarm context (vital values, thresholds, etc.)
+        related_vitals_snapshot_id:
+          type: string
+          description: Reference to vitals snapshot at alarm time (optional)
+        device_id:
+          type: string
+          description: Device serial number (optional)
+        device_label:
+          type: string
+          description: Device asset tag (optional)
+
+    # ═══════════════════════════════════════════════════════════
+    # DEVICE STATUS
+    # ═══════════════════════════════════════════════════════════
+    DeviceStatus:
+      type: object
+      required:
+        - device_id
+        - timestamp
+      properties:
+        device_id:
+          type: string
+          description: Device serial number
+        device_label:
+          type: string
+          description: Device asset tag (e.g., "ICU-MON-04")
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp
+        battery_percent:
+          type: number
+          format: double
+          description: Battery level (0-100%)
+        cpu_temp_c:
+          type: number
+          format: double
+          description: CPU temperature in Celsius
+        memory_percent:
+          type: number
+          format: double
+          description: Memory usage (0-100%)
+        network_latency_ms:
+          type: integer
+          format: int32
+          description: Network latency to server in milliseconds
+        connection_state:
+          $ref: '#/components/schemas/ConnectionState'
+        firmware_version:
+          type: string
+          description: Firmware version string
+        capabilities:
+          type: array
+          items:
+            type: string
+          description: Array of device capabilities (e.g., "ECG", "SpO2", "NIBP")
+        patient_mrn:
+          type: string
+          nullable: true
+          description: Patient MRN (nullable, NULL if device in STANDBY)
+
+    # ═══════════════════════════════════════════════════════════
+    # HEARTBEAT
+    # ═══════════════════════════════════════════════════════════
+    Heartbeat:
+      type: object
+      required:
+        - device_id
+        - timestamp
+      properties:
+        device_id:
+          type: string
+          description: Device serial number
+        device_label:
+          type: string
+          description: Device asset tag (optional)
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp
+        connection_quality:
+          type: integer
+          format: int32
+          description: Connection quality score (0-100)
+        last_successful_transmission:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp of last successful transmission
+
+    # ═══════════════════════════════════════════════════════════
+    # REGISTRATION
+    # ═══════════════════════════════════════════════════════════
+    RegistrationRequest:
+      type: object
+      required:
+        - device_id
+        - firmware_version
+        - certificate_fingerprint
+        - timestamp
+      properties:
+        device_id:
+          type: string
+          description: Device serial number
+        device_label:
+          type: string
+          description: Device asset tag (e.g., "ICU-MON-04")
+        firmware_version:
+          type: string
+          description: Firmware version string
+        capabilities:
+          type: array
+          items:
+            type: string
+          description: Array of device capabilities
+        certificate_fingerprint:
+          type: string
+          description: SHA-256 fingerprint of device certificate
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp
+
+    RegistrationResponse:
+      type: object
+      required:
+        - session_id
+        - server_timestamp
+        - success
+      properties:
+        session_id:
+          type: string
+          format: uuid
+          description: Session identifier (UUID)
+        server_timestamp:
+          type: integer
+          format: int64
+          description: Server timestamp (Unix milliseconds)
+        configuration_updates:
+          type: string
+          description: JSON string with configuration updates
+        required_firmware_version:
+          type: string
+          nullable: true
+          description: Required firmware version (nullable, empty if no update required)
+        success:
+          type: boolean
+          description: Registration success status
+        error_message:
+          type: string
+          nullable: true
+          description: Error message if registration failed (nullable)
+
+    # ═══════════════════════════════════════════════════════════
+    # BATCH CONTAINER (Top-Level Message)
+    # ═══════════════════════════════════════════════════════════
+    BatchContainer:
+      type: object
+      required:
+        - schema_version
+        - message_type
+        - device_id
+        - timestamp
+        - nonce
+        - signature
+      properties:
+        schema_version:
+          type: integer
+          format: int32
+          description: Schema version (for backward compatibility)
+        message_type:
+          $ref: '#/components/schemas/MessageType'
+        device_id:
+          type: string
+          description: Device serial number
+        device_label:
+          type: string
+          description: Device asset tag (optional)
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix milliseconds timestamp
+        nonce:
+          type: string
+          format: uuid
+          description: Nonce for replay attack prevention (UUID)
+        signature:
+          type: string
+          description: Digital signature (ECDSA or RSA) computed over device_id + timestamp + nonce + payload_hash
+        batch:
+          $ref: '#/components/schemas/TelemetryBatch'
+          description: Batched vital signs data (when message_type is MESSAGE_TYPE_BATCH)
+        alarm:
+          $ref: '#/components/schemas/AlarmEvent'
+          description: Alarm event (when message_type is MESSAGE_TYPE_ALARM)
+        device_status:
+          $ref: '#/components/schemas/DeviceStatus'
+          description: Device health metrics (when message_type is MESSAGE_TYPE_DEVICE_STATUS)
+        heartbeat:
+          $ref: '#/components/schemas/Heartbeat'
+          description: Heartbeat message (when message_type is MESSAGE_TYPE_HEARTBEAT)
+        registration_request:
+          $ref: '#/components/schemas/RegistrationRequest'
+          description: Registration request (when message_type is MESSAGE_TYPE_REGISTRATION)
+
+    # ═══════════════════════════════════════════════════════════
+    # ERROR RESPONSES
+    # ═══════════════════════════════════════════════════════════
+    ErrorResponse:
+      type: object
+      required:
+        - error_code
+        - error_message
+        - retryable
+      properties:
+        error_code:
+          type: integer
+          format: int32
+          description: Error code (HTTP status code or custom error code)
+        error_message:
+          type: string
+          description: Human-readable error message
+        retryable:
+          type: boolean
+          description: Whether request can be retried
+        retry_after_seconds:
+          type: integer
+          format: int32
+          description: Recommended retry delay in seconds (0 if not retryable)
+        error_context:
+          type: string
+          description: Additional error context (JSON string, optional)
+
+    Acknowledgment:
+      type: object
+      required:
+        - success
+        - server_timestamp
+      properties:
+        success:
+          type: boolean
+          description: Processing success status
+        processed_batch_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Array of processed batch IDs (UUIDs)
+        server_timestamp:
+          type: integer
+          format: int64
+          description: Server timestamp (Unix milliseconds)
+        message:
+          type: string
+          description: Acknowledgment message (optional)
+        error:
+          $ref: '#/components/schemas/ErrorResponse'
+          description: Error details if processing failed (nullable)
+
+  securitySchemes:
+    mTLS:
+      type: mutualTLS
+      description: Mutual TLS authentication using client certificates
+
+security:
+  - mTLS: []
+

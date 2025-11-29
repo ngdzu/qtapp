@@ -60,8 +60,8 @@ add_library(z_monitor_infrastructure STATIC
     ${INFRASTRUCTURE_SOURCES}
 )
 
-# Ensure schema is generated before building infrastructure
-add_dependencies(z_monitor_infrastructure generate_schema)
+# Ensure schema and proto are generated before building infrastructure
+add_dependencies(z_monitor_infrastructure generate_schema z_monitor_proto)
 
 # Set include directories (project-relative paths)
 target_include_directories(z_monitor_infrastructure
@@ -74,6 +74,7 @@ target_link_libraries(z_monitor_infrastructure
     PUBLIC
         z_monitor_domain
         z_monitor_application
+        z_monitor_proto  # Protocol Buffers generated classes for telemetry
 )
 
 # Infrastructure layer uses full Qt dependencies

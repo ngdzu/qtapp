@@ -6,7 +6,7 @@ Constraints:
 - Use proto3; include timestamps and device_id fields. Keep schema stable with clear versioning guidance.
 
 Expected output:
-- `proto/telemetry.proto`, `openapi/telemetry.yaml`, and `doc/proto_design.md` describing mapping and codegen steps.
+- `proto/telemetry.proto`, `openapi/telemetry.yaml`, and `doc/z-monitor/architecture_and_design/46_TELEMETRY_PROTO_DESIGN.md` describing mapping and codegen steps.
 
 Run/Verify:
 - Run `protoc --proto_path=proto --cpp_out=build proto/telemetry.proto` (or doc steps) to validate syntax.
