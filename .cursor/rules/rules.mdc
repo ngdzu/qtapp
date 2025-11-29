@@ -147,6 +147,12 @@ User: "Do the next task"
 - **Document as you code** - Doxygen comments are required
 - **No hardcoded values** - Use constants or configuration
 - **Error handling** - Use `Result<T, Error>` for operations that can fail
+- **Never stop working on the task until it is done** - Complete all subtasks and verification steps before moving on
+- **⚠️ Loop Detection and Safety Stop:** If you detect that you are repeatedly doing the same action or making the same attempt without progress, **stop after 10 repetitions** and provide a summary:
+  - **What has been done:** List all completed steps, files created/modified, and progress made
+  - **What is getting stuck:** Identify the specific issue, error, or blocker preventing progress
+  - **Why it's stuck:** Explain the root cause (e.g., missing dependency, configuration issue, unclear requirement)
+  - **Next steps needed:** Suggest what needs to happen to unblock progress (user input, clarification, dependency resolution, etc.) 
 
 ## Related Rules
 
