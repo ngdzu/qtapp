@@ -201,7 +201,7 @@ if (server->Connect()) {
 
 ## Integration with NetworkManager
 
-`NetworkManager` should use `ITelemetryServer` for all server communication:
+**Note:** Currently, `MockNetworkManager` (in `src/infrastructure/network/`) directly implements `ITelemetryServer` as a test double. The production `NetworkManager` (to be implemented) should use `ITelemetryServer` for all server communication:
 
 ```cpp
 class NetworkManager {

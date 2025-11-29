@@ -38,6 +38,10 @@ set(INFRASTRUCTURE_SOURCES
     sensors/SharedMemorySensorDataSource.h
     sensors/SharedMemorySensorDataSource.cpp
     
+    # Network adapters
+    network/MockNetworkManager.h
+    network/MockNetworkManager.cpp
+    
     # Persistence adapters
     persistence/DatabaseManager.h
     persistence/DatabaseManager.cpp

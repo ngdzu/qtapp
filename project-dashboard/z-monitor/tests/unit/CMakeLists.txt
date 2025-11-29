@@ -15,3 +15,6 @@ add_subdirectory(core)
 # Infrastructure persistence tests
 add_subdirectory(infrastructure/persistence)
 
+# Infrastructure network tests
+add_subdirectory(infrastructure/network)
+

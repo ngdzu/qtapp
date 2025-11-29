@@ -1,6 +1,6 @@
 /**
  * @file MockTelemetryServer.cpp
- * @brief Implementation of MockTelemetryServer.
+ * @brief Mock implementation of ITelemetryServer for testing.
  *
  * @author Z Monitor Team
  * @date 2025-01-15
@@ -8,67 +8,62 @@
 
 #include "MockTelemetryServer.h"
 #include <QMutexLocker>
-#include <QTimer>
+#include <QDateTime>
 
 namespace zmon {
 
 MockTelemetryServer::MockTelemetryServer(QObject* parent)
     : ITelemetryServer(parent)
+    , m_connected(false)
+    , m_shouldSucceed(true)
+    , m_telemetrySendCount(0)
+    , m_sensorDataSendCount(0)
 {
 }
 
+MockTelemetryServer::~MockTelemetryServer() = default;
+
 void MockTelemetryServer::setServerUrl(const QString& url)
 {
-    QMutexLocker locker(&m_mutex);
     m_serverUrl = url;
 }
 
 QString MockTelemetryServer::getServerUrl() const
 {
-    QMutexLocker locker(&m_mutex);
     return m_serverUrl;
 }
 
 void MockTelemetryServer::setSslConfiguration(const QSslConfiguration& config)
 {
-    QMutexLocker locker(&m_mutex);
     m_sslConfig = config;
 }
 
 QSslConfiguration MockTelemetryServer::getSslConfiguration() const
 {
-    QMutexLocker locker(&m_mutex);
     return m_sslConfig;
 }
 
 bool MockTelemetryServer::validateCertificates()
 {
-    QMutexLocker locker(&m_mutex);
-    return !m_simulateFailures;
+    return true;  // Mock: always valid
 }
 
 bool MockTelemetryServer::connect()
 {
-    QMutexLocker locker(&m_mutex);
-    if (m_simulateFailures) {
-        m_lastError = m_failureError;
-        return false;
-    }
     m_connected = true;
+    m_lastError.clear();
     emit connectionStatusChanged(true);
     return true;
 }
 
 void MockTelemetryServer::disconnect()
 {
-    QMutexLocker locker(&m_mutex);
     m_connected = false;
     emit connectionStatusChanged(false);
 }
 
 bool MockTelemetryServer::isConnected() const
 {
-    QMutexLocker locker(&m_mutex);
     return m_connected;
 }
 
@@ -76,33 +71,32 @@ void MockTelemetryServer::sendTelemetryAsync(
     const TelemetryData& data,
     std::function<void(const ServerResponse&)> callback)
 {
-    ServerResponse response;
-    
+    // Record the data
     {
-        QMutexLocker locker(&m_mutex);
+        QMutexLocker locker(&m_dataMutex);
         m_sentTelemetry.append(data);
-        
-        if (m_simulateFailures) {
-            m_lastError = m_failureError;
-            response.success = false;
-            response.statusCode = 500;
-            response.message = m_failureError;
-        } else {
-            response.success = true;
-            response.statusCode = 200;
-            response.message = "OK";
-            response.serverTimestamp = QDateTime::currentDateTime();
-        }
+        m_telemetrySendCount++;
     }
-    
-    // Emit signal
-    if (response.success) {
+
+    // Simulate async response
+    ServerResponse response;
+    response.serverTimestamp = QDateTime::currentDateTime();
+
+    if (m_shouldSucceed) {
+        response.success = true;
+        response.statusCode = 200;
+        response.message = "OK";
+        response.processedIds = {1, 2, 3};  // Mock processed IDs
+        m_lastError.clear();
         emit telemetrySent(data, response);
     } else {
+        response.success = false;
+        response.statusCode = 500;
+        response.message = "Internal Server Error";
+        m_lastError = response.message;
         emit telemetrySendFailed(data, response.message);
     }
-    
-    // Call callback if provided
+
     if (callback) {
         callback(response);
     }
@@ -112,26 +106,29 @@ void MockTelemetryServer::sendSensorDataAsync(
     const SensorData& data,
     std::function<void(const ServerResponse&)> callback)
 {
-    ServerResponse response;
-    
+    // Record the data
     {
-        QMutexLocker locker(&m_mutex);
+        QMutexLocker locker(&m_dataMutex);
         m_sentSensorData.append(data);
-        
-        if (m_simulateFailures) {
-            m_lastError = m_failureError;
-            response.success = false;
-            response.statusCode = 500;
-            response.message = m_failureError;
-        } else {
-            response.success = true;
-            response.statusCode = 200;
-            response.message = "OK";
-            response.serverTimestamp = QDateTime::currentDateTime();
-        }
+        m_sensorDataSendCount++;
     }
-    
-    // Call callback if provided
+
+    // Simulate async response
+    ServerResponse response;
+    response.serverTimestamp = QDateTime::currentDateTime();
+
+    if (m_shouldSucceed) {
+        response.success = true;
+        response.statusCode = 200;
+        response.message = "OK";
+        m_lastError.clear();
+    } else {
+        response.success = false;
+        response.statusCode = 500;
+        response.message = "Internal Server Error";
+        m_lastError = response.message;
+    }
+
     if (callback) {
         callback(response);
     }
@@ -139,111 +136,80 @@ void MockTelemetryServer::sendSensorDataAsync(
 
 ServerResponse MockTelemetryServer::sendTelemetry(const TelemetryData& data)
 {
-    ServerResponse response;
-    
+    // Record the data
     {
-        QMutexLocker locker(&m_mutex);
+        QMutexLocker locker(&m_dataMutex);
         m_sentTelemetry.append(data);
-        
-        if (m_simulateFailures) {
-            m_lastError = m_failureError;
-            response.success = false;
-            response.statusCode = 500;
-            response.message = m_failureError;
-        } else {
-            response.success = true;
-            response.statusCode = 200;
-            response.message = "OK";
-            response.serverTimestamp = QDateTime::currentDateTime();
-        }
+        m_telemetrySendCount++;
     }
-    
-    // Emit signal
-    if (response.success) {
+
+    ServerResponse response;
+    response.serverTimestamp = QDateTime::currentDateTime();
+
+    if (m_shouldSucceed) {
+        response.success = true;
+        response.statusCode = 200;
+        response.message = "OK";
+        response.processedIds = {1, 2, 3};  // Mock processed IDs
+        m_lastError.clear();
         emit telemetrySent(data, response);
     } else {
+        response.success = false;
+        response.statusCode = 500;
+        response.message = "Internal Server Error";
+        m_lastError = response.message;
         emit telemetrySendFailed(data, response.message);
     }
-    
+
     return response;
 }
 
 bool MockTelemetryServer::isServerAvailable() const
 {
-    QMutexLocker locker(&m_mutex);
-    return m_serverAvailable;
+    return m_connected;
 }
 
 QString MockTelemetryServer::getLastError() const
 {
-    QMutexLocker locker(&m_mutex);
     return m_lastError;
 }
 
-QList<TelemetryData> MockTelemetryServer::sentTelemetry() const
+void MockTelemetryServer::setShouldSucceed(bool shouldSucceed)
 {
-    QMutexLocker locker(&m_mutex);
+    m_shouldSucceed = shouldSucceed;
+}
+
+QList<TelemetryData> MockTelemetryServer::getSentTelemetry() const
+{
+    QMutexLocker locker(&m_dataMutex);
     return m_sentTelemetry;
 }
 
-QList<SensorData> MockTelemetryServer::sentSensorData() const
+QList<SensorData> MockTelemetryServer::getSentSensorData() const
 {
-    QMutexLocker locker(&m_mutex);
+    QMutexLocker locker(&m_dataMutex);
     return m_sentSensorData;
 }
 
-int MockTelemetryServer::telemetrySendCount() const
+void MockTelemetryServer::clearRecordedData()
 {
-    QMutexLocker locker(&m_mutex);
-    return m_sentTelemetry.size();
-}
-
-int MockTelemetryServer::sensorDataSendCount() const
-{
-    QMutexLocker locker(&m_mutex);
-    return m_sentSensorData.size();
-}
-
-void MockTelemetryServer::clear()
-{
-    QMutexLocker locker(&m_mutex);
+    QMutexLocker locker(&m_dataMutex);
     m_sentTelemetry.clear();
     m_sentSensorData.clear();
-    m_lastError.clear();
+    m_telemetrySendCount = 0;
+    m_sensorDataSendCount = 0;
 }
 
-void MockTelemetryServer::setSimulateFailures(bool enabled)
+int MockTelemetryServer::getTelemetrySendCount() const
 {
-    QMutexLocker locker(&m_mutex);
-    m_simulateFailures = enabled;
+    QMutexLocker locker(&m_dataMutex);
+    return m_telemetrySendCount;
 }
 
-bool MockTelemetryServer::isSimulatingFailures() const
+int MockTelemetryServer::getSensorDataSendCount() const
 {
-    QMutexLocker locker(&m_mutex);
-    return m_simulateFailures;
-}
-
-void MockTelemetryServer::setFailureError(const QString& error)
-{
-    QMutexLocker locker(&m_mutex);
-    m_failureError = error;
-}
-
-void MockTelemetryServer::setConnected(bool connected)
-{
-    QMutexLocker locker(&m_mutex);
-    if (m_connected != connected) {
-        m_connected = connected;
-        emit connectionStatusChanged(connected);
-    }
-}
-
-void MockTelemetryServer::setServerAvailable(bool available)
-{
-    QMutexLocker locker(&m_mutex);
-    m_serverAvailable = available;
+    QMutexLocker locker(&m_dataMutex);
+    return m_sensorDataSendCount;
 }
 
 } // namespace zmon
-

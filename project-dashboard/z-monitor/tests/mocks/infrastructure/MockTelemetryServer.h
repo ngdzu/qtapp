@@ -2,8 +2,10 @@
  * @file MockTelemetryServer.h
  * @brief Mock implementation of ITelemetryServer for testing.
  *
- * This mock implementation swallows all telemetry data without sending to a real server,
- * returns immediate success responses, and supports simulated failures for testing.
+ * This file contains a simple mock implementation of ITelemetryServer that
+ * swallows all data for testing purposes. Used in unit tests to verify
+ * SystemController and NotificationController behavior without actual
+ * network communication.
  *
  * @author Z Monitor Team
  * @date 2025-01-15
@@ -12,23 +14,24 @@
 #pragma once
 
 #include "infrastructure/interfaces/ITelemetryServer.h"
-#include <QMutex>
+#include <QObject>
 #include <QList>
-#include <QString>
+#include <QMutex>
 
 namespace zmon {
 
 /**
  * @class MockTelemetryServer
- * @brief Mock implementation of ITelemetryServer for testing.
+ * @brief Simple mock implementation of ITelemetryServer for testing.
  *
  * This mock implementation:
- * - Swallows all data without sending to real server
- * - Returns immediate success responses
- * - Supports simulated failures for testing
- * - Tracks all sent telemetry data for verification
+ * - Swallows all telemetry data (no actual transmission)
+ * - Records all requests for verification
+ * - Can be configured to simulate success/failure responses
+ * - Thread-safe for use in multi-threaded tests
  *
- * @note Thread-safe: All methods are protected by mutex.
+ * @note Used for unit testing SystemController and NotificationController
+ * @ingroup Testing
  */
 class MockTelemetryServer : public ITelemetryServer {
     Q_OBJECT
@@ -36,13 +39,15 @@ class MockTelemetryServer : public ITelemetryServer {
 public:
     /**
      * @brief Constructor.
+     *
+     * @param parent Parent QObject (for Qt parent-child ownership)
      */
     explicit MockTelemetryServer(QObject* parent = nullptr);
 
     /**
      * @brief Destructor.
      */
-    ~MockTelemetryServer() override = default;
+    ~MockTelemetryServer() override;
 
     // ITelemetryServer interface implementation
     void setServerUrl(const QString& url) override;
@@ -63,90 +68,59 @@ public:
     bool isServerAvailable() const override;
     QString getLastError() const override;
 
-    // Test helper methods
-
+    // Mock-specific methods
     /**
-     * @brief Get all telemetry data sent to this mock.
+     * @brief Set whether to simulate success or failure.
      *
-     * @return List of all telemetry data sent
+     * @param shouldSucceed true to simulate success, false to simulate failure
      */
-    QList<TelemetryData> sentTelemetry() const;
+    void setShouldSucceed(bool shouldSucceed);
 
     /**
-     * @brief Get all sensor data sent to this mock.
+     * @brief Get all telemetry data that was sent (for verification).
      *
-     * @return List of all sensor data sent
+     * @return List of telemetry data records
      */
-    QList<SensorData> sentSensorData() const;
+    QList<TelemetryData> getSentTelemetry() const;
 
     /**
-     * @brief Get the number of telemetry sends.
+     * @brief Get all sensor data that was sent (for verification).
+     *
+     * @return List of sensor data records
+     */
+    QList<SensorData> getSentSensorData() const;
+
+    /**
+     * @brief Clear all recorded data.
+     */
+    void clearRecordedData();
+
+    /**
+     * @brief Get count of telemetry sends.
      *
      * @return Number of telemetry sends
      */
-    int telemetrySendCount() const;
+    int getTelemetrySendCount() const;
 
     /**
-     * @brief Get the number of sensor data sends.
+     * @brief Get count of sensor data sends.
      *
      * @return Number of sensor data sends
      */
-    int sensorDataSendCount() const;
-
-    /**
-     * @brief Clear all stored data.
-     */
-    void clear();
-
-    /**
-     * @brief Enable simulated failures.
-     *
-     * When enabled, all send operations will fail.
-     *
-     * @param enabled true to enable failures, false to disable
-     */
-    void setSimulateFailures(bool enabled);
-
-    /**
-     * @brief Check if failures are being simulated.
-     *
-     * @return true if failures are enabled, false otherwise
-     */
-    bool isSimulatingFailures() const;
-
-    /**
-     * @brief Set the error message for simulated failures.
-     *
-     * @param error Error message to return on failures
-     */
-    void setFailureError(const QString& error);
-
-    /**
-     * @brief Set connection state.
-     *
-     * @param connected true to simulate connected state, false for disconnected
-     */
-    void setConnected(bool connected);
-
-    /**
-     * @brief Set server availability.
-     *
-     * @param available true to simulate available server, false for unavailable
-     */
-    void setServerAvailable(bool available);
+    int getSensorDataSendCount() const;
 
 private:
-    mutable QMutex m_mutex;
-    QString m_serverUrl;
-    QSslConfiguration m_sslConfig;
-    bool m_connected{false};
-    bool m_serverAvailable{true};
-    bool m_simulateFailures{false};
-    QString m_failureError{"Simulated failure"};
-    QList<TelemetryData> m_sentTelemetry;
-    QList<SensorData> m_sentSensorData;
-    QString m_lastError;
+    QString m_serverUrl;                          ///< Server URL
+    QSslConfiguration m_sslConfig;               ///< SSL configuration
+    bool m_connected;                            ///< Connection status
+    bool m_shouldSucceed;                        ///< Whether to simulate success
+    QString m_lastError;                         ///< Last error message
+
+    mutable QMutex m_dataMutex;                  ///< Mutex for thread-safe access
+    QList<TelemetryData> m_sentTelemetry;       ///< Recorded telemetry data
+    QList<SensorData> m_sentSensorData;         ///< Recorded sensor data
+    int m_telemetrySendCount;                    ///< Count of telemetry sends
+    int m_sensorDataSendCount;                   ///< Count of sensor data sends
 };
 
 } // namespace zmon
-

@@ -4,10 +4,11 @@ Context: Keep TLS out of scope for the mock; use telemetry proto/OpenAPI shapes 
 
 Constraints:
 - Provide hooks to configure simulated latency, failure rates, and response codes.
-- Keep API matching the later real `INetworkManager` methods.
+- Keep API matching the later real `NetworkManager` methods (production implementation to be added later).
+- Use "Mock" prefix in class name per naming conventions (see `.cursor/rules/naming_conventions.mdc`).
 
 Expected output:
-- `tests/mocks/mock_NetworkManager.h` and tests like `tests/network_retry_test.cpp`.
+- `z-monitor/src/infrastructure/network/MockNetworkManager.h/cpp` and tests like `tests/unit/infrastructure/network/network_retry_test.cpp`.
 
 Run/Verify:
 - Run the unit test demonstrating retries and backoff behavior using the mock.
