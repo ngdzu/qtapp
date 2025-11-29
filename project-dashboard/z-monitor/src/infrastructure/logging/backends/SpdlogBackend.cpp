@@ -371,4 +371,3 @@ QString SpdlogBackend::formatHuman(const LogEntry& entry) const
 }
 
 } // namespace zmon
-} // namespace zmon

@@ -71,7 +71,7 @@ public:
      * @param logFileName Base name for log files (e.g., "z-monitor").
      * @return true if initialization succeeded, false otherwise.
      */
-    bool initialize(const QString& logDir, const QString& logFileName) override;
+    Result<void> initialize(const QString& logDir, const QString& logFileName) override;
     
     /**
      * @brief Writes a log entry to the backend.
@@ -184,5 +184,4 @@ private:
     void closeLogFile();
 };
 
-} // namespace zmon
 } // namespace zmon

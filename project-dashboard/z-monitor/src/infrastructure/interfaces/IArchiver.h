@@ -133,4 +133,3 @@ public:
 };
 
 } // namespace zmon
-} // namespace zmon

@@ -43,7 +43,7 @@ namespace zmon {
  * @thread Database I/O Thread
  * @ingroup Infrastructure
  */
-class SQLitePatientRepository : public IPatientRepository, public QObject {
+class SQLitePatientRepository : public QObject, public IPatientRepository {
     Q_OBJECT
 
 public:

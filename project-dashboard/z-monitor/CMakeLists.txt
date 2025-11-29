@@ -165,10 +165,40 @@ set(PROTO_FILE ${PROTO_DIR}/telemetry.proto)
 file(MAKE_DIRECTORY ${PROTO_OUTPUT_DIR})
 
 # Generate proto C++ files
-protobuf_generate_cpp(
-    PROTO_SRCS PROTO_HDRS
-    PROTO_PATH ${PROTO_DIR}
-    ${PROTO_FILE}
+# Note: protobuf_generate_cpp generates files in current binary directory
+# We'll use protobuf_generate with OUTPUT_DIRECTORY to control output location
+get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
+set(PROTO_SRCS ${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.cc)
+set(PROTO_HDRS ${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.h)
+
+# Find protoc executable (works with both find_package and FetchContent)
+if(TARGET protobuf::protoc)
+    # Using FetchContent - protoc is a target
+    get_target_property(PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION)
+    if(NOT PROTOC_EXECUTABLE)
+        # If IMPORTED_LOCATION is not set, use the target directly in COMMAND
+        set(PROTOC_EXECUTABLE $<TARGET_FILE:protobuf::protoc>)
+    endif()
+elseif(Protobuf_PROTOC_EXECUTABLE)
+    # Using find_package - use the variable
+    set(PROTOC_EXECUTABLE ${Protobuf_PROTOC_EXECUTABLE})
+else()
+    # Fallback: try to find protoc in PATH
+    find_program(PROTOC_EXECUTABLE protoc)
+    if(NOT PROTOC_EXECUTABLE)
+        message(FATAL_ERROR "protoc executable not found. Please install Protocol Buffers compiler.")
+    endif()
+endif()
+
+# Add custom command to generate proto files
+add_custom_command(
+    OUTPUT ${PROTO_SRCS} ${PROTO_HDRS}
+    COMMAND ${PROTOC_EXECUTABLE}
+    ARGS --cpp_out=${PROTO_OUTPUT_DIR}
+         --proto_path=${PROTO_DIR}
+         ${PROTO_FILE}
+    DEPENDS ${PROTO_FILE}
+    COMMENT "Generating C++ classes from ${PROTO_FILE}"
 )
 
 # Create a library for generated proto files
@@ -200,17 +230,43 @@ add_custom_target(generate_proto
 # Find Python3 (required for schema generation)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
-# Add custom target to generate schema
-add_custom_target(generate_schema
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_schema.py
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Generating schema constants from YAML"
-    BYPRODUCTS
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/infrastructure/persistence/generated/SchemaInfo.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_tables.sql
-        ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_indices.sql
-    VERBATIM
+# Check if PyYAML is available
+set(SCHEMA_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/infrastructure/persistence/generated/SchemaInfo.h)
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import yaml"
+    RESULT_VARIABLE YAML_AVAILABLE
+    OUTPUT_QUIET
+    ERROR_QUIET
 )
+
+# Add custom target to generate schema
+# If yaml is not available and SchemaInfo.h exists, create a no-op target
+if(YAML_AVAILABLE EQUAL 0)
+    # PyYAML is available - generate schema normally
+    add_custom_target(generate_schema
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_schema.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Generating schema constants from YAML"
+        BYPRODUCTS
+            ${SCHEMA_HEADER}
+            ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_tables.sql
+            ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_indices.sql
+        VERBATIM
+    )
+else()
+    # PyYAML is not available - check if SchemaInfo.h exists
+    if(EXISTS ${SCHEMA_HEADER})
+        # SchemaInfo.h exists - create a no-op target
+        message(STATUS "PyYAML not available, but SchemaInfo.h exists. Skipping schema generation.")
+        add_custom_target(generate_schema
+            COMMAND ${CMAKE_COMMAND} -E echo "SchemaInfo.h already exists, skipping generation - PyYAML not available"
+            COMMENT "Skipping schema generation - PyYAML not available, but SchemaInfo.h exists"
+        )
+    else()
+        # SchemaInfo.h doesn't exist and yaml is not available - error
+        message(FATAL_ERROR "PyYAML is required for schema generation. Please install it: pip3 install pyyaml")
+    endif()
+endif()
 
 # Ensure generated directory exists
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/infrastructure/persistence/generated)

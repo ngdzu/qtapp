@@ -99,11 +99,11 @@ Result<std::vector<std::shared_ptr<PatientAggregate>>> SQLitePatientRepository::
         );
     }
     
-    QSqlQuery query = m_dbManager->getPreparedQueryForRead(QueryId::Patient::FIND_ALL);
+    QSqlQuery query = m_dbManager->getPreparedQueryForRead(persistence::QueryId::Patient::FIND_ALL);
     if (!query.isValid()) {
         return Result<std::vector<std::shared_ptr<PatientAggregate>>>::error(
             Error::create(ErrorCode::DatabaseError,
-                QString("Query not registered: %1").arg(QueryId::Patient::FIND_ALL).toStdString())
+                QString("Query not registered: %1").arg(persistence::QueryId::Patient::FIND_ALL).toStdString())
         );
     }
     
@@ -151,11 +151,11 @@ Result<std::vector<std::string>> SQLitePatientRepository::getAdmissionHistory(co
     
     using namespace Schema::Columns::AdmissionEvents;
     
-    QSqlQuery query = m_dbManager->getPreparedQueryForRead(QueryId::Patient::GET_ADMISSION_HISTORY);
+    QSqlQuery query = m_dbManager->getPreparedQueryForRead(persistence::QueryId::Patient::GET_ADMISSION_HISTORY);
     if (!query.isValid()) {
         return Result<std::vector<std::string>>::error(
             Error::create(ErrorCode::DatabaseError,
-                QString("Query not registered: %1").arg(QueryId::Patient::GET_ADMISSION_HISTORY).toStdString())
+                QString("Query not registered: %1").arg(persistence::QueryId::Patient::GET_ADMISSION_HISTORY).toStdString())
         );
     }
     
@@ -213,6 +213,7 @@ Result<std::shared_ptr<PatientAggregate>> SQLitePatientRepository::findByMrnOrm(
 }
 #endif // USE_QXORM
 
+#ifdef USE_QXORM
 Result<void> SQLitePatientRepository::saveOrm(const PatientAggregate& patient) {
     try {
         persistence::PatientEntity entity = aggregateToEntity(patient);
@@ -247,7 +248,9 @@ Result<void> SQLitePatientRepository::removeOrm(const std::string& mrn) {
         );
     }
 }
+#endif // USE_QXORM
 
+#ifdef USE_QXORM
 persistence::PatientEntity SQLitePatientRepository::aggregateToEntity(const PatientAggregate& aggregate) {
     persistence::PatientEntity entity;
     
@@ -416,11 +419,11 @@ Result<std::shared_ptr<PatientAggregate>> SQLitePatientRepository::queryToAggreg
 }
 
 Result<std::shared_ptr<PatientAggregate>> SQLitePatientRepository::findByMrnSql(const std::string& mrn) {
-    QSqlQuery query = m_dbManager->getPreparedQueryForRead(QueryId::Patient::FIND_BY_MRN);
+    QSqlQuery query = m_dbManager->getPreparedQueryForRead(persistence::QueryId::Patient::FIND_BY_MRN);
     if (!query.isValid()) {
         return Result<std::shared_ptr<PatientAggregate>>::error(
             Error::create(ErrorCode::DatabaseError,
-                QString("Query not registered: %1").arg(QueryId::Patient::FIND_BY_MRN).toStdString())
+                QString("Query not registered: %1").arg(persistence::QueryId::Patient::FIND_BY_MRN).toStdString())
         );
     }
     
@@ -449,11 +452,11 @@ Result<void> SQLitePatientRepository::saveSql(const PatientAggregate& patient) {
     const BedLocation& bedLocation = patient.getBedLocation();
     
     // Check if patient exists
-    QSqlQuery checkQuery = m_dbManager->getPreparedQueryForRead(QueryId::Patient::CHECK_EXISTS);
+    QSqlQuery checkQuery = m_dbManager->getPreparedQueryForRead(persistence::QueryId::Patient::CHECK_EXISTS);
     if (!checkQuery.isValid()) {
         return Result<void>::error(
             Error::create(ErrorCode::DatabaseError,
-                QString("Query not registered: %1").arg(QueryId::Patient::CHECK_EXISTS).toStdString())
+                QString("Query not registered: %1").arg(persistence::QueryId::Patient::CHECK_EXISTS).toStdString())
         );
     }
     
@@ -477,13 +480,13 @@ Result<void> SQLitePatientRepository::saveSql(const PatientAggregate& patient) {
     QString allergiesStr = allergyList.join(",");
     
     QSqlQuery query = exists 
-        ? m_dbManager->getPreparedQuery(QueryId::Patient::UPDATE)
-        : m_dbManager->getPreparedQuery(QueryId::Patient::INSERT);
+        ? m_dbManager->getPreparedQuery(persistence::QueryId::Patient::UPDATE)
+        : m_dbManager->getPreparedQuery(persistence::QueryId::Patient::INSERT);
     
     if (!query.isValid()) {
         return Result<void>::error(
             Error::create(ErrorCode::DatabaseError,
-                QString("Query not registered: %1").arg(exists ? QueryId::Patient::UPDATE : QueryId::Patient::INSERT).toStdString())
+                QString("Query not registered: %1").arg(exists ? persistence::QueryId::Patient::UPDATE : persistence::QueryId::Patient::INSERT).toStdString())
         );
     }
     
@@ -526,11 +529,11 @@ Result<void> SQLitePatientRepository::saveSql(const PatientAggregate& patient) {
 }
 
 Result<void> SQLitePatientRepository::removeSql(const std::string& mrn) {
-    QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Patient::DELETE);
+    QSqlQuery query = m_dbManager->getPreparedQuery(persistence::QueryId::Patient::DELETE);
     if (!query.isValid()) {
         return Result<void>::error(
             Error::create(ErrorCode::DatabaseError,
-                QString("Query not registered: %1").arg(QueryId::Patient::DELETE).toStdString())
+                QString("Query not registered: %1").arg(persistence::QueryId::Patient::DELETE).toStdString())
         );
     }
     

@@ -115,6 +115,13 @@ class IUserManagementService : public QObject {
 
 public:
     /**
+     * @brief Constructor.
+     *
+     * @param parent Parent QObject (for Qt object hierarchy)
+     */
+    explicit IUserManagementService(QObject* parent = nullptr) : QObject(parent) {}
+
+    /**
      * @brief Virtual destructor.
      */
     virtual ~IUserManagementService() = default;

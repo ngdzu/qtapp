@@ -79,4 +79,5 @@ QString escapeJsonString(const QString& str);
  */
 QString formatContextAsJson(const QVariantMap& context);
 
+} // namespace Utils
 } // namespace zmon

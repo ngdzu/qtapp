@@ -1,9 +1,6 @@
-# GitHub Copilot Instructions for Z Monitor Project
-
-This document consolidates all coding standards, guidelines, and workflows for the Z Monitor project. Follow these instructions when working with this codebase.
-
 ---
-
+alwaysApply: true
+---
 # ZTODO Task Execution Workflow
 
 ## When User Says "Do the Next Task" or "Perform the Next Task"
@@ -159,53 +156,23 @@ User: "Do the next task"
 
 ## Related Rules
 
-The detailed rules are split into topic-specific files in `./` to reduce token usage. **GitHub Copilot does NOT automatically load these files** - they must be explicitly referenced or attached when needed.
+The detailed rules have been split into topic-specific files to reduce token usage. Each file in `.cursor/rules/` with the `alwaysApply` front-matter is loaded automatically. Refer to:
 
 ### Core Guidelines
-- `./cpp_guidelines.md` - C++ coding standards, error handling, constants, and best practices
-- `./api_documentation.md` - Doxygen documentation requirements for all public APIs
-- `./qml_guidelines.md` - QML coding standards and best practices
-- `./md_guidelines.md` - Markdown documentation standards and formatting
-- `./naming_conventions.md` - Naming conventions for classes, mocks, and components
+- `cpp_guidelines.mdc` - C++ coding standards, error handling, constants, and best practices
+- `api_documentation.mdc` - Doxygen documentation requirements for all public APIs
+- `qml_guidelines.mdc` - QML coding standards and best practices
+- `md_guidelines.mdc` - Markdown documentation standards and formatting
 
 ### Workflow and Process
-- `./ztodo_verification.md` - Complete verification workflow (CRITICAL) - Required for all ZTODO tasks
-- `./documentation_guidelines.md` - Documentation creation and maintenance standards
-- `./mermaid_guidelines.md` - Diagram creation guidelines (Mermaid syntax and best practices)
+- `ztodo_verification.mdc` - Complete verification workflow (CRITICAL) - Required for all ZTODO tasks
+- `documentation_guidelines.mdc` - Documentation creation and maintenance standards
+- `mermaid_guidelines.mdc` - Diagram creation guidelines (Mermaid syntax and best practices)
 
 ### Project-Specific
-- `./lesson_guidelines.md` - Lesson file requirements, structure, and quality standards
-- `./docker_guidelines.md` - Docker build patterns, multi-stage builds, and best practices
-
-### Best Practices for Token Usage with Copilot
-
-**To minimize token usage and get relevant guidance:**
-
-1. **Attach specific rule files** when working on related tasks:
-   - Writing C++ code → Attach `./cpp_guidelines.md` and `./api_documentation.md`
-   - Writing QML → Attach `./qml_guidelines.md`
-   - Creating lessons → Attach `./lesson_guidelines.md`
-   - Working with Docker → Attach `./docker_guidelines.md`
-   - Writing documentation → Attach `./md_guidelines.md` and `./mermaid_guidelines.md`
-   - Doing ZTODO tasks → Attach `./ztodo_verification.md`
-
-2. **Use @workspace or @file mentions** to bring in specific guidelines:
-   - `@file ./cpp_guidelines.md` when asking C++ questions
-   - `@file ./api_documentation.md` when documenting APIs
-
-3. **Only load what you need** - Don't attach all rules at once, only the relevant ones for your current task.
-
-### Quick Reference: When to Use Which Rules
-
-- **C++ Implementation**: `cpp_guidelines.md` + `api_documentation.md` + `naming_conventions.md`
-- **QML UI Work**: `qml_guidelines.md`
-- **Documentation**: `md_guidelines.md` + `mermaid_guidelines.md` + `documentation_guidelines.md`
-- **ZTODO Tasks**: `ztodo_verification.md` + task-specific guidelines
-- **Lesson Creation**: `lesson_guidelines.md`
-- **Docker/Deployment**: `docker_guidelines.md`
-
-### Note on Constants and Hardcoded Values
-The "No Hardcoded Values" rule is covered in `./cpp_guidelines.md` (Section 4: Constants and Magic Numbers). Always use constants, configuration, or constants files instead of hardcoded strings, numbers, or paths in production code.
+- `lesson_guidelines.mdc` - Lesson file requirements, structure, and quality standards
+- `common_patterns.mdc` - Common Qt/C++ patterns (GUI, console, CMake templates)
+- `docker_guidelines.mdc` - Docker build patterns, multi-stage builds, and best practices
 
 ### Note on Constants and Hardcoded Values
 The "No Hardcoded Values" rule is covered in `cpp_guidelines.mdc` (Section 4: Constants and Magic Numbers). Always use constants, configuration, or constants files instead of hardcoded strings, numbers, or paths in production code.

@@ -83,7 +83,7 @@ public:
      *
      * @return true if started successfully, false otherwise
      */
-    bool start() override;
+    Result<void> start() override;
     
     /**
      * @brief Stop data acquisition.
@@ -107,7 +107,7 @@ public:
      *
      * @return DataSourceInfo Metadata about this data source
      */
-    Interfaces::DataSourceInfo getInfo() const override;
+    DataSourceInfo getInfo() const override;
     
     /**
      * @brief Get current sampling rate.
@@ -173,14 +173,14 @@ private:
      *
      * @param frame Sensor frame containing vitals data
      */
-    void parseVitalsFrame(const SharedMemoryRingBuffer::SensorFrame* frame);
+    void parseVitalsFrame(const SensorFrame* frame);
     
     /**
      * @brief Parse waveform frame and emit signal.
      *
      * @param frame Sensor frame containing waveform data
      */
-    void parseWaveformFrame(const SharedMemoryRingBuffer::SensorFrame* frame);
+    void parseWaveformFrame(const SensorFrame* frame);
     
     /**
      * @brief Handle ring buffer overrun.

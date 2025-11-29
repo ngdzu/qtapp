@@ -27,61 +27,13 @@
 // For now, we'll create a simple wrapper that can be replaced with the real library
 // TODO: Add moodycamel::ConcurrentQueue as a dependency
 //
-// Temporary implementation using QQueue with mutex (not lock-free, but functional)
-// This will be replaced with moodycamel::ConcurrentQueue
-#include <QQueue>
-#include <QMutex>
-
 namespace zmon {
-// Temporary lock-free queue wrapper using QQueue + mutex
-// TODO: Replace with moodycamel::ConcurrentQueue
-template<typename T>
-class TemporaryQueue {
-public:
-    TemporaryQueue(size_t capacity) : m_capacity(capacity) {}
-    
-    bool enqueue(const T& item) {
-        QMutexLocker locker(&m_mutex);
-        if (m_queue.size() >= static_cast<int>(m_capacity)) {
-            // Queue full - drop oldest entry
-            m_queue.dequeue();
-        }
-        m_queue.enqueue(item);
-        return true;
-    }
-    
-    bool try_dequeue(T& item) {
-        QMutexLocker locker(&m_mutex);
-        if (m_queue.isEmpty()) {
-            return false;
-        }
-        item = m_queue.dequeue();
-        return true;
-    }
-    
-    bool empty_approx() const {
-        QMutexLocker locker(&m_mutex);
-        return m_queue.isEmpty();
-    }
-    
-    size_t size_approx() const {
-        QMutexLocker locker(&m_mutex);
-        return static_cast<size_t>(m_queue.size());
-    }
-
-private:
-    mutable QMutex m_mutex;
-    QQueue<T> m_queue;
-    size_t m_capacity;
-};
-
-// Alias for the queue type - replace with moodycamel::ConcurrentQueue when available
-using LogQueue = TemporaryQueue<LogEntry>;
+// TemporaryQueue is now defined in LogService.h
 
 LogService::LogService(ILogBackend* backend, QObject* parent)
     : QObject(parent)
     , m_backend(backend ? std::unique_ptr<ILogBackend>(backend) : nullptr)
-    , m_logQueue(std::make_unique<LogQueue>(10000))  // 10,000 entry capacity
+    , m_logQueue(std::make_unique<TemporaryQueue<LogEntry>>(10000))  // 10,000 entry capacity
     , m_processTimer(new QTimer(this))
 {
     // Connect timer to queue processing slot
@@ -142,45 +94,45 @@ Result<void> LogService::initialize(const QString& logDir, const QString& logFil
 
 void LogService::trace(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::LogLevel::Trace, message, context);
+    enqueueLog(LogLevel::Trace, message, context);
 }
 
 void LogService::debug(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::LogLevel::Debug, message, context);
+    enqueueLog(LogLevel::Debug, message, context);
 }
 
 void LogService::info(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::LogLevel::Info, message, context);
+    enqueueLog(LogLevel::Info, message, context);
 }
 
 void LogService::warning(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::LogLevel::Warning, message, context);
+    enqueueLog(LogLevel::Warning, message, context);
 }
 
 void LogService::error(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::LogLevel::Error, message, context);
+    enqueueLog(LogLevel::Error, message, context);
 }
 
 void LogService::critical(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::LogLevel::Critical, message, context);
+    enqueueLog(LogLevel::Critical, message, context);
 }
 
 void LogService::fatal(const QString& message, const QVariantMap& context)
 {
-    enqueueLog(::ZMonitor::LogLevel::Fatal, message, context);
+    enqueueLog(LogLevel::Fatal, message, context);
 }
 
-void LogService::setLogLevel(::ZMonitor::LogLevel level)
+void LogService::setLogLevel(LogLevel level)
 {
     m_minLevel = level;
 }
 
-::ZMonitor::LogLevel LogService::logLevel() const
+LogLevel LogService::logLevel() const
 {
     return m_minLevel;
 }
@@ -267,7 +219,7 @@ void LogService::processLogQueue()
     }
 }
 
-void LogService::enqueueLog(::ZMonitor::LogLevel level, const QString& message,
+void LogService::enqueueLog(LogLevel level, const QString& message,
                             const QVariantMap& context, const QString& category)
 {
     // Check log level filter
@@ -301,5 +253,4 @@ QString LogService::getCurrentThreadId()
     return QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId()), 16);
 }
 
-} // namespace zmon
 } // namespace zmon

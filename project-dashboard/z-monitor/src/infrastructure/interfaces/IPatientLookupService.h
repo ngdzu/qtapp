@@ -117,4 +117,3 @@ signals:
 };
 
 } // namespace zmon
-} // namespace zmon

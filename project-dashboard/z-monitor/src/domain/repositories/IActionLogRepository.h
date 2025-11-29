@@ -75,6 +75,13 @@ class IActionLogRepository : public QObject {
 
 public:
     /**
+     * @brief Constructor.
+     *
+     * @param parent Parent QObject (for Qt object hierarchy)
+     */
+    explicit IActionLogRepository(QObject* parent = nullptr) : QObject(parent) {}
+
+    /**
      * @brief Virtual destructor.
      */
     virtual ~IActionLogRepository() = default;

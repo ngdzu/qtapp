@@ -31,13 +31,19 @@ static void init_crc32_table() {
     crc32_table_initialized = true;
 }
 
-uint32_t SharedMemoryRingBuffer::calculateCrc32(const uint8_t* data, size_t size) {
+// Free function for CRC32 calculation (used by struct methods)
+uint32_t calculateCrc32(const uint8_t* data, size_t size) {
     init_crc32_table();
     uint32_t crc = 0xFFFFFFFF;
     for (size_t i = 0; i < size; ++i) {
         crc = (crc >> 8) ^ crc32_table[(crc ^ data[i]) & 0xFF];
     }
     return crc ^ 0xFFFFFFFF;
+}
+
+// Static method delegates to free function
+uint32_t SharedMemoryRingBuffer::calculateCrc32(const uint8_t* data, size_t size) {
+    return zmon::calculateCrc32(data, size);
 }
 
 

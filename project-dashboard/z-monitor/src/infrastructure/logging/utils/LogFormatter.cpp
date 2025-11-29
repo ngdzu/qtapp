@@ -6,11 +6,11 @@
  * @date 2025-01-15
  */
 
-#include "LogFormatter.h"
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QVariant>
 #include <QStringList>
+#include <QVariant>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include "LogFormatter.h"
 
 namespace zmon {
 namespace Utils {
@@ -22,7 +22,7 @@ QString formatHuman(const LogEntry& entry) {
     QString timestampStr = entry.timestamp.toString("yyyy-MM-dd hh:mm:ss.zzz");
     
     // Level: [LEVEL]
-    QString levelStr = logLevelToString(entry.level);
+    QString levelStr = ::zmon::Utils::logLevelToString(entry.level);
     
     // Category: [category] (if present)
     QString categoryStr = entry.category.isEmpty() ? "" : QString("[%1]").arg(entry.category);
@@ -70,7 +70,7 @@ QString formatJson(const LogEntry& entry) {
     json["timestamp"] = entry.timestamp.toUTC().toString(Qt::ISODateWithMs);
     
     // Level: lowercase string
-    json["level"] = logLevelToString(entry.level).toLower();
+    json["level"] = ::zmon::Utils::logLevelToString(entry.level).toLower();
     
     // Category (if present)
     if (!entry.category.isEmpty()) {
@@ -164,7 +164,7 @@ QString escapeJsonString(const QString& str) {
             result += "\\t";
         } else if (ch.unicode() < 0x20) {
             // Control characters: \uXXXX
-            result += QString("\\u%1").arg(ch.unicode(), 4, 16, QChar('0'));
+            result += QString("\\u%1").arg(static_cast<int>(ch.unicode()), 4, 16, QChar('0'));
         } else {
             result += ch;
         }
@@ -202,5 +202,5 @@ QString formatContextAsJson(const QVariantMap& context) {
     return doc.toJson(QJsonDocument::Compact);
 }
 
-} // namespace zmon
+} // namespace Utils
 } // namespace zmon

@@ -25,14 +25,50 @@
 #include "domain/common/Result.h"
 #include "LogEntry.h"
 #include "ILogBackend.h"
+#include <QQueue>
+#include <QMutex>
 
-// Forward declaration for lock-free queue
-// Using moodycamel::ConcurrentQueue (header-only, MIT license)
-// Will be included in implementation file
-namespace moodycamel {
-    template<typename T>
-    class ConcurrentQueue;
-}
+// Temporary lock-free queue wrapper using QQueue + mutex
+// TODO: Replace with moodycamel::ConcurrentQueue when available
+template<typename T>
+class TemporaryQueue {
+public:
+    TemporaryQueue(size_t capacity) : m_capacity(capacity) {}
+    
+    bool enqueue(const T& item) {
+        QMutexLocker locker(&m_mutex);
+        if (m_queue.size() >= static_cast<int>(m_capacity)) {
+            // Queue full - drop oldest entry
+            m_queue.dequeue();
+        }
+        m_queue.enqueue(item);
+        return true;
+    }
+    
+    bool try_dequeue(T& item) {
+        QMutexLocker locker(&m_mutex);
+        if (m_queue.isEmpty()) {
+            return false;
+        }
+        item = m_queue.dequeue();
+        return true;
+    }
+    
+    bool empty_approx() const {
+        QMutexLocker locker(&m_mutex);
+        return m_queue.isEmpty();
+    }
+    
+    size_t size_approx() const {
+        QMutexLocker locker(&m_mutex);
+        return static_cast<size_t>(m_queue.size());
+    }
+
+private:
+    mutable QMutex m_mutex;
+    QQueue<T> m_queue;
+    size_t m_capacity;
+};
 
 namespace zmon {
 
@@ -241,7 +277,7 @@ private:
     QMap<QString, bool> m_categoryEnabled;
 
     // Lock-free queue for async logging (MPSC - Multiple Producer Single Consumer)
-    std::unique_ptr<moodycamel::ConcurrentQueue<LogEntry>> m_logQueue;
+    std::unique_ptr<TemporaryQueue<LogEntry>> m_logQueue;
 
     // Backend abstraction
     std::unique_ptr<ILogBackend> m_backend;

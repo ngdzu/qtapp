@@ -233,4 +233,3 @@ QString SettingsManager::getDatabaseConnection() const
 }
 
 } // namespace zmon
-} // namespace zmon

@@ -481,7 +481,7 @@ AuthenticationError HospitalUserManagementAdapter::handleNetworkError(
             break;
         case QNetworkReply::ConnectionRefusedError:
         case QNetworkReply::HostNotFoundError:
-        case QNetworkReply::NetworkAccessDeniedError:
+        case QNetworkReply::NetworkSessionFailedError:
             error.reason = AuthenticationError::Reason::NETWORK_ERROR;
             error.message = "Cannot connect to hospital server";
             break;

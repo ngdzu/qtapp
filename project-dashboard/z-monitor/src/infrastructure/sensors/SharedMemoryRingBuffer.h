@@ -20,6 +20,10 @@
 
 namespace zmon {
 
+// Forward declaration for CRC32 calculation
+// (will be defined as static method in SharedMemoryRingBuffer class)
+uint32_t calculateCrc32(const uint8_t* data, size_t size);
+
 /**
  * @struct RingBufferHeader
  * @brief Header structure for the shared memory ring buffer.
@@ -36,9 +40,9 @@ struct RingBufferHeader {
     uint16_t reserved;           ///< Reserved for future use
     uint32_t frameSize;          ///< Size of each frame in bytes
     uint32_t frameCount;         ///< Total number of frames in ring buffer
-    uint64_t writeIndex;         ///< Current write index (atomic, updated by writer)
+    std::atomic<uint64_t> writeIndex;         ///< Current write index (atomic, updated by writer)
     uint64_t readIndex;          ///< Current read index (atomic, updated by reader)
-    uint64_t heartbeatTimestamp; ///< Last heartbeat timestamp (ms since epoch, atomic)
+    std::atomic<uint64_t> heartbeatTimestamp; ///< Last heartbeat timestamp (ms since epoch, atomic)
     uint32_t crc32;              ///< CRC32 of header (excluding this field)
     
     /**
@@ -59,7 +63,7 @@ struct RingBufferHeader {
         // Calculate CRC32 of header excluding crc32 field
         const uint8_t* data = reinterpret_cast<const uint8_t*>(this);
         size_t size = offsetof(RingBufferHeader, crc32);
-        return SharedMemoryRingBuffer::calculateCrc32(data, size);
+        return zmon::calculateCrc32(data, size);
     }
 };
 
@@ -121,7 +125,7 @@ struct SensorFrame {
         // Calculate CRC32 of frame excluding crc32 field
         const uint8_t* data = reinterpret_cast<const uint8_t*>(this);
         size_t size = offsetof(SensorFrame, crc32);
-        return SharedMemoryRingBuffer::calculateCrc32(data, size);
+        return zmon::calculateCrc32(data, size);
     }
 };
 

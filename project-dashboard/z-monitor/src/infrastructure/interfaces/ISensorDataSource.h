@@ -79,6 +79,13 @@ class ISensorDataSource : public QObject {
 
 public:
     /**
+     * @brief Constructor.
+     *
+     * @param parent Parent QObject (for Qt object hierarchy)
+     */
+    explicit ISensorDataSource(QObject* parent = nullptr) : QObject(parent) {}
+
+    /**
      * @brief Virtual destructor.
      */
     virtual ~ISensorDataSource() = default;

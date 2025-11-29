@@ -161,8 +161,9 @@ void CustomBackend::rotateLogFile() {
     cleanupOldFiles();
     
     // Open new log file
-    if (!openLogFile()) {
-        qWarning() << "CustomBackend::rotateLogFile: Failed to open new log file";
+    auto openResult = openLogFile();
+    if (openResult.isError()) {
+        qWarning() << "CustomBackend::rotateLogFile: Failed to open new log file:" << openResult.error().message.c_str();
     }
     
     // Update last rotation date
@@ -251,7 +252,7 @@ Result<void> CustomBackend::openLogFile() {
     }
     
     m_stream = new QTextStream(m_logFile);
-    m_stream->setCodec("UTF-8");
+    // QTextStream in Qt6 uses UTF-8 by default, no need to set encoding
     
     return Result<void>::ok();
 }
@@ -269,5 +270,4 @@ void CustomBackend::closeLogFile() {
     }
 }
 
-} // namespace zmon
 } // namespace zmon
