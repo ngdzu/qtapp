@@ -17,3 +17,37 @@ target_include_directories(test_schema_generation
 
 add_test(NAME SchemaGenerationTest COMMAND test_schema_generation)
 
+# SQLitePatientRepository tests
+add_executable(test_sqlite_patient_repository
+    test_sqlite_patient_repository.cpp
+)
+
+target_link_libraries(test_sqlite_patient_repository
+    PRIVATE
+        GTest::gtest
+        GTest::gtest_main
+        z_monitor_infrastructure
+        z_monitor_domain
+        Qt6::Core
+        Qt6::Sql
+)
+
+target_include_directories(test_sqlite_patient_repository
+    PRIVATE
+        ${Z_MONITOR_ROOT}  # For generated/SchemaInfo.h
+)
+
+# Link QxOrm if enabled
+if(USE_QXORM)
+    target_link_libraries(test_sqlite_patient_repository
+        PRIVATE
+            qxorm
+    )
+    target_compile_definitions(test_sqlite_patient_repository
+        PRIVATE
+            USE_QXORM
+    )
+endif()
+
+add_test(NAME SQLitePatientRepositoryTest COMMAND test_sqlite_patient_repository)
+

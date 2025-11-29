@@ -18,6 +18,10 @@ find_package(Qt6 COMPONENTS Core Gui Qml Quick QuickControls2 REQUIRED)
 # Can be enabled with: cmake -DZ_MONITOR_USE_SPDLOG=ON ..
 option(Z_MONITOR_USE_SPDLOG "Enable spdlog backend for high-performance logging" OFF)
 
+# Optional: QxOrm library for object-relational mapping
+# Can be enabled with: cmake -DUSE_QXORM=ON ..
+option(USE_QXORM "Enable QxOrm for ORM support (hybrid approach with manual SQL)" OFF)
+
 if(Z_MONITOR_USE_SPDLOG)
     # Try to find spdlog using FetchContent (recommended for header-only)
     include(FetchContent)
@@ -35,6 +39,33 @@ if(Z_MONITOR_USE_SPDLOG)
     add_compile_definitions(Z_MONITOR_USE_SPDLOG)
 else()
     message(STATUS "spdlog backend disabled (using CustomBackend)")
+endif()
+
+if(USE_QXORM)
+    # Try to find QxOrm using find_package first (if installed system-wide)
+    find_package(QxOrm QUIET)
+    
+    if(NOT QxOrm_FOUND)
+        # Use FetchContent to download QxOrm from GitHub
+        include(FetchContent)
+        FetchContent_Declare(
+            qxorm
+            GIT_REPOSITORY https://github.com/QxOrm/QxOrm.git
+            GIT_TAG v1.4.5
+        )
+        FetchContent_MakeAvailable(qxorm)
+        
+        # QxOrm requires Qt6::Sql
+        find_package(Qt6 COMPONENTS Sql REQUIRED)
+        
+        message(STATUS "QxOrm enabled (downloaded via FetchContent)")
+    else()
+        message(STATUS "QxOrm enabled (found via find_package)")
+    endif()
+    
+    add_compile_definitions(USE_QXORM)
+else()
+    message(STATUS "QxOrm disabled (using manual SQL only)")
 endif()
 
 # Schema Management: Generate SchemaInfo.h from YAML

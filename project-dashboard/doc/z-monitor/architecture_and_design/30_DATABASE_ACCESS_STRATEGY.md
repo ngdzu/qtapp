@@ -835,7 +835,7 @@ project-dashboard/doc/migrations/
 ## 11. Integration with Schema Management
 
 > **📋 Implementation Status:**  
-> ORM integration is planned but not yet implemented. See ZTODO.md task "Implement QxOrm Integration (Hybrid ORM + Stored Procedures)" for implementation plan. This section documents how ORM will integrate with schema management when implemented.
+> ✅ **ORM integration is implemented.** QxOrm can be enabled via `-DUSE_QXORM=ON` CMake option. See ZTODO.md task "Implement QxOrm Integration (Hybrid ORM + Stored Procedures)" for implementation details.
 
 ### **11.1 ORM + Schema Workflow**
 

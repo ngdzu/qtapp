@@ -39,9 +39,18 @@ set(INFRASTRUCTURE_SOURCES
     sensors/SharedMemorySensorDataSource.cpp
     
     # Persistence adapters
+    persistence/DatabaseManager.h
+    persistence/DatabaseManager.cpp
     persistence/SQLiteActionLogRepository.h
     persistence/SQLiteActionLogRepository.cpp
+    persistence/SQLitePatientRepository.h
+    persistence/SQLitePatientRepository.cpp
     persistence/generated/SchemaInfo.h  # Generated from schema/database.yaml
+    
+    # ORM mappings (optional, only if USE_QXORM is enabled)
+    persistence/orm/OrmRegistry.h
+    persistence/orm/OrmRegistry.cpp
+    persistence/orm/PatientEntity.h
 )
 
 # Create infrastructure layer static library
@@ -79,6 +88,19 @@ if(Z_MONITOR_USE_SPDLOG)
     target_link_libraries(z_monitor_infrastructure
         PUBLIC
             spdlog::spdlog
+    )
+endif()
+
+# Link QxOrm if enabled
+if(USE_QXORM)
+    target_link_libraries(z_monitor_infrastructure
+        PUBLIC
+            qxorm
+            Qt6::Sql
+    )
+    target_compile_definitions(z_monitor_infrastructure
+        PUBLIC
+            USE_QXORM
     )
 endif()
 

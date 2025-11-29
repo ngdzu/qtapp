@@ -48,9 +48,9 @@ public:
      * Retrieves patient aggregate by Medical Record Number.
      * 
      * @param mrn Medical Record Number
-     * @return Shared pointer to patient aggregate, or nullptr if not found
+     * @return Result containing shared pointer to patient aggregate if found, Error if not found or database error
      */
-    virtual std::shared_ptr<PatientAggregate> findByMrn(const std::string& mrn) = 0;
+    virtual Result<std::shared_ptr<PatientAggregate>> findByMrn(const std::string& mrn) = 0;
     
     /**
      * @brief Save patient aggregate.
@@ -69,18 +69,18 @@ public:
      * Retrieves admission/discharge/transfer history for a patient by MRN.
      * 
      * @param mrn Medical Record Number
-     * @return Vector of admission event records (most recent first)
+     * @return Result containing vector of admission event records (most recent first), Error if database error
      */
-    virtual std::vector<std::string> getAdmissionHistory(const std::string& mrn) = 0;
+    virtual Result<std::vector<std::string>> getAdmissionHistory(const std::string& mrn) = 0;
     
     /**
      * @brief Find all patients.
      * 
      * Retrieves all patient aggregates from storage.
      * 
-     * @return Vector of patient aggregates
+     * @return Result containing vector of patient aggregates, Error if database error
      */
-    virtual std::vector<std::shared_ptr<PatientAggregate>> findAll() = 0;
+    virtual Result<std::vector<std::shared_ptr<PatientAggregate>>> findAll() = 0;
     
     /**
      * @brief Delete patient by MRN.

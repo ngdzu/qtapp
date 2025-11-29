@@ -1771,7 +1771,7 @@ UPDATE patients SET date_of_birth = dob WHERE date_of_birth IS NULL;
 ## 13. Integration with ORM (QxOrm)
 
 > **📋 Implementation Status:**  
-> ORM integration is planned but not yet implemented. See ZTODO.md task "Implement QxOrm Integration (Hybrid ORM + Stored Procedures)" for implementation plan. This section documents how ORM will integrate with schema management when implemented.
+> ✅ **ORM integration is implemented.** QxOrm can be enabled via `-DUSE_QXORM=ON` CMake option. ORM mappings use Schema constants for type safety. See ZTODO.md task "Implement QxOrm Integration (Hybrid ORM + Stored Procedures)" for implementation details.
 
 ### **13.1 ORM Uses Schema Constants**
 
