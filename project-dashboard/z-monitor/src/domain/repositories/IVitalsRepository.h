@@ -46,7 +46,7 @@ public:
      * @param vital Vital record to save
      * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual Result<void> save(const Monitoring::VitalRecord& vital) = 0;
+    virtual Result<void> save(const VitalRecord& vital) = 0;
     
     /**
      * @brief Save multiple vital records in batch.
@@ -56,7 +56,7 @@ public:
      * @param vitals Vector of vital records to save
      * @return Result<size_t> - Success with number of records saved, Error with details if failed
      */
-    virtual Result<size_t> saveBatch(const std::vector<Monitoring::VitalRecord>& vitals) = 0;
+    virtual Result<size_t> saveBatch(const std::vector<VitalRecord>& vitals) = 0;
     
     /**
      * @brief Get vital records within a time range.
@@ -68,7 +68,7 @@ public:
      * @param endTimeMs End time in milliseconds (epoch milliseconds)
      * @return Vector of vital records
      */
-    virtual std::vector<Monitoring::VitalRecord> getRange(
+    virtual std::vector<VitalRecord> getRange(
         const std::string& patientMrn, int64_t startTimeMs, int64_t endTimeMs) = 0;
     
     /**
@@ -78,7 +78,7 @@ public:
      * 
      * @return Vector of unsent vital records
      */
-    virtual std::vector<Monitoring::VitalRecord> getUnsent() = 0;
+    virtual std::vector<VitalRecord> getUnsent() = 0;
     
     /**
      * @brief Mark vital records as sent.
@@ -91,5 +91,4 @@ public:
     virtual size_t markAsSent(const std::vector<std::string>& vitalIds) = 0;
 };
 
-} // namespace zmon
 } // namespace zmon

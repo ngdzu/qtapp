@@ -12,6 +12,10 @@
 #include "domain/monitoring/TelemetryBatch.h"
 #include "domain/monitoring/AlarmAggregate.h"
 #include "domain/monitoring/VitalRecord.h"
+#include "domain/repositories/ITelemetryRepository.h"
+#include "domain/repositories/IPatientRepository.h"
+#include "domain/repositories/IAlarmRepository.h"
+#include "domain/repositories/IVitalsRepository.h"
 #include "infrastructure/interfaces/ISensorDataSource.h"
 #include "infrastructure/logging/LogService.h"
 #include <QDebug>

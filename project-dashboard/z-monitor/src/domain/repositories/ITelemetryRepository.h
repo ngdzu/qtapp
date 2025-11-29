@@ -20,8 +20,10 @@
 #include <cstdint>
 
 namespace zmon {
-    class TelemetryBatch;
-}
+
+// Forward declaration
+class TelemetryBatch;
+
 /**
  * @class ITelemetryRepository
  * @brief Repository interface for telemetry batch persistence.
@@ -48,7 +50,7 @@ public:
      * @param batch Telemetry batch to save
      * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual Result<void> save(const Monitoring::TelemetryBatch& batch) = 0;
+    virtual Result<void> save(const TelemetryBatch& batch) = 0;
     
     /**
      * @brief Get historical telemetry batches.
@@ -59,7 +61,7 @@ public:
      * @param endTimeMs End time in milliseconds (epoch milliseconds)
      * @return Vector of telemetry batches
      */
-    virtual std::vector<std::shared_ptr<Monitoring::TelemetryBatch>> getHistorical(
+    virtual std::vector<std::shared_ptr<TelemetryBatch>> getHistorical(
         int64_t startTimeMs, int64_t endTimeMs) = 0;
     
     /**
@@ -79,7 +81,7 @@ public:
      * 
      * @return Vector of unsent telemetry batches
      */
-    virtual std::vector<std::shared_ptr<Monitoring::TelemetryBatch>> getUnsent() = 0;
+    virtual std::vector<std::shared_ptr<TelemetryBatch>> getUnsent() = 0;
     
     /**
      * @brief Mark telemetry batch as sent.
@@ -92,5 +94,4 @@ public:
     virtual Result<void> markAsSent(const std::string& batchId) = 0;
 };
 
-} // namespace zmon
 } // namespace zmon

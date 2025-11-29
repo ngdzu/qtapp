@@ -120,7 +120,7 @@ bool SecurityService::hasPermission(Permission permission) const {
     PermissionSet rolePermissions = registry.permissionsForRole(m_currentSession->userProfile.role);
 
     // Check if permission is in role's permission set
-    return hasPermission(rolePermissions, permission);
+    return zmon::hasPermission(rolePermissions, permission);
 }
 
 bool SecurityService::hasPermission(const QString& permissionStr) const {

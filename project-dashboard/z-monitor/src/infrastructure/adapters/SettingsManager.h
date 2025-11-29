@@ -205,4 +205,3 @@ private:
 };
 
 } // namespace zmon
-} // namespace zmon

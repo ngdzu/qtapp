@@ -100,4 +100,3 @@ struct LogEntry {
 };
 
 } // namespace zmon
-} // namespace zmon

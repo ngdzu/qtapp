@@ -37,10 +37,10 @@ struct DataSourceInfo {
 };
 
 /**
- * @enum ErrorCode
+ * @enum SensorErrorCode
  * @brief Sensor error codes.
  */
-enum class ErrorCode {
+enum class SensorErrorCode {
     None,                  ///< No error
     SensorDisconnected,    ///< Sensor physically disconnected
     SignalTooNoisy,        ///< Signal quality too poor to measure
@@ -55,7 +55,7 @@ enum class ErrorCode {
  * @brief Sensor error information.
  */
 struct SensorError {
-    ErrorCode code;         ///< Error code
+    SensorErrorCode code;         ///< Error code
     QString message;        ///< Human-readable error message
     QString sensorType;     ///< Affected sensor (e.g., "ECG", "SpO2")
     QDateTime timestamp;    ///< When error occurred

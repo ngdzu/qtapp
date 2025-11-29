@@ -46,7 +46,7 @@ public:
      * @param alarm Alarm snapshot to save
      * @return Result<void> - Success if save succeeded, Error with details if failed
      */
-    virtual Result<void> save(const Monitoring::AlarmSnapshot& alarm) = 0;
+    virtual Result<void> save(const AlarmSnapshot& alarm) = 0;
     
     /**
      * @brief Get active alarms.
@@ -55,7 +55,7 @@ public:
      * 
      * @return Vector of active alarm snapshots
      */
-    virtual std::vector<Monitoring::AlarmSnapshot> getActive() = 0;
+    virtual std::vector<AlarmSnapshot> getActive() = 0;
     
     /**
      * @brief Get alarm history.
@@ -67,7 +67,7 @@ public:
      * @param endTimeMs End time in milliseconds (epoch milliseconds)
      * @return Vector of alarm snapshots (most recent first)
      */
-    virtual std::vector<Monitoring::AlarmSnapshot> getHistory(
+    virtual std::vector<AlarmSnapshot> getHistory(
         const std::string& patientMrn, int64_t startTimeMs, int64_t endTimeMs) = 0;
     
     /**
@@ -78,7 +78,7 @@ public:
      * @param alarmId Alarm identifier (UUID)
      * @return Alarm snapshot, or empty snapshot if not found
      */
-    virtual Monitoring::AlarmSnapshot findById(const std::string& alarmId) = 0;
+    virtual AlarmSnapshot findById(const std::string& alarmId) = 0;
     
     /**
      * @brief Update alarm status.
@@ -91,9 +91,8 @@ public:
      * @return Result<void> - Success if update succeeded, Error with details if failed
      */
     virtual Result<void> updateStatus(const std::string& alarmId, 
-                              Monitoring::AlarmStatus status,
+                              AlarmStatus status,
                               const std::string& userId) = 0;
 };
 
-} // namespace zmon
 } // namespace zmon

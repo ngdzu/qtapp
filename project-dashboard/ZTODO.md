@@ -228,6 +228,105 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See `project-dashboard/z-monitor/BUILD.md` for complete build setup instructions and troubleshooting guide.
   - Prompt: `project-dashboard/prompt/setup-local-build-environment.md`  (When finished: mark this checklist item done.)
 
+- [x] Fix Phase 3: Application Layer compilation errors
+  - What: Fix all compilation errors in `z_monitor_application` target to enable Phase 3 of incremental build. Primary issues: duplicate closing namespace braces in repository interface files (`IAuditRepository.h`, `IAlarmRepository.h`, `IActionLogRepository.h`, `IPatientRepository.h`, `IProvisioningRepository.h`, `ITelemetryRepository.h`, `IUserRepository.h`, `IVitalsRepository.h`). Fix any other compilation errors that appear when building the application layer.
+  - Why: Application layer must compile successfully before infrastructure layer can be built. Part of incremental build strategy to fix errors systematically one target at a time.
+  - Files:
+    - `project-dashboard/z-monitor/src/domain/repositories/IAuditRepository.h` (remove duplicate closing brace)
+    - `project-dashboard/z-monitor/src/domain/repositories/IAlarmRepository.h` (remove duplicate closing brace)
+    - `project-dashboard/z-monitor/src/domain/repositories/IActionLogRepository.h` (remove duplicate closing brace)
+    - `project-dashboard/z-monitor/src/domain/repositories/IPatientRepository.h` (remove duplicate closing brace if present)
+    - `project-dashboard/z-monitor/src/domain/repositories/IProvisioningRepository.h` (remove duplicate closing brace)
+    - `project-dashboard/z-monitor/src/domain/repositories/ITelemetryRepository.h` (remove duplicate closing brace)
+    - `project-dashboard/z-monitor/src/domain/repositories/IUserRepository.h` (remove duplicate closing brace)
+    - `project-dashboard/z-monitor/src/domain/repositories/IVitalsRepository.h` (remove duplicate closing brace)
+    - Any other files with compilation errors in application layer
+  - Acceptance:
+    - All repository interface files have single closing namespace brace (no duplicates)
+    - `z_monitor_application` target builds successfully without errors
+    - Application layer compiles cleanly
+  - Verification Steps:
+    1. Functional: `z_monitor_application` builds successfully, no compilation errors, all repository interfaces compile correctly. **Status:** ✅ Verified - z_monitor_application builds successfully without errors. Fixed duplicate closing braces in 8 repository interface files, 3 infrastructure files (LogEntry.h, ILogBackend.h, SettingsManager.h), fixed ErrorCode conflict (renamed to SensorErrorCode in ISensorDataSource.h), fixed namespace issues in repository interfaces (removed Monitoring:: prefix, fixed namespace structure in ITelemetryRepository.h), added missing repository includes in MonitoringService.cpp, fixed hasPermission call in SecurityService.cpp.
+    2. Code Quality: No duplicate closing braces, proper namespace structure, linter passes. **Status:** ✅ Verified - All duplicate closing braces removed, namespace structure corrected, ErrorCode conflict resolved, proper includes added. Code compiles cleanly.
+    3. Documentation: No documentation changes needed (code fixes only). **Status:** ✅ Verified - No documentation changes required, only code fixes.
+    4. Integration: Application layer links correctly with domain layer, CMake configuration works. **Status:** ✅ Verified - Application layer links correctly with domain layer, CMake configuration successful, all dependencies resolved.
+    5. Tests: Build verification test passes (target compiles successfully). **Status:** ✅ Verified - z_monitor_application target builds successfully: `[100%] Built target z_monitor_application`.
+  - Dependencies: Phase 2 (z_monitor_domain) must be complete
+  - Prompt: `project-dashboard/prompt/fix-application-layer-compile-errors.md`  (When finished: mark this checklist item done.)
+
+- [ ] Fix Phase 4: Infrastructure Layer compilation errors
+  - What: Fix all compilation errors in `z_monitor_infrastructure` target to enable Phase 4 of incremental build. Build infrastructure layer and identify all compilation errors (include path issues, missing dependencies, type errors, etc.). Fix errors systematically: include paths first, then dependencies, then compilation errors.
+  - Why: Infrastructure layer must compile successfully before main executable can be built. Part of incremental build strategy to fix errors systematically one target at a time.
+  - Files: All files in `project-dashboard/z-monitor/src/infrastructure/` that have compilation errors. Common issues may include:
+    - Include path issues (relative vs absolute paths)
+    - Missing Qt dependencies
+    - Type mismatches
+    - Missing forward declarations
+    - Duplicate closing braces (if any)
+    - Value object assignment issues (similar to domain layer fixes)
+  - Acceptance:
+    - `z_monitor_infrastructure` target builds successfully without errors
+    - All infrastructure components compile correctly
+    - Infrastructure layer links correctly with domain and application layers
+  - Verification Steps:
+    1. Functional: `z_monitor_infrastructure` builds successfully, no compilation errors, all infrastructure components compile correctly. **Status:** ⏳
+    2. Code Quality: No hardcoded values, proper error handling, Doxygen comments present, linter passes. **Status:** ⏳
+    3. Documentation: No documentation changes needed (code fixes only). **Status:** ⏳
+    4. Integration: Infrastructure layer links correctly with domain and application layers, CMake configuration works. **Status:** ⏳
+    5. Tests: Build verification test passes (target compiles successfully). **Status:** ⏳
+  - Dependencies: Phase 3 (z_monitor_application) must be complete
+  - Prompt: `project-dashboard/prompt/fix-infrastructure-layer-compile-errors.md`  (When finished: mark this checklist item done.)
+
+- [ ] Fix Phase 5: Main executable compilation errors
+  - What: Fix all compilation errors in `z-monitor` executable target to enable Phase 5 of incremental build. Build main executable and identify all compilation errors (missing main.cpp implementation, QML resource issues, interface layer errors, etc.). Fix errors systematically.
+  - Why: Main executable must compile successfully for the application to run. Part of incremental build strategy to fix errors systematically one target at a time.
+  - Files: 
+    - `project-dashboard/z-monitor/src/main.cpp` (may need implementation)
+    - All files in `project-dashboard/z-monitor/src/interface/` that have compilation errors
+    - QML resource files if there are resource compilation errors
+    - Any other files with compilation errors in main executable
+  - Acceptance:
+    - `z-monitor` executable builds successfully without errors
+    - Main executable links all layers correctly
+    - QML resources compile correctly (if applicable)
+    - Executable can be run (even if functionality is stubbed)
+  - Verification Steps:
+    1. Functional: `z-monitor` executable builds successfully, no compilation errors, executable can be launched. **Status:** ⏳
+    2. Code Quality: No hardcoded values, proper error handling, Doxygen comments present, linter passes. **Status:** ⏳
+    3. Documentation: No documentation changes needed (code fixes only). **Status:** ⏳
+    4. Integration: Main executable links all layers correctly, QML resources work (if applicable), CMake configuration works. **Status:** ⏳
+    5. Tests: Build verification test passes (executable compiles and can be run). **Status:** ⏳
+  - Dependencies: Phase 4 (z_monitor_infrastructure) must be complete
+  - Prompt: `project-dashboard/prompt/fix-main-executable-compile-errors.md`  (When finished: mark this checklist item done.)
+
+- [ ] Fix Phase 6: Test targets compilation errors
+  - What: Fix all compilation errors in test targets to enable Phase 6 of incremental build. Build test targets incrementally (unit tests first, then integration tests, then e2e tests) and identify all compilation errors. Fix errors systematically for each test category.
+  - Why: Tests must compile successfully for test-driven development and CI/CD integration. Part of incremental build strategy to fix errors systematically one target at a time.
+  - Files: All test files in `project-dashboard/z-monitor/tests/` that have compilation errors. Common issues may include:
+    - Include path issues
+    - Missing test framework dependencies
+    - Missing mock dependencies
+    - Type mismatches
+    - Missing test data or fixtures
+  - Build Strategy:
+    1. Build unit tests first (`tests/unit/`)
+    2. Build integration tests second (`tests/integration/`)
+    3. Build e2e tests last (`tests/e2e/`)
+    4. Fix errors for each category before moving to next
+  - Acceptance:
+    - All unit test targets build successfully
+    - All integration test targets build successfully
+    - All e2e test targets build successfully (if applicable)
+    - Tests can be run via CTest
+  - Verification Steps:
+    1. Functional: All test targets build successfully, no compilation errors, tests can be executed via CTest. **Status:** ⏳
+    2. Code Quality: Test code follows guidelines, proper test structure, linter passes. **Status:** ⏳
+    3. Documentation: No documentation changes needed (code fixes only). **Status:** ⏳
+    4. Integration: Test infrastructure works, CTest integration works, test dependencies resolved. **Status:** ⏳
+    5. Tests: Build verification test passes (all test targets compile successfully). **Status:** ⏳
+  - Dependencies: Phase 5 (z-monitor executable) must be complete, or at least all layers must compile
+  - Prompt: `project-dashboard/prompt/fix-test-targets-compile-errors.md`  (When finished: mark this checklist item done.)
+
 ---
 
 - [x] Refactor Settings: Remove Bed ID, Add Device Label and ADT Workflow

@@ -121,4 +121,3 @@ struct WaveformSample {
 };
 
 } // namespace zmon
-} // namespace zmon
