@@ -525,17 +525,17 @@ These infrastructure components should be implemented early as they are dependen
     5. Tests: Schema validation tests, migration tests, database integrity tests. **Status:** ✅ Complete - Comprehensive migration tests created in `test_migrations.cpp` covering: schema_version table exists, all required tables exist (19 tables), patients table has all columns, vitals table has patient_mrn (NOT NULL), action_log table has hash chain (previous_hash), indices created correctly, foreign key constraints work, settings table supports required keys, database integrity after migrations. Test executable `test_migrations` added to CMakeLists.txt.
   - Prompt: `project-dashboard/prompt/04-design-db-schema-migrations.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement DatabaseManager spike (in-memory + SQLCipher plan)
+- [x] Implement DatabaseManager spike (in-memory + SQLCipher plan)
   - What: Implement a minimal, test-only `DatabaseManager` in `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h` that uses an in-memory SQLite for tests. Document how SQLCipher will be integrated and add CMake options to enable/disable SQLCipher. Follow DDD pattern - DatabaseManager is infrastructure adapter.
   - Why: Validates schema and migrations without full SQLCipher integration yet. Provides foundation for repository implementations.
   - Files: `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h`, `z-monitor/tests/integration/db_smoke_test.cpp`, `CMakeLists` options: `-DENABLE_SQLCIPHER=ON/OFF`.
   - Acceptance: DatabaseManager compiles, in-memory database works, schema migrations run, SQLCipher integration plan documented, CMake options work.
   - Verification Steps:
-    1. Functional: DatabaseManager opens/closes database, executes SQL, migrations work, in-memory mode works
-    2. Code Quality: Doxygen comments, error handling, follows DDD infrastructure patterns
-    3. Documentation: SQLCipher integration plan documented, usage examples provided
-    4. Integration: CMake options work, can switch between SQLite/SQLCipher, tests pass
-    5. Tests: DatabaseManager unit tests, migration tests, in-memory database tests
+    1. Functional: DatabaseManager opens/closes database, executes SQL, migrations work, in-memory mode works. **Status:** ✅ Verified - DatabaseManager supports in-memory databases (`:memory:` path), opens/closes correctly, executes SQL queries, supports transactions (begin/commit/rollback), provides separate read/write connections, prevents double-open. In-memory database support fixed (skips directory creation for `:memory:` paths).
+    2. Code Quality: Doxygen comments, error handling, follows DDD infrastructure patterns. **Status:** ✅ Verified - All public methods have Doxygen comments (`@brief`, `@param`, `@return`, `@note`), error handling uses `Result<T, Error>` pattern, follows DDD infrastructure layer patterns, no hardcoded values found.
+    3. Documentation: SQLCipher integration plan documented, usage examples provided. **Status:** ✅ Verified - Comprehensive SQLCipher integration plan created at `doc/z-monitor/architecture_and_design/34_SQLCIPHER_INTEGRATION.md` covering: architecture, key management, implementation steps, configuration, security considerations, performance impact, troubleshooting, and future enhancements. Usage examples included in documentation.
+    4. Integration: CMake options work, can switch between SQLite/SQLCipher, tests pass. **Status:** ✅ Verified - CMake option `ENABLE_SQLCIPHER` added with proper detection logic, SQLCipher library detection via `find_package` and `pkg-config`, compile-time definitions added when enabled, graceful fallback when SQLCipher not found, integration test `db_smoke_test` added to CMakeLists.txt.
+    5. Tests: DatabaseManager unit tests, migration tests, in-memory database tests. **Status:** ✅ Verified - Comprehensive integration smoke test created (`db_smoke_test.cpp` with 244 lines) covering: in-memory database open/close, SQL query execution, transaction support (begin/commit/rollback), multiple connections (main/read/write), error handling (double-open prevention), schema constants availability, patients table creation. Test executable added to integration tests CMakeLists.txt.
   - Prompt: `project-dashboard/prompt/05-implement-dbmanager-spike.md`  (When finished: mark this checklist item done.)
 
 - [ ] Define telemetry proto and/or OpenAPI spec (canonical schema)

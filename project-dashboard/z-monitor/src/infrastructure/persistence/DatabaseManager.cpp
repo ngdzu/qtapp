@@ -41,15 +41,17 @@ Result<void> DatabaseManager::open(const QString& dbPath, const QString& encrypt
     m_databasePath = dbPath;
     m_encryptionKey = encryptionKey;
     
-    // Create database directory if it doesn't exist
-    QFileInfo fileInfo(dbPath);
-    QDir dir = fileInfo.absoluteDir();
-    if (!dir.exists()) {
-        if (!dir.mkpath(".")) {
-            return Result<void>::error(
-                Error::create(ErrorCode::DatabaseError, 
-                    QString("Cannot create database directory: %1").arg(dir.absolutePath()).toStdString())
-            );
+    // Create database directory if it doesn't exist (skip for in-memory databases)
+    if (dbPath != ":memory:" && !dbPath.startsWith("file::memory:")) {
+        QFileInfo fileInfo(dbPath);
+        QDir dir = fileInfo.absoluteDir();
+        if (!dir.exists()) {
+            if (!dir.mkpath(".")) {
+                return Result<void>::error(
+                    Error::create(ErrorCode::DatabaseError, 
+                        QString("Cannot create database directory: %1").arg(dir.absolutePath()).toStdString())
+                );
+            }
         }
     }
     

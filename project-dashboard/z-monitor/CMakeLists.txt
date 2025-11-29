@@ -22,6 +22,11 @@ option(Z_MONITOR_USE_SPDLOG "Enable spdlog backend for high-performance logging"
 # Can be enabled with: cmake -DUSE_QXORM=ON ..
 option(USE_QXORM "Enable QxOrm for ORM support (hybrid approach with manual SQL)" OFF)
 
+# Optional: SQLCipher for database encryption
+# Can be enabled with: cmake -DENABLE_SQLCIPHER=ON ..
+# Note: Requires SQLCipher library to be installed separately
+option(ENABLE_SQLCIPHER "Enable SQLCipher for database encryption (requires SQLCipher library)" OFF)
+
 if(Z_MONITOR_USE_SPDLOG)
     # Try to find spdlog using FetchContent (recommended for header-only)
     include(FetchContent)
@@ -41,6 +46,9 @@ else()
     message(STATUS "spdlog backend disabled (using CustomBackend)")
 endif()
 
+# Qt6::Sql is required for database operations
+find_package(Qt6 COMPONENTS Sql REQUIRED)
+
 if(USE_QXORM)
     # Try to find QxOrm using find_package first (if installed system-wide)
     find_package(QxOrm QUIET)
@@ -55,9 +63,6 @@ if(USE_QXORM)
         )
         FetchContent_MakeAvailable(qxorm)
         
-        # QxOrm requires Qt6::Sql
-        find_package(Qt6 COMPONENTS Sql REQUIRED)
-        
         message(STATUS "QxOrm enabled (downloaded via FetchContent)")
     else()
         message(STATUS "QxOrm enabled (found via find_package)")
@@ -66,6 +71,36 @@ if(USE_QXORM)
     add_compile_definitions(USE_QXORM)
 else()
     message(STATUS "QxOrm disabled (using manual SQL only)")
+endif()
+
+if(ENABLE_SQLCIPHER)
+    # SQLCipher must be installed separately
+    # On Ubuntu/Debian: sudo apt-get install libsqlcipher-dev
+    # On macOS: brew install sqlcipher
+    # On Windows: Download from https://www.zetetic.net/sqlcipher/
+    find_package(SQLCipher QUIET)
+    
+    if(NOT SQLCipher_FOUND)
+        # Try pkg-config as fallback
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(SQLCipher QUIET sqlcipher)
+        endif()
+    endif()
+    
+    if(SQLCipher_FOUND)
+        message(STATUS "SQLCipher enabled (found via find_package)")
+        add_compile_definitions(ENABLE_SQLCIPHER)
+        # Note: Qt6::Sql driver must be built with SQLCipher support
+        # This typically requires rebuilding Qt with SQLCipher driver
+    else()
+        message(WARNING "SQLCipher requested but not found. Database encryption will not work.")
+        message(WARNING "Install SQLCipher library and rebuild Qt with SQLCipher driver support.")
+        message(WARNING "Continuing without SQLCipher support...")
+        set(ENABLE_SQLCIPHER OFF)
+    endif()
+else()
+    message(STATUS "SQLCipher disabled (using standard SQLite)")
 endif()
 
 # Schema Management: Generate SchemaInfo.h from YAML
