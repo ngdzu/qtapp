@@ -1,7 +1,18 @@
 <RCC>
     <qresource prefix="/qml">
         <file>Main.qml</file>
+        
+        <!-- Components -->
+        <file>components/NavButton.qml</file>
+        <file>components/VitalTile.qml</file>
+        <file>components/WaveformPanel.qml</file>
+        
+        <!-- Views -->
+        <file>views/MonitorView.qml</file>
+        <file>views/TrendsView.qml</file>
+        <file>views/SettingsView.qml</file>
     </qresource>
 </RCC>
+
 
 
