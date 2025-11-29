@@ -8,15 +8,226 @@ appliesTo:
   - "src/**/*.cpp"
   - "src/**/*.h"
 ---
+
 # C++ Implementation Guidelines
 
-- Target C++17 throughout the project and enable warnings-as-errors when possible.
-- Favor RAII: wrap ownership in smart pointers (`std::unique_ptr`, `std::shared_ptr`) or rely on Qt’s parent/child relationships.
-- Prefer `const` correctness and `[[nodiscard]]` for functions returning values that must be handled.
-- Avoid raw `new`/`delete`; if dynamic allocation is required, encapsulate it in helpers or use stack-based objects.
-- Keep translation units focused; each `.cpp` should correspond to a single class or cohesive feature.
-- Use `#pragma once` in headers and keep include order: own header, project headers, Qt headers, then STL/system.
-- For Qt signal-slot connections, prefer function/lambda overloads with context objects to prevent leaks.
-- Document tricky logic with concise comments explaining the “why,” not the “what.”
-- **Avoid relative include paths** - Do not use relative include paths such as `#include "../path/to/header.h"` or `#include "../../other/Thing.h"`. Instead, add the path to the include search path via CMake (using `target_include_directories` in `CMakeLists.txt`). Then include headers using their project-relative path (for example, `#include "domain/monitoring/PatientAggregate.h"`). This ensures that if files are moved, the include statements won't break, and centralizes path management in the build system.
-- **Use short, lowercase namespace names** - Namespace names should be short and in lowercase. For example, use `zmon` instead of `ZMonitor`, `infra` instead of `Infrastructure`, `app` instead of `Application`, `domain` instead of `Domain`. This keeps namespace declarations concise and reduces typing overhead. Example: `namespace zmon { namespace infra { namespace sensors { ... } } }` instead of `namespace ZMonitor { namespace Infrastructure { namespace Sensors { ... } } }`.
+## Language Standard and Compiler Settings
+
+- **Target C++17** throughout the project and enable warnings-as-errors when possible.
+- Use `CMAKE_CXX_STANDARD 17` and `CMAKE_CXX_STANDARD_REQUIRED ON` in CMake.
+- Enable compiler warnings: `-Wall -Wextra -Wpedantic` (or equivalent).
+- Treat warnings as errors in CI/CD: `-Werror` (or `CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror"`).
+
+## Memory Management
+
+- **Favor RAII**: Wrap ownership in smart pointers (`std::unique_ptr`, `std::shared_ptr`) or rely on Qt's parent-child relationships.
+- **Avoid raw `new`/`delete`**: If dynamic allocation is required, encapsulate it in helpers or use stack-based objects.
+- **Qt parent-child ownership**: For `QObject` hierarchies, use parent-child relationships for automatic cleanup:
+  ```cpp
+  QWidget* parent = new QWidget;
+  QPushButton* button = new QPushButton("Click", parent);  // button deleted when parent is deleted
+  ```
+- **Smart pointers for non-QObject types**: Use `std::unique_ptr` for exclusive ownership, `std::shared_ptr` for shared ownership.
+- **Rule of thumb**: Use Qt parent-child for `QObject` hierarchies; use smart pointers for plain C++ objects or when ownership is shared/transferred.
+
+## Const Correctness and Function Attributes
+
+- **Prefer `const` correctness**: Mark methods that don't modify state as `const`. Mark parameters that aren't modified as `const`.
+- **Use `[[nodiscard]]`** for functions returning values that must be handled:
+  ```cpp
+  [[nodiscard]] bool isValid() const;
+  [[nodiscard]] std::unique_ptr<Data> loadData();
+  ```
+- **Use `constexpr`** for compile-time constants and simple functions that can be evaluated at compile time.
+- **Use `noexcept`** for functions that guarantee not to throw exceptions (especially move constructors/assignments).
+
+## Code Organization
+
+- **Keep translation units focused**: Each `.cpp` should correspond to a single class or cohesive feature.
+- **One class per header**: Each header file should define one primary class/interface.
+- **Forward declarations**: Use forward declarations in headers to reduce compile-time dependencies:
+  ```cpp
+  class DatabaseManager;  // Forward declaration
+  class MyClass {
+      DatabaseManager* m_db;  // Use pointer/reference, not value
+  };
+  ```
+
+## Header File Guidelines
+
+- **Use `#pragma once`** in headers (preferred over include guards for simplicity).
+- **Include order** (maintain consistency):
+  1. Own header (for `.cpp` files)
+  2. Project headers (domain, application, infrastructure, interface)
+  3. Qt headers
+  4. STL/system headers
+- **Avoid relative include paths**: Do not use relative include paths such as `#include "../path/to/header.h"` or `#include "../../other/Thing.h"`. Instead, add the path to the include search path via CMake (using `target_include_directories` in `CMakeLists.txt`). Then include headers using their project-relative path (for example, `#include "domain/monitoring/PatientAggregate.h"`). This ensures that if files are moved, the include statements won't break, and centralizes path management in the build system.
+
+## Qt-Specific Guidelines
+
+- **Target Qt 6 APIs**: Use modern Qt 6 features and avoid deprecated Qt 5 APIs.
+- **New-style signals/slots**: Prefer function/lambda overloads with context objects:
+  ```cpp
+  // Good: Type-safe, compile-time checked
+  QObject::connect(&button, &QPushButton::clicked, this, &MyClass::onButtonClicked);
+  QObject::connect(&button, &QPushButton::clicked, [this]() { handleClick(); });
+  
+  // Avoid: String-based (runtime errors, no type checking)
+  connect(button, SIGNAL(clicked()), this, SLOT(onButtonClicked()));
+  ```
+- **Leverage parent-child ownership**: Use Qt's parent-child relationships instead of manual deletes for `QObject` hierarchies.
+- **Use `Q_OBJECT` macro**: Always include `Q_OBJECT` in classes that use signals/slots or Qt's meta-object system.
+- **QML integration**: Use `Q_PROPERTY` for exposing C++ properties to QML. Use `Q_INVOKABLE` for methods callable from QML.
+
+## Modern C++ Features (C++17)
+
+- **Use `auto`** for type deduction when the type is obvious from context:
+  ```cpp
+  auto data = std::make_unique<MyClass>();  // Good
+  auto count = items.size();  // Good
+  ```
+- **Range-based for loops**: Prefer over traditional loops:
+  ```cpp
+  for (const auto& item : items) {  // Good
+      process(item);
+  }
+  ```
+- **Structured bindings**: Use for unpacking pairs/tuples:
+  ```cpp
+  auto [key, value] = map.find(key);
+  ```
+- **`std::optional`**: Use for values that may or may not exist:
+  ```cpp
+  std::optional<QString> getValue();
+  if (auto value = getValue()) {
+      use(*value);
+  }
+  ```
+- **Lambda expressions**: Use for callbacks, signal handlers, and small inline functions:
+  ```cpp
+  auto callback = [this, &data](int value) {
+      processData(data, value);
+  };
+  ```
+
+## Naming Conventions
+
+- **Use short, lowercase namespace names**: Namespace names should be short and in lowercase. For example, use `zmon` instead of `ZMonitor`, `infra` instead of `Infrastructure`, `app` instead of `Application`, `domain` instead of `Domain`. This keeps namespace declarations concise and reduces typing overhead. Example: `namespace zmon { namespace infra { namespace sensors { ... } } }` instead of `namespace ZMonitor { namespace Infrastructure { namespace Sensors { ... } } }`.
+- **Class names**: Use `PascalCase` (e.g., `SecurityService`, `DatabaseManager`).
+- **Function/method names**: Use `camelCase` (e.g., `getCurrentUserId()`, `logAction()`).
+- **Member variables**: Prefix with `m_` (e.g., `m_userId`, `m_settingsManager`).
+- **Constants**: Use `UPPER_SNAKE_CASE` (e.g., `MAX_RETRY_ATTEMPTS`, `DEFAULT_TIMEOUT_MS`).
+- **Private members**: Use `m_` prefix for member variables, no prefix for member functions.
+
+## Constants and Magic Numbers
+
+- **Do not hardcode values**: Create constants or shared constants (located in a shared location).
+- **Use named constants**: Replace magic numbers and strings with named constants:
+  ```cpp
+  // Bad
+  if (timeout > 5000) { ... }
+  
+  // Good
+  constexpr int DEFAULT_TIMEOUT_MS = 5000;
+  if (timeout > DEFAULT_TIMEOUT_MS) { ... }
+  ```
+- **Group related constants**: Use `namespace` or `class` with `static constexpr` members:
+  ```cpp
+  namespace Config {
+      constexpr int MAX_RETRY_ATTEMPTS = 3;
+      constexpr int DEFAULT_TIMEOUT_MS = 5000;
+  }
+  ```
+
+## Error Handling
+
+- **Use exceptions sparingly**: Prefer return codes or `std::optional` for expected error conditions.
+- **RAII for exception safety**: Ensure resources are cleaned up even when exceptions are thrown.
+- **Qt error handling**: Use Qt's error mechanisms (`QSqlError`, `QNetworkReply::error()`, etc.) appropriately.
+- **Do not use `qWarning`, `qDebug`, `qInfo`, etc. for error handling**: These logging functions do not handle errors—they only log them and continue execution. Instead:
+  - **Return error codes**: Return `bool`, `std::optional<T>`, or `Result<T, Error>` to indicate failure
+  - **Emit signals**: For async operations, emit error signals (e.g., `errorOccurred(const QString& message)`)
+  - **Use proper logging infrastructure**: If logging is needed, use the application's logging service (e.g., `IAuditRepository`, `IActionLogRepository`) rather than Qt's debug functions
+  - **Handle errors explicitly**: Check return values, handle exceptions, and propagate errors to callers
+  ```cpp
+  // Bad: Error is logged but not handled
+  if (!database.open()) {
+      qWarning() << "Failed to open database";
+      // Execution continues, but database is not open!
+  }
+  
+  // Good: Error is returned to caller
+  bool openDatabase() {
+      if (!database.open()) {
+          return false;  // Caller can handle the error
+      }
+      return true;
+  }
+  
+  // Good: Error is emitted via signal (for async operations)
+  void connectToServer() {
+      if (!m_networkManager->connect()) {
+          emit connectionFailed("Failed to connect to server");
+          return;
+      }
+      emit connected();
+  }
+  
+  // Good: Error is logged via proper logging infrastructure
+  if (!saveToDatabase(data)) {
+      m_auditRepo->logError("Database save failed", details);
+      return false;
+  }
+  ```
+
+## Thread Safety
+
+- **Document thread safety**: Clearly document which methods are thread-safe and which require specific thread context.
+- **Use Qt's threading primitives**: Prefer `QThread`, `QMutex`, `QReadWriteLock`, `QSemaphore` over raw `std::thread` when working with Qt objects.
+- **Signal-slot thread safety**: Use `Qt::QueuedConnection` for cross-thread communication.
+
+## Performance
+
+- **Avoid premature optimization**: Write clear, correct code first; optimize only when profiling shows it's necessary.
+- **Use move semantics**: Prefer moving large objects instead of copying:
+  ```cpp
+  QStringList list;
+  list.append(std::move(largeString));  // Move, don't copy
+  ```
+- **Qt containers are copy-on-write**: Qt containers (`QString`, `QList`, etc.) use implicit sharing, so copying is cheap. Still prefer moves for clarity and when transferring ownership.
+- **Reserve capacity**: Use `reserve()` for containers when you know the approximate size:
+  ```cpp
+  QList<Item> items;
+  items.reserve(1000);  // Avoid reallocations
+  ```
+
+## Documentation
+
+- **Document tricky logic**: Use concise comments explaining the "why," not the "what."
+- **Use Doxygen comments**: For public APIs, use Doxygen-style comments (`/** */`) with `@brief`, `@param`, `@return`, `@note`, etc.
+- **Self-documenting code**: Prefer clear variable and function names over comments:
+  ```cpp
+  // Bad
+  int x = 5;  // timeout in seconds
+  
+  // Good
+  int timeoutSeconds = 5;
+  ```
+
+## Code Examples
+
+- **Keep examples focused**: Avoid unnecessary complexity. Each example should demonstrate one concept clearly.
+- **Use consistent style**: Follow the same patterns throughout the codebase for similar operations.
+
+## Best Practices Summary
+
+1. **RAII first**: Always prefer automatic resource management.
+2. **Const correctness**: Mark everything that can be `const` as `const`.
+3. **Type safety**: Use strong types, avoid `void*` and raw casts.
+4. **Modern C++**: Leverage C++17 features (auto, lambdas, structured bindings, optional).
+5. **Qt idioms**: Use Qt's parent-child ownership, new-style signals/slots, and Qt 6 APIs.
+6. **Clear naming**: Use descriptive names that explain intent.
+7. **No magic numbers**: Use named constants for all literal values.
+8. **Documentation**: Document public APIs and non-obvious logic.
+9. **Thread awareness**: Document and respect thread safety requirements.
+10. **Performance awareness**: Write efficient code, but prioritize correctness and clarity.

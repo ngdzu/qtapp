@@ -37,6 +37,10 @@ set(INFRASTRUCTURE_SOURCES
     sensors/SharedMemoryControlChannel.cpp
     sensors/SharedMemorySensorDataSource.h
     sensors/SharedMemorySensorDataSource.cpp
+    
+    # Persistence adapters
+    persistence/SQLiteActionLogRepository.h
+    persistence/SQLiteActionLogRepository.cpp
 )
 
 # Create infrastructure layer static library

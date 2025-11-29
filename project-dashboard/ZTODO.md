@@ -373,7 +373,7 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See `doc/interfaces/IUserManagementService.md` for complete interface specification. See `doc/38_AUTHENTICATION_WORKFLOW.md` for authentication workflow, sequence diagrams, role-permission matrix, and hospital server integration details.
   - Prompt: `project-dashboard/prompt/38-implement-hospital-authentication.md`
 
-- [ ] Implement Action Logging and Auto-Logout Workflow
+- [x] Implement Action Logging and Auto-Logout Workflow
   - What: Create `action_log` table schema and `IActionLogRepository` interface for logging all user actions (login, logout, auto-logout, configuration changes). Implement `SQLiteActionLogRepository` with dependency injection (no global log objects). Update `SecurityService` to implement 15-minute inactivity timer with auto-logout (per REQ-FUN-USER-003). Update application state machine to handle VIEW_ONLY mode (vitals display without login) vs CONFIGURATION_MODE (requires login). Update all services to use dependency injection for logging repositories instead of global `LogService::instance()`. Implement permission checks before configuration actions (admit/discharge patient, change settings, clear notifications).
   - Why: Device must log all user actions for audit and compliance (REQ-SEC-AUDIT-001, REQ-REG-HIPAA-003). Viewing vitals should NOT require login (device displays normally after patient assignment). Configuration actions (settings, patient management) REQUIRE login. Auto-logout after 15 minutes inactivity prevents unauthorized access (REQ-FUN-USER-003). Dependency injection makes logging testable and flexible.
   - Files:

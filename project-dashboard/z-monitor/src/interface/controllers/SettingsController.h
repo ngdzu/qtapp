@@ -42,9 +42,10 @@ public:
     /**
      * @brief Constructor.
      *
+     * @param actionLogRepo Action log repository for logging settings changes
      * @param parent Parent QObject
      */
-    explicit SettingsController(QObject* parent = nullptr);
+    explicit SettingsController(IActionLogRepository* actionLogRepo = nullptr, QObject* parent = nullptr);
 
     /**
      * @brief Destructor.
@@ -146,6 +147,7 @@ private slots:
     void onSettingChanged(const QString& key, const QVariant& value);
 
 private:
+    IActionLogRepository* m_actionLogRepo;  ///< Action log repository (for dependency injection)
     SettingsManager* m_settingsManager;
     QString m_deviceLabel;
     QString m_measurementUnit;

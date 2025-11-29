@@ -7,6 +7,7 @@
  */
 
 #include "SecurityService.h"
+#include "domain/constants/ActionTypes.h"
 #include "domain/security/PermissionRegistry.h"
 #include "domain/security/Permission.h"
 #include "infrastructure/adapters/SettingsManager.h"
@@ -14,23 +15,24 @@
 #include <QJsonDocument>
 #include <QDateTime>
 #include <QTimer>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QDateTime>
-#include <QTimer>
+#include <QCryptographicHash>
 
 namespace zmon {
 
 SecurityService::SecurityService(
     IUserManagementService* userMgmtService,
     IAuditRepository* auditRepo,
+    IActionLogRepository* actionLogRepo,
     SettingsManager* settingsManager,
     QObject* parent)
     : QObject(parent)
     , m_userMgmtService(userMgmtService)
     , m_auditRepo(auditRepo)
+    , m_actionLogRepo(actionLogRepo)
     , m_settingsManager(settingsManager)
     , m_sessionMonitoringTimer(new QTimer(this))
+    , m_inactivityTimer(new QTimer(this))
+    , m_inactivityWarningTimer(new QTimer(this))
 {
     // Connect to user management service signals
     connect(m_userMgmtService, &IUserManagementService::authenticationCompleted,
@@ -43,7 +45,18 @@ SecurityService::SecurityService(
     // Load session timeout from settings
     if (m_settingsManager) {
         m_sessionTimeoutMinutes = m_settingsManager->getValue("session_timeout_minutes", 60).toInt();
+        m_inactivityTimeoutMinutes = m_settingsManager->getValue("inactivity_timeout_minutes", 15).toInt();
     }
+
+    // Set up inactivity timer (15 minutes = 900000 ms)
+    m_inactivityTimer->setSingleShot(true);
+    m_inactivityTimer->setInterval(m_inactivityTimeoutMinutes * 60 * 1000);
+    connect(m_inactivityTimer, &QTimer::timeout, this, &SecurityService::onInactivityTimeout);
+
+    // Set up inactivity warning timer (14 minutes = 840000 ms, 1 minute before auto-logout)
+    m_inactivityWarningTimer->setSingleShot(true);
+    m_inactivityWarningTimer->setInterval((m_inactivityTimeoutMinutes - 1) * 60 * 1000);
+    connect(m_inactivityWarningTimer, &QTimer::timeout, this, &SecurityService::onInactivityWarning);
 
     // Initialize session monitoring
     initializeSessionMonitoring();
@@ -70,12 +83,20 @@ void SecurityService::logout() {
 
     QString userId = m_currentSession->userProfile.userId;
     QString sessionToken = m_currentSession->userProfile.sessionToken;
+    QString userRole = roleToString(m_currentSession->userProfile.role);
 
-    // Log logout
+    // Log logout to action log
+    logAction(ActionTypes::USER_LOGOUT, QString(), QString(), QJsonObject(), ActionResults::SUCCESS);
+
+    // Log logout to audit log
     logAuditEvent("USER_LOGOUT", userId);
 
     // Invalidate session on server
     m_userMgmtService->logout(sessionToken, userId);
+
+    // Stop inactivity timers
+    m_inactivityTimer->stop();
+    m_inactivityWarningTimer->stop();
 
     // Clear local session immediately (don't wait for server response)
     m_currentSession = std::nullopt;
@@ -152,6 +173,8 @@ QString SecurityService::getSessionToken() const {
 void SecurityService::refreshActivity() {
     if (m_currentSession.has_value()) {
         m_currentSession->lastActivityTime = QDateTime::currentDateTimeUtc();
+        // Note: refreshActivity() is for view-only actions, which do NOT reset inactivity timer
+        // Only configuration actions reset the inactivity timer via recordConfigurationAction()
     }
 }
 
@@ -220,7 +243,33 @@ void SecurityService::onAuthenticationCompleted(
     // Start session monitoring
     m_sessionMonitoringTimer->start();
 
-    // Log successful login
+    // Log successful login to action log
+    QJsonObject loginDetails;
+    loginDetails["login_method"] = "secret_code";
+    loginDetails["device_id"] = m_settingsManager ? m_settingsManager->getValue("deviceId", "").toString() : "";
+    loginDetails["display_name"] = userProfile.displayName;
+    
+    QString sessionTokenHash;
+    if (!userProfile.sessionToken.isEmpty()) {
+        QCryptographicHash hash(QCryptographicHash::Sha256);
+        hash.addData(userProfile.sessionToken.toUtf8());
+        sessionTokenHash = hash.result().toHex();
+    }
+    
+    ActionLogEntry loginEntry;
+    loginEntry.userId = userId;
+    loginEntry.userRole = roleToString(userProfile.role);
+    loginEntry.actionType = ActionTypes::LOGIN;
+    loginEntry.details = loginDetails;
+    loginEntry.result = ActionResults::SUCCESS;
+    loginEntry.deviceId = m_settingsManager ? m_settingsManager->getValue("deviceId", "").toString() : "";
+    loginEntry.sessionTokenHash = sessionTokenHash;
+    
+    if (m_actionLogRepo) {
+        m_actionLogRepo->logAction(loginEntry);
+    }
+
+    // Log successful login to audit log
     logAuditEvent("LOGIN_SUCCESS", userId, QString("{\"role\":\"%1\",\"displayName\":\"%2\"}")
                   .arg(roleToString(userProfile.role), userProfile.displayName));
 
@@ -291,13 +340,19 @@ void SecurityService::handleSessionExpired(const QString& reason) {
 
     QString userId = m_currentSession->userProfile.userId;
 
+    // Log session expired to action log
+    logAction(ActionTypes::SESSION_EXPIRED, QString(), QString(), 
+              QJsonObject{{"reason", reason}}, ActionResults::SUCCESS);
+
     // Clear session
     m_currentSession = std::nullopt;
 
-    // Stop session monitoring
+    // Stop timers
     m_sessionMonitoringTimer->stop();
+    m_inactivityTimer->stop();
+    m_inactivityWarningTimer->stop();
 
-    // Log event
+    // Log event to audit log
     logAuditEvent("SESSION_EXPIRED", userId, QString("{\"reason\":\"%1\"}").arg(reason));
 
     // Emit signal
@@ -355,6 +410,151 @@ QString SecurityService::roleToString(UserRole role) const {
             return "UNKNOWN";
     }
     return "UNKNOWN";
+}
+
+void SecurityService::recordConfigurationAction(const QString& actionType,
+                                                const QString& targetType,
+                                                const QString& targetId,
+                                                const QJsonObject& details) {
+    if (!m_currentSession.has_value() || !m_currentSession->isValid()) {
+        return; // No active session
+    }
+
+    // Log the action
+    logAction(actionType, targetType, targetId, details, "SUCCESS");
+
+    // Reset inactivity timer (15 minutes)
+    m_inactivityTimer->stop();
+    m_inactivityTimer->start();
+    
+    // Reset inactivity warning timer (14 minutes)
+    m_inactivityWarningTimer->stop();
+    m_inactivityWarningTimer->start();
+
+    // Store last action info for auto-logout logging
+    m_lastActionType = actionType;
+    m_lastActionTimestamp = QDateTime::currentMSecsSinceEpoch();
+}
+
+void SecurityService::onInactivityTimeout() {
+    if (!m_currentSession.has_value() || !m_currentSession->isValid()) {
+        return; // No active session
+    }
+
+    QString userId = m_currentSession->userProfile.userId;
+    QString userRole = roleToString(m_currentSession->userProfile.role);
+
+    // Log auto-logout to action log
+    QJsonObject autoLogoutDetails;
+    autoLogoutDetails["inactivity_duration_seconds"] = m_inactivityTimeoutMinutes * 60;
+    autoLogoutDetails["last_action"] = m_lastActionType;
+    autoLogoutDetails["last_action_timestamp"] = m_lastActionTimestamp;
+    
+    QString sessionTokenHash;
+    QString sessionToken = m_currentSession->userProfile.sessionToken;
+    if (!sessionToken.isEmpty()) {
+        QCryptographicHash hash(QCryptographicHash::Sha256);
+        hash.addData(sessionToken.toUtf8());
+        sessionTokenHash = hash.result().toHex();
+    }
+    
+    ActionLogEntry autoLogoutEntry;
+    autoLogoutEntry.userId = userId;
+    autoLogoutEntry.userRole = userRole;
+    autoLogoutEntry.actionType = ActionTypes::AUTO_LOGOUT;
+    autoLogoutEntry.details = autoLogoutDetails;
+    autoLogoutEntry.result = ActionResults::SUCCESS;
+    autoLogoutEntry.deviceId = m_settingsManager ? m_settingsManager->getValue("deviceId", "").toString() : "";
+    autoLogoutEntry.sessionTokenHash = sessionTokenHash;
+    
+    if (m_actionLogRepo) {
+        m_actionLogRepo->logAction(autoLogoutEntry);
+    }
+
+    // Log auto-logout to audit log
+    logAuditEvent("AUTO_LOGOUT", userId, QString("{\"inactivity_duration_seconds\":%1}")
+                  .arg(m_inactivityTimeoutMinutes * 60));
+
+    // Clear session
+    m_currentSession = std::nullopt;
+
+    // Stop timers
+    m_sessionMonitoringTimer->stop();
+    m_inactivityWarningTimer->stop();
+
+    // Emit signals
+    emit autoLogoutImminent();
+    emit userLoggedOut();
+    emit sessionExpired("inactivity_timeout");
+}
+
+void SecurityService::onInactivityWarning() {
+    if (!m_currentSession.has_value() || !m_currentSession->isValid()) {
+        return; // No active session
+    }
+
+    // Emit warning signal (1 minute before auto-logout)
+    emit inactivityWarning();
+}
+
+void SecurityService::logAction(const QString& actionType,
+                                const QString& targetType,
+                                const QString& targetId,
+                                const QJsonObject& details,
+                                const QString& result,
+                                const QString& errorCode,
+                                const QString& errorMessage) {
+    if (!m_actionLogRepo) {
+        return; // No action log repository available
+    }
+
+    if (!m_currentSession.has_value() || !m_currentSession->isValid()) {
+        // Log action without user context (view-only actions)
+        ActionLogEntry entry;
+        entry.userId = QString(); // No user
+        entry.userRole = QString(); // No role
+        entry.actionType = actionType;
+        entry.targetType = targetType;
+        entry.targetId = targetId;
+        entry.details = details;
+        entry.result = result;
+        entry.errorCode = errorCode;
+        entry.errorMessage = errorMessage;
+        entry.deviceId = m_settingsManager ? m_settingsManager->getValue("deviceId", "").toString() : "";
+        entry.sessionTokenHash = QString(); // No session
+        entry.ipAddress = QString(); // Not available
+        
+        m_actionLogRepo->logAction(entry);
+        return;
+    }
+
+    // Log action with user context
+    QString userId = m_currentSession->userProfile.userId;
+    QString userRole = roleToString(m_currentSession->userProfile.role);
+    QString sessionToken = m_currentSession->userProfile.sessionToken;
+    
+    QString sessionTokenHash;
+    if (!sessionToken.isEmpty()) {
+        QCryptographicHash hash(QCryptographicHash::Sha256);
+        hash.addData(sessionToken.toUtf8());
+        sessionTokenHash = hash.result().toHex();
+    }
+    
+    ActionLogEntry entry;
+    entry.userId = userId;
+    entry.userRole = userRole;
+    entry.actionType = actionType;
+    entry.targetType = targetType;
+    entry.targetId = targetId;
+    entry.details = details;
+    entry.result = result;
+    entry.errorCode = errorCode;
+    entry.errorMessage = errorMessage;
+    entry.deviceId = m_settingsManager ? m_settingsManager->getValue("deviceId", "").toString() : "";
+    entry.sessionTokenHash = sessionTokenHash;
+    entry.ipAddress = QString(); // Not available
+    
+    m_actionLogRepo->logAction(entry);
 }
 
 } // namespace zmon

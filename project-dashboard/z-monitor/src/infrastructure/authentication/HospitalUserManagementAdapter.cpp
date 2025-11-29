@@ -38,7 +38,8 @@ HospitalUserManagementAdapter::HospitalUserManagementAdapter(
     }
 
     // Set up periodic health checks (every 5 minutes)
-    m_healthCheckTimer->setInterval(300000); // 5 minutes
+    constexpr int HEALTH_CHECK_INTERVAL_MS = 300000;  // 5 minutes
+    m_healthCheckTimer->setInterval(HEALTH_CHECK_INTERVAL_MS);
     connect(m_healthCheckTimer, &QTimer::timeout, this, &HospitalUserManagementAdapter::healthCheck);
     m_healthCheckTimer->start();
 }

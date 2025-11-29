@@ -467,6 +467,21 @@ public:
 - ❌ Domain → Application (domain is independent)
 - ❌ Application → Interface (application doesn't know about UI)
 
+> ⚠️ **Critical Rule – No Framework/Library Dependencies in Domain Layer**  
+>  
+> The **domain layer must be pure C++** (plus the C++ standard library) and **must not depend on external frameworks or libraries** such as Qt, SQL clients, HTTP clients, logging frameworks, etc.  
+>  
+> **DO NOT** include or use types like `QObject`, `QString`, `QSqlDatabase`, `QNetworkReply`, or any other Qt/infrastructure types inside domain aggregates, value objects, domain events, or domain services.  
+>  
+> - ✅ Domain defines *interfaces* (e.g., `IPatientRepository`, `ITelemetryServer`) using plain C++ types.  
+> - ✅ Application/Infrastructure implement those interfaces using Qt/SQL/HTTP/etc.  
+> - ❌ Domain code must never call Qt APIs, execute SQL, perform network I/O, or write logs directly.  
+>  
+> This rule keeps the domain:
+> - **Testable** without Qt or a database,  
+> - **Portable** to other environments, and  
+> - **Decoupled** from technical choices so infrastructure can change without rewriting business logic.
+
 **Z Monitor Directory Structure:**
 
 ```

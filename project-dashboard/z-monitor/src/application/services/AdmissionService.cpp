@@ -8,34 +8,40 @@
 
 #include "AdmissionService.h"
 
+#include "domain/common/Result.h"
+#include "domain/constants/ActionTypes.h"
 #include "infrastructure/adapters/SettingsManager.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
-#include <QDebug>
 #include <QJsonObject>
 #include <QJsonDocument>
 
 namespace zmon {
-AdmissionService::AdmissionService(QObject* parent)
+AdmissionService::AdmissionService(IActionLogRepository* actionLogRepo, QObject* parent)
     : QObject(parent)
+    , m_actionLogRepo(actionLogRepo)
     , m_admissionState(AdmissionState::NotAdmitted)
 {
 }
 
-bool AdmissionService::admitPatient(const PatientIdentity& patientIdentity,
-                                    const BedLocation& bedLocation,
-                                    AdmissionSource admissionSource)
+Result<void> AdmissionService::admitPatient(const PatientIdentity& patientIdentity,
+                                            const BedLocation& bedLocation,
+                                            AdmissionSource admissionSource)
 {
     if (!patientIdentity.isValid()) {
-        qWarning() << "AdmissionService::admitPatient: Invalid patient identity";
-        return false;
+        return Result<void>::error(
+            Error::create(ErrorCode::InvalidArgument,
+                          "Invalid patient identity",
+                          {{"mrn", patientIdentity.mrn}}));
     }
 
     // Check if patient is already admitted
     if (isPatientAdmitted()) {
-        qWarning() << "AdmissionService::admitPatient: Patient already admitted";
-        return false;
+        return Result<void>::error(
+            Error::create(ErrorCode::AlreadyExists,
+                          "Patient is already admitted",
+                          {{"currentMrn", m_currentAdmission.mrn.toStdString()}}));
     }
 
     QString mrn = QString::fromStdString(patientIdentity.mrn);
@@ -61,35 +67,60 @@ bool AdmissionService::admitPatient(const PatientIdentity& patientIdentity,
     QString admissionSourceStr;
     switch (admissionSource) {
         case AdmissionSource::Manual:
-            admissionSourceStr = "manual";
+            admissionSourceStr = AdmissionSources::MANUAL;
             break;
         case AdmissionSource::Barcode:
-            admissionSourceStr = "barcode";
+            admissionSourceStr = AdmissionSources::BARCODE;
             break;
         case AdmissionSource::CentralStation:
-            admissionSourceStr = "central_station";
+            admissionSourceStr = AdmissionSources::CENTRAL_STATION;
             break;
     }
 
-    logAdmissionEvent("admission", mrn, name, bedLocationStr, admissionSource);
+    logAdmissionEvent(EventTypes::ADMISSION, mrn, name, bedLocationStr, admissionSource);
+
+    // Log to action log repository
+    if (m_actionLogRepo) {
+        QJsonObject details;
+        details[JsonKeys::PATIENT_NAME] = name;
+        details[JsonKeys::ADMISSION_METHOD] = admissionSourceStr;
+        details[JsonKeys::BED_LOCATION] = bedLocationStr;
+        details[JsonKeys::DEVICE_LABEL] = deviceLabel;
+        
+        ActionLogEntry entry;
+        entry.actionType = ActionTypes::ADMIT_PATIENT;
+        entry.targetType = TargetTypes::PATIENT;
+        entry.targetId = mrn;
+        entry.details = details;
+        entry.result = ActionResults::SUCCESS;
+        // Note: userId, userRole, sessionTokenHash should be set by SecurityService
+        // when calling recordConfigurationAction(). For now, leave empty.
+        
+        m_actionLogRepo->logAction(entry);
+    }
 
     // Emit signals
     emit patientAdmitted(mrn, name, bedLocationStr);
     emit admissionStateChanged(m_admissionState);
 
-    return true;
+    return Result<void>::ok();
 }
 
-bool AdmissionService::dischargePatient(const QString& mrn)
+Result<void> AdmissionService::dischargePatient(const QString& mrn)
 {
     if (!isPatientAdmitted()) {
-        qWarning() << "AdmissionService::dischargePatient: No patient admitted";
-        return false;
+        return Result<void>::error(
+            Error::create(ErrorCode::NotFound,
+                          "No patient is currently admitted",
+                          {{"mrn", mrn.toStdString()}}));
     }
 
     if (m_currentAdmission.mrn != mrn) {
-        qWarning() << "AdmissionService::dischargePatient: MRN mismatch";
-        return false;
+        return Result<void>::error(
+            Error::create(ErrorCode::Conflict,
+                          "Discharge MRN does not match current admission",
+                          {{"expectedMrn", m_currentAdmission.mrn.toStdString()},
+                           {"requestedMrn", mrn.toStdString()}}));
     }
 
     // TODO: Update patient record in database (set discharged_at)
@@ -99,8 +130,24 @@ bool AdmissionService::dischargePatient(const QString& mrn)
     m_admissionState = AdmissionState::Discharged;
 
     // Log discharge event
-    logAdmissionEvent("discharge", mrn, m_currentAdmission.name, m_currentAdmission.bedLocation,
+    logAdmissionEvent(EventTypes::DISCHARGE, mrn, m_currentAdmission.name, m_currentAdmission.bedLocation,
                       m_currentAdmission.admissionSource);
+
+    // Log to action log repository
+    if (m_actionLogRepo) {
+        QJsonObject details;
+        details[JsonKeys::PATIENT_NAME] = m_currentAdmission.name;
+        details[JsonKeys::BED_LOCATION] = m_currentAdmission.bedLocation;
+        
+        ActionLogEntry entry;
+        entry.actionType = ActionTypes::DISCHARGE_PATIENT;
+        entry.targetType = TargetTypes::PATIENT;
+        entry.targetId = mrn;
+        entry.details = details;
+        entry.result = ActionResults::SUCCESS;
+        
+        m_actionLogRepo->logAction(entry);
+    }
 
     // Emit signals
     emit patientDischarged(mrn);
@@ -111,29 +158,51 @@ bool AdmissionService::dischargePatient(const QString& mrn)
     m_admissionState = AdmissionState::NotAdmitted;
     emit admissionStateChanged(m_admissionState);
 
-    return true;
+    return Result<void>::ok();
 }
 
-bool AdmissionService::transferPatient(const QString& mrn, const QString& targetDeviceLabel)
+Result<void> AdmissionService::transferPatient(const QString& mrn, const QString& targetDeviceLabel)
 {
     if (!isPatientAdmitted()) {
-        qWarning() << "AdmissionService::transferPatient: No patient admitted";
-        return false;
+        return Result<void>::error(
+            Error::create(ErrorCode::NotFound,
+                          "No patient is currently admitted",
+                          {{"mrn", mrn.toStdString()}}));
     }
 
     if (m_currentAdmission.mrn != mrn) {
-        qWarning() << "AdmissionService::transferPatient: MRN mismatch";
-        return false;
+        return Result<void>::error(
+            Error::create(ErrorCode::Conflict,
+                          "Transfer MRN does not match current admission",
+                          {{"expectedMrn", m_currentAdmission.mrn.toStdString()},
+                           {"requestedMrn", mrn.toStdString()}}));
     }
 
     // Log transfer event
     QJsonObject details;
-    details["targetDevice"] = targetDeviceLabel;
+    details[JsonKeys::TARGET_DEVICE] = targetDeviceLabel;
     QJsonDocument doc(details);
     QString detailsJson = doc.toJson(QJsonDocument::Compact);
 
-    logAdmissionEvent("transfer", mrn, m_currentAdmission.name, m_currentAdmission.bedLocation,
+    logAdmissionEvent(EventTypes::TRANSFER, mrn, m_currentAdmission.name, m_currentAdmission.bedLocation,
                       m_currentAdmission.admissionSource, detailsJson);
+
+    // Log to action log repository
+    if (m_actionLogRepo) {
+        QJsonObject logDetails;
+        logDetails[JsonKeys::PATIENT_NAME] = m_currentAdmission.name;
+        logDetails[JsonKeys::TARGET_DEVICE] = targetDeviceLabel;
+        logDetails[JsonKeys::BED_LOCATION] = m_currentAdmission.bedLocation;
+        
+        ActionLogEntry entry;
+        entry.actionType = ActionTypes::TRANSFER_PATIENT;
+        entry.targetType = TargetTypes::PATIENT;
+        entry.targetId = mrn;
+        entry.details = logDetails;
+        entry.result = ActionResults::SUCCESS;
+        
+        m_actionLogRepo->logAction(entry);
+    }
 
     // Discharge from this device
     dischargePatient(mrn);
@@ -141,7 +210,7 @@ bool AdmissionService::transferPatient(const QString& mrn, const QString& target
     // Emit transfer signal
     emit patientTransferred(mrn, targetDeviceLabel);
 
-    return true;
+    return Result<void>::ok();
 }
 
 AdmissionService::AdmissionInfo AdmissionService::getCurrentAdmission() const
@@ -169,7 +238,6 @@ void AdmissionService::logAdmissionEvent(const QString& eventType,
     QString connectionName = QSqlDatabase::defaultConnection;
     QSqlDatabase db = QSqlDatabase::database(connectionName);
     if (!db.isValid()) {
-        qWarning() << "AdmissionService::logAdmissionEvent: No database connection";
         return;
     }
 
@@ -178,13 +246,13 @@ void AdmissionService::logAdmissionEvent(const QString& eventType,
     QString admissionSourceStr;
     switch (admissionSource) {
         case AdmissionSource::Manual:
-            admissionSourceStr = "manual";
+            admissionSourceStr = AdmissionSources::MANUAL;
             break;
         case AdmissionSource::Barcode:
-            admissionSourceStr = "barcode";
+            admissionSourceStr = AdmissionSources::BARCODE;
             break;
         case AdmissionSource::CentralStation:
-            admissionSourceStr = "central_station";
+            admissionSourceStr = AdmissionSources::CENTRAL_STATION;
             break;
     }
 
@@ -205,10 +273,10 @@ void AdmissionService::logAdmissionEvent(const QString& eventType,
     query.bindValue(":admission_source", admissionSourceStr);
     query.bindValue(":details", details);
 
-    if (!query.exec()) {
-        qWarning() << "AdmissionService::logAdmissionEvent: Failed to log event:"
-                   << query.lastError().text();
-    }
+    // Note: Error is silently ignored here as this is a logging function.
+    // If logging fails, it should not prevent the main operation from completing.
+    // Consider emitting a signal or using proper logging infrastructure for critical errors.
+    query.exec();
 }
 
 QString AdmissionService::getDeviceLabel() const

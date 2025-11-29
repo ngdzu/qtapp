@@ -18,6 +18,8 @@
 
 #include "domain/admission/PatientIdentity.h"
 #include "domain/admission/BedLocation.h"
+#include "domain/common/Result.h"
+#include "domain/repositories/IActionLogRepository.h"
 
 namespace zmon {
 
@@ -78,9 +80,10 @@ public:
     /**
      * @brief Constructor.
      *
+     * @param actionLogRepo Action log repository for logging patient management actions
      * @param parent Parent QObject
      */
-    explicit AdmissionService(QObject* parent = nullptr);
+    explicit AdmissionService(IActionLogRepository* actionLogRepo = nullptr, QObject* parent = nullptr);
 
     /**
      * @brief Destructor.
@@ -93,28 +96,28 @@ public:
      * @param patientIdentity Patient identity information
      * @param bedLocation Bed/room location
      * @param admissionSource Source of admission
-     * @return true if admission succeeded, false otherwise
+     * @return Result<void> Success or error with details if admission fails
      */
-    bool admitPatient(const PatientIdentity& patientIdentity,
-                      const BedLocation& bedLocation,
-                      AdmissionSource admissionSource);
-
+    Result<void> admitPatient(const PatientIdentity& patientIdentity,
+                              const BedLocation& bedLocation,
+                              AdmissionSource admissionSource);
+    
     /**
      * @brief Discharges a patient from the device.
      *
      * @param mrn Medical Record Number of patient to discharge
-     * @return true if discharge succeeded, false otherwise
+     * @return Result<void> Success or error with details if discharge fails
      */
-    bool dischargePatient(const QString& mrn);
-
+    Result<void> dischargePatient(const QString& mrn);
+    
     /**
      * @brief Transfers a patient to another device.
      *
      * @param mrn Medical Record Number of patient to transfer
      * @param targetDeviceLabel Target device label
-     * @return true if transfer succeeded, false otherwise
+     * @return Result<void> Success or error with details if transfer fails
      */
-    bool transferPatient(const QString& mrn, const QString& targetDeviceLabel);
+    Result<void> transferPatient(const QString& mrn, const QString& targetDeviceLabel);
 
     /**
      * @brief Gets the current admission information.
@@ -194,6 +197,7 @@ private:
      */
     QString getDeviceLabel() const;
 
+    IActionLogRepository* m_actionLogRepo;  ///< Action log repository (for dependency injection)
     AdmissionState m_admissionState;
     AdmissionInfo m_currentAdmission;
 };

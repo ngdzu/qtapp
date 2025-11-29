@@ -22,6 +22,7 @@
 #include "domain/security/UserRole.h"
 #include "domain/security/Permission.h"
 #include "domain/repositories/IAuditRepository.h"
+#include "domain/repositories/IActionLogRepository.h"
 
 namespace zmon {
 
@@ -78,12 +79,14 @@ public:
      *
      * @param userMgmtService User management service (mock or production)
      * @param auditRepo Audit repository for logging authentication events
+     * @param actionLogRepo Action log repository for logging user actions
      * @param settingsManager Settings manager for configuration
      * @param parent Parent QObject (for Qt parent-child ownership)
      */
     explicit SecurityService(
         IUserManagementService* userMgmtService,
         IAuditRepository* auditRepo,
+        IActionLogRepository* actionLogRepo,
         SettingsManager* settingsManager,
         QObject* parent = nullptr);
 
@@ -179,6 +182,23 @@ public:
     void refreshActivity();
 
     /**
+     * @brief Record a configuration action.
+     *
+     * Records that a configuration action was performed and resets
+     * the inactivity timer. Should be called after any configuration
+     * action (settings change, patient management, etc.).
+     *
+     * @param actionType Type of action (e.g., "ADMIT_PATIENT", "CHANGE_SETTING")
+     * @param targetType Type of target (e.g., "PATIENT", "SETTING")
+     * @param targetId Target identifier (e.g., patient MRN, setting name)
+     * @param details Additional details (JSON object)
+     */
+    void recordConfigurationAction(const QString& actionType,
+                                   const QString& targetType = QString(),
+                                   const QString& targetId = QString(),
+                                   const QJsonObject& details = QJsonObject());
+
+    /**
      * @brief Check session validity.
      *
      * Validates session with server and handles expiration.
@@ -252,6 +272,20 @@ signals:
     void sessionExpired(const QString& reason);
 
     /**
+     * @brief Emitted when inactivity warning should be shown (14 minutes).
+     *
+     * Emitted 1 minute before auto-logout to warn user.
+     */
+    void inactivityWarning();
+
+    /**
+     * @brief Emitted when auto-logout is about to occur.
+     *
+     * Emitted when inactivity timer expires (15 minutes).
+     */
+    void autoLogoutImminent();
+
+    /**
      * @brief Emitted when permission check is needed (for async permission checks).
      *
      * @param permission Permission that was checked
@@ -264,6 +298,16 @@ private slots:
      * @brief Handle session monitoring timer timeout.
      */
     void onSessionMonitoringTimeout();
+
+    /**
+     * @brief Handle inactivity timer timeout (auto-logout).
+     */
+    void onInactivityTimeout();
+
+    /**
+     * @brief Handle inactivity warning timer (14 minutes).
+     */
+    void onInactivityWarning();
 
 private:
     /**
@@ -294,6 +338,25 @@ private:
                        const QString& details = QString());
 
     /**
+     * @brief Log action to action log repository.
+     *
+     * @param actionType Action type (e.g., "LOGIN", "ADMIT_PATIENT")
+     * @param targetType Type of target (e.g., "PATIENT", "SETTING")
+     * @param targetId Target identifier (e.g., patient MRN, setting name)
+     * @param details Additional details (JSON object)
+     * @param result Result (SUCCESS, FAILURE, PARTIAL)
+     * @param errorCode Error code if result is FAILURE
+     * @param errorMessage Error message if result is FAILURE
+     */
+    void logAction(const QString& actionType,
+                   const QString& targetType = QString(),
+                   const QString& targetId = QString(),
+                   const QJsonObject& details = QJsonObject(),
+                   const QString& result = "SUCCESS",
+                   const QString& errorCode = QString(),
+                   const QString& errorMessage = QString());
+
+    /**
      * @brief Convert UserRole to string for audit logging.
      *
      * @param role User role
@@ -303,11 +366,17 @@ private:
 
     IUserManagementService* m_userMgmtService;        ///< User management service
     IAuditRepository* m_auditRepo;                    ///< Audit repository
+    IActionLogRepository* m_actionLogRepo;            ///< Action log repository
     SettingsManager* m_settingsManager;                ///< Settings manager
     std::optional<UserSession> m_currentSession;       ///< Current active session
     QTimer* m_sessionMonitoringTimer;                  ///< Timer for session validation
+    QTimer* m_inactivityTimer;                        ///< Timer for inactivity auto-logout (15 minutes)
+    QTimer* m_inactivityWarningTimer;                 ///< Timer for inactivity warning (14 minutes)
     int m_sessionTimeoutMinutes = 60;                  ///< Session timeout in minutes
     int m_sessionValidationInterval = 300;            ///< Session validation interval (seconds)
+    int m_inactivityTimeoutMinutes = 15;              ///< Inactivity timeout in minutes (per REQ-FUN-USER-003)
+    QString m_lastActionType;                        ///< Last configuration action type (for auto-logout logging)
+    qint64 m_lastActionTimestamp = 0;                ///< Last configuration action timestamp (for auto-logout logging)
 };
 
 } // namespace zmon

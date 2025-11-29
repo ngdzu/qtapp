@@ -1,5 +1,8 @@
 # Domain Layer - Pure business logic (no Qt dependencies)
 
+# Common utilities (pure C++ helpers shared across layers)
+add_subdirectory(common)
+
 # Domain layer sources
 set(DOMAIN_SOURCES
     # Monitoring bounded context
@@ -36,6 +39,7 @@ set(DOMAIN_SOURCES
     repositories/IProvisioningRepository.h
     repositories/IUserRepository.h
     repositories/IAuditRepository.h
+    repositories/IActionLogRepository.h
     
     # External service interfaces (uses Qt for async communication)
     interfaces/IUserManagementService.h
@@ -45,6 +49,9 @@ set(DOMAIN_SOURCES
     security/UserRole.h
     security/PermissionRegistry.h
     security/PermissionRegistry.cpp
+    
+    # Constants
+    constants/ActionTypes.h
 )
 
 # Create domain layer static library
