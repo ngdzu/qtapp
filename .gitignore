@@ -45,3 +45,4 @@ Thumbs.db
 project-dashboard/vibelink-remote-builder
 project-dashboard/qt-style-telemetry-simulator
 project-dashboard/**/generated/**
+project-dashboard/sample_app
