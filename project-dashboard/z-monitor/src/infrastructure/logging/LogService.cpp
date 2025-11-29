@@ -15,6 +15,7 @@
 #include <QCoreApplication>
 #include <QMutexLocker>
 #include <QDebug>
+#include "domain/common/Result.h"
 
 // Include moodycamel::ConcurrentQueue
 // This is a header-only library, so we include it directly
@@ -103,22 +104,32 @@ LogService::~LogService()
     }
 }
 
-bool LogService::initialize(const QString& logDir, const QString& logFileName)
+Result<void> LogService::initialize(const QString& logDir, const QString& logFileName)
 {
     if (m_initialized) {
-        qWarning() << "LogService::initialize() called multiple times";
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::AlreadyExists,
+            "LogService already initialized",
+            {{"logDir", logDir.toStdString()}, {"logFileName", logFileName.toStdString()}}
+        ));
     }
     
     if (!m_backend) {
-        qWarning() << "LogService::initialize() called with null backend";
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::InvalidArgument,
+            "LogService backend is null",
+            {{"logDir", logDir.toStdString()}, {"logFileName", logFileName.toStdString()}}
+        ));
     }
     
     // Initialize backend
-    if (!m_backend->initialize(logDir, logFileName)) {
-        qWarning() << "LogService::initialize() failed: backend initialization failed";
-        return false;
+    auto backendResult = m_backend->initialize(logDir, logFileName);
+    if (backendResult.isError()) {
+        return Result<void>::error(Error::create(
+            ErrorCode::Internal,
+            "Backend initialization failed: " + backendResult.error().message,
+            {{"logDir", logDir.toStdString()}, {"logFileName", logFileName.toStdString()}}
+        ));
     }
     
     // Start queue processing timer
@@ -126,7 +137,7 @@ bool LogService::initialize(const QString& logDir, const QString& logFileName)
     m_processTimer->start();
     
     m_initialized = true;
-    return true;
+    return Result<void>::ok();
 }
 
 void LogService::trace(const QString& message, const QVariantMap& context)

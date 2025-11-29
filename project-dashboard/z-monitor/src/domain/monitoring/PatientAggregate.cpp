@@ -9,6 +9,7 @@
 #include "domain/monitoring/PatientAggregate.h"
 #include "domain/admission/PatientIdentity.h"
 #include "domain/admission/BedLocation.h"
+#include "domain/common/Result.h"
 #include <chrono>
 #include <algorithm>
 
@@ -28,17 +29,25 @@ PatientAggregate::PatientAggregate()
 
 PatientAggregate::~PatientAggregate() = default;
 
-bool PatientAggregate::admit(const PatientIdentity& identity, 
-                              const BedLocation& bedLocation,
-                              const std::string& admissionSource) {
+Result<void> PatientAggregate::admit(const PatientIdentity& identity, 
+                                     const BedLocation& bedLocation,
+                                     const std::string& admissionSource) {
     // Business rule: Only one patient can be admitted at a time
     if (m_admissionState == AdmissionState::Admitted) {
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::Conflict,
+            "Patient already admitted",
+            {{"currentMrn", m_patientIdentity.mrn}, {"newMrn", identity.mrn}}
+        ));
     }
     
     // Validate patient identity
     if (!identity.isValid()) {
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::InvalidArgument,
+            "Invalid patient identity",
+            {{"mrn", identity.mrn}}
+        ));
     }
     
     // Update state
@@ -56,12 +65,16 @@ bool PatientAggregate::admit(const PatientIdentity& identity,
     // Note: Domain event PatientAdmitted would be raised here
     // (event publishing handled by application service)
     
-    return true;
+    return Result<void>::ok();
 }
 
-bool PatientAggregate::discharge() {
+Result<void> PatientAggregate::discharge() {
     if (m_admissionState != AdmissionState::Admitted) {
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::NotFound,
+            "No patient currently admitted",
+            {{"currentState", std::to_string(static_cast<int>(m_admissionState))}}
+        ));
     }
     
     // Update state
@@ -71,16 +84,24 @@ bool PatientAggregate::discharge() {
     // Note: Domain event PatientDischarged would be raised here
     // (event publishing handled by application service)
     
-    return true;
+    return Result<void>::ok();
 }
 
-bool PatientAggregate::transfer(const std::string& targetDevice) {
+Result<void> PatientAggregate::transfer(const std::string& targetDevice) {
     if (m_admissionState != AdmissionState::Admitted) {
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::NotFound,
+            "No patient currently admitted",
+            {{"currentState", std::to_string(static_cast<int>(m_admissionState))}}
+        ));
     }
     
     if (targetDevice.empty()) {
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::InvalidArgument,
+            "Target device cannot be empty",
+            {{"targetDevice", targetDevice}}
+        ));
     }
     
     // Update state
@@ -91,18 +112,26 @@ bool PatientAggregate::transfer(const std::string& targetDevice) {
     // Note: Domain event PatientTransferred would be raised here
     // (event publishing handled by application service)
     
-    return true;
+    return Result<void>::ok();
 }
 
-bool PatientAggregate::updateVitals(const VitalRecord& vital) {
+Result<void> PatientAggregate::updateVitals(const VitalRecord& vital) {
     // Business rule: Vitals can only be recorded if patient is admitted
     if (m_admissionState != AdmissionState::Admitted) {
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::NotFound,
+            "No patient currently admitted",
+            {{"currentState", std::to_string(static_cast<int>(m_admissionState))}, {"vitalMrn", vital.patientMrn}}
+        ));
     }
     
     // Business rule: Vital must be associated with current patient MRN
     if (vital.patientMrn != m_patientIdentity.mrn) {
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::Conflict,
+            "Vital MRN does not match admitted patient",
+            {{"admittedMrn", m_patientIdentity.mrn}, {"vitalMrn", vital.patientMrn}}
+        ));
     }
     
     // Add to recent vitals (maintain size limit)
@@ -114,7 +143,7 @@ bool PatientAggregate::updateVitals(const VitalRecord& vital) {
         m_recentVitals.erase(m_recentVitals.begin());
     }
     
-    return true;
+    return Result<void>::ok();
 }
 
 std::vector<VitalRecord> PatientAggregate::getRecentVitals(size_t count) const {

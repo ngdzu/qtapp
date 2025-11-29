@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "domain/common/Result.h"
 #include "infrastructure/logging/ILogBackend.h"
 #include "infrastructure/logging/LogEntry.h"
 #include <QString>

@@ -8,6 +8,7 @@
 
 #include "infrastructure/logging/backends/CustomBackend.h"
 #include "infrastructure/logging/utils/LogFormatter.h"
+#include "domain/common/Result.h"
 #include <QDir>
 #include <QFileInfo>
 #include <QDateTime>
@@ -35,10 +36,13 @@ CustomBackend::~CustomBackend() {
     closeLogFile();
 }
 
-bool CustomBackend::initialize(const QString& logDir, const QString& logFileName) {
+Result<void> CustomBackend::initialize(const QString& logDir, const QString& logFileName) {
     if (logDir.isEmpty() || logFileName.isEmpty()) {
-        qWarning() << "CustomBackend::initialize: Invalid logDir or logFileName";
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::InvalidArgument,
+            "Invalid logDir or logFileName",
+            {{"logDir", logDir.toStdString()}, {"logFileName", logFileName.toStdString()}}
+        ));
     }
     
     m_logDir = logDir;
@@ -48,8 +52,11 @@ bool CustomBackend::initialize(const QString& logDir, const QString& logFileName
     QDir dir(logDir);
     if (!dir.exists()) {
         if (!dir.mkpath(".")) {
-            qWarning() << "CustomBackend::initialize: Failed to create log directory:" << logDir;
-            return false;
+            return Result<void>::error(Error::create(
+                ErrorCode::Internal,
+                "Failed to create log directory",
+                {{"logDir", logDir.toStdString()}, {"logFileName", logFileName.toStdString()}}
+            ));
         }
     }
     
@@ -57,13 +64,14 @@ bool CustomBackend::initialize(const QString& logDir, const QString& logFileName
     m_logFilePath = QDir(logDir).filePath(logFileName + ".log");
     
     // Open log file
-    if (!openLogFile()) {
-        return false;
+    auto openResult = openLogFile();
+    if (openResult.isError()) {
+        return openResult;
     }
     
     m_lastRotationDate = QDate::currentDate().startOfDay();
     
-    return true;
+    return Result<void>::ok();
 }
 
 void CustomBackend::write(const LogEntry& entry) {
@@ -227,22 +235,25 @@ void CustomBackend::cleanupOldFiles() {
     }
 }
 
-bool CustomBackend::openLogFile() {
+Result<void> CustomBackend::openLogFile() {
     closeLogFile();
     
     m_logFile = new QFile(m_logFilePath);
     if (!m_logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-        qWarning() << "CustomBackend::openLogFile: Failed to open log file:" 
-                   << m_logFilePath << "Error:" << m_logFile->errorString();
+        QString errorString = m_logFile->errorString();
         delete m_logFile;
         m_logFile = nullptr;
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::Internal,
+            "Failed to open log file: " + errorString.toStdString(),
+            {{"logFilePath", m_logFilePath.toStdString()}}
+        ));
     }
     
     m_stream = new QTextStream(m_logFile);
     m_stream->setCodec("UTF-8");
     
-    return true;
+    return Result<void>::ok();
 }
 
 void CustomBackend::closeLogFile() {

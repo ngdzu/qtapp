@@ -574,29 +574,22 @@ Each document follows a consistent format with:
   - ⏳ noexcept specifications
 - **Applies to:** All C++ code
 
-### 6.3 Circuit Breaker Pattern
-- **Status:** 🔶 Partial
-- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 6.5)
+### 6.3 Error Recovery Patterns (Retry, Exponential Backoff, Circuit Breaker)
+- **Status:** ✅ Complete
+- **Documents:** 
+  - `06_error_handling_and_resilience/03_circuit_breaker.md` - Circuit breaker pattern
+  - `06_error_handling_and_resilience/04_retry_backoff.md` - Retry with exponential backoff
+- **Z Monitor Reference:** `../z-monitor/architecture_and_design/44_ERROR_RECOVERY_PATTERNS.md`
 - **Coverage:**
-  - Network failure handling
-  - Retry limits
-- **Gaps:**
-  - ⏳ State transitions (closed, open, half-open)
-  - ⏳ Timeout strategies
-  - ⏳ Fallback mechanisms
-- **Applies to:** Network communication, external service calls
-
-### 6.4 Retry & Backoff Strategies
-- **Status:** 🔶 Partial
-- **Document:** `../z-monitor/architecture_and_design/06_SECURITY.md` (Section 3.2), `20_ERROR_HANDLING_STRATEGY.md`
-- **Coverage:**
-  - Exponential backoff
-  - Retry limits
-- **Gaps:**
-  - ⏳ Jitter in retry delays
-  - ⏳ Adaptive retry strategies
-  - ⏳ Idempotency requirements
-- **Applies to:** Network operations, transient failures
+  - Retry with exponential backoff
+  - Circuit breaker pattern
+  - Combined strategy (retry + circuit breaker) - see design document
+  - When to retry vs. when not to retry
+  - Circuit breaker state transitions (closed, open, half-open)
+  - Exponential backoff calculation
+  - Configuration and tuning guidelines
+  - Best practices and common pitfalls
+- **Applies to:** Network communication, external service calls, database operations
 
 ### 6.5 Graceful Degradation
 - **Status:** ⏳ Planned

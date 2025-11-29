@@ -14,6 +14,7 @@
 
 #include "domain/admission/PatientIdentity.h"
 #include "domain/admission/BedLocation.h"
+#include "domain/common/Result.h"
 #include "domain/monitoring/VitalRecord.h"
 #include <chrono>
 #include <string>
@@ -77,12 +78,12 @@ public:
      * @param identity Patient identity (MRN, name, DOB, etc.)
      * @param bedLocation Bed/room location assignment
      * @param admissionSource Source of admission ("manual", "barcode", "central_station")
-     * @return true if admission succeeded, false if patient already admitted
+     * @return Result<void> - Success if admission succeeded, Error if patient already admitted or invalid identity
      * 
      * @note Business rule: Only one patient can be admitted at a time.
      */
-    bool admit(const PatientIdentity& identity, const BedLocation& bedLocation,
-               const std::string& admissionSource = "manual");
+    Result<void> admit(const PatientIdentity& identity, const BedLocation& bedLocation,
+                       const std::string& admissionSource = "manual");
     
     /**
      * @brief Discharge the current patient.
@@ -91,9 +92,9 @@ public:
      * patient identity and history but clears current admission. Raises
      * PatientDischarged domain event.
      * 
-     * @return true if discharge succeeded, false if no patient admitted
+     * @return Result<void> - Success if discharge succeeded, Error if no patient admitted
      */
-    bool discharge();
+    Result<void> discharge();
     
     /**
      * @brief Transfer patient to another device.
@@ -102,9 +103,9 @@ public:
      * Raises PatientTransferred domain event.
      * 
      * @param targetDevice Device identifier to transfer to
-     * @return true if transfer succeeded, false if no patient admitted
+     * @return Result<void> - Success if transfer succeeded, Error if no patient admitted or invalid target device
      */
-    bool transfer(const std::string& targetDevice);
+    Result<void> transfer(const std::string& targetDevice);
     
     /**
      * @brief Update vitals for the current patient.
@@ -113,11 +114,11 @@ public:
      * recorded if a patient is currently admitted.
      * 
      * @param vital Vital record to add
-     * @return true if vital was recorded, false if no patient admitted
+     * @return Result<void> - Success if vital was recorded, Error if no patient admitted or MRN mismatch
      * 
      * @note Business rule: Vitals require an admitted patient.
      */
-    bool updateVitals(const VitalRecord& vital);
+    Result<void> updateVitals(const VitalRecord& vital);
     
     /**
      * @brief Get current admission state.

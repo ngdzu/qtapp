@@ -22,6 +22,7 @@
 #include <QMutex>
 #include <memory>
 
+#include "domain/common/Result.h"
 #include "LogEntry.h"
 #include "ILogBackend.h"
 
@@ -76,9 +77,9 @@ public:
      *
      * @param logDir Directory for log files
      * @param logFileName Base name for log files (e.g., "z-monitor")
-     * @return true if initialization succeeded, false otherwise
+     * @return Result<void> - Success if initialization succeeded, Error with details if failed
      */
-    bool initialize(const QString& logDir, const QString& logFileName);
+    Result<void> initialize(const QString& logDir, const QString& logFileName);
 
     // Public logging methods - all return immediately (< 1μs)
 

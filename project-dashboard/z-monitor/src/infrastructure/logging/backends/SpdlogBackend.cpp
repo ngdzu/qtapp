@@ -8,6 +8,7 @@
 
 #include "infrastructure/logging/backends/SpdlogBackend.h"
 
+#include "domain/common/Result.h"
 #include <QDir>
 #include <QDebug>
 #include <QJsonObject>
@@ -76,11 +77,14 @@ SpdlogBackend::~SpdlogBackend()
     m_logger.reset();
 }
 
-bool SpdlogBackend::initialize(const QString& logDir, const QString& logFileName)
+Result<void> SpdlogBackend::initialize(const QString& logDir, const QString& logFileName)
 {
     if (logDir.isEmpty() || logFileName.isEmpty()) {
-        qWarning() << "SpdlogBackend::initialize: Invalid logDir or logFileName";
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::InvalidArgument,
+            "Invalid logDir or logFileName",
+            {{"logDir", logDir.toStdString()}, {"logFileName", logFileName.toStdString()}}
+        ));
     }
 
 #ifdef Z_MONITOR_USE_SPDLOG
@@ -91,8 +95,11 @@ bool SpdlogBackend::initialize(const QString& logDir, const QString& logFileName
     QDir dir(logDir);
     if (!dir.exists()) {
         if (!dir.mkpath(".")) {
-            qWarning() << "SpdlogBackend::initialize: Failed to create log directory:" << logDir;
-            return false;
+            return Result<void>::error(Error::create(
+                ErrorCode::Internal,
+                "Failed to create log directory",
+                {{"logDir", logDir.toStdString()}, {"logFileName", logFileName.toStdString()}}
+            ));
         }
     }
 
@@ -123,16 +130,21 @@ bool SpdlogBackend::initialize(const QString& logDir, const QString& logFileName
         }
 
         m_initialized = true;
-        return true;
+        return Result<void>::ok();
     } catch (const std::exception& e) {
-        qWarning() << "SpdlogBackend::initialize: Exception:" << e.what();
-        return false;
+        return Result<void>::error(Error::create(
+            ErrorCode::Internal,
+            "spdlog initialization failed: " + std::string(e.what()),
+            {{"logDir", logDir.toStdString()}, {"logFileName", logFileName.toStdString()}}
+        ));
     }
 #else
-    // spdlog not available - return false
-    qWarning() << "SpdlogBackend::initialize: spdlog library not available. "
-               << "Define Z_MONITOR_USE_SPDLOG and link spdlog to use SpdlogBackend.";
-    return false;
+    // spdlog not available - return error
+    return Result<void>::error(Error::create(
+        ErrorCode::Unavailable,
+        "spdlog library not available. Define Z_MONITOR_USE_SPDLOG and link spdlog to use SpdlogBackend.",
+        {{"logDir", logDir.toStdString()}, {"logFileName", logFileName.toStdString()}}
+    ));
 #endif
 }
 

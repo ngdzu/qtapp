@@ -7,11 +7,14 @@
  */
 
 #include "application/services/MonitoringService.h"
+#include "domain/common/Result.h"
 #include "domain/monitoring/PatientAggregate.h"
 #include "domain/monitoring/TelemetryBatch.h"
 #include "domain/monitoring/AlarmAggregate.h"
 #include "domain/monitoring/VitalRecord.h"
 #include "infrastructure/interfaces/ISensorDataSource.h"
+#include "infrastructure/logging/LogService.h"
+#include <QDebug>
 
 namespace zmon {
 
@@ -65,7 +68,13 @@ void MonitoringService::stop() {
 void MonitoringService::processVital(const VitalRecord& vital) {
     // Update patient aggregate if patient is admitted
     if (m_currentPatient && m_currentPatient->isAdmitted()) {
-        m_currentPatient->updateVitals(vital);
+        auto updateResult = m_currentPatient->updateVitals(vital);
+        if (updateResult.isError()) {
+            // Domain layer returns errors only (no logging per guidelines)
+            // Log infrastructure failure if needed, but domain errors are expected conditions
+            // For now, silently continue - vitals update failure is not critical for processing
+            // In production, might want to emit a signal for UI feedback
+        }
     }
     
     // Evaluate alarm conditions
@@ -82,9 +91,18 @@ void MonitoringService::processVital(const VitalRecord& vital) {
         }
     }
     
-    // Persist vital record
+    // Persist vital record (infrastructure call - log failures per guidelines)
     if (m_vitalsRepo) {
-        m_vitalsRepo->save(vital);
+        auto saveResult = m_vitalsRepo->save(vital);
+        if (saveResult.isError()) {
+            // Application layer: Log infrastructure failures before continuing
+            // Note: LogService would be injected via DI - for now use qWarning as fallback
+            // TODO: Inject LogService and use proper logging
+            qWarning() << "Failed to save vital record:" 
+                       << QString::fromStdString(saveResult.error().message)
+                       << "MRN:" << QString::fromStdString(vital.patientMrn);
+            // Continue processing - vital was processed, just not persisted
+        }
     }
     
     emit vitalProcessed(vital);
@@ -121,9 +139,17 @@ void MonitoringService::flushBatch() {
         return;
     }
     
-    // Persist to repository
+    // Persist to repository (infrastructure call - log failures per guidelines)
     if (m_telemetryRepo) {
-        m_telemetryRepo->save(*m_currentBatch);
+        auto saveResult = m_telemetryRepo->save(*m_currentBatch);
+        if (saveResult.isError()) {
+            // Application layer: Log infrastructure failures before continuing
+            // TODO: Inject LogService and use proper logging
+            qWarning() << "Failed to save telemetry batch:" 
+                       << QString::fromStdString(saveResult.error().message)
+                       << "Batch ID:" << QString::fromStdString(m_currentBatch->getBatchId());
+            // Continue - emit signal anyway for retry mechanism
+        }
     }
     
     // Emit signal for network transmission
@@ -151,9 +177,17 @@ void MonitoringService::evaluateAlarms(const VitalRecord& vital) {
                 vital.patientMrn, vital.deviceId);
             
             if (alarm.alarmId != "") {
-                // Persist alarm
+                // Persist alarm (infrastructure call - log failures per guidelines)
                 if (m_alarmRepo) {
-                    m_alarmRepo->save(alarm);
+                    auto saveResult = m_alarmRepo->save(alarm);
+                    if (saveResult.isError()) {
+                        // Application layer: Log infrastructure failures before continuing
+                        // TODO: Inject LogService and use proper logging
+                        qWarning() << "Failed to save alarm:" 
+                                   << QString::fromStdString(saveResult.error().message)
+                                   << "Alarm ID:" << QString::fromStdString(alarm.alarmId);
+                        // Continue - emit signal anyway (alarm was raised, just not persisted)
+                    }
                 }
                 
                 // Emit signal

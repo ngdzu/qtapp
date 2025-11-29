@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "domain/common/Result.h"
 #include "infrastructure/logging/ILogBackend.h"
 #include "infrastructure/logging/LogEntry.h"
 #include <QFile>
@@ -173,9 +174,9 @@ private:
     /**
      * @brief Opens the log file for writing.
      * 
-     * @return true if file opened successfully, false otherwise.
+     * @return Result<void> - Success if file opened successfully, Error with details if failed
      */
-    bool openLogFile();
+    Result<void> openLogFile();
     
     /**
      * @brief Closes the log file.

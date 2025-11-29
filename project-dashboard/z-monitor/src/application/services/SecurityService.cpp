@@ -7,6 +7,7 @@
  */
 
 #include "SecurityService.h"
+#include "domain/common/Result.h"
 #include "domain/constants/ActionTypes.h"
 #include "domain/security/PermissionRegistry.h"
 #include "domain/security/Permission.h"
@@ -16,6 +17,7 @@
 #include <QDateTime>
 #include <QTimer>
 #include <QCryptographicHash>
+#include <QDebug>
 
 namespace zmon {
 
@@ -390,8 +392,18 @@ void SecurityService::logAuditEvent(const QString& eventType,
     // TODO: Implement proper hash calculation
     entry.entryHash = "hash_" + std::to_string(entry.timestampMs);
 
-    // Save to audit repository
-    m_auditRepo->save(entry);
+    // Save to audit repository (infrastructure call - log failures per guidelines)
+    auto saveResult = m_auditRepo->save(entry);
+    if (saveResult.isError()) {
+        // Application layer: Log infrastructure failures before continuing
+        // TODO: Inject LogService and use proper logging
+        qWarning() << "Failed to save audit entry:" 
+                   << QString::fromStdString(saveResult.error().message)
+                   << "Event type:" << eventType
+                   << "User ID:" << userId;
+        // Continue - audit logging failure should not block operation
+        // but should be logged for compliance monitoring
+    }
 }
 
 QString SecurityService::roleToString(UserRole role) const {
