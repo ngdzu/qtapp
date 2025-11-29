@@ -7,14 +7,14 @@ add_executable(result_test
 
 target_link_libraries(result_test
     PRIVATE
-        GTest::gtest
-        GTest::gtest_main
-        zmon_domain_common
+    GTest::gtest
+    GTest::gtest_main
+    zmon_domain_common
 )
 
 target_include_directories(result_test
     PRIVATE
-        ${Z_MONITOR_ROOT}  # z-monitor root (for src/ includes)
+    ${Z_MONITOR_ROOT}/src # z-monitor src directory (for domain/ includes)
 )
 
 add_test(NAME ResultTest COMMAND result_test)
@@ -26,14 +26,14 @@ add_executable(retry_policy_test
 
 target_link_libraries(retry_policy_test
     PRIVATE
-        GTest::gtest
-        GTest::gtest_main
-        zmon_domain_common
+    GTest::gtest
+    GTest::gtest_main
+    zmon_domain_common
 )
 
 target_include_directories(retry_policy_test
     PRIVATE
-        ${Z_MONITOR_ROOT}  # z-monitor root (for src/ includes)
+    ${Z_MONITOR_ROOT}/src # z-monitor src directory (for domain/ includes)
 )
 
 add_test(NAME RetryPolicyTest COMMAND retry_policy_test)
@@ -45,15 +45,14 @@ add_executable(circuit_breaker_test
 
 target_link_libraries(circuit_breaker_test
     PRIVATE
-        GTest::gtest
-        GTest::gtest_main
-        zmon_domain_common
+    GTest::gtest
+    GTest::gtest_main
+    zmon_domain_common
 )
 
 target_include_directories(circuit_breaker_test
     PRIVATE
-        ${Z_MONITOR_ROOT}  # z-monitor root (for src/ includes)
+    ${Z_MONITOR_ROOT}/src # z-monitor src directory (for domain/ includes)
 )
 
 add_test(NAME CircuitBreakerTest COMMAND circuit_breaker_test)
-

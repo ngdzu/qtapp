@@ -6,18 +6,17 @@ add_executable(test_network_retry
 
 target_link_libraries(test_network_retry
     PRIVATE
-        GTest::gtest
-        GTest::gtest_main
-        z_monitor_infrastructure
-        z_monitor_domain
-        Qt6::Core
-        Qt6::Network
+    GTest::gtest
+    GTest::gtest_main
+    z_monitor_infrastructure
+    z_monitor_domain
+    Qt6::Core
+    Qt6::Network
 )
 
 target_include_directories(test_network_retry
     PRIVATE
-        ${Z_MONITOR_ROOT}  # For infrastructure includes
+    ${Z_MONITOR_ROOT}/src # For infrastructure includes
 )
 
 add_test(NAME NetworkRetryTest COMMAND test_network_retry)
-

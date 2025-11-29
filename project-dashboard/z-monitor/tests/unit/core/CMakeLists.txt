@@ -7,17 +7,16 @@ add_executable(test_alarm_manager
 
 target_link_libraries(test_alarm_manager
     PRIVATE
-        GTest::gtest
-        GTest::gtest_main
-        zmon_test_mocks
-        Qt6::Core
-        Qt6::Test
+    GTest::gtest
+    GTest::gtest_main
+    zmon_test_mocks
+    Qt6::Core
+    Qt6::Test
 )
 
 target_include_directories(test_alarm_manager
     PRIVATE
-        ${Z_MONITOR_ROOT}  # z-monitor root (for src/ includes)
+    ${Z_MONITOR_ROOT}/src # z-monitor src directory (for domain/ includes)
 )
 
 add_test(NAME AlarmManagerTest COMMAND test_alarm_manager)
-
