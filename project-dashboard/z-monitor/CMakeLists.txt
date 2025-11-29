@@ -90,6 +90,34 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/infrastructure/persistence/g
 # Add source code subdirectory (handles all DDD layers)
 add_subdirectory(src)
 
+# Generate query reference documentation (after src is added so we can link to libraries)
+add_executable(generate_query_reference
+    scripts/generate_query_reference.cpp
+)
+
+target_link_libraries(generate_query_reference
+    PRIVATE
+        z_monitor_infrastructure
+        z_monitor_domain
+        Qt6::Core
+        Qt6::Sql
+)
+
+target_include_directories(generate_query_reference
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# Ensure infrastructure is built before generate_query_reference
+add_dependencies(generate_query_reference z_monitor_infrastructure)
+
+add_custom_target(generate_query_docs
+    COMMAND $<TARGET_FILE:generate_query_reference> > ${CMAKE_CURRENT_SOURCE_DIR}/doc/QUERY_REFERENCE.md
+    DEPENDS generate_query_reference
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating QUERY_REFERENCE.md from QueryCatalog"
+)
+
 # Add tests subdirectory (optional, can be disabled)
 option(BUILD_TESTING "Build tests" ON)
 if(BUILD_TESTING)

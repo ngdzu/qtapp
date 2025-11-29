@@ -7,6 +7,7 @@
  */
 
 #include "infrastructure/persistence/SQLitePatientRepository.h"
+#include "infrastructure/persistence/QueryRegistry.h"
 #include "domain/monitoring/PatientAggregate.h"
 #include "domain/admission/PatientIdentity.h"
 #include "domain/admission/BedLocation.h"
@@ -98,15 +99,15 @@ Result<std::vector<std::shared_ptr<PatientAggregate>>> SQLitePatientRepository::
         );
     }
     
-    using namespace Schema::Tables;
-    using namespace Schema::Columns::Patients;
+    QSqlQuery query = m_dbManager->getPreparedQueryForRead(QueryId::Patient::FIND_ALL);
+    if (!query.isValid()) {
+        return Result<std::vector<std::shared_ptr<PatientAggregate>>>::error(
+            Error::create(ErrorCode::DatabaseError,
+                QString("Query not registered: %1").arg(QueryId::Patient::FIND_ALL).toStdString())
+        );
+    }
     
-    QSqlQuery query(m_dbManager->getReadConnection());
-    QString sql = QString("SELECT * FROM %1 ORDER BY %2 DESC")
-        .arg(PATIENTS)
-        .arg(CREATED_AT);
-    
-    if (!query.exec(sql)) {
+    if (!query.exec()) {
         QSqlError error = query.lastError();
         return Result<std::vector<std::shared_ptr<PatientAggregate>>>::error(
             Error::create(ErrorCode::DatabaseError,
@@ -148,19 +149,16 @@ Result<std::vector<std::string>> SQLitePatientRepository::getAdmissionHistory(co
         );
     }
     
-    using namespace Schema::Tables;
     using namespace Schema::Columns::AdmissionEvents;
     
-    QSqlQuery query(m_dbManager->getReadConnection());
-    QString sql = QString(
-        "SELECT %1, %2, %3 FROM %4 WHERE %5 = :mrn ORDER BY %3 DESC"
-    ).arg(EVENT_TYPE)
-     .arg(DETAILS)
-     .arg(TIMESTAMP)
-     .arg(ADMISSION_EVENTS)
-     .arg(PATIENT_MRN);
+    QSqlQuery query = m_dbManager->getPreparedQueryForRead(QueryId::Patient::GET_ADMISSION_HISTORY);
+    if (!query.isValid()) {
+        return Result<std::vector<std::string>>::error(
+            Error::create(ErrorCode::DatabaseError,
+                QString("Query not registered: %1").arg(QueryId::Patient::GET_ADMISSION_HISTORY).toStdString())
+        );
+    }
     
-    query.prepare(sql);
     query.bindValue(":mrn", QString::fromStdString(mrn));
     
     if (!query.exec()) {
@@ -418,15 +416,14 @@ Result<std::shared_ptr<PatientAggregate>> SQLitePatientRepository::queryToAggreg
 }
 
 Result<std::shared_ptr<PatientAggregate>> SQLitePatientRepository::findByMrnSql(const std::string& mrn) {
-    using namespace Schema::Tables;
-    using namespace Schema::Columns::Patients;
+    QSqlQuery query = m_dbManager->getPreparedQueryForRead(QueryId::Patient::FIND_BY_MRN);
+    if (!query.isValid()) {
+        return Result<std::shared_ptr<PatientAggregate>>::error(
+            Error::create(ErrorCode::DatabaseError,
+                QString("Query not registered: %1").arg(QueryId::Patient::FIND_BY_MRN).toStdString())
+        );
+    }
     
-    QSqlQuery query(m_dbManager->getReadConnection());
-    QString sql = QString("SELECT * FROM %1 WHERE %2 = :mrn")
-        .arg(PATIENTS)
-        .arg(MRN);
-    
-    query.prepare(sql);
     query.bindValue(":mrn", QString::fromStdString(mrn));
     
     if (!query.exec()) {
@@ -448,18 +445,18 @@ Result<std::shared_ptr<PatientAggregate>> SQLitePatientRepository::findByMrnSql(
 }
 
 Result<void> SQLitePatientRepository::saveSql(const PatientAggregate& patient) {
-    using namespace Schema::Tables;
-    using namespace Schema::Columns::Patients;
-    
     const PatientIdentity& identity = patient.getPatientIdentity();
     const BedLocation& bedLocation = patient.getBedLocation();
     
     // Check if patient exists
-    QSqlQuery checkQuery(m_dbManager->getReadConnection());
-    QString checkSql = QString("SELECT COUNT(*) FROM %1 WHERE %2 = :mrn")
-        .arg(PATIENTS)
-        .arg(MRN);
-    checkQuery.prepare(checkSql);
+    QSqlQuery checkQuery = m_dbManager->getPreparedQueryForRead(QueryId::Patient::CHECK_EXISTS);
+    if (!checkQuery.isValid()) {
+        return Result<void>::error(
+            Error::create(ErrorCode::DatabaseError,
+                QString("Query not registered: %1").arg(QueryId::Patient::CHECK_EXISTS).toStdString())
+        );
+    }
+    
     checkQuery.bindValue(":mrn", QString::fromStdString(identity.mrn));
     
     if (!checkQuery.exec() || !checkQuery.next()) {
@@ -479,23 +476,19 @@ Result<void> SQLitePatientRepository::saveSql(const PatientAggregate& patient) {
     }
     QString allergiesStr = allergyList.join(",");
     
-    QSqlQuery query(m_dbManager->getWriteConnection());
+    QSqlQuery query = exists 
+        ? m_dbManager->getPreparedQuery(QueryId::Patient::UPDATE)
+        : m_dbManager->getPreparedQuery(QueryId::Patient::INSERT);
+    
+    if (!query.isValid()) {
+        return Result<void>::error(
+            Error::create(ErrorCode::DatabaseError,
+                QString("Query not registered: %1").arg(exists ? QueryId::Patient::UPDATE : QueryId::Patient::INSERT).toStdString())
+        );
+    }
     
     if (exists) {
         // UPDATE
-        QString updateSql = QString(
-            "UPDATE %1 SET "
-            "%2 = :name, %3 = :dob, %4 = :sex, %5 = :allergies, "
-            "%6 = :bedLocation, %7 = :admissionStatus, %8 = :admittedAt, "
-            "%9 = :dischargedAt, %10 = :admissionSource "
-            "WHERE %11 = :mrn"
-        ).arg(PATIENTS)
-         .arg(NAME).arg(DOB).arg(SEX).arg(ALLERGIES)
-         .arg(BED_LOCATION).arg(ADMISSION_STATUS).arg(ADMITTED_AT)
-         .arg(DISCHARGED_AT).arg(ADMISSION_SOURCE)
-         .arg(MRN);
-        
-        query.prepare(updateSql);
         query.bindValue(":mrn", QString::fromStdString(identity.mrn));
         query.bindValue(":name", QString::fromStdString(identity.name));
         query.bindValue(":dob", msToDateString(identity.dateOfBirthMs));
@@ -508,16 +501,6 @@ Result<void> SQLitePatientRepository::saveSql(const PatientAggregate& patient) {
         query.bindValue(":admissionSource", "");
     } else {
         // INSERT
-        QString insertSql = QString(
-            "INSERT INTO %1 (%2, %3, %4, %5, %6, %7, %8, %9, %10, %11, %12) "
-            "VALUES (:mrn, :name, :dob, :sex, :allergies, :bedLocation, "
-            ":admissionStatus, :admittedAt, :dischargedAt, :admissionSource, :createdAt)"
-        ).arg(PATIENTS)
-         .arg(MRN).arg(NAME).arg(DOB).arg(SEX).arg(ALLERGIES)
-         .arg(BED_LOCATION).arg(ADMISSION_STATUS).arg(ADMITTED_AT)
-         .arg(DISCHARGED_AT).arg(ADMISSION_SOURCE).arg(CREATED_AT);
-        
-        query.prepare(insertSql);
         query.bindValue(":mrn", QString::fromStdString(identity.mrn));
         query.bindValue(":name", QString::fromStdString(identity.name));
         query.bindValue(":dob", msToDateString(identity.dateOfBirthMs));
@@ -543,15 +526,14 @@ Result<void> SQLitePatientRepository::saveSql(const PatientAggregate& patient) {
 }
 
 Result<void> SQLitePatientRepository::removeSql(const std::string& mrn) {
-    using namespace Schema::Tables;
-    using namespace Schema::Columns::Patients;
+    QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Patient::DELETE);
+    if (!query.isValid()) {
+        return Result<void>::error(
+            Error::create(ErrorCode::DatabaseError,
+                QString("Query not registered: %1").arg(QueryId::Patient::DELETE).toStdString())
+        );
+    }
     
-    QSqlQuery query(m_dbManager->getWriteConnection());
-    QString sql = QString("DELETE FROM %1 WHERE %2 = :mrn")
-        .arg(PATIENTS)
-        .arg(MRN);
-    
-    query.prepare(sql);
     query.bindValue(":mrn", QString::fromStdString(mrn));
     
     if (!query.exec()) {

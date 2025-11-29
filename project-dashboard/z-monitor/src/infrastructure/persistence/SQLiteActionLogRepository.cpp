@@ -7,6 +7,7 @@
  */
 
 #include "SQLiteActionLogRepository.h"
+#include "QueryRegistry.h"
 #include "generated/SchemaInfo.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -120,19 +121,14 @@ QString SQLiteActionLogRepository::computePreviousHash(qint64 previousId) {
         return QString(); // No previous entry
     }
     
-    QSqlQuery query(m_database);
-    using namespace Schema::Tables;
-    using namespace Schema::Columns::ActionLog;
+    // Get SQL from QueryCatalog
+    auto queryDef = QueryCatalog::getQuery(QueryId::ActionLog::GET_PREVIOUS_ENTRY);
+    if (queryDef.id.isEmpty()) {
+        return QString(); // Query not found
+    }
     
-    query.prepare(QString("SELECT %1, %2, %3, %4, %5, %6, %7 FROM %8 WHERE %1 = ?")
-                  .arg(ID)
-                  .arg(TIMESTAMP_MS)
-                  .arg(ACTION_TYPE)
-                  .arg(USER_ID)
-                  .arg(TARGET_ID)
-                  .arg(DETAILS)
-                  .arg(RESULT)
-                  .arg(ACTION_LOG));
+    QSqlQuery query(m_database);
+    query.prepare(queryDef.sql);
     query.addBindValue(previousId);
     
     if (!query.exec() || !query.next()) {
@@ -155,85 +151,55 @@ QString SQLiteActionLogRepository::computePreviousHash(qint64 previousId) {
 }
 
 Result<void> SQLiteActionLogRepository::createTableIfNotExists() {
+    // Get SQL from QueryCatalog
+    auto queryDef = QueryCatalog::getQuery(QueryId::ActionLog::CREATE_TABLE);
+    if (queryDef.id.isEmpty()) {
+        return Result<void>::error(
+            Error::create(ErrorCode::DatabaseError,
+                QString("Query not registered: %1").arg(QueryId::ActionLog::CREATE_TABLE).toStdString())
+        );
+    }
+    
     QSqlQuery query(m_database);
-    using namespace Schema::Tables;
-    using namespace Schema::Columns::ActionLog;
-    
-    QString createTableSql = QString(R"(
-        CREATE TABLE IF NOT EXISTS %1 (
-            %2 INTEGER PRIMARY KEY AUTOINCREMENT,
-            %3 INTEGER NOT NULL,
-            %4 TEXT NOT NULL,
-            %5 TEXT NULL,
-            %6 TEXT NULL,
-            %7 TEXT NOT NULL,
-            %8 TEXT NULL,
-            %9 TEXT NULL,
-            %10 TEXT NULL,
-            %11 TEXT NOT NULL,
-            %12 TEXT NULL,
-            %13 TEXT NULL,
-            %14 TEXT NOT NULL,
-            %15 TEXT NULL,
-            %16 TEXT NULL,
-            %17 TEXT NULL
-        )
-    )")
-        .arg(ACTION_LOG)
-        .arg(ID)
-        .arg(TIMESTAMP_MS)
-        .arg(TIMESTAMP_ISO)
-        .arg(USER_ID)
-        .arg(USER_ROLE)
-        .arg(ACTION_TYPE)
-        .arg(TARGET_TYPE)
-        .arg(TARGET_ID)
-        .arg(DETAILS)
-        .arg(RESULT)
-        .arg(ERROR_CODE)
-        .arg(ERROR_MESSAGE)
-        .arg(DEVICE_ID)
-        .arg(SESSION_TOKEN_HASH)
-        .arg(IP_ADDRESS)
-        .arg(PREVIOUS_HASH);
-    
-    if (!query.exec(createTableSql)) {
+    if (!query.exec(queryDef.sql)) {
         return Result<void>::error(
             Error::create(ErrorCode::DatabaseError,
                           "Failed to create action_log table",
                           {{"error", query.lastError().text().toStdString()}}));
     }
     
-    // Create indexes
-    QStringList indexSqls = {
-        QString("CREATE INDEX IF NOT EXISTS idx_action_log_timestamp ON %1(%2 DESC)")
-            .arg(ACTION_LOG, TIMESTAMP_MS),
-        QString("CREATE INDEX IF NOT EXISTS idx_action_log_user ON %1(%2, %3 DESC)")
-            .arg(ACTION_LOG, USER_ID, TIMESTAMP_MS),
-        QString("CREATE INDEX IF NOT EXISTS idx_action_log_action_type ON %1(%2, %3 DESC)")
-            .arg(ACTION_LOG, ACTION_TYPE, TIMESTAMP_MS),
-        QString("CREATE INDEX IF NOT EXISTS idx_action_log_target ON %1(%2, %3, %4 DESC)")
-            .arg(ACTION_LOG, TARGET_TYPE, TARGET_ID, TIMESTAMP_MS),
-        QString("CREATE INDEX IF NOT EXISTS idx_action_log_device ON %1(%2, %3 DESC)")
-            .arg(ACTION_LOG, DEVICE_ID, TIMESTAMP_MS)
+    // Create indexes using QueryId constants
+    QStringList indexQueryIds = {
+        QueryId::ActionLog::CREATE_INDEX_TIMESTAMP,
+        QueryId::ActionLog::CREATE_INDEX_USER,
+        QueryId::ActionLog::CREATE_INDEX_ACTION_TYPE,
+        QueryId::ActionLog::CREATE_INDEX_TARGET,
+        QueryId::ActionLog::CREATE_INDEX_DEVICE
     };
     
-    for (const QString& indexSql : indexSqls) {
+    for (const QString& queryId : indexQueryIds) {
+        auto indexDef = QueryCatalog::getQuery(queryId);
+        if (indexDef.id.isEmpty()) {
+            continue; // Skip if query not found
+        }
+        
+        QSqlQuery indexQuery(m_database);
         // Index creation failures are non-fatal; they affect performance, not correctness.
-        query.exec(indexSql);
+        indexQuery.exec(indexDef.sql);
     }
     
     return Result<void>::ok();
 }
 
 qint64 SQLiteActionLogRepository::getLastEntryId() {
-    QSqlQuery query(m_database);
-    using namespace Schema::Tables;
-    using namespace Schema::Columns::ActionLog;
+    // Get SQL from QueryCatalog
+    auto queryDef = QueryCatalog::getQuery(QueryId::ActionLog::GET_LAST_ID);
+    if (queryDef.id.isEmpty()) {
+        return 0; // Query not found
+    }
     
-    query.prepare(QString("SELECT MAX(%1) as max_id FROM %2")
-                  .arg(ID)
-                  .arg(ACTION_LOG));
+    QSqlQuery query(m_database);
+    query.prepare(queryDef.sql);
     
     if (!query.exec() || !query.next()) {
         return 0;
@@ -257,34 +223,19 @@ Result<void> SQLiteActionLogRepository::writeEntriesToDatabase(const QList<Actio
     
     qint64 previousId = getLastEntryId();
     
-    using namespace Schema::Tables;
-    using namespace Schema::Columns::ActionLog;
+    // Get SQL from QueryCatalog
+    auto queryDef = QueryCatalog::getQuery(QueryId::ActionLog::INSERT);
+    if (queryDef.id.isEmpty()) {
+        m_database.rollback();
+        return Result<void>::error(
+            Error::create(ErrorCode::DatabaseError,
+                QString("Query not registered: %1").arg(QueryId::ActionLog::INSERT).toStdString())
+        );
+    }
     
     for (const auto& entry : entries) {
         QSqlQuery query(m_database);
-        query.prepare(QString(R"(
-            INSERT INTO %1 (
-                %2, %3, %4, %5, %6,
-                %7, %8, %9, %10, %11, %12,
-                %13, %14, %15, %16
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        )")
-            .arg(ACTION_LOG)
-            .arg(TIMESTAMP_MS)
-            .arg(TIMESTAMP_ISO)
-            .arg(USER_ID)
-            .arg(USER_ROLE)
-            .arg(ACTION_TYPE)
-            .arg(TARGET_TYPE)
-            .arg(TARGET_ID)
-            .arg(DETAILS)
-            .arg(RESULT)
-            .arg(ERROR_CODE)
-            .arg(ERROR_MESSAGE)
-            .arg(DEVICE_ID)
-            .arg(SESSION_TOKEN_HASH)
-            .arg(IP_ADDRESS)
-            .arg(PREVIOUS_HASH));
+        query.prepare(queryDef.sql);
         
         qint64 timestampMs = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
         QString timestampIso = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);

@@ -41,6 +41,8 @@ set(INFRASTRUCTURE_SOURCES
     # Persistence adapters
     persistence/DatabaseManager.h
     persistence/DatabaseManager.cpp
+    persistence/QueryRegistry.h
+    persistence/QueryCatalog.cpp
     persistence/SQLiteActionLogRepository.h
     persistence/SQLiteActionLogRepository.cpp
     persistence/SQLitePatientRepository.h

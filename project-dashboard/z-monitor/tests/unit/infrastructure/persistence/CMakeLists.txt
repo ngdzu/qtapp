@@ -51,3 +51,24 @@ endif()
 
 add_test(NAME SQLitePatientRepositoryTest COMMAND test_sqlite_patient_repository)
 
+add_executable(test_query_registry
+    test_query_registry.cpp
+)
+
+target_link_libraries(test_query_registry
+    PRIVATE
+        GTest::gtest
+        GTest::gtest_main
+        z_monitor_infrastructure
+        z_monitor_domain
+        Qt6::Core
+        Qt6::Sql
+)
+
+target_include_directories(test_query_registry
+    PRIVATE
+        ${Z_MONITOR_ROOT}
+)
+
+add_test(NAME QueryRegistryTest COMMAND test_query_registry)
+

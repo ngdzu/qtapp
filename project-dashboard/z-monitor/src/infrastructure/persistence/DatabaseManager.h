@@ -162,6 +162,72 @@ public:
      */
     Result<void> executeMigrations();
     
+    /**
+     * @brief Register a prepared query.
+     * 
+     * Registers a SQL query with a unique query ID. The query is prepared
+     * and cached for efficient reuse. All queries should use Schema:: constants
+     * for table and column names.
+     * 
+     * @param queryId Unique query identifier (use QueryId constants from QueryRegistry.h)
+     * @param sql SQL statement with named parameters (uses Schema:: constants)
+     * @return Result<void> Success or error details if query preparation fails
+     * 
+     * @note Queries are prepared on the write connection by default.
+     * @note Use QueryCatalog::initializeQueries() to register all queries at startup.
+     * 
+     * @see QueryRegistry.h
+     * @see QueryCatalog::initializeQueries()
+     */
+    Result<void> registerPreparedQuery(const QString& queryId, const QString& sql);
+    
+    /**
+     * @brief Get a prepared query by ID.
+     * 
+     * Returns a prepared QSqlQuery ready for parameter binding. The query
+     * is cloned from the cached prepared query, so bindings are reset.
+     * 
+     * @param queryId Query ID constant (from QueryId namespace, e.g., QueryId::Patient::FIND_BY_MRN)
+     * @return Prepared QSqlQuery ready for parameter binding, or invalid query if not found
+     * 
+     * @note Returns query bound to write connection by default.
+     * @note Use getPreparedQueryForRead() for read-only queries.
+     * 
+     * Example:
+     * @code
+     * QSqlQuery query = dbManager->getPreparedQuery(QueryId::Patient::FIND_BY_MRN);
+     * query.bindValue(":mrn", "MRN-12345");
+     * query.exec();
+     * @endcode
+     */
+    QSqlQuery getPreparedQuery(const QString& queryId);
+    
+    /**
+     * @brief Get a prepared query for read operations.
+     * 
+     * Returns a prepared QSqlQuery bound to the read connection for read-only
+     * operations. This allows read queries to use the read connection pool.
+     * 
+     * @param queryId Query ID constant (from QueryId namespace)
+     * @return Prepared QSqlQuery bound to read connection, or invalid query if not found
+     */
+    QSqlQuery getPreparedQueryForRead(const QString& queryId);
+    
+    /**
+     * @brief Check if query is registered.
+     * 
+     * @param queryId Query ID to check
+     * @return true if registered, false otherwise
+     */
+    bool hasQuery(const QString& queryId) const;
+    
+    /**
+     * @brief Get all registered query IDs.
+     * 
+     * @return List of all registered query IDs
+     */
+    QStringList getRegisteredQueries() const;
+    
 #ifdef USE_QXORM
     /**
      * @brief Get QxOrm database connection.
@@ -225,6 +291,7 @@ private:
     QSqlDatabase m_mainDb;      ///< Main database connection
     QSqlDatabase m_writeDb;     ///< Dedicated write connection
     QSqlDatabase m_readDb;       ///< Read-only connection
+    QMap<QString, QString> m_querySqlCache; ///< Map of query ID to prepared SQL statement (for caching)
     
 #ifdef USE_QXORM
     // Note: QxOrm uses singleton pattern, so we don't need to store the connection

@@ -7,6 +7,7 @@
  */
 
 #include "infrastructure/persistence/DatabaseManager.h"
+#include "infrastructure/persistence/QueryRegistry.h"
 #include "infrastructure/persistence/orm/OrmRegistry.h"
 #include "domain/common/Result.h"
 #include <QSqlError>
@@ -123,6 +124,9 @@ Result<void> DatabaseManager::open(const QString& dbPath, const QString& encrypt
         // Continue - database is still usable with manual SQL
     }
 #endif // USE_QXORM
+    
+    // Initialize all queries from QueryCatalog
+    QueryCatalog::initializeQueries(this);
     
     m_isOpen = true;
     emit connectionOpened();
@@ -369,6 +373,92 @@ Result<void> DatabaseManager::setupEncryption(QSqlDatabase& db) {
 QSqlDatabase DatabaseManager::createConnection(const QString& connectionName) {
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
     return db;
+}
+
+Result<void> DatabaseManager::registerPreparedQuery(const QString& queryId, const QString& sql) {
+    if (queryId.isEmpty()) {
+        return Result<void>::error(
+            Error::create(ErrorCode::InvalidArgument, "Query ID cannot be empty")
+        );
+    }
+    
+    if (sql.isEmpty()) {
+        return Result<void>::error(
+            Error::create(ErrorCode::InvalidArgument, 
+                QString("SQL statement cannot be empty for query: %1").arg(queryId).toStdString())
+        );
+    }
+    
+    // Test that the query can be prepared (validate SQL syntax)
+    QSqlQuery testQuery(m_writeDb);
+    if (!testQuery.prepare(sql)) {
+        QSqlError error = testQuery.lastError();
+        return Result<void>::error(
+            Error::create(ErrorCode::DatabaseError,
+                QString("Failed to prepare query '%1': %2").arg(queryId, error.text()).toStdString())
+        );
+    }
+    
+    // Cache the SQL statement (queries are prepared on-demand when retrieved)
+    m_querySqlCache[queryId] = sql;
+    
+    return Result<void>::ok();
+}
+
+QSqlQuery DatabaseManager::getPreparedQuery(const QString& queryId) {
+    if (!m_isOpen) {
+        return QSqlQuery(); // Return invalid query
+    }
+    
+    if (!m_querySqlCache.contains(queryId)) {
+        // Query not registered - return invalid query
+        // Error should be logged by caller
+        return QSqlQuery();
+    }
+    
+    // Create and prepare query on write connection
+    QSqlQuery query(m_writeDb);
+    QString sql = m_querySqlCache[queryId];
+    
+    if (!query.prepare(sql)) {
+        // Preparation failed - return invalid query
+        // Error should be logged by caller
+        return QSqlQuery();
+    }
+    
+    return query;
+}
+
+QSqlQuery DatabaseManager::getPreparedQueryForRead(const QString& queryId) {
+    if (!m_isOpen) {
+        return QSqlQuery(); // Return invalid query
+    }
+    
+    if (!m_querySqlCache.contains(queryId)) {
+        // Query not registered - return invalid query
+        // Error should be logged by caller
+        return QSqlQuery();
+    }
+    
+    // Create and prepare query on read connection
+    QSqlQuery query(m_readDb);
+    QString sql = m_querySqlCache[queryId];
+    
+    if (!query.prepare(sql)) {
+        // Preparation failed - return invalid query
+        // Error should be logged by caller
+        return QSqlQuery();
+    }
+    
+    return query;
+}
+
+bool DatabaseManager::hasQuery(const QString& queryId) const {
+    return m_querySqlCache.contains(queryId);
+}
+
+QStringList DatabaseManager::getRegisteredQueries() const {
+    return m_querySqlCache.keys();
 }
 
 } // namespace zmon
