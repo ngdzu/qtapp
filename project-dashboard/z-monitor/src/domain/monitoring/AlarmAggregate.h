@@ -16,6 +16,7 @@
 #include "AlarmThreshold.h"
 #include <string>
 #include <vector>
+#include <deque>
 #include <map>
 #include <memory>
 #include <cstdint>
@@ -161,7 +162,8 @@ private:
     std::map<std::string, AlarmSnapshot> m_activeAlarms;
     
     // Alarm history (all alarms, including resolved)
-    std::vector<AlarmSnapshot> m_alarmHistory;
+    // Using deque for efficient FIFO operations
+    std::deque<AlarmSnapshot> m_alarmHistory;
     
     static constexpr size_t MAX_HISTORY_SIZE = 10000;
     
@@ -189,5 +191,4 @@ private:
     bool shouldSuppressDuplicate(const std::string& alarmType, const std::string& patientMrn) const;
 };
 
-} // namespace zmon
 } // namespace zmon

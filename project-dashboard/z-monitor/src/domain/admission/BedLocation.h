@@ -128,4 +128,3 @@ struct BedLocation {
 };
 
 } // namespace zmon
-} // namespace zmon

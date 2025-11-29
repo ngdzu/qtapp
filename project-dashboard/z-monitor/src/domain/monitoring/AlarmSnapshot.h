@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "monitoring/AlarmThreshold.h"
+#include "domain/monitoring/AlarmThreshold.h"
 #include <chrono>
 #include <string>
 #include <cstdint>
@@ -199,5 +199,4 @@ struct AlarmSnapshot {
     }
 };
 
-} // namespace zmon
 } // namespace zmon

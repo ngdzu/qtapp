@@ -63,9 +63,75 @@ z-monitor/
 ### Prerequisites
 
 - CMake 3.16 or higher
-- Qt 6 (Core, Gui, Qml, Quick, QuickControls2)
+- Qt 6 (Core, Gui, Qml, Quick, QuickControls2, Sql, Network)
 - C++17 compatible compiler
+- Python 3 (for schema generation)
 - SQLite (for database)
+
+### Local Build Setup
+
+#### Quick Start
+
+1. **Setup build environment:**
+   ```bash
+   cd project-dashboard/z-monitor
+   source scripts/setup_build_env.sh
+   ```
+
+2. **Configure CMake:**
+   ```bash
+   cmake -S . -B build
+   ```
+
+3. **Build incrementally (recommended):**
+   ```bash
+   # Phase 1: Domain common (header-only)
+   cmake --build build --target zmon_domain_common
+   
+   # Phase 2: Domain layer
+   cmake --build build --target z_monitor_domain
+   
+   # Phase 3: Application layer
+   cmake --build build --target z_monitor_application
+   
+   # Phase 4: Infrastructure layer
+   cmake --build build --target z_monitor_infrastructure
+   
+   # Phase 5: Main executable
+   cmake --build build --target z-monitor
+   ```
+
+   Or build everything at once:
+   ```bash
+   cmake --build build
+   ```
+
+#### Qt Path Configuration
+
+Qt path must be configured for CMake to find Qt6. Default location: `/Users/dustinwind/Qt/6.9.2/macos`
+
+**Option 1: Use setup script (recommended)**
+```bash
+source scripts/setup_build_env.sh
+```
+
+**Option 2: Manual configuration**
+```bash
+export CMAKE_PREFIX_PATH="/Users/dustinwind/Qt/6.9.2/macos:$CMAKE_PREFIX_PATH"
+```
+
+**Option 3: Make permanent**
+Add to `~/.zshrc` or `~/.bashrc`:
+```bash
+export CMAKE_PREFIX_PATH="/Users/dustinwind/Qt/6.9.2/macos:$CMAKE_PREFIX_PATH"
+```
+
+**Option 4: CMake command line**
+```bash
+cmake -S . -B build -DCMAKE_PREFIX_PATH="/Users/dustinwind/Qt/6.9.2/macos"
+```
+
+For detailed build instructions, troubleshooting, and incremental build strategy, see **[BUILD.md](BUILD.md)**.
 
 ### Build
 
@@ -85,14 +151,16 @@ cmake --build build
 Or install and run:
 
 ```bash
-cmake --install build
-/opt/z-monitor/z-monitor
+cmake --install build --prefix install
+./install/opt/z-monitor/z-monitor
 ```
 
 ### Build Options
 
 - `BUILD_TESTING`: Enable/disable test building (default: ON)
 - `Z_MONITOR_USE_SPDLOG`: Enable spdlog backend for logging (default: OFF)
+- `USE_QXORM`: Enable QxOrm for ORM support (default: OFF)
+- `ENABLE_SQLCIPHER`: Enable SQLCipher for database encryption (default: OFF)
 
 Example:
 

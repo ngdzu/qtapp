@@ -24,7 +24,7 @@ PatientAggregate::PatientAggregate()
     , m_transferTargetDevice("")
     , m_recentVitals()
 {
-    m_recentVitals.reserve(MAX_RECENT_VITALS);
+    // Note: deque doesn't support reserve(), but it grows efficiently
 }
 
 PatientAggregate::~PatientAggregate() = default;
@@ -52,8 +52,9 @@ Result<void> PatientAggregate::admit(const PatientIdentity& identity,
     
     // Update state
     m_admissionState = AdmissionState::Admitted;
-    m_patientIdentity = identity;
-    m_bedLocation = bedLocation;
+    // Reconstruct value objects using placement new (since assignment is deleted)
+    new (&m_patientIdentity) PatientIdentity(identity);
+    new (&m_bedLocation) BedLocation(bedLocation);
     m_admittedAtMs = getCurrentTimestampMs();
     m_dischargedAtMs = 0;
     m_admissionSource = admissionSource;
@@ -139,8 +140,8 @@ Result<void> PatientAggregate::updateVitals(const VitalRecord& vital) {
     
     // Keep only most recent N vitals
     if (m_recentVitals.size() > MAX_RECENT_VITALS) {
-        // Remove oldest (first) element
-        m_recentVitals.erase(m_recentVitals.begin());
+        // Remove oldest (first) element using pop_front (efficient for deque)
+        m_recentVitals.pop_front();
     }
     
     return Result<void>::ok();

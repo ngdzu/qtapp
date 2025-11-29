@@ -11,6 +11,8 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <numeric>
+#include <map>
 #include <chrono>
 
 namespace zmon {
@@ -18,7 +20,7 @@ AlarmAggregate::AlarmAggregate()
     : m_activeAlarms()
     , m_alarmHistory()
 {
-    m_alarmHistory.reserve(MAX_HISTORY_SIZE);
+    // Note: deque doesn't support reserve(), but it grows efficiently
 }
 
 AlarmAggregate::~AlarmAggregate() = default;
@@ -38,15 +40,16 @@ AlarmSnapshot AlarmAggregate::raise(const std::string& alarmType, AlarmPriority 
     AlarmSnapshot alarm(alarmId, alarmType, priority, AlarmStatus::Active,
                        value, threshold, getCurrentTimestampMs(), patientMrn, deviceId);
     
-    // Add to active alarms
-    m_activeAlarms[alarmId] = alarm;
+    // Add to active alarms (erase if exists, then insert)
+    m_activeAlarms.erase(alarmId);
+    m_activeAlarms.insert({alarmId, alarm});
     
     // Add to history
     m_alarmHistory.push_back(alarm);
     
     // Maintain history size limit
     if (m_alarmHistory.size() > MAX_HISTORY_SIZE) {
-        m_alarmHistory.erase(m_alarmHistory.begin());
+        m_alarmHistory.pop_front();
     }
     
     // Note: Domain event AlarmRaised would be raised here
@@ -78,15 +81,18 @@ bool AlarmAggregate::acknowledge(const std::string& alarmId, const std::string& 
                               updated.timestampMs, updated.patientMrn, updated.deviceId,
                               userId, getCurrentTimestampMs());
     
-    m_activeAlarms[alarmId] = acknowledged;
+    m_activeAlarms.erase(alarmId);
+    m_activeAlarms.insert({alarmId, acknowledged});
     
-    // Update history
-    for (auto& histAlarm : m_alarmHistory) {
-        if (histAlarm.alarmId == alarmId) {
-            histAlarm = acknowledged;
-            break;
+    // Update history (rebuild deque without the old entry, then add new one)
+    std::deque<AlarmSnapshot> newHistory;
+    for (const auto& alarm : m_alarmHistory) {
+        if (alarm.alarmId != alarmId) {
+            newHistory.push_back(alarm);
         }
     }
+    newHistory.push_back(acknowledged);
+    m_alarmHistory = std::move(newHistory);
     
     // Note: Domain event AlarmAcknowledged would be raised here
     // (event publishing handled by application service)
@@ -108,7 +114,8 @@ bool AlarmAggregate::silence(const std::string& alarmId, int64_t durationMs) {
                           AlarmStatus::Silenced, updated.value, updated.thresholdValue,
                           updated.timestampMs, updated.patientMrn, updated.deviceId);
     
-    m_activeAlarms[alarmId] = silenced;
+    m_activeAlarms.erase(alarmId);
+    m_activeAlarms.insert({alarmId, silenced});
     
     return true;
 }
@@ -135,7 +142,8 @@ bool AlarmAggregate::escalate(const std::string& alarmId) {
                            updated.value, updated.thresholdValue, updated.timestampMs,
                            updated.patientMrn, updated.deviceId);
     
-    m_activeAlarms[alarmId] = escalated;
+    m_activeAlarms.erase(alarmId);
+    m_activeAlarms.insert({alarmId, escalated});
     
     return true;
 }
@@ -150,17 +158,19 @@ bool AlarmAggregate::resolve(const std::string& alarmId) {
     AlarmSnapshot resolved = it->second;
     m_activeAlarms.erase(it);
     
-    // Update history with resolved status
-    for (auto& histAlarm : m_alarmHistory) {
-        if (histAlarm.alarmId == alarmId) {
-            AlarmSnapshot resolvedSnapshot(alarmId, histAlarm.alarmType, histAlarm.priority,
-                                          AlarmStatus::Resolved, histAlarm.value,
-                                          histAlarm.thresholdValue, histAlarm.timestampMs,
-                                          histAlarm.patientMrn, histAlarm.deviceId);
-            histAlarm = resolvedSnapshot;
-            break;
+    // Update history with resolved status (rebuild deque without the old entry, then add new one)
+    AlarmSnapshot resolvedSnapshot(alarmId, resolved.alarmType, resolved.priority,
+                                  AlarmStatus::Resolved, resolved.value,
+                                  resolved.thresholdValue, resolved.timestampMs,
+                                  resolved.patientMrn, resolved.deviceId);
+    std::deque<AlarmSnapshot> newHistory;
+    for (const auto& alarm : m_alarmHistory) {
+        if (alarm.alarmId != alarmId) {
+            newHistory.push_back(alarm);
         }
     }
+    newHistory.push_back(resolvedSnapshot);
+    m_alarmHistory = std::move(newHistory);
     
     return true;
 }
@@ -186,10 +196,20 @@ std::vector<AlarmSnapshot> AlarmAggregate::getHistory(int64_t startTimeMs, int64
     }
     
     // Sort by timestamp (most recent first)
-    std::sort(result.begin(), result.end(),
-              [](const AlarmSnapshot& a, const AlarmSnapshot& b) {
-                  return a.timestampMs > b.timestampMs;
+    // Since AlarmSnapshot has deleted copy assignment, we can't use std::sort directly.
+    // Instead, we'll sort indices and build a new vector in sorted order
+    std::vector<size_t> indices(result.size());
+    std::iota(indices.begin(), indices.end(), 0);
+    std::sort(indices.begin(), indices.end(),
+              [&result](size_t a, size_t b) {
+                  return result[a].timestampMs > result[b].timestampMs;
               });
+    std::vector<AlarmSnapshot> sortedResult;
+    sortedResult.reserve(result.size());
+    for (size_t idx : indices) {
+        sortedResult.push_back(result[idx]);
+    }
+    result = std::move(sortedResult);
     
     return result;
 }
@@ -260,5 +280,4 @@ bool AlarmAggregate::shouldSuppressDuplicate(const std::string& alarmType,
     return false;
 }
 
-} // namespace zmon
 } // namespace zmon

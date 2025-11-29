@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "monitoring/VitalRecord.h"
-#include "monitoring/AlarmSnapshot.h"
+#include "domain/monitoring/VitalRecord.h"
+#include "domain/monitoring/AlarmSnapshot.h"
 #include <chrono>
 #include <string>
 #include <vector>
@@ -217,5 +217,4 @@ private:
     int64_t getCurrentTimestampMs() const;
 };
 
-} // namespace zmon
 } // namespace zmon

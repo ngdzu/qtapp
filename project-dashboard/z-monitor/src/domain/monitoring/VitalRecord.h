@@ -149,4 +149,3 @@ struct VitalRecord {
 };
 
 } // namespace zmon
-} // namespace zmon

@@ -1,7 +1,7 @@
 # Unit tests
 
 # Mocks library (for use in tests)
-add_subdirectory(../mocks)
+# Mocks are added via tests/CMakeLists.txt, so they're available here
 
 # Domain layer tests
 add_subdirectory(domain)

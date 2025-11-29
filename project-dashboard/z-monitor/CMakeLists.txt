@@ -11,8 +11,39 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Qt6 Path Configuration
+# Supports Qt installation via environment variable CMAKE_PREFIX_PATH or QT6_DIR
+# Default location: /Users/dustinwind/Qt/6.9.2/macos (macOS)
+# Usage: export CMAKE_PREFIX_PATH="/Users/dustinwind/Qt/6.9.2/macos:$CMAKE_PREFIX_PATH"
+# Or: export QT6_DIR="/Users/dustinwind/Qt/6.9.2/macos"
+if(DEFINED ENV{QT6_DIR})
+    set(CMAKE_PREFIX_PATH "$ENV{QT6_DIR}" ${CMAKE_PREFIX_PATH})
+    message(STATUS "Using Qt6 from QT6_DIR: $ENV{QT6_DIR}")
+elseif(DEFINED ENV{CMAKE_PREFIX_PATH})
+    message(STATUS "Using Qt6 from CMAKE_PREFIX_PATH: $ENV{CMAKE_PREFIX_PATH}")
+else()
+    # Try default macOS location
+    if(APPLE AND EXISTS "/Users/dustinwind/Qt/6.9.2/macos")
+        set(CMAKE_PREFIX_PATH "/Users/dustinwind/Qt/6.9.2/macos" ${CMAKE_PREFIX_PATH})
+        message(STATUS "Using default Qt6 location: /Users/dustinwind/Qt/6.9.2/macos")
+    else()
+        message(WARNING "Qt6 path not configured. Set CMAKE_PREFIX_PATH or QT6_DIR environment variable.")
+        message(WARNING "Example: export CMAKE_PREFIX_PATH=\"/path/to/Qt/6.x.x/macos:\$CMAKE_PREFIX_PATH\"")
+    endif()
+endif()
+
+# vcpkg Configuration (if required)
+# Check if vcpkg toolchain is specified
+if(DEFINED ENV{VCPKG_ROOT} AND EXISTS "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+    message(STATUS "Using vcpkg toolchain from: $ENV{VCPKG_ROOT}")
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../vcpkg/scripts/buildsystems/vcpkg.cmake")
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+    message(STATUS "Using vcpkg toolchain from project directory")
+endif()
+
 # Find Qt6 packages
-find_package(Qt6 COMPONENTS Core Gui Qml Quick QuickControls2 REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Qml Quick QuickControls2 Test REQUIRED)
 
 # Optional: spdlog library for high-performance logging
 # Can be enabled with: cmake -DZ_MONITOR_USE_SPDLOG=ON ..
@@ -165,9 +196,6 @@ add_custom_target(generate_proto
     DEPENDS ${PROTO_FILE}
 )
 
-# Ensure proto is generated before building main executable
-add_dependencies(z-monitor z_monitor_proto)
-
 # Schema Management: Generate SchemaInfo.h from YAML
 # Find Python3 (required for schema generation)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
@@ -224,9 +252,6 @@ if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(tests)
 endif()
-
-# Ensure schema is generated before building main executable
-add_dependencies(z-monitor generate_schema)
 
 # Install main executable
 install(TARGETS z-monitor RUNTIME DESTINATION /opt/z-monitor/)

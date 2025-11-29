@@ -3,17 +3,18 @@
 # Interface layer sources (will be added as controllers are implemented)
 # These sources are compiled into the main executable, not a separate library
 # Set in parent scope so src/CMakeLists.txt can use it
+# Use absolute paths relative to interface directory
 set(INTERFACE_SOURCES
     # Controllers
-    controllers/SettingsController.h
-    controllers/SettingsController.cpp
-    controllers/AuthenticationController.h
-    controllers/AuthenticationController.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/controllers/SettingsController.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/controllers/SettingsController.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/controllers/AuthenticationController.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/controllers/AuthenticationController.cpp
     # Example:
-    # controllers/DashboardController.h
-    # controllers/DashboardController.cpp
-    # controllers/AlarmController.h
-    # controllers/AlarmController.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/controllers/DashboardController.h
+    # ${CMAKE_CURRENT_SOURCE_DIR}/controllers/DashboardController.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/controllers/AlarmController.h
+    # ${CMAKE_CURRENT_SOURCE_DIR}/controllers/AlarmController.cpp
     # ...
 )
 

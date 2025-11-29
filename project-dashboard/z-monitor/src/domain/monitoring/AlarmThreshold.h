@@ -167,4 +167,3 @@ struct AlarmThreshold {
 };
 
 } // namespace zmon
-} // namespace zmon

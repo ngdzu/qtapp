@@ -128,4 +128,3 @@ bool DeviceAggregate::validateProvisioningPayload(const std::string& serverUrl,
 }
 
 } // namespace zmon
-} // namespace zmon

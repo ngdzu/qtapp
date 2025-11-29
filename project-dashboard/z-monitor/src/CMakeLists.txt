@@ -41,3 +41,6 @@ target_include_directories(z-monitor
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+# Ensure proto and schema are generated before building main executable
+add_dependencies(z-monitor z_monitor_proto generate_schema)

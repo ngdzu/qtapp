@@ -191,4 +191,3 @@ int64_t TelemetryBatch::getCurrentTimestampMs() const {
 }
 
 } // namespace zmon
-} // namespace zmon

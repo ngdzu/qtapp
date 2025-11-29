@@ -19,6 +19,7 @@
 #include <chrono>
 #include <string>
 #include <vector>
+#include <deque>
 #include <memory>
 
 namespace zmon {
@@ -188,7 +189,8 @@ private:
     
     // In-memory vitals history (last N records)
     // Note: Full history is persisted via repository, this is for quick access
-    std::vector<VitalRecord> m_recentVitals;
+    // Using deque for efficient FIFO operations (pop_front, push_back)
+    std::deque<VitalRecord> m_recentVitals;
     static constexpr size_t MAX_RECENT_VITALS = 1000;
     
     /**

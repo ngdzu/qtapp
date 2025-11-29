@@ -13,6 +13,9 @@ FetchContent_Declare(
 set(BUILD_GMOCK ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Mocks library (must be added before unit tests that depend on it)
+add_subdirectory(mocks)
+
 # Unit tests
 add_subdirectory(unit)
 

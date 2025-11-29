@@ -145,4 +145,3 @@ struct PatientIdentity {
 };
 
 } // namespace zmon
-} // namespace zmon
