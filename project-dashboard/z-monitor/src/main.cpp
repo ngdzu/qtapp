@@ -24,13 +24,20 @@
 #include "infrastructure/persistence/SQLiteVitalsRepository.h"
 #include "infrastructure/persistence/SQLiteTelemetryRepository.h"
 #include "infrastructure/persistence/SQLiteAlarmRepository.h"
+#include "infrastructure/persistence/SQLiteActionLogRepository.h"
 
 // Application
 #include "application/services/MonitoringService.h"
+#include "application/services/AdmissionService.h"
+#include "application/services/SecurityService.h"
 
 // Interface
 #include "interface/controllers/DashboardController.h"
 #include "interface/controllers/WaveformController.h"
+#include "interface/controllers/PatientController.h"
+#include "interface/controllers/AlarmController.h"
+#include "interface/controllers/SettingsController.h"
+#include "interface/controllers/TrendsController.h"
 
 /**
  * @brief Application entry point.
@@ -137,13 +144,44 @@ int main(int argc, char *argv[])
         waveformCache.get(),
         &app);
 
+    // Instantiate AdmissionService (placeholder: retrieve from DI if available)
+    // For now, construct with nullptr for action log repo
+    auto admissionService = new zmon::AdmissionService(nullptr, &app);
+    auto patientController = new zmon::PatientController(
+        admissionService,
+        &app);
+
+    auto alarmController = new zmon::AlarmController(
+        monitoringService,
+        &app);
+
+    // TrendsController: provides historical trend data via IVitalsRepository
+    auto trendsController = new zmon::TrendsController(
+        vitalsRepo.get(),
+        &app);
+
+    // Action log repository for audit trail
+    auto actionLogRepoConcrete = std::make_shared<zmon::SQLiteActionLogRepository>(dbPath);
+    std::shared_ptr<zmon::IActionLogRepository> actionLogRepo = std::static_pointer_cast<zmon::IActionLogRepository>(actionLogRepoConcrete);
+
+    // SettingsController with logging and permissions
+    auto settingsController = new zmon::SettingsController(
+        actionLogRepo.get(),
+        nullptr,
+        &app);
+
     // Start monitoring service
     bool started = monitoringService->start();
     if (!started)
     {
         qWarning() << "Failed to start monitoring service";
         // Continue anyway - UI will show disconnected state
-    } // Create QML engine
+    }
+
+    // Start waveform rendering at 60 FPS
+    waveformController->startWaveforms();
+
+    // Create QML engine
     QQmlApplicationEngine engine;
 
     // Ensure QML engine can import resources under qrc:/qml
@@ -152,6 +190,10 @@ int main(int argc, char *argv[])
     // Register controllers as QML singletons (accessible globally in QML)
     engine.rootContext()->setContextProperty("dashboardController", dashboardController);
     engine.rootContext()->setContextProperty("waveformController", waveformController);
+    engine.rootContext()->setContextProperty("patientController", patientController);
+    engine.rootContext()->setContextProperty("alarmController", alarmController);
+    engine.rootContext()->setContextProperty("settingsController", settingsController);
+    engine.rootContext()->setContextProperty("trendsController", trendsController);
 
     const QUrl mainQmlUrl(QStringLiteral("qrc:/qml/Main.qml"));
 

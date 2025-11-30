@@ -20,7 +20,8 @@ namespace zmon
 {
 
     // Forward declarations
-    class AlarmManager;
+    class MonitoringService;
+    struct AlarmSnapshot;
 
     /**
      * @class AlarmController
@@ -29,7 +30,7 @@ namespace zmon
      * Provides QML bindings for alarm management. Exposes alarm list,
      * acknowledgment methods, and alarm history for the Alarm View.
      *
-     * @note Business logic delegated to AlarmManager
+     * @note Business logic delegated to MonitoringService
      *
      * @thread Main/UI Thread
      * @ingroup Interface
@@ -48,10 +49,10 @@ namespace zmon
         /**
          * @brief Constructor.
          *
-         * @param alarmManager Alarm manager for alarm state
+         * @param monitoringService Monitoring service for alarm state
          * @param parent Parent QObject
          */
-        explicit AlarmController(AlarmManager *alarmManager = nullptr, QObject *parent = nullptr);
+        explicit AlarmController(MonitoringService *monitoringService = nullptr, QObject *parent = nullptr);
 
         /**
          * @brief Destructor.
@@ -179,7 +180,22 @@ namespace zmon
         void alarmHistoryChanged();
 
     private:
-        AlarmManager *m_alarmManager; ///< Alarm manager (not owned)
+        /**
+         * @brief Update active alarms from MonitoringService.
+         *
+         * Retrieves active alarms from MonitoringService and updates properties.
+         */
+        void updateActiveAlarms();
+
+        /**
+         * @brief Convert AlarmSnapshot to QVariantMap for QML.
+         *
+         * @param alarm Alarm snapshot
+         * @return QVariantMap with alarm data
+         */
+        QVariantMap alarmSnapshotToVariantMap(const AlarmSnapshot &alarm) const;
+
+        MonitoringService *m_monitoringService; ///< Monitoring service (not owned)
 
         QVariantList m_activeAlarms; ///< List of active alarms
         bool m_hasCriticalAlarms;    ///< Whether critical alarms exist

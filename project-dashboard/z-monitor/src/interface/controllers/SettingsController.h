@@ -15,11 +15,13 @@
 #include "domain/repositories/IActionLogRepository.h"
 #include <QObject>
 #include <QString>
+#include <QVariant>
 
 namespace zmon
 {
 
     class SettingsManager;
+    class SecurityService;
 
     /**
      * @class SettingsController
@@ -48,7 +50,7 @@ namespace zmon
          * @param actionLogRepo Action log repository for logging settings changes
          * @param parent Parent QObject
          */
-        explicit SettingsController(IActionLogRepository *actionLogRepo = nullptr, QObject *parent = nullptr);
+        explicit SettingsController(IActionLogRepository *actionLogRepo = nullptr, SecurityService *securityService = nullptr, QObject *parent = nullptr);
 
         /**
          * @brief Destructor.
@@ -140,6 +142,13 @@ namespace zmon
          */
         void useMockServerChanged(bool useMock);
 
+        /**
+         * @brief Emitted when a settings change fails (permissions/validation).
+         *
+         * @param message Human-readable failure reason
+         */
+        void settingsChangeFailed(const QString &message);
+
     private slots:
         /**
          * @brief Handles setting changes from SettingsManager.
@@ -152,6 +161,7 @@ namespace zmon
     private:
         IActionLogRepository *m_actionLogRepo; ///< Action log repository (for dependency injection)
         SettingsManager *m_settingsManager;
+        SecurityService *m_securityService;
         QString m_deviceLabel;
         QString m_measurementUnit;
         QString m_serverUrl;

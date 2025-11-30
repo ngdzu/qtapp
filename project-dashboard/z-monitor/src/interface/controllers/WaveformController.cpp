@@ -9,6 +9,7 @@
 #include "WaveformController.h"
 #include "infrastructure/caching/WaveformCache.h"
 #include <QVariantMap>
+#include <algorithm> // for std::max, std::min
 
 namespace zmon
 {
@@ -92,31 +93,138 @@ namespace zmon
             return;
         }
 
-        // Get last 6 seconds for ECG (250 Hz × 6 sec = 1,500 samples per channel)
-        // Display sweeps at 25 mm/s across typical 6-second display width
-        int displaySeconds = 6;
+        // Display window: 10 seconds for continuous waveform scrolling
+        // Target points: 600 samples (60 FPS × 10 sec)
+        // Raw sample rate: 250 Hz × 10 sec = 2,500 samples per channel
+        // Decimation ratio: ~4:1 to achieve 60 FPS display rate
+        const int displaySeconds = 10;
+        const int targetPoints = 600; // 60 FPS × 10 sec display window
 
-        // Get ECG samples
+        // Get ECG samples from cache (raw 250 Hz)
         auto ecgSamples = m_waveformCache->getChannelSamples("ecg", displaySeconds);
         m_ecgData.clear();
-        for (const auto &sample : ecgSamples)
+
+        if (!ecgSamples.empty())
         {
-            QVariantMap point;
-            point["time"] = sample.timestampMs;
-            point["value"] = sample.value * m_ecgGain; // Apply gain
-            m_ecgData.append(point);
+            // Calculate decimation step to achieve target point count
+            // Use min-max decimation to preserve PQRST complex morphology
+            size_t decimationStep = std::max(size_t(1), ecgSamples.size() / targetPoints);
+
+            for (size_t i = 0; i < ecgSamples.size(); i += decimationStep)
+            {
+                // For better waveform morphology preservation, take min-max in decimation window
+                size_t windowEnd = std::min(i + decimationStep, ecgSamples.size());
+
+                // Find min and max in decimation window to preserve peaks/troughs
+                auto minIt = ecgSamples.begin() + i;
+                auto maxIt = ecgSamples.begin() + i;
+                double minVal = ecgSamples[i].value;
+                double maxVal = ecgSamples[i].value;
+                int64_t avgTime = ecgSamples[i].timestampMs;
+
+                for (size_t j = i; j < windowEnd; ++j)
+                {
+                    if (ecgSamples[j].value < minVal)
+                    {
+                        minVal = ecgSamples[j].value;
+                        minIt = ecgSamples.begin() + j;
+                    }
+                    if (ecgSamples[j].value > maxVal)
+                    {
+                        maxVal = ecgSamples[j].value;
+                        maxIt = ecgSamples.begin() + j;
+                    }
+                }
+
+                // Add both min and max points to preserve morphology
+                // Add min first if it appears before max in time
+                if ((*minIt).timestampMs < (*maxIt).timestampMs)
+                {
+                    QVariantMap minPoint;
+                    minPoint["time"] = (*minIt).timestampMs;
+                    minPoint["value"] = minVal * m_ecgGain; // Apply gain
+                    m_ecgData.append(minPoint);
+
+                    QVariantMap maxPoint;
+                    maxPoint["time"] = (*maxIt).timestampMs;
+                    maxPoint["value"] = maxVal * m_ecgGain;
+                    m_ecgData.append(maxPoint);
+                }
+                else
+                {
+                    QVariantMap maxPoint;
+                    maxPoint["time"] = (*maxIt).timestampMs;
+                    maxPoint["value"] = maxVal * m_ecgGain;
+                    m_ecgData.append(maxPoint);
+
+                    QVariantMap minPoint;
+                    minPoint["time"] = (*minIt).timestampMs;
+                    minPoint["value"] = minVal * m_ecgGain;
+                    m_ecgData.append(minPoint);
+                }
+            }
         }
         emit ecgDataChanged();
 
-        // Get Pleth samples
+        // Get Pleth samples from cache (raw 250 Hz)
         auto plethSamples = m_waveformCache->getChannelSamples("pleth", displaySeconds);
         m_plethData.clear();
-        for (const auto &sample : plethSamples)
+
+        if (!plethSamples.empty())
         {
-            QVariantMap point;
-            point["time"] = sample.timestampMs;
-            point["value"] = sample.value * m_plethGain; // Apply gain
-            m_plethData.append(point);
+            // Calculate decimation step
+            size_t decimationStep = std::max(size_t(1), plethSamples.size() / targetPoints);
+
+            for (size_t i = 0; i < plethSamples.size(); i += decimationStep)
+            {
+                // For pleth waveform, min-max decimation preserves pulse morphology
+                size_t windowEnd = std::min(i + decimationStep, plethSamples.size());
+
+                auto minIt = plethSamples.begin() + i;
+                auto maxIt = plethSamples.begin() + i;
+                double minVal = plethSamples[i].value;
+                double maxVal = plethSamples[i].value;
+
+                for (size_t j = i; j < windowEnd; ++j)
+                {
+                    if (plethSamples[j].value < minVal)
+                    {
+                        minVal = plethSamples[j].value;
+                        minIt = plethSamples.begin() + j;
+                    }
+                    if (plethSamples[j].value > maxVal)
+                    {
+                        maxVal = plethSamples[j].value;
+                        maxIt = plethSamples.begin() + j;
+                    }
+                }
+
+                // Add min and max points in chronological order
+                if ((*minIt).timestampMs < (*maxIt).timestampMs)
+                {
+                    QVariantMap minPoint;
+                    minPoint["time"] = (*minIt).timestampMs;
+                    minPoint["value"] = minVal * m_plethGain;
+                    m_plethData.append(minPoint);
+
+                    QVariantMap maxPoint;
+                    maxPoint["time"] = (*maxIt).timestampMs;
+                    maxPoint["value"] = maxVal * m_plethGain;
+                    m_plethData.append(maxPoint);
+                }
+                else
+                {
+                    QVariantMap maxPoint;
+                    maxPoint["time"] = (*maxIt).timestampMs;
+                    maxPoint["value"] = maxVal * m_plethGain;
+                    m_plethData.append(maxPoint);
+
+                    QVariantMap minPoint;
+                    minPoint["time"] = (*minIt).timestampMs;
+                    minPoint["value"] = minVal * m_plethGain;
+                    m_plethData.append(minPoint);
+                }
+            }
         }
         emit plethDataChanged();
     }

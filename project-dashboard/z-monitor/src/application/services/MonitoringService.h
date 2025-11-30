@@ -15,6 +15,8 @@
 #include <QObject>
 #include <memory>
 #include <string>
+#include <vector>
+#include <cstdint>
 
 namespace zmon
 {
@@ -23,6 +25,7 @@ namespace zmon
     class PatientAggregate;
     class TelemetryBatch;
     class AlarmAggregate;
+    struct AlarmSnapshot;
     class VitalRecord;
     class WaveformSample;
     struct SensorError;
@@ -118,6 +121,49 @@ namespace zmon
          */
         std::shared_ptr<PatientAggregate> getCurrentPatient() const;
 
+        /**
+         * @brief Acknowledge an alarm.
+         *
+         * Marks an alarm as acknowledged in the AlarmAggregate and persists to repository.
+         *
+         * @param alarmId Alarm identifier
+         * @param userId User ID who acknowledged the alarm
+         * @return true if acknowledgment succeeded, false otherwise
+         */
+        bool acknowledgeAlarm(const QString &alarmId, const QString &userId);
+
+        /**
+         * @brief Silence an alarm temporarily.
+         *
+         * Temporarily silences an alarm in the AlarmAggregate.
+         *
+         * @param alarmId Alarm identifier
+         * @param durationMs Silence duration in milliseconds
+         * @return true if silence succeeded, false otherwise
+         */
+        bool silenceAlarm(const QString &alarmId, int64_t durationMs);
+
+        /**
+         * @brief Get active alarms.
+         *
+         * Retrieves all currently active alarms from AlarmAggregate.
+         *
+         * @return Vector of active alarm snapshots
+         */
+        std::vector<AlarmSnapshot> getActiveAlarms() const;
+
+        /**
+         * @brief Get alarm history.
+         *
+         * Retrieves alarm history from repository.
+         *
+         * @param patientMrn Patient MRN (empty for all patients)
+         * @param startTimeMs Start time in milliseconds (epoch)
+         * @param endTimeMs End time in milliseconds (epoch)
+         * @return Vector of alarm snapshots (most recent first)
+         */
+        std::vector<AlarmSnapshot> getAlarmHistory(const QString &patientMrn, int64_t startTimeMs, int64_t endTimeMs) const;
+
     signals:
         /**
          * @brief Signal emitted when a vital record is processed.
@@ -142,6 +188,20 @@ namespace zmon
          * @param priority Alarm priority
          */
         void alarmRaised(const QString &alarmId, const QString &alarmType, int priority);
+
+        /**
+         * @brief Signal emitted when an alarm is acknowledged.
+         *
+         * @param alarmId Alarm identifier
+         */
+        void alarmAcknowledged(const QString &alarmId);
+
+        /**
+         * @brief Signal emitted when an alarm is cleared/resolved.
+         *
+         * @param alarmId Alarm identifier
+         */
+        void alarmCleared(const QString &alarmId);
 
         /**
          * @brief Signal emitted when a telemetry batch is ready for transmission.

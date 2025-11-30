@@ -1,6 +1,7 @@
 # Ignore build directories
 build/
 Build/
+build_test/
 
 # Ignore CMake generated files
 CMakeFiles/

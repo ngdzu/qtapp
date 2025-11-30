@@ -8,6 +8,8 @@
 
 #include "PatientController.h"
 #include "application/services/AdmissionService.h"
+#include "domain/admission/PatientIdentity.h"
+#include "domain/admission/BedLocation.h"
 
 namespace zmon
 {
@@ -18,31 +20,74 @@ namespace zmon
         // Connect to AdmissionService signals if provided
         if (m_admissionService)
         {
-            // TODO: Connect signals once AdmissionService is fully implemented
-            // connect(m_admissionService, &AdmissionService::patientAdmitted, this, &PatientController::onPatientAdmitted);
-            // connect(m_admissionService, &AdmissionService::patientDischarged, this, &PatientController::onPatientDischarged);
+            connect(m_admissionService, &AdmissionService::patientAdmitted, this, &PatientController::onPatientAdmitted);
+            connect(m_admissionService, &AdmissionService::patientDischarged, this, &PatientController::onPatientDischarged);
+
+            // Initialize from current admission state
+            const auto info = m_admissionService->getCurrentAdmission();
+            const bool admitted = m_admissionService->isPatientAdmitted();
+            m_isAdmitted = admitted;
+            m_patientMrn = info.mrn;
+            m_patientName = info.name;
+            m_bedLocation = info.bedLocation;
+            m_admittedAt = info.admittedAt;
+            m_admissionState = admitted ? QStringLiteral("ADMITTED") : QStringLiteral("NOT_ADMITTED");
         }
     }
 
     void PatientController::admitPatient(const QString &mrn, const QString &bedLocation)
     {
-        // TODO: Call AdmissionService to admit patient
-        // Requires permission check
-        Q_UNUSED(mrn)
-        Q_UNUSED(bedLocation)
+        if (!m_admissionService)
+            return;
+
+        // TODO: Permission check via SecurityService
+
+        PatientIdentity identity{
+            mrn.toStdString(),
+            m_patientName.toStdString(),
+            0 /* dobMs unknown */,
+            std::string("U") /* sex unknown */,
+            std::vector<std::string>{}};
+        BedLocation bed{bedLocation.toStdString()};
+        auto result = m_admissionService->admitPatient(identity, bed, AdmissionService::AdmissionSource::Manual);
+        if (result.isError())
+        {
+            // TODO: Emit error signal or log
+            return;
+        }
+        // onPatientAdmitted will update properties via signal
     }
 
     void PatientController::dischargePatient()
     {
-        // TODO: Call AdmissionService to discharge patient
-        // Requires permission check
+        if (!m_admissionService)
+            return;
+        // TODO: Permission check via SecurityService
+        auto result = m_admissionService->dischargePatient(m_patientMrn);
+        if (result.isError())
+        {
+            // TODO: Emit error signal or log
+            return;
+        }
+        // onPatientDischarged will update properties via signal
     }
 
     void PatientController::transferPatient(const QString &newBedLocation)
     {
-        // TODO: Call AdmissionService to transfer patient
-        // Requires permission check
-        Q_UNUSED(newBedLocation)
+        if (!m_admissionService)
+            return;
+        // TODO: Permission check via SecurityService
+        // For local device transfer, update bed location via admit/discharge semantics depending on architecture.
+        // Here, call transfer on AdmissionService using device label semantics.
+        auto result = m_admissionService->transferPatient(m_patientMrn, newBedLocation);
+        if (result.isError())
+        {
+            // TODO: Emit error signal or log
+            return;
+        }
+        // Update local bed location
+        m_bedLocation = newBedLocation;
+        emit bedLocationChanged();
     }
 
     void PatientController::openAdmissionModal()
@@ -59,16 +104,38 @@ namespace zmon
 
     void PatientController::scanBarcode(const QString &barcodeData)
     {
-        // TODO: Parse barcode and admit patient
-        // Implements barcode scan admission from ADT workflow
-        Q_UNUSED(barcodeData)
+        if (!m_admissionService)
+            return;
+        // Simple barcode = MRN
+        const QString mrn = barcodeData.trimmed();
+        if (mrn.isEmpty())
+            return;
+        // Use existing bedLocation property if set
+        PatientIdentity identity{
+            mrn.toStdString(),
+            m_patientName.toStdString(),
+            0 /* dobMs unknown */,
+            std::string("U") /* sex unknown */,
+            std::vector<std::string>{}};
+        BedLocation bed{m_bedLocation.toStdString()};
+        auto result = m_admissionService->admitPatient(identity, bed, AdmissionService::AdmissionSource::Barcode);
+        if (result.isError())
+        {
+            // TODO: Emit error signal or log
+        }
     }
 
     void PatientController::onPatientAdmitted()
     {
-        // TODO: Update patient information from AdmissionService
+        if (!m_admissionService)
+            return;
+        const auto info = m_admissionService->getCurrentAdmission();
         m_isAdmitted = true;
-        m_admissionState = "ADMITTED";
+        m_patientMrn = info.mrn;
+        m_patientName = info.name;
+        m_bedLocation = info.bedLocation;
+        m_admittedAt = info.admittedAt;
+        m_admissionState = QStringLiteral("ADMITTED");
 
         emit isAdmittedChanged();
         emit patientNameChanged();
@@ -80,17 +147,18 @@ namespace zmon
 
     void PatientController::onPatientDischarged()
     {
-        // TODO: Clear patient information
         m_isAdmitted = false;
-        m_admissionState = "NOT_ADMITTED";
-        m_patientName = "";
-        m_patientMrn = "";
-        m_bedLocation = "";
+        m_admissionState = QStringLiteral("NOT_ADMITTED");
+        m_patientName.clear();
+        m_patientMrn.clear();
+        m_bedLocation.clear();
+        m_admittedAt = QDateTime();
 
         emit isAdmittedChanged();
         emit patientNameChanged();
         emit patientMrnChanged();
         emit bedLocationChanged();
+        emit admittedAtChanged();
         emit admissionStateChanged();
     }
 

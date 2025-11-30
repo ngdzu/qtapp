@@ -208,6 +208,7 @@ namespace zmon
         double m_temperature;    ///< Current temperature
         bool m_hasActiveAlarms;  ///< Whether active alarms exist
         bool m_isMonitoring;     ///< Whether monitoring is active
+        int m_activeAlarmCount;  ///< Number of active alarms
     };
 
 } // namespace zmon

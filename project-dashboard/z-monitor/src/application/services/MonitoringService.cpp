@@ -289,4 +289,93 @@ namespace zmon
         }
     }
 
+    bool MonitoringService::acknowledgeAlarm(const QString &alarmId, const QString &userId)
+    {
+        if (!m_alarmAggregate)
+        {
+            return false;
+        }
+
+        // Acknowledge in domain aggregate
+        bool success = m_alarmAggregate->acknowledge(alarmId.toStdString(), userId.toStdString());
+
+        if (success)
+        {
+            // Update status in repository
+            if (m_alarmRepo)
+            {
+                auto updateResult = m_alarmRepo->updateStatus(
+                    alarmId.toStdString(),
+                    AlarmStatus::Acknowledged,
+                    userId.toStdString());
+
+                if (updateResult.isError())
+                {
+                    qWarning() << "Failed to update alarm status in repository:"
+                               << QString::fromStdString(updateResult.error().message);
+                    // Continue - alarm is acknowledged in memory, repository update failed
+                }
+            }
+
+            // Emit signal
+            emit alarmAcknowledged(alarmId);
+        }
+
+        return success;
+    }
+
+    bool MonitoringService::silenceAlarm(const QString &alarmId, int64_t durationMs)
+    {
+        if (!m_alarmAggregate)
+        {
+            return false;
+        }
+
+        // Silence in domain aggregate
+        bool success = m_alarmAggregate->silence(alarmId.toStdString(), durationMs);
+
+        if (success)
+        {
+            // Update status in repository
+            if (m_alarmRepo)
+            {
+                auto updateResult = m_alarmRepo->updateStatus(
+                    alarmId.toStdString(),
+                    AlarmStatus::Silenced,
+                    ""); // No user ID for silence
+
+                if (updateResult.isError())
+                {
+                    qWarning() << "Failed to update alarm status in repository:"
+                               << QString::fromStdString(updateResult.error().message);
+                    // Continue - alarm is silenced in memory, repository update failed
+                }
+            }
+
+            // Note: No signal emitted for silence (not needed by UI currently)
+        }
+
+        return success;
+    }
+
+    std::vector<AlarmSnapshot> MonitoringService::getActiveAlarms() const
+    {
+        if (!m_alarmAggregate)
+        {
+            return {};
+        }
+
+        return m_alarmAggregate->getActiveAlarms();
+    }
+
+    std::vector<AlarmSnapshot> MonitoringService::getAlarmHistory(const QString &patientMrn, int64_t startTimeMs, int64_t endTimeMs) const
+    {
+        if (!m_alarmRepo)
+        {
+            return {};
+        }
+
+        return m_alarmRepo->getHistory(patientMrn.toStdString(), startTimeMs, endTimeMs);
+    }
+
 } // namespace zmon

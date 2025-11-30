@@ -9,6 +9,8 @@
 #include "DashboardController.h"
 #include "application/services/MonitoringService.h"
 #include "infrastructure/caching/VitalsCache.h"
+#include "domain/monitoring/PatientAggregate.h"
+#include "domain/admission/PatientIdentity.h"
 #include <memory>
 
 namespace zmon
@@ -28,14 +30,28 @@ namespace zmon
           m_bloodPressure(""),
           m_temperature(0.0),
           m_hasActiveAlarms(false),
-          m_isMonitoring(false)
+          m_isMonitoring(false),
+          m_activeAlarmCount(0)
     {
         // Connect to MonitoringService signals
         if (m_monitoringService)
         {
             connect(m_monitoringService, &MonitoringService::vitalsUpdated,
                     this, &DashboardController::onVitalsUpdated);
+            connect(m_monitoringService, &MonitoringService::alarmRaised,
+                    this, &DashboardController::onAlarmStateChanged);
         }
+
+        // Initialize monitoring state - assume started if service exists
+        // (MonitoringService is started in main.cpp before controller instantiation)
+        if (m_monitoringService)
+        {
+            m_isMonitoring = true;
+            emit isMonitoringChanged();
+        }
+
+        // Load initial patient data if available
+        onPatientChanged();
     }
 
     void DashboardController::onVitalsUpdated()
@@ -93,15 +109,67 @@ namespace zmon
     }
     void DashboardController::onPatientChanged()
     {
-        // TODO: Update patient information from MonitoringService
-        emit patientNameChanged();
-        emit patientMrnChanged();
+        if (!m_monitoringService)
+        {
+            return;
+        }
+
+        // Read current patient from MonitoringService
+        auto currentPatient = m_monitoringService->getCurrentPatient();
+        if (currentPatient && currentPatient->isAdmitted())
+        {
+            const auto &identity = currentPatient->getPatientIdentity();
+            QString newName = QString::fromStdString(identity.name);
+            QString newMrn = QString::fromStdString(identity.mrn);
+
+            if (newName != m_patientName)
+            {
+                m_patientName = newName;
+                emit patientNameChanged();
+            }
+
+            if (newMrn != m_patientMrn)
+            {
+                m_patientMrn = newMrn;
+                emit patientMrnChanged();
+            }
+        }
+        else
+        {
+            // No patient admitted - clear patient info
+            if (!m_patientName.isEmpty())
+            {
+                m_patientName = "";
+                emit patientNameChanged();
+            }
+            if (!m_patientMrn.isEmpty())
+            {
+                m_patientMrn = "";
+                emit patientMrnChanged();
+            }
+        }
     }
 
     void DashboardController::onAlarmStateChanged()
     {
-        // TODO: Update alarm state from AlarmManager
-        emit hasActiveAlarmsChanged();
+        // This slot is called when alarmRaised signal is emitted
+        // Increment active alarm count and update hasActiveAlarms flag
+        m_activeAlarmCount++;
+
+        bool hadAlarms = m_hasActiveAlarms;
+        m_hasActiveAlarms = (m_activeAlarmCount > 0);
+
+        if (m_hasActiveAlarms != hadAlarms)
+        {
+            emit hasActiveAlarmsChanged();
+        }
+
+        // Note: This is a simplified implementation that only tracks raised alarms.
+        // A complete implementation would:
+        // - Track alarm acknowledgments (decrement count)
+        // - Query AlarmAggregate for current active alarm count
+        // - Connect to additional alarm signals (alarmCleared, alarmAcknowledged)
+        // This will be improved when AlarmController is implemented (task 45e-3)
     }
 
 } // namespace zmon

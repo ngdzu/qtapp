@@ -12,6 +12,12 @@
 #include <QObject>
 #include <QString>
 #include <QVariantList>
+#include <memory>
+
+namespace zmon
+{
+    class IVitalsRepository;
+}
 
 namespace zmon
 {
@@ -32,7 +38,7 @@ namespace zmon
         Q_PROPERTY(QString selectedMetric READ selectedMetric WRITE setSelectedMetric NOTIFY selectedMetricChanged)
 
     public:
-        explicit TrendsController(QObject *parent = nullptr);
+        explicit TrendsController(zmon::IVitalsRepository *vitalsRepo, QObject *parent = nullptr);
         ~TrendsController() override = default;
 
         QVariantList trendData() const { return m_trendData; }
@@ -57,5 +63,10 @@ namespace zmon
         QDateTime m_startTime;
         QDateTime m_endTime;
         QString m_selectedMetric{"heart_rate"};
+        zmon::IVitalsRepository *m_vitalsRepo{nullptr};
+        QString m_patientMrn{}; // optional filter; empty = all
+
+        int decimationFactor(int64_t startMs, int64_t endMs) const;
+        QVariantList toPoints(const std::vector<struct VitalRecord> &records) const;
     };
 } // namespace zmon
