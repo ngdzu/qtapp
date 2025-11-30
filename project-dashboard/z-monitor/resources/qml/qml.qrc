@@ -3,10 +3,55 @@
         <file>Main.qml</file>
         <file>Theme.qml</file>
         <file>qmldir</file>
+        <!-- Icons - Navigation (base) -->
+        <file>icons/layout-dashboard.svg</file>
+        <file>icons/brain-circuit.svg</file>
+        <file>icons/activity.svg</file>
+        <file>icons/settings.svg</file>
+        <file>icons/log-out.svg</file>
+        <file>icons/siren.svg</file>
+        
+        <!-- Icons - Navigation (pre-colored variants) -->
+        <file>icons/layout-dashboard-emerald.svg</file>
+        <file>icons/layout-dashboard-muted.svg</file>
+        <file>icons/brain-circuit-purple.svg</file>
+        <file>icons/brain-circuit-muted.svg</file>
+        <file>icons/activity-blue.svg</file>
+        <file>icons/activity-muted.svg</file>
+        <file>icons/settings-white.svg</file>
+        <file>icons/settings-muted.svg</file>
+        <file>icons/log-out-gray.svg</file>
+        
+        <!-- Icons - Battery (level variants) -->
+        <file>icons/battery.svg</file>
+        <file>icons/battery-10.svg</file>
+        <file>icons/battery-20.svg</file>
+        <file>icons/battery-50.svg</file>
+        <file>icons/battery-75.svg</file>
+        <file>icons/battery-100.svg</file>
+        <file>icons/battery-charging.svg</file>
+        
+        <!-- Icons - Header/Status (base) -->
+        <file>icons/user.svg</file>
+        <file>icons/user-plus.svg</file>
+        <file>icons/wifi.svg</file>
+        <file>icons/wifi-off.svg</file>
+        <file>icons/bell.svg</file>
+        <file>icons/shield.svg</file>
+        <file>icons/shield-alert.svg</file>
+        
+        <!-- Icons - Status (pre-colored variants) -->
+        <file>icons/bell-muted.svg</file>
+        <file>icons/bell-red.svg</file>
+        <file>icons/wifi-emerald.svg</file>
+        <file>icons/wifi-off-red.svg</file>
+        <file>icons/shield-emerald.svg</file>
+        <file>icons/shield-yellow.svg</file>
+        <file>icons/shield-alert-red.svg</file>
+        
+        <!-- Legacy icons (updated to use Lucide) -->
         <file>icons/avatar.svg</file>
         <file>icons/antenna.svg</file>
-        <file>icons/battery.svg</file>
-        <file>icons/bell.svg</file>
         
         <!-- Components -->
         <file>components/NavButton.qml</file>

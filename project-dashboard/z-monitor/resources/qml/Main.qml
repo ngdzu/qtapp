@@ -54,6 +54,27 @@ ApplicationWindow {
 
     property int currentView: root.viewState.Monitor
     property bool showNotifications: false
+    property int batteryLevel: 98  // Battery percentage (0-100)
+    property bool isCharging: false  // Whether battery is charging
+    property bool hasActiveAlarms: false  // Whether there are active alarms
+    property bool isConnected: true  // Connection status
+
+    // Compute battery icon source based on level and charging state
+    function getBatteryIconSource() {
+        if (root.isCharging) {
+            return "qrc:/qml/icons/battery-charging.svg"
+        } else if (root.batteryLevel <= 10) {
+            return "qrc:/qml/icons/battery-10.svg"
+        } else if (root.batteryLevel <= 20) {
+            return "qrc:/qml/icons/battery-20.svg"
+        } else if (root.batteryLevel <= 50) {
+            return "qrc:/qml/icons/battery-50.svg"
+        } else if (root.batteryLevel <= 75) {
+            return "qrc:/qml/icons/battery-75.svg"
+        } else {
+            return "qrc:/qml/icons/battery-100.svg"
+        }
+    }
 
     // Main Layout
     ColumnLayout {
@@ -91,11 +112,11 @@ ApplicationWindow {
                         anchors.margins: 12
                         spacing: 12
 
-                        // Avatar
+                        // Avatar (User icon)
                         Image {
                             Layout.preferredWidth: 32
                             Layout.preferredHeight: 32
-                            source: "qrc:/qml/icons/avatar.svg"
+                            source: "qrc:/qml/icons/user.svg"
                             fillMode: Image.PreserveAspectFit
                         }
 
@@ -209,7 +230,7 @@ ApplicationWindow {
                     spacing: 8
 
                     Image {
-                        source: "qrc:/qml/icons/antenna.svg"
+                        source: root.isConnected ? "qrc:/qml/icons/wifi-emerald.svg" : "qrc:/qml/icons/wifi-off-red.svg"
                         width: 18
                         height: 18
                         anchors.verticalCenter: parent.verticalCenter
@@ -239,7 +260,7 @@ ApplicationWindow {
                     spacing: 6
 
                     Image {
-                        source: "qrc:/qml/icons/battery.svg"
+                        source: root.getBatteryIconSource()
                         width: 18
                         height: 18
                         anchors.verticalCenter: parent.verticalCenter
@@ -247,11 +268,11 @@ ApplicationWindow {
                     }
 
                     Text {
-                        text: "98%"
+                        text: root.batteryLevel + "%"
                         font.pixelSize: 11
                         font.family: Theme.fonts.mono
                         font.bold: true
-                        color: root.colorTextMuted
+                        color: root.batteryLevel <= 20 ? root.colorCritical : root.colorTextMuted
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -265,7 +286,7 @@ ApplicationWindow {
 
                     Image {
                         anchors.centerIn: parent
-                        source: "qrc:/qml/icons/bell.svg"
+                        source: root.hasActiveAlarms ? "qrc:/qml/icons/bell-red.svg" : "qrc:/qml/icons/bell-muted.svg"
                         width: 20
                         height: 20
                         fillMode: Image.PreserveAspectFit
@@ -325,7 +346,8 @@ ApplicationWindow {
 
                     NavButton {
                         text: "MONITOR"
-                        icon: "📊"
+                        iconBase: "layout-dashboard"
+                        iconColorSuffix: "emerald"
                         active: root.currentView === root.viewState.Monitor
                         activeColor: root.colorECG
                         onClicked: root.currentView = root.viewState.Monitor
@@ -333,7 +355,8 @@ ApplicationWindow {
 
                     NavButton {
                         text: "AI ANALYSIS"
-                        icon: "🧠"
+                        iconBase: "brain-circuit"
+                        iconColorSuffix: "purple"
                         active: root.currentView === root.viewState.Analysis
                         activeColor: "#a855f7" // Purple-500
                         onClicked: root.currentView = root.viewState.Analysis
@@ -341,7 +364,8 @@ ApplicationWindow {
 
                     NavButton {
                         text: "TRENDS"
-                        icon: "📈"
+                        iconBase: "activity"
+                        iconColorSuffix: "blue"
                         active: root.currentView === root.viewState.Trends
                         activeColor: root.colorSPO2
                         onClicked: root.currentView = root.viewState.Trends
@@ -367,10 +391,14 @@ ApplicationWindow {
                             anchors.centerIn: parent
                             spacing: 4
 
-                            Text {
+                            Image {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "🚨"
-                                font.pixelSize: 20
+                                source: "qrc:/qml/icons/siren.svg"
+                                width: 20
+                                height: 20
+                                sourceSize.width: 20
+                                sourceSize.height: 20
+                                fillMode: Image.PreserveAspectFit
                             }
 
                             Text {
@@ -402,14 +430,17 @@ ApplicationWindow {
 
                     NavButton {
                         text: "MENU"
-                        icon: "⚙️"
+                        iconBase: "settings"
+                        iconColorSuffix: "white"
                         active: root.currentView === root.viewState.Settings
                         onClicked: root.currentView = root.viewState.Settings
                     }
 
                     NavButton {
                         text: "LOGOUT"
-                        icon: "🚪"
+                        iconBase: "log-out"
+                        iconColorSuffix: "gray"
+                        active: false
                         onClicked: console.log("Logout clicked")
                     }
                 }
