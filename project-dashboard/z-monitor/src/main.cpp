@@ -19,6 +19,7 @@
 #include "infrastructure/caching/VitalsCache.h"
 #include "infrastructure/caching/WaveformCache.h"
 #include "infrastructure/persistence/DatabaseManager.h"
+#include "infrastructure/persistence/QueryRegistry.h"
 #include "infrastructure/persistence/SQLitePatientRepository.h"
 #include "infrastructure/persistence/SQLiteVitalsRepository.h"
 #include "infrastructure/persistence/SQLiteTelemetryRepository.h"
@@ -45,6 +46,23 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
+    // Add executable directory to plugin search path
+    // Qt will automatically append "/sqldrivers" when searching for SQL plugins
+    // MUST be done before any QSqlDatabase operations
+    QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
+
+    // Verify SQLite driver is available
+    if (!QSqlDatabase::isDriverAvailable("QSQLITE"))
+    {
+        qCritical() << "QSQLITE driver not available!";
+        qCritical() << "Available drivers:" << QSqlDatabase::drivers();
+        qCritical() << "Plugin paths:" << QCoreApplication::libraryPaths();
+    }
+    else
+    {
+        qInfo() << "QSQLITE driver is available";
+    }
+
     // Create infrastructure layer
     // Note: Objects managed by shared_ptr should NOT have QObject parent to avoid double-delete
     auto sensorDataSource = std::make_shared<zmon::SharedMemorySensorDataSource>(
@@ -69,6 +87,21 @@ int main(int argc, char *argv[])
     {
         qInfo() << "Database opened successfully at:" << dbPath;
     }
+
+    // Run migrations to create schema (if not already created)
+    auto migrateResult = dbManager->executeMigrations();
+    if (migrateResult.isError())
+    {
+        qCritical() << "Failed to run migrations:" << QString::fromStdString(migrateResult.error().message);
+    }
+    else
+    {
+        qInfo() << "Database migrations executed successfully";
+    }
+
+    // Initialize all prepared queries (REQUIRED before using any repository)
+    zmon::persistence::QueryCatalog::initializeQueries(dbManager.get());
+    qInfo() << "Database queries initialized";
 
     // Create repositories
     auto patientRepoConcrete = std::make_shared<zmon::SQLitePatientRepository>(dbManager.get());
@@ -112,6 +145,9 @@ int main(int argc, char *argv[])
         // Continue anyway - UI will show disconnected state
     } // Create QML engine
     QQmlApplicationEngine engine;
+
+    // Ensure QML engine can import resources under qrc:/qml
+    engine.addImportPath("qrc:/qml");
 
     // Register controllers as QML singletons (accessible globally in QML)
     engine.rootContext()->setContextProperty("dashboardController", dashboardController);

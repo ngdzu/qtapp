@@ -1,6 +1,12 @@
 <RCC>
     <qresource prefix="/qml">
         <file>Main.qml</file>
+        <file>Theme.qml</file>
+        <file>qmldir</file>
+        <file>icons/avatar.svg</file>
+        <file>icons/antenna.svg</file>
+        <file>icons/battery.svg</file>
+        <file>icons/bell.svg</file>
         
         <!-- Components -->
         <file>components/NavButton.qml</file>

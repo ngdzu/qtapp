@@ -562,15 +562,28 @@ namespace zmon
         {
             if (!dbManager)
             {
+                qCritical() << "QueryCatalog::initializeQueries - dbManager is null!";
                 return;
             }
 
             auto queries = getAllQueries();
+            qInfo() << "QueryCatalog::initializeQueries - Registering" << queries.size() << "queries";
 
+            int successCount = 0;
             for (const auto &def : queries)
             {
-                dbManager->registerPreparedQuery(def.id, def.sql);
+                auto result = dbManager->registerPreparedQuery(def.id, def.sql);
+                if (result.isOk())
+                {
+                    successCount++;
+                }
+                else
+                {
+                    qWarning() << "Failed to register query:" << def.id << "-" << QString::fromStdString(result.error().message);
+                }
             }
+
+            qInfo() << "QueryCatalog::initializeQueries - Successfully registered" << successCount << "of" << queries.size() << "queries";
         }
 
         QString QueryCatalog::generateDocumentation()

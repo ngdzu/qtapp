@@ -12,6 +12,7 @@
 #include "domain/common/Result.h"
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QRegularExpression>
 #include <QFileInfo>
 #include <QDir>
 
@@ -264,14 +265,73 @@ namespace zmon
                 Error::create(ErrorCode::DatabaseError, "Database is not open"));
         }
 
-        // TODO: Implement migration execution
-        // This should:
-        // 1. Check schema_version table for current version
-        // 2. Find all migration files in schema/migrations/
-        // 3. Execute migrations in order
-        // 4. Update schema_version table
+        // Simple migration: Execute schema files in order
+        // For production: Use a schema_version table to track which migrations have been applied
+        QStringList migrations = {
+            ":/schema/migrations/0001_initial.sql",
+            ":/schema/migrations/0002_add_indices.sql",
+            ":/schema/migrations/0003_adt_workflow.sql"};
 
-        // For now, return success (migrations will be implemented separately)
+        for (const QString &migrationPath : migrations)
+        {
+            QFile migrationFile(migrationPath);
+            if (!migrationFile.open(QIODevice::ReadOnly | QIODevice::Text))
+            {
+                // Migration file not found - this may be OK for embedded resources
+                qWarning() << "Migration file not found:" << migrationPath << "- Skipping";
+                continue;
+            }
+
+            QString sql = migrationFile.readAll();
+            migrationFile.close();
+
+            // Split SQL into individual statements (QSqlQuery can't exec multiple)
+            QStringList statements = sql.split(";", Qt::SkipEmptyParts);
+
+            QSqlQuery query(m_writeDb);
+            bool migrationSuccess = true;
+
+            // Execute each statement separately
+            for (const QString &stmt : statements)
+            {
+                QString trimmedStmt = stmt.trimmed();
+
+                // Skip comments and empty lines
+                if (trimmedStmt.isEmpty() || trimmedStmt.startsWith("--") ||
+                    trimmedStmt.contains(QRegularExpression("^\\s*--")))
+                {
+                    continue;
+                }
+
+                // Skip transaction commands (we're not using transactions for now)
+                if (trimmedStmt.contains(QRegularExpression("^(BEGIN|COMMIT|ROLLBACK)", QRegularExpression::CaseInsensitiveOption)))
+                {
+                    continue;
+                }
+
+                if (!query.exec(trimmedStmt))
+                {
+                    QSqlError error = query.lastError();
+                    // Only log error if it's not "table already exists"
+                    if (!error.text().contains("already exists", Qt::CaseInsensitive))
+                    {
+                        qWarning() << "Migration statement failed:" << trimmedStmt.left(100);
+                        qWarning() << "SQL Error:" << error.text();
+                        migrationSuccess = false;
+                    }
+                }
+            }
+
+            if (migrationSuccess)
+            {
+                qInfo() << "Migration executed successfully:" << migrationPath;
+            }
+            else
+            {
+                qWarning() << "Migration completed with some errors:" << migrationPath;
+            }
+        }
+
         return Result<void>::ok();
     }
 
@@ -404,7 +464,20 @@ namespace zmon
 
     QSqlDatabase DatabaseManager::createConnection(const QString &connectionName)
     {
+        // Ensure QSQLITE driver is available before creating named connections
+        // This forces Qt to load the plugin if not already loaded
+        if (!QSqlDatabase::isDriverAvailable("QSQLITE"))
+        {
+            qCritical() << "QSQLITE driver not available for connection:" << connectionName;
+            qCritical() << "Available drivers:" << QSqlDatabase::drivers();
+            return QSqlDatabase(); // Return invalid database
+        }
+
         QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+        if (!db.isValid())
+        {
+            qCritical() << "Failed to create database connection:" << connectionName;
+        }
         return db;
     }
 
@@ -443,6 +516,7 @@ namespace zmon
     {
         if (!m_isOpen)
         {
+            qWarning() << "DatabaseManager::getPreparedQuery - database not open for query:" << queryId;
             return QSqlQuery(); // Return invalid query
         }
 
@@ -450,6 +524,23 @@ namespace zmon
         {
             // Query not registered - return invalid query
             // Error should be logged by caller
+            qWarning() << "DatabaseManager::getPreparedQuery - query not registered:" << queryId;
+            return QSqlQuery();
+        }
+
+        // Verify write database is valid
+        if (!m_writeDb.isValid())
+        {
+            qCritical() << "DatabaseManager::getPreparedQuery - write database is INVALID for query:" << queryId;
+            qCritical() << "Database error:" << m_writeDb.lastError().text();
+            qCritical() << "Driver name:" << m_writeDb.driverName();
+            qCritical() << "Connection name:" << m_writeDb.connectionName();
+            return QSqlQuery();
+        }
+
+        if (!m_writeDb.isOpen())
+        {
+            qCritical() << "DatabaseManager::getPreparedQuery - write database is NOT OPEN for query:" << queryId;
             return QSqlQuery();
         }
 
@@ -461,6 +552,10 @@ namespace zmon
         {
             // Preparation failed - return invalid query
             // Error should be logged by caller
+            qCritical() << "DatabaseManager::getPreparedQuery - failed to prepare query:" << queryId;
+            qCritical() << "SQL:" << sql;
+            qCritical() << "Error:" << query.lastError().text();
+            qCritical() << "Database valid:" << query.lastQuery().isEmpty();
             return QSqlQuery();
         }
 

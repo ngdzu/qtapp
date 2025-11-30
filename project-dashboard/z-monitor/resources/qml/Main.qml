@@ -15,6 +15,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "components"
 import "views"
+import qml 1.0
 
 ApplicationWindow {
     id: root
@@ -26,22 +27,22 @@ ApplicationWindow {
     maximumWidth: 1280
     maximumHeight: 800
     title: "Z Monitor - Patient Monitoring System"
-    color: "#09090b" // Zinc-950
+    color: Theme.colors.background // Zinc-950
 
-    // Theme Colors (matching Node.js reference)
-    readonly property color colorBackground: "#09090b"      // Zinc-950
-    readonly property color colorPanel: "#18181b"           // Zinc-900
-    readonly property color colorBorder: "#27272a"          // Zinc-800
-    readonly property color colorText: "#fafafa"            // Zinc-50
-    readonly property color colorTextMuted: "#71717a"       // Zinc-500
-    readonly property color colorECG: "#10b981"             // Emerald-500 (green)
-    readonly property color colorSPO2: "#3b82f6"            // Blue-500
-    readonly property color colorResp: "#eab308"            // Yellow-500
-    readonly property color colorNIBP: "#a1a1aa"            // Zinc-400
-    readonly property color colorTemp: "#d946ef"            // Fuchsia-500
-    readonly property color colorCritical: "#ef4444"        // Red-500
-    readonly property color colorWarning: "#f59e0b"         // Amber-500
-    readonly property color colorSuccess: "#10b981"         // Emerald-500
+    // Theme shortcut aliases
+    readonly property color colorBackground: Theme.colors.background
+    readonly property color colorPanel: Theme.colors.panel
+    readonly property color colorBorder: Theme.colors.border
+    readonly property color colorText: Theme.colors.text
+    readonly property color colorTextMuted: Theme.colors.textMuted
+    readonly property color colorECG: Theme.colors.ECG
+    readonly property color colorSPO2: Theme.colors.SPO2
+    readonly property color colorResp: Theme.colors.RESP
+    readonly property color colorNIBP: Theme.colors.NIBP
+    readonly property color colorTemp: Theme.colors.TEMP
+    readonly property color colorCritical: Theme.colors.critical
+    readonly property color colorWarning: Theme.colors.warning
+    readonly property color colorSuccess: Theme.colors.success
 
     // View States
     enum ViewState {
@@ -80,8 +81,8 @@ ApplicationWindow {
                 Rectangle {
                     Layout.preferredWidth: 220
                     Layout.fillHeight: true
-                    color: "#27272a" // Zinc-800
-                    border.color: "#3f3f46" // Zinc-700
+                    color: Theme.colors.banner
+                    border.color: Theme.colors.bannerBorder
                     border.width: 1
                     radius: 6
 
@@ -91,17 +92,11 @@ ApplicationWindow {
                         spacing: 12
 
                         // Avatar
-                        Rectangle {
+                        Image {
                             Layout.preferredWidth: 32
                             Layout.preferredHeight: 32
-                            color: "#7c3aed" // Violet-600
-                            radius: 4
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "👤"
-                                font.pixelSize: 18
-                            }
+                            source: "qrc:/qml/icons/avatar.svg"
+                            fillMode: Image.PreserveAspectFit
                         }
 
                         // Patient Info
@@ -119,7 +114,7 @@ ApplicationWindow {
                             Text {
                                 text: "BED-04"
                                 font.pixelSize: 10
-                                font.family: "monospace"
+                                font.family: Theme.fonts.mono
                                 color: root.colorECG
                             }
                         }
@@ -131,7 +126,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                 }
 
-                // User Info
+                // Clinician Info
                 Column {
                     Layout.alignment: Qt.AlignVCenter
                     spacing: 2
@@ -149,7 +144,7 @@ ApplicationWindow {
                         font.pixelSize: 9
                         font.bold: true
                         font.letterSpacing: 1.5
-                        color: "#3f3f46" // Zinc-700
+                        color: Theme.colors.clinicianSubtle
                         horizontalAlignment: Text.AlignRight
                     }
                 }
@@ -168,7 +163,7 @@ ApplicationWindow {
                             id: clockText
                             text: Qt.formatTime(new Date(), "HH:mm:ss")
                             font.pixelSize: 12
-                            font.family: "monospace"
+                            font.family: Theme.fonts.mono
                             color: root.colorTextMuted
 
                             Timer {
@@ -188,7 +183,7 @@ ApplicationWindow {
                         Text {
                             text: Qt.formatDate(new Date(), "dd MMM yyyy").toUpperCase()
                             font.pixelSize: 12
-                            font.family: "monospace"
+                            font.family: Theme.fonts.mono
                             color: "#52525b" // Zinc-600
                         }
                     }
@@ -213,10 +208,12 @@ ApplicationWindow {
                 Row {
                     spacing: 8
 
-                    Text {
-                        text: "📡"
-                        font.pixelSize: 18
+                    Image {
+                        source: "qrc:/qml/icons/antenna.svg"
+                        width: 18
+                        height: 18
                         anchors.verticalCenter: parent.verticalCenter
+                        fillMode: Image.PreserveAspectFit
                     }
 
                     Column {
@@ -241,16 +238,18 @@ ApplicationWindow {
                 Row {
                     spacing: 6
 
-                    Text {
-                        text: "🔋"
-                        font.pixelSize: 18
+                    Image {
+                        source: "qrc:/qml/icons/battery.svg"
+                        width: 18
+                        height: 18
                         anchors.verticalCenter: parent.verticalCenter
+                        fillMode: Image.PreserveAspectFit
                     }
 
                     Text {
                         text: "98%"
                         font.pixelSize: 11
-                        font.family: "monospace"
+                        font.family: Theme.fonts.mono
                         font.bold: true
                         color: root.colorTextMuted
                         anchors.verticalCenter: parent.verticalCenter
@@ -264,10 +263,12 @@ ApplicationWindow {
                     color: root.showNotifications ? root.colorBorder : "transparent"
                     radius: 20
 
-                    Text {
+                    Image {
                         anchors.centerIn: parent
-                        text: "🔔"
-                        font.pixelSize: 20
+                        source: "qrc:/qml/icons/bell.svg"
+                        width: 20
+                        height: 20
+                        fillMode: Image.PreserveAspectFit
                     }
 
                     MouseArea {
