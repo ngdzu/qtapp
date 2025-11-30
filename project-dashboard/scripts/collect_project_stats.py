@@ -61,12 +61,26 @@ class ProjectStatsCollector:
             'functions_by_file': [],
             'files': []
         }
+        # Common CMake build directory patterns
+        self.build_dir_patterns = [
+            'build',
+            'build-',
+            'cmake-build',
+            'cmake-build-',
+            '_build',
+            'out',
+            '.build'
+        ]
         
     def collect(self, include_tests: bool = False) -> Dict:
         """Collect statistics from all C++ files."""
         cpp_files = list(self.root_dir.rglob('*.cpp')) + list(self.root_dir.rglob('*.h'))
         
         for file_path in cpp_files:
+            # Skip CMake build directories
+            if self.is_build_directory(file_path):
+                continue
+            
             # Skip generated files
             if 'generated' in str(file_path):
                 continue
@@ -122,6 +136,25 @@ class ProjectStatsCollector:
             self.stats['avg_functions_per_file'] = 0
         
         return self.stats
+    
+    def is_build_directory(self, file_path: Path) -> bool:
+        """Check if file is in a CMake build directory."""
+        # Get all path parts relative to root
+        try:
+            relative_path = file_path.relative_to(self.root_dir)
+        except ValueError:
+            # File is not under root, check absolute path
+            relative_path = file_path
+        
+        # Check each part of the path
+        for part in relative_path.parts:
+            part_lower = part.lower()
+            # Check if this part matches any build directory pattern
+            for pattern in self.build_dir_patterns:
+                if part_lower == pattern or part_lower.startswith(pattern):
+                    return True
+        
+        return False
     
     def analyze_file(self, file_path: Path) -> Dict:
         """Analyze a single C++ file."""
