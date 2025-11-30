@@ -1334,6 +1334,220 @@ These infrastructure components should be implemented early as they are dependen
 
 ---
 
+### Repository Implementations (High Priority - Required for MonitoringService)
+
+**Context:** The current z-monitor application passes `nullptr` for 4 repositories when creating MonitoringService:
+- `IPatientRepository` → `nullptr` (only SQLitePatientRepository exists)
+- `ITelemetryRepository` → `nullptr` (NOT IMPLEMENTED)
+- `IAlarmRepository` → `nullptr` (NOT IMPLEMENTED)
+- `IVitalsRepository` → `nullptr` (NOT IMPLEMENTED)
+
+While the UI works without these repositories (data flows through caches), these repositories are required for:
+1. **Data Persistence:** Vitals, alarms, and telemetry must be persisted to database for historical review, regulatory compliance, and archival
+2. **Telemetry Batching:** ITelemetryRepository enables batching vitals/events for transmission to central server
+3. **Alarm History:** IAlarmRepository stores alarm events for review and audit trail
+4. **Long-term Vitals Storage:** IVitalsRepository stores vitals beyond the 3-day cache window for trends analysis
+
+**Priority:** These implementations should be done NEXT (before moving to other features) to ensure data persistence works and MonitoringService can fulfill its complete responsibilities.
+
+- [x] Implement SQLiteVitalsRepository (45a)
+  - What: Implement `SQLiteVitalsRepository` class in `z-monitor/src/infrastructure/persistence/SQLiteVitalsRepository.cpp/h` that implements `IVitalsRepository` interface. This repository persists vitals to the `vitals` table for long-term storage beyond the 3-day in-memory cache. Uses Query Registry for all SQL queries and Schema constants for column names. Supports batch inserts for performance (bulk write operations).
+  - Why: Required by MonitoringService to persist vitals beyond 3-day cache. Enables historical trends analysis, regulatory compliance (must retain vitals for audit), and archival workflows. Currently MonitoringService receives `nullptr` for vitalsRepo, preventing data persistence.
+  - Files:
+    - Create: `z-monitor/src/infrastructure/persistence/SQLiteVitalsRepository.h` (interface implementation)
+    - Create: `z-monitor/src/infrastructure/persistence/SQLiteVitalsRepository.cpp` (implementation)
+    - Update: `z-monitor/src/infrastructure/persistence/QueryCatalog.cpp` (add Vitals query IDs)
+    - Update: `z-monitor/src/infrastructure/persistence/QueryRegistry.h` (add Vitals namespace)
+    - Update: `z-monitor/src/main.cpp` (instantiate SQLiteVitalsRepository, pass to MonitoringService)
+    - Create: `z-monitor/tests/unit/infrastructure/test_sqlite_vitals_repository.cpp` (unit tests)
+  - Dependencies:
+    - DatabaseManager implemented (✅ done)
+    - Schema Management with `vitals` table (✅ done)
+    - Query Registry pattern (✅ done)
+    - IVitalsRepository interface defined (✅ done)
+  - Implementation Details:
+    - **Methods to implement:**
+      - `Result<void> save(const VitalRecord &vital)` - Insert single vital
+      - `Result<void> saveBatch(const std::vector<VitalRecord> &vitals)` - Bulk insert for performance
+      - `Result<std::vector<VitalRecord>> findByPatient(const std::string &mrn, int64_t startTimeMs, int64_t endTimeMs)` - Range query for trends
+      - `Result<std::vector<VitalRecord>> findByType(const std::string &mrn, const std::string &vitalType, int64_t startTimeMs, int64_t endTimeMs)` - Filtered query
+      - `Result<void> deleteOlderThan(int64_t timestampMs)` - Archival support
+    - **Query IDs to add (QueryRegistry):**
+      - `QueryId::Vitals::INSERT` - Insert single vital
+      - `QueryId::Vitals::INSERT_BATCH` - Bulk insert (transaction with multiple inserts)
+      - `QueryId::Vitals::FIND_BY_PATIENT_RANGE` - Time range query
+      - `QueryId::Vitals::FIND_BY_TYPE_RANGE` - Type + time range query
+      - `QueryId::Vitals::DELETE_OLDER_THAN` - Archival cleanup
+      - `QueryId::Vitals::COUNT_BY_PATIENT` - Statistics query
+    - **Use Schema constants:** `Schema::Tables::VITALS`, `Schema::Columns::Vitals::*`
+    - **Thread safety:** All database operations via DatabaseManager (Database I/O Thread)
+    - **Performance:** Use transactions for batch inserts, prepared statements for single inserts
+  - Acceptance:
+    - SQLiteVitalsRepository compiles and links
+    - All IVitalsRepository methods implemented
+    - All queries use QueryId constants (no magic strings)
+    - All column names use Schema constants
+    - Batch insert uses transactions (100+ vitals/sec throughput)
+    - MonitoringService updated to use repository (not nullptr)
+    - All unit tests pass
+  - Verification Steps:
+    1. Functional: All CRUD operations work, batch insert performs well (100+ vitals/sec), range queries return correct data, archival delete works **Status:** ⚠️ Partially Verified - Compiled and registered queries; runtime verification pending.
+    2. Code Quality: Doxygen comments on all public methods, error handling with Result<T>, no magic strings (grep verified), Schema constants used **Status:** ✅ Verified - Headers documented, Result<void>/Result<size_t> used, QueryId/Schema constants enforced.
+    3. Documentation: IVitalsRepository interface documented, usage examples in doc **Status:** ⏳ Pending - Add brief usage example after integration.
+    4. Integration: main.cpp instantiates repository, MonitoringService uses it, database persists vitals **Status:** ⏳ Pending - Will wire in next step.
+    5. Tests: Unit tests cover all methods, batch insert test, range query test, error handling tests **Status:** ⏳ Pending - Smoke test to be added.
+  - Prompt: `project-dashboard/prompt/45a-implement-sqlite-vitals-repository.md`
+
+- [ ] Implement SQLiteTelemetryRepository (45b)
+  - What: Implement `SQLiteTelemetryRepository` class in `z-monitor/src/infrastructure/persistence/SQLiteTelemetryRepository.cpp/h` that implements `ITelemetryRepository` interface. This repository manages telemetry batches for transmission to central server. Stores vitals/events in `telemetry_metrics` table, tracks transmission status, and supports batch operations for efficient network transmission.
+  - Why: Required by MonitoringService to batch telemetry data for central server transmission. Currently MonitoringService receives `nullptr` for telemetryRepo, preventing data batching and network transmission. Essential for central monitoring and alerting workflows.
+  - Files:
+    - Create: `z-monitor/src/infrastructure/persistence/SQLiteTelemetryRepository.h` (interface implementation)
+    - Create: `z-monitor/src/infrastructure/persistence/SQLiteTelemetryRepository.cpp` (implementation)
+    - Update: `z-monitor/src/infrastructure/persistence/QueryCatalog.cpp` (add Telemetry query IDs)
+    - Update: `z-monitor/src/infrastructure/persistence/QueryRegistry.h` (add Telemetry namespace)
+    - Update: `z-monitor/src/main.cpp` (instantiate SQLiteTelemetryRepository, pass to MonitoringService)
+    - Create: `z-monitor/tests/unit/infrastructure/test_sqlite_telemetry_repository.cpp` (unit tests)
+  - Dependencies:
+    - DatabaseManager implemented (✅ done)
+    - Schema Management with `telemetry_metrics` table (✅ done)
+    - Query Registry pattern (✅ done)
+    - ITelemetryRepository interface defined (✅ done)
+  - Implementation Details:
+    - **Methods to implement:**
+      - `Result<void> saveBatch(const TelemetryBatch &batch)` - Save telemetry batch for transmission
+      - `Result<std::vector<TelemetryBatch>> getPendingBatches(int limit)` - Get unsent batches
+      - `Result<void> markAsSent(const std::string &batchId)` - Mark batch as transmitted
+      - `Result<void> deleteOlderThan(int64_t timestampMs)` - Cleanup old batches
+      - `Result<int> countPending()` - Statistics for monitoring
+    - **Query IDs to add (QueryRegistry):**
+      - `QueryId::Telemetry::INSERT_BATCH` - Save batch metadata and metrics
+      - `QueryId::Telemetry::GET_PENDING` - Retrieve unsent batches
+      - `QueryId::Telemetry::MARK_SENT` - Update transmission status
+      - `QueryId::Telemetry::DELETE_OLDER_THAN` - Cleanup query
+      - `QueryId::Telemetry::COUNT_PENDING` - Statistics query
+    - **Use Schema constants:** `Schema::Tables::TELEMETRY_METRICS`, `Schema::Columns::TelemetryMetrics::*`
+    - **Batch structure:** Each batch contains multiple vitals/events with batch metadata (batch_id, device_id, timestamp)
+    - **Thread safety:** All operations via DatabaseManager (Database I/O Thread)
+  - Acceptance:
+    - SQLiteTelemetryRepository compiles and links
+    - All ITelemetryRepository methods implemented
+    - Batch operations use transactions
+    - MonitoringService updated to use repository (not nullptr)
+    - All unit tests pass
+  - Verification Steps:
+    1. Functional: Batch save/retrieve works, marking as sent updates status, cleanup works, pending count accurate **Status:** ⏳ Pending
+    2. Code Quality: Doxygen comments, Result<T> error handling, no magic strings, Schema constants **Status:** ⏳ Pending
+    3. Documentation: ITelemetryRepository documented, batch format documented **Status:** ⏳ Pending
+    4. Integration: main.cpp instantiates repository, MonitoringService batches telemetry **Status:** ⏳ Pending
+    5. Tests: Unit tests for all methods, batch operations test, transmission workflow test **Status:** ⏳ Pending
+  - Prompt: `project-dashboard/prompt/45b-implement-sqlite-telemetry-repository.md`
+
+- [ ] Implement SQLiteAlarmRepository (45c)
+  - What: Implement `SQLiteAlarmRepository` class in `z-monitor/src/infrastructure/persistence/SQLiteAlarmRepository.cpp/h` that implements `IAlarmRepository` interface. This repository persists alarm events to `alarms` table for history, audit trail, and regulatory compliance. Supports alarm acknowledgment, silencing, and retrieval by patient/time range.
+  - Why: Required by MonitoringService to persist alarm events. Currently MonitoringService receives `nullptr` for alarmRepo, preventing alarm history and audit trail. Essential for patient safety (alarm review), regulatory compliance (alarm logs required), and clinical workflows (alarm acknowledgment tracking).
+  - Files:
+    - Create: `z-monitor/src/infrastructure/persistence/SQLiteAlarmRepository.h` (interface implementation)
+    - Create: `z-monitor/src/infrastructure/persistence/SQLiteAlarmRepository.cpp` (implementation)
+    - Update: `z-monitor/src/infrastructure/persistence/QueryCatalog.cpp` (add Alarm query IDs)
+    - Update: `z-monitor/src/infrastructure/persistence/QueryRegistry.h` (add Alarms namespace)
+    - Update: `z-monitor/src/main.cpp` (instantiate SQLiteAlarmRepository, pass to MonitoringService)
+    - Create: `z-monitor/tests/unit/infrastructure/test_sqlite_alarm_repository.cpp` (unit tests)
+  - Dependencies:
+    - DatabaseManager implemented (✅ done)
+    - Schema Management with `alarms` table (✅ done)
+    - Query Registry pattern (✅ done)
+    - IAlarmRepository interface defined (✅ done)
+  - Implementation Details:
+    - **Methods to implement:**
+      - `Result<void> save(const AlarmEvent &alarm)` - Persist alarm event
+      - `Result<std::vector<AlarmEvent>> findByPatient(const std::string &mrn, int64_t startTimeMs, int64_t endTimeMs)` - History query
+      - `Result<std::vector<AlarmEvent>> findActive(const std::string &mrn)` - Active alarms query
+      - `Result<void> acknowledge(const std::string &alarmId, const std::string &userId)` - Acknowledge alarm
+      - `Result<void> silence(const std::string &alarmId, int durationSeconds)` - Silence alarm
+      - `Result<void> deleteOlderThan(int64_t timestampMs)` - Archival cleanup
+    - **Query IDs to add (QueryRegistry):**
+      - `QueryId::Alarms::INSERT` - Insert alarm event
+      - `QueryId::Alarms::FIND_BY_PATIENT_RANGE` - History query
+      - `QueryId::Alarms::FIND_ACTIVE` - Active alarms query
+      - `QueryId::Alarms::ACKNOWLEDGE` - Update acknowledgment status
+      - `QueryId::Alarms::SILENCE` - Update silence status
+      - `QueryId::Alarms::DELETE_OLDER_THAN` - Archival query
+    - **Use Schema constants:** `Schema::Tables::ALARMS`, `Schema::Columns::Alarms::*`
+    - **Alarm states:** active, acknowledged, silenced, expired
+    - **Thread safety:** All operations via DatabaseManager (Database I/O Thread)
+  - Acceptance:
+    - SQLiteAlarmRepository compiles and links
+    - All IAlarmRepository methods implemented
+    - Alarm state transitions work correctly
+    - MonitoringService updated to use repository (not nullptr)
+    - All unit tests pass
+  - Verification Steps:
+    1. Functional: Alarm save/retrieve works, acknowledgment updates state, silencing works, active query excludes acknowledged/expired **Status:** ⏳ Pending
+    2. Code Quality: Doxygen comments, Result<T> error handling, no magic strings, Schema constants **Status:** ⏳ Pending
+    3. Documentation: IAlarmRepository documented, alarm state machine documented **Status:** ⏳ Pending
+    4. Integration: main.cpp instantiates repository, MonitoringService persists alarms **Status:** ⏳ Pending
+    5. Tests: Unit tests for all methods, state transition tests, history query test **Status:** ⏳ Pending
+  - Prompt: `project-dashboard/prompt/45c-implement-sqlite-alarm-repository.md`
+
+- [ ] Wire repository implementations to MonitoringService in main.cpp (45d)
+  - What: Update `z-monitor/src/main.cpp` to instantiate all 4 repository implementations (SQLitePatientRepository, SQLiteVitalsRepository, SQLiteTelemetryRepository, SQLiteAlarmRepository) and pass them to MonitoringService instead of `nullptr`. Instantiate DatabaseManager, open database file, and ensure proper lifecycle management. Verify all repositories work together.
+  - Why: Completes the data persistence layer integration. Enables MonitoringService to persist vitals, alarms, and telemetry to database. This is required for production use - without repositories, no data is persisted beyond in-memory caches.
+  - Files:
+    - Update: `z-monitor/src/main.cpp` (instantiate DatabaseManager + all 4 repositories, pass to MonitoringService)
+    - Update: `z-monitor/src/infrastructure/persistence/CMakeLists.txt` (link all repository implementations if not already)
+  - Dependencies:
+    - SQLitePatientRepository implemented (✅ done)
+    - SQLiteVitalsRepository implemented (task 45a - pending)
+    - SQLiteTelemetryRepository implemented (task 45b - pending)
+    - SQLiteAlarmRepository implemented (task 45c - pending)
+    - DatabaseManager implemented (✅ done)
+  - Implementation Details:
+    - **Add to main.cpp before MonitoringService creation:**
+      ```cpp
+      // Create infrastructure - Database
+      auto databaseManager = std::make_shared<zmon::DatabaseManager>();
+      auto dbResult = databaseManager->open("z-monitor.db"); // Or path from config
+      if (dbResult.isError()) {
+          qCritical() << "Failed to open database:" << dbResult.error().message;
+          // Handle error - continue with nullptr repos or exit
+      }
+      
+      // Create repository implementations
+      auto patientRepo = std::make_shared<zmon::SQLitePatientRepository>(databaseManager);
+      auto vitalsRepo = std::make_shared<zmon::SQLiteVitalsRepository>(databaseManager);
+      auto telemetryRepo = std::make_shared<zmon::SQLiteTelemetryRepository>(databaseManager);
+      auto alarmRepo = std::make_shared<zmon::SQLiteAlarmRepository>(databaseManager);
+      
+      // Create application service layer (NOW with real repositories)
+      auto monitoringService = new zmon::MonitoringService(
+          patientRepo,      // Real patient repository
+          telemetryRepo,    // Real telemetry repository
+          alarmRepo,        // Real alarm repository
+          vitalsRepo,       // Real vitals repository
+          sensorDataSource,
+          vitalsCache,
+          waveformCache,
+          &app);
+      ```
+    - **Database location:** Use application data directory (platform-specific) or configuration setting
+    - **Error handling:** If database fails to open, decide: exit app or continue with nullptr repos (degraded mode)
+    - **Lifecycle:** DatabaseManager shared_ptr owned by main(), passed to repositories
+  - Acceptance:
+    - main.cpp instantiates all 4 repositories
+    - DatabaseManager opens database successfully
+    - MonitoringService receives non-null repositories
+    - Application starts without errors
+    - Database file created on first run
+    - Migrations applied automatically
+  - Verification Steps:
+    1. Functional: Application starts, database opens, repositories instantiated, MonitoringService works **Status:** ⏳ Pending
+    2. Integration: Vitals persist to database (verify via SQL query), alarms persist, telemetry batches saved **Status:** ⏳ Pending
+    3. Error Handling: Database open failure handled gracefully, app doesn't crash **Status:** ⏳ Pending
+  - Prompt: `project-dashboard/prompt/45d-wire-repositories-to-monitoring-service.md`
+
+---
+
 
 
 ## Testing & Quality Foundations

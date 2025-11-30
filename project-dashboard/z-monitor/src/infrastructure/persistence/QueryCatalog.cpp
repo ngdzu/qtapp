@@ -286,6 +286,87 @@ namespace zmon
                     .description = "Create device index on action_log table",
                     .parameters = {},
                     .isReadOnly = false};
+                // ═══════════════════════════════════════════════════════════
+                // VITALS QUERIES
+                // ═══════════════════════════════════════════════════════════
+
+                namespace VitalsCols = Schema::Columns::Vitals;
+
+                queries[Vitals::INSERT] = {
+                    .id = Vitals::INSERT,
+                    .sql = QString(
+                               "INSERT INTO %1 (%2, %3, %4, %5, %6, %7, %8, %9) "
+                               "VALUES (:patient_mrn, :timestamp, :heart_rate, :spo2, :respiration_rate, :signal_quality, :source, :is_synced)")
+                               .arg(VITALS)
+                               .arg(VitalsCols::PATIENT_MRN)
+                               .arg(VitalsCols::TIMESTAMP)
+                               .arg(VitalsCols::HEART_RATE)
+                               .arg(VitalsCols::SPO2)
+                               .arg(VitalsCols::RESPIRATION_RATE)
+                               .arg(VitalsCols::SIGNAL_QUALITY)
+                               .arg(VitalsCols::SOURCE)
+                               .arg(VitalsCols::IS_SYNCED),
+                    .description = "Insert single vital record with NULL for unused vital type columns",
+                    .parameters = {":patient_mrn", ":timestamp", ":heart_rate", ":spo2", ":respiration_rate", ":signal_quality", ":source", ":is_synced"},
+                    .isReadOnly = false};
+
+                queries[Vitals::FIND_BY_PATIENT_RANGE] = {
+                    .id = Vitals::FIND_BY_PATIENT_RANGE,
+                    .sql = QString(
+                               "SELECT * FROM %1 "
+                               "WHERE (%2 = :patient_mrn OR :patient_mrn = '%%') "
+                               "AND %3 >= :start_time AND %3 <= :end_time "
+                               "ORDER BY %3 ASC")
+                               .arg(VITALS)
+                               .arg(VitalsCols::PATIENT_MRN)
+                               .arg(VitalsCols::TIMESTAMP),
+                    .description = "Find vitals by patient MRN and time range (empty MRN = all patients)",
+                    .parameters = {":patient_mrn", ":start_time", ":end_time"},
+                    .isReadOnly = true};
+
+                queries[Vitals::FIND_UNSENT] = {
+                    .id = Vitals::FIND_UNSENT,
+                    .sql = QString(
+                               "SELECT * FROM %1 "
+                               "WHERE %2 = 0 "
+                               "ORDER BY %3 ASC")
+                               .arg(VITALS)
+                               .arg(VitalsCols::IS_SYNCED)
+                               .arg(VitalsCols::TIMESTAMP),
+                    .description = "Find all unsent vital records (is_synced = 0)",
+                    .parameters = {},
+                    .isReadOnly = true};
+
+                queries[Vitals::MARK_SENT] = {
+                    .id = Vitals::MARK_SENT,
+                    .sql = QString(
+                               "UPDATE %1 SET %2 = 1 WHERE %3 = :vital_id")
+                               .arg(VITALS)
+                               .arg(VitalsCols::IS_SYNCED)
+                               .arg(VitalsCols::ID),
+                    .description = "Mark vital record as sent (is_synced = 1)",
+                    .parameters = {":vital_id"},
+                    .isReadOnly = false};
+
+                queries[Vitals::DELETE_OLDER_THAN] = {
+                    .id = Vitals::DELETE_OLDER_THAN,
+                    .sql = QString(
+                               "DELETE FROM %1 WHERE %2 < :timestamp")
+                               .arg(VITALS)
+                               .arg(VitalsCols::TIMESTAMP),
+                    .description = "Delete vitals older than specified timestamp (for archival)",
+                    .parameters = {":timestamp"},
+                    .isReadOnly = false};
+
+                queries[Vitals::COUNT_BY_PATIENT] = {
+                    .id = Vitals::COUNT_BY_PATIENT,
+                    .sql = QString(
+                               "SELECT COUNT(*) FROM %1 WHERE %2 = :patient_mrn")
+                               .arg(VITALS)
+                               .arg(VitalsCols::PATIENT_MRN),
+                    .description = "Count total vitals for patient",
+                    .parameters = {":patient_mrn"},
+                    .isReadOnly = true};
             }
 
             return queries;

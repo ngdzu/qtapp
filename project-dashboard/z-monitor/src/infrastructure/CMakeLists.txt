@@ -58,6 +58,8 @@ set(INFRASTRUCTURE_SOURCES
     persistence/SQLiteActionLogRepository.cpp
     persistence/SQLitePatientRepository.h
     persistence/SQLitePatientRepository.cpp
+    persistence/SQLiteVitalsRepository.h
+    persistence/SQLiteVitalsRepository.cpp
     persistence/generated/SchemaInfo.h # Generated from schema/database.yaml
 
     # ORM mappings (optional, only if USE_QXORM is enabled)

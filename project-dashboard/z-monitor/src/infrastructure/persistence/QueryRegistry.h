@@ -76,8 +76,21 @@ namespace zmon
                 constexpr const char *CREATE_INDEX_TARGET = "action_log.create_index_target";           ///< Create target index
                 constexpr const char *CREATE_INDEX_DEVICE = "action_log.create_index_device";           ///< Create device index
             }
-        }
 
+            /**
+             * @namespace Vitals
+             * @brief Query IDs for vital signs operations.
+             */
+            namespace Vitals
+            {
+                constexpr const char *INSERT = "vitals.insert";                               ///< Insert single vital record
+                constexpr const char *FIND_BY_PATIENT_RANGE = "vitals.find_by_patient_range"; ///< Find vitals by patient and time range
+                constexpr const char *FIND_UNSENT = "vitals.find_unsent";                     ///< Find unsent vital records
+                constexpr const char *MARK_SENT = "vitals.mark_sent";                         ///< Mark vital records as sent
+                constexpr const char *DELETE_OLDER_THAN = "vitals.delete_older_than";         ///< Delete vitals older than timestamp
+                constexpr const char *COUNT_BY_PATIENT = "vitals.count_by_patient";           ///< Count vitals for patient
+            }
+        }
         /**
          * @class QueryCatalog
          * @brief Registry of all SQL query statements and their metadata.

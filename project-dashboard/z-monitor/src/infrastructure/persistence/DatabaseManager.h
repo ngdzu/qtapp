@@ -13,6 +13,7 @@
 #pragma once
 
 #include "domain/common/Result.h"
+#include "IDatabaseManager.h"
 #include <QObject>
 #include <QString>
 #include <QSqlDatabase>
@@ -45,7 +46,7 @@ namespace zmon {
  * @thread Database I/O Thread
  * @ingroup Infrastructure
  */
-class DatabaseManager : public QObject {
+class DatabaseManager : public QObject, public IDatabaseManager {
     Q_OBJECT
 
 public:
@@ -72,21 +73,21 @@ public:
      * @param encryptionKey Optional encryption key for SQLCipher (empty = no encryption)
      * @return Result<void> Success or error details if connection fails
      */
-    Result<void> open(const QString& dbPath, const QString& encryptionKey = QString());
+    Result<void> open(const QString& dbPath, const QString& encryptionKey = QString()) override;
     
     /**
      * @brief Close database connection.
      * 
      * Closes all database connections and cleans up resources.
      */
-    void close();
+    void close() override;
     
     /**
      * @brief Check if database is open.
      * 
      * @return true if database is open, false otherwise
      */
-    bool isOpen() const;
+    bool isOpen() const override;
     
     /**
      * @brief Get main database connection.
@@ -96,7 +97,7 @@ public:
      * @return Reference to QSqlDatabase connection
      * @note Connection must be open before calling this method.
      */
-    QSqlDatabase& getConnection();
+    QSqlDatabase& getConnection() override;
     
     /**
      * @brief Get write connection (dedicated for writes).
@@ -130,7 +131,7 @@ public:
      * 
      * @return Result<void> Success or error details if transaction fails
      */
-    Result<void> beginTransaction();
+    Result<void> beginTransaction() override;
     
     /**
      * @brief Commit current transaction.
@@ -140,7 +141,7 @@ public:
      * 
      * @return Result<void> Success or error details if commit fails
      */
-    Result<void> commit();
+    Result<void> commit() override;
     
     /**
      * @brief Rollback current transaction.
@@ -150,7 +151,7 @@ public:
      * 
      * @return Result<void> Success or error details if rollback fails
      */
-    Result<void> rollback();
+    Result<void> rollback() override;
     
     /**
      * @brief Execute database migrations.
@@ -179,7 +180,7 @@ public:
      * @see QueryRegistry.h
      * @see QueryCatalog::initializeQueries()
      */
-    Result<void> registerPreparedQuery(const QString& queryId, const QString& sql);
+    Result<void> registerPreparedQuery(const QString& queryId, const QString& sql) override;
     
     /**
      * @brief Get a prepared query by ID.
@@ -200,7 +201,7 @@ public:
      * query.exec();
      * @endcode
      */
-    QSqlQuery getPreparedQuery(const QString& queryId);
+    QSqlQuery getPreparedQuery(const QString& queryId) override;
     
     /**
      * @brief Get a prepared query for read operations.
@@ -219,7 +220,7 @@ public:
      * @param queryId Query ID to check
      * @return true if registered, false otherwise
      */
-    bool hasQuery(const QString& queryId) const;
+    bool hasQuery(const QString& queryId) const override;
     
     /**
      * @brief Get all registered query IDs.

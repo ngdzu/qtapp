@@ -17,6 +17,8 @@
 #include "infrastructure/sensors/SharedMemorySensorDataSource.h"
 #include "infrastructure/caching/VitalsCache.h"
 #include "infrastructure/caching/WaveformCache.h"
+#include "infrastructure/persistence/DatabaseManager.h"
+#include "infrastructure/persistence/SQLiteVitalsRepository.h"
 
 // Application
 #include "application/services/MonitoringService.h"
@@ -48,13 +50,17 @@ int main(int argc, char *argv[])
     auto vitalsCache = std::make_shared<zmon::VitalsCache>(259200);    // 3 days @ 60 Hz
     auto waveformCache = std::make_shared<zmon::WaveformCache>(22500); // 30 seconds @ 250 Hz × 3 channels
 
+    // Create infrastructure persistence (DatabaseManager + Vitals repository)
+    auto dbManager = std::make_shared<zmon::DatabaseManager>(&app);
+    auto vitalsRepoConcrete = std::make_shared<zmon::SQLiteVitalsRepository>(dbManager);
+    std::shared_ptr<zmon::IVitalsRepository> vitalsRepo = std::static_pointer_cast<zmon::IVitalsRepository>(vitalsRepoConcrete);
+
     // Create application service layer
-    // TODO: Replace nullptr repositories with real implementations when available
     auto monitoringService = new zmon::MonitoringService(
-        nullptr, // patientRepo - not yet implemented
-        nullptr, // telemetryRepo - not yet implemented
-        nullptr, // alarmRepo - not yet implemented
-        nullptr, // vitalsRepo - not yet implemented
+        std::shared_ptr<zmon::IPatientRepository>{},   // not yet implemented
+        std::shared_ptr<zmon::ITelemetryRepository>{}, // not yet implemented
+        std::shared_ptr<zmon::IAlarmRepository>{},     // not yet implemented
+        vitalsRepo,                                    // vitals repository
         sensorDataSource,
         vitalsCache,
         waveformCache,
