@@ -20,6 +20,7 @@
 #include "infrastructure/persistence/DatabaseManager.h"
 #include "infrastructure/persistence/SQLiteVitalsRepository.h"
 #include "infrastructure/persistence/SQLiteTelemetryRepository.h"
+#include "infrastructure/persistence/SQLiteAlarmRepository.h"
 
 // Application
 #include "application/services/MonitoringService.h"
@@ -59,11 +60,14 @@ int main(int argc, char *argv[])
     auto telemetryRepoConcrete = std::make_shared<zmon::SQLiteTelemetryRepository>(dbManager);
     std::shared_ptr<zmon::ITelemetryRepository> telemetryRepo = std::static_pointer_cast<zmon::ITelemetryRepository>(telemetryRepoConcrete);
 
+    auto alarmRepoConcrete = std::make_shared<zmon::SQLiteAlarmRepository>(dbManager);
+    std::shared_ptr<zmon::IAlarmRepository> alarmRepo = std::static_pointer_cast<zmon::IAlarmRepository>(alarmRepoConcrete);
+
     // Create application service layer
     auto monitoringService = new zmon::MonitoringService(
         std::shared_ptr<zmon::IPatientRepository>{}, // not yet implemented
         telemetryRepo,                               // telemetry repository
-        std::shared_ptr<zmon::IAlarmRepository>{},   // not yet implemented
+        alarmRepo,                                   // alarm repository
         vitalsRepo,                                  // vitals repository
         sensorDataSource,
         vitalsCache,

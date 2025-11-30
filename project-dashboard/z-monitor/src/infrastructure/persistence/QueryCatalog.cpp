@@ -452,6 +452,99 @@ namespace zmon
                     .isReadOnly = false};
             }
 
+            // =====================================================================
+            // Alarms Queries
+            // =====================================================================
+            {
+                namespace AlarmsCols = Schema::Columns::Alarms;
+                const QString ALARMS = Schema::Tables::ALARMS;
+
+                queries[QueryId::Alarms::INSERT] = {
+                    .id = QueryId::Alarms::INSERT,
+                    .sql = QString("INSERT INTO %1 (%2, %3, %4, %5, %6, %7, %8, %9, %10, %11) "
+                                   "VALUES (:alarm_id, :alarm_type, :priority, :status, "
+                                   ":raw_value, :threshold_value, :start_time, :patient_mrn, "
+                                   ":acknowledged_by, :acknowledged_time)")
+                               .arg(ALARMS)
+                               .arg(AlarmsCols::ALARM_ID)
+                               .arg(AlarmsCols::ALARM_TYPE)
+                               .arg(AlarmsCols::PRIORITY)
+                               .arg(AlarmsCols::STATUS)
+                               .arg(AlarmsCols::RAW_VALUE)
+                               .arg(AlarmsCols::THRESHOLD_VALUE)
+                               .arg(AlarmsCols::START_TIME)
+                               .arg(AlarmsCols::PATIENT_MRN)
+                               .arg(AlarmsCols::ACKNOWLEDGED_BY)
+                               .arg(AlarmsCols::ACKNOWLEDGED_TIME),
+                    .description = "Insert alarm event with all metadata",
+                    .parameters = {":alarm_id", ":alarm_type", ":priority", ":status",
+                                   ":raw_value", ":threshold_value", ":start_time", ":patient_mrn",
+                                   ":acknowledged_by", ":acknowledged_time"},
+                    .isReadOnly = false};
+
+                queries[QueryId::Alarms::GET_ACTIVE] = {
+                    .id = QueryId::Alarms::GET_ACTIVE,
+                    .sql = QString("SELECT * FROM %1 WHERE %2 = 'ACTIVE' "
+                                   "ORDER BY CASE %3 "
+                                   "WHEN 'CRITICAL' THEN 1 "
+                                   "WHEN 'HIGH' THEN 2 "
+                                   "WHEN 'MEDIUM' THEN 3 "
+                                   "WHEN 'LOW' THEN 4 "
+                                   "END, %4 DESC")
+                               .arg(ALARMS)
+                               .arg(AlarmsCols::STATUS)
+                               .arg(AlarmsCols::PRIORITY)
+                               .arg(AlarmsCols::START_TIME),
+                    .description = "Get all active alarms ordered by priority and start time",
+                    .parameters = {},
+                    .isReadOnly = true};
+
+                queries[QueryId::Alarms::GET_HISTORY_BY_PATIENT] = {
+                    .id = QueryId::Alarms::GET_HISTORY_BY_PATIENT,
+                    .sql = QString("SELECT * FROM %1 WHERE %2 = :patient_mrn "
+                                   "AND %3 BETWEEN :start_time AND :end_time "
+                                   "ORDER BY %3 DESC")
+                               .arg(ALARMS)
+                               .arg(AlarmsCols::PATIENT_MRN)
+                               .arg(AlarmsCols::START_TIME),
+                    .description = "Get alarm history for specific patient in time range",
+                    .parameters = {":patient_mrn", ":start_time", ":end_time"},
+                    .isReadOnly = true};
+
+                queries[QueryId::Alarms::GET_HISTORY_ALL] = {
+                    .id = QueryId::Alarms::GET_HISTORY_ALL,
+                    .sql = QString("SELECT * FROM %1 WHERE %2 BETWEEN :start_time AND :end_time "
+                                   "ORDER BY %2 DESC")
+                               .arg(ALARMS)
+                               .arg(AlarmsCols::START_TIME),
+                    .description = "Get alarm history for all patients in time range",
+                    .parameters = {":start_time", ":end_time"},
+                    .isReadOnly = true};
+
+                queries[QueryId::Alarms::FIND_BY_ID] = {
+                    .id = QueryId::Alarms::FIND_BY_ID,
+                    .sql = QString("SELECT * FROM %1 WHERE %2 = :alarm_id")
+                               .arg(ALARMS)
+                               .arg(AlarmsCols::ALARM_ID),
+                    .description = "Find alarm by alarm ID (primary key lookup)",
+                    .parameters = {":alarm_id"},
+                    .isReadOnly = true};
+
+                queries[QueryId::Alarms::UPDATE_STATUS] = {
+                    .id = QueryId::Alarms::UPDATE_STATUS,
+                    .sql = QString("UPDATE %1 SET %2 = :status, "
+                                   "%3 = :acknowledged_by, %4 = :acknowledged_time "
+                                   "WHERE %5 = :alarm_id")
+                               .arg(ALARMS)
+                               .arg(AlarmsCols::STATUS)
+                               .arg(AlarmsCols::ACKNOWLEDGED_BY)
+                               .arg(AlarmsCols::ACKNOWLEDGED_TIME)
+                               .arg(AlarmsCols::ALARM_ID),
+                    .description = "Update alarm status and acknowledgment info",
+                    .parameters = {":status", ":acknowledged_by", ":acknowledged_time", ":alarm_id"},
+                    .isReadOnly = false};
+            }
+
             return queries;
         }
 

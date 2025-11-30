@@ -103,6 +103,20 @@ namespace zmon
                 constexpr const char *GET_UNSENT = "telemetry.get_unsent";         ///< Get unsent batches
                 constexpr const char *MARK_SENT = "telemetry.mark_sent";           ///< Mark batch as successfully sent
             }
+
+            /**
+             * @namespace Alarms
+             * @brief Query IDs for alarm event operations.
+             */
+            namespace Alarms
+            {
+                constexpr const char *INSERT = "alarms.insert";                              ///< Insert alarm event
+                constexpr const char *GET_ACTIVE = "alarms.get_active";                      ///< Get active alarms
+                constexpr const char *GET_HISTORY_BY_PATIENT = "alarms.get_history_patient"; ///< Get alarm history for patient
+                constexpr const char *GET_HISTORY_ALL = "alarms.get_history_all";            ///< Get alarm history for all patients
+                constexpr const char *FIND_BY_ID = "alarms.find_by_id";                      ///< Find alarm by ID
+                constexpr const char *UPDATE_STATUS = "alarms.update_status";                ///< Update alarm status
+            }
         }
         /**
          * @class QueryCatalog

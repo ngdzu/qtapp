@@ -95,6 +95,27 @@ target_include_directories(test_sqlite_telemetry_repository
 
 add_test(NAME SQLiteTelemetryRepositoryTest COMMAND test_sqlite_telemetry_repository)
 
+# SQLiteAlarmRepository tests
+add_executable(test_sqlite_alarm_repository
+    SQLiteAlarmRepositoryTest.cpp
+)
+
+target_link_libraries(test_sqlite_alarm_repository
+    PRIVATE
+    GTest::gtest
+    GTest::gmock
+    z_monitor_infrastructure
+    Qt6::Core
+    Qt6::Sql
+)
+
+target_include_directories(test_sqlite_alarm_repository
+    PRIVATE
+    ${Z_MONITOR_ROOT}
+)
+
+add_test(NAME SQLiteAlarmRepositoryTest COMMAND test_sqlite_alarm_repository)
+
 add_executable(test_query_registry
     test_query_registry.cpp
 )
