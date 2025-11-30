@@ -25,10 +25,10 @@ Beyond the structured lessons, this course includes a **complete real-world proj
 - **Docker-Based Development** - Full containerized build and deployment setup
 
 **Z Monitor** - A sleek, real-time medical device dashboard built with QML/Qt Quick. Features live telemetry visualization, alarm management, trend analysis, and a modern Material Design-inspired interface with dark mode support.
-![Z Monitor Screenshot](project-dashboard/screenshots/z-monitor.png)
+![Z Monitor Screenshot](project-dashboard/z-monitor/media/screenshot.png)
 
 **Sensor Simulator** - A companion application that generates realistic vital sign data (heart rate, blood pressure, SpO2, temperature) and streams it to Z Monitor via lock-free circular buffer shared memory. Includes configurable alarm conditions and visual waveform rendering.
-![Sensor Simulator Screenshot](project-dashboard/sensor-simulator/resources/screenshot.png)
+![Sensor Simulator Screenshot](project-dashboard/sensor-simulator/media/screenshot.png)
 
 This project showcases how capable Qt and QML are for building sophisticated, production-ready applications. Explore the codebase to see real-world patterns, best practices, and how all the concepts from the lessons come together in a complete application.
 

@@ -55,7 +55,7 @@ z-monitor/
 
 - **Domain Layer** (`src/domain/`) – Pure business logic, aggregates, value objects, domain events, repository interfaces. No Qt or infrastructure dependencies.
 - **Application Layer** (`src/application/`) – Use-case orchestration, application services, DTOs. Uses Qt Core for signals/slots.
-- **Infrastructure Layer** (`src/infrastructure/`) – Technical implementations (persistence, network, sensors, caching, security, platform adapters, system services, utilities). Full Qt dependencies.
+- **Infrastructure Layer** (`src/infrastructure/`) – Technical implementations (persistence, network, sensors, caching, security, platform adapters, system services, utilitiesx). Full Qt dependencies.
 - **Interface Layer** (`src/interface/`) – UI integration (QML controllers and QML UI). Qt Quick dependencies.
 
 ## Build and Run
@@ -72,87 +72,42 @@ z-monitor/
 
 #### Quick Start
 
-1. **Setup build environment:**
+1. **Configure Qt installation path:**
+   
+   Set the Qt installation path as an environment variable. Replace with your Qt6 path:
+   ```bash
+   export DEFAULT_QT_PATH="/Users/username/Qt/6.9.2/macos"
+   ```
+   
+   Replace `username` with your actual username and adjust the Qt version if needed.
+
+2. **Setup build environment:**
    ```bash
    cd project-dashboard/z-monitor
    source scripts/setup_build_env.sh
    ```
 
-2. **Configure CMake:**
+3. **Configure CMake:**
    ```bash
    cmake -S . -B build
    ```
 
-3. **Build incrementally (recommended):**
+4. **Build the project:**
    ```bash
-   # Phase 1: Domain common (header-only)
-   cmake --build build --target zmon_domain_common
-   
-   # Phase 2: Domain layer
-   cmake --build build --target z_monitor_domain
-   
-   # Phase 3: Application layer
-   cmake --build build --target z_monitor_application
-   
-   # Phase 4: Infrastructure layer
-   cmake --build build --target z_monitor_infrastructure
-   
-   # Phase 5: Main executable
-   cmake --build build --target z-monitor
+   cmake --build build --target z-monitor -j8
    ```
 
-   Or build everything at once:
+   Or build everything:
    ```bash
-   cmake --build build
+   cmake --build build -j8
    ```
-
-#### Qt Path Configuration
-
-Qt path must be configured for CMake to find Qt6. Default location: `/Users/dustinwind/Qt/6.9.2/macos`
-
-**Option 1: Use setup script (recommended)**
-```bash
-source scripts/setup_build_env.sh
-```
-
-**Option 2: Manual configuration**
-```bash
-export CMAKE_PREFIX_PATH="/Users/dustinwind/Qt/6.9.2/macos:$CMAKE_PREFIX_PATH"
-```
-
-**Option 3: Make permanent**
-Add to `~/.zshrc` or `~/.bashrc`:
-```bash
-export CMAKE_PREFIX_PATH="/Users/dustinwind/Qt/6.9.2/macos:$CMAKE_PREFIX_PATH"
-```
-
-**Option 4: CMake command line**
-```bash
-cmake -S . -B build -DCMAKE_PREFIX_PATH="/Users/dustinwind/Qt/6.9.2/macos"
-```
 
 For detailed build instructions, troubleshooting, and incremental build strategy, see **[BUILD.md](BUILD.md)**.
-
-### Build
-
-From the `z-monitor/` directory:
-
-```bash
-cmake -S . -B build
-cmake --build build
-```
 
 ### Run
 
 ```bash
-./build/z-monitor
-```
-
-Or install and run:
-
-```bash
-cmake --install build --prefix install
-./install/opt/z-monitor/z-monitor
+./build/src/z-monitor
 ```
 
 ### Build Options
@@ -171,20 +126,18 @@ cmake --build build
 
 ## Testing
 
-Run tests using CTest:
+Build and run all tests:
 
 ```bash
+cmake --build build --target all -j8
 cd build
-ctest
+ctest --output-on-failure
 ```
 
-Or run individual test executables:
+Run specific test:
 
 ```bash
-./build/tests/unit/logging/test_ilog_backend
-./build/tests/unit/logging/test_custom_backend
-./build/tests/unit/logging/test_log_service
-./build/tests/integration/logging/test_async_logging
+ctest -R test_name --output-on-failure
 ```
 
 ## Development Status

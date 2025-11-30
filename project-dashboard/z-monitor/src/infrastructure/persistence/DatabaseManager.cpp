@@ -417,9 +417,6 @@ namespace zmon
         // Initialize ORM registry (registers all mappings)
         persistence::OrmRegistry::initialize();
 
-        // Initialize QxOrm library
-        qx::QxOrm::init();
-
         // Configure QxOrm to use our SQLite connection
         // QxOrm uses the connection name from QSqlDatabase
         try

@@ -8,10 +8,8 @@ add_executable(db_smoke_test
 target_link_libraries(db_smoke_test
     PRIVATE
     z_monitor_infrastructure
-    z_monitor_domain
     Qt6::Core
     Qt6::Sql
-    GTest::gtest
     GTest::gtest_main
 )
 
@@ -35,11 +33,9 @@ add_executable(monitoring_service_sensor_integration_test
 
 target_link_libraries(monitoring_service_sensor_integration_test
     PRIVATE
-    z_monitor_application
     z_monitor_infrastructure
-    z_monitor_domain
     Qt6::Core
-    GTest::gtest
+    GTest::gtest_main
 )
 
 target_include_directories(monitoring_service_sensor_integration_test

@@ -6,7 +6,6 @@ add_executable(test_schema_generation
 
 target_link_libraries(test_schema_generation
     PRIVATE
-    GTest::gtest
     GTest::gtest_main
 )
 
@@ -24,10 +23,8 @@ add_executable(test_sqlite_patient_repository
 
 target_link_libraries(test_sqlite_patient_repository
     PRIVATE
-    GTest::gtest
     GTest::gtest_main
     z_monitor_infrastructure
-    z_monitor_domain
     Qt6::Core
     Qt6::Sql
 )
@@ -41,7 +38,7 @@ target_include_directories(test_sqlite_patient_repository
 if(USE_QXORM)
     target_link_libraries(test_sqlite_patient_repository
         PRIVATE
-        qxorm
+        QxOrm
     )
     target_compile_definitions(test_sqlite_patient_repository
         PRIVATE
@@ -102,8 +99,7 @@ add_executable(test_sqlite_alarm_repository
 
 target_link_libraries(test_sqlite_alarm_repository
     PRIVATE
-    GTest::gtest
-    GTest::gmock
+    GTest::gmock_main
     z_monitor_infrastructure
     Qt6::Core
     Qt6::Sql
@@ -122,10 +118,8 @@ add_executable(test_query_registry
 
 target_link_libraries(test_query_registry
     PRIVATE
-    GTest::gtest
     GTest::gtest_main
     z_monitor_infrastructure
-    z_monitor_domain
     Qt6::Core
     Qt6::Sql
 )
@@ -144,7 +138,6 @@ add_executable(test_migrations
 
 target_link_libraries(test_migrations
     PRIVATE
-    GTest::gtest
     GTest::gtest_main
     Qt6::Core
     Qt6::Sql

@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DASHBOARD_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 APP_DIR="${PROJECT_DASHBOARD_DIR}/sensor-simulator"
-RESOURCES_DIR="${APP_DIR}/resources"
+RESOURCES_DIR="${APP_DIR}/media"
 OUTPUT_FILE="${RESOURCES_DIR}/screenshot.png"
 IMAGE_NAME="qtapp-sensor-simulator:local"
 CONTAINER_NAME="qt-sensor-sim-capture"
@@ -30,7 +30,7 @@ docker run --rm --name "${CONTAINER_NAME}" \
         set -euo pipefail
         export DISPLAY=:99
         export QT_QPA_PLATFORM=xcb
-        OUTPUT="/opt/sensor-simulator/resources/screenshot.png"
+        OUTPUT="/opt/sensor-simulator/media/screenshot.png"
 
         need_install=false
         if ! command -v xwd >/dev/null || ! command -v convert >/dev/null || ! command -v xdotool >/dev/null; then

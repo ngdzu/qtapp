@@ -86,10 +86,14 @@ if(USE_QXORM)
     if(NOT QxOrm_FOUND)
         # Use FetchContent to download QxOrm from GitHub
         include(FetchContent)
+
+        # Ensure subprojects (like QxOrm) are configured with a compatible
+        # CMake policy minimum to avoid configuration errors
+        set(CMAKE_POLICY_VERSION_MINIMUM "3.5" CACHE STRING "Minimum policy version for subprojects")
         FetchContent_Declare(
             qxorm
             GIT_REPOSITORY https://github.com/QxOrm/QxOrm.git
-            GIT_TAG v1.4.5
+            GIT_TAG 1.5.0
         )
         FetchContent_MakeAvailable(qxorm)
 

@@ -9,115 +9,114 @@
 #include "MockLogBackend.h"
 #include <QMutexLocker>
 
-namespace ZMonitor {
-namespace Infrastructure {
-namespace Logging {
-
-MockLogBackend::MockLogBackend()
-    : m_format("human")
-    , m_maxFileSize(10 * 1024 * 1024)  // 10 MB
-    , m_maxFiles(5)
-    , m_flushCount(0)
-    , m_rotationCount(0)
-    , m_initialized(false)
+namespace ZMonitor
 {
-}
+    namespace Infrastructure
+    {
+        namespace Logging
+        {
 
-bool MockLogBackend::initialize(const QString& logDir, const QString& logFileName)
-{
-    Q_UNUSED(logDir);
-    Q_UNUSED(logFileName);
-    
-    QMutexLocker locker(&m_mutex);
-    m_initialized = true;
-    return true;
-}
+            MockLogBackend::MockLogBackend()
+                : m_format("human"), m_maxFileSize(10 * 1024 * 1024) // 10 MB
+                  ,
+                  m_maxFiles(5), m_flushCount(0), m_rotationCount(0), m_initialized(false)
+            {
+            }
 
-void MockLogBackend::write(const LogEntry& entry)
-{
-    QMutexLocker locker(&m_mutex);
-    m_entries.append(entry);
-}
+            zmon::Result<void> MockLogBackend::initialize(const QString &logDir, const QString &logFileName)
+            {
+                Q_UNUSED(logDir);
+                Q_UNUSED(logFileName);
 
-void MockLogBackend::flush()
-{
-    QMutexLocker locker(&m_mutex);
-    m_flushCount++;
-}
+                QMutexLocker locker(&m_mutex);
+                m_initialized = true;
+                return zmon::Result<void>::ok();
+            }
 
-void MockLogBackend::rotateIfNeeded()
-{
-    QMutexLocker locker(&m_mutex);
-    m_rotationCount++;
-}
+            void MockLogBackend::write(const zmon::LogEntry &entry)
+            {
+                QMutexLocker locker(&m_mutex);
+                m_entries.append(entry);
+            }
 
-void MockLogBackend::setFormat(const QString& format)
-{
-    QMutexLocker locker(&m_mutex);
-    m_format = format;
-}
+            void MockLogBackend::flush()
+            {
+                QMutexLocker locker(&m_mutex);
+                m_flushCount++;
+            }
 
-void MockLogBackend::setMaxFileSize(qint64 maxSizeBytes)
-{
-    QMutexLocker locker(&m_mutex);
-    m_maxFileSize = maxSizeBytes;
-}
+            void MockLogBackend::rotateIfNeeded()
+            {
+                QMutexLocker locker(&m_mutex);
+                m_rotationCount++;
+            }
 
-void MockLogBackend::setMaxFiles(int maxFiles)
-{
-    QMutexLocker locker(&m_mutex);
-    m_maxFiles = maxFiles;
-}
+            void MockLogBackend::setFormat(const QString &format)
+            {
+                QMutexLocker locker(&m_mutex);
+                m_format = format;
+            }
 
-QList<LogEntry> MockLogBackend::entries() const
-{
-    QMutexLocker locker(&m_mutex);
-    return m_entries;
-}
+            void MockLogBackend::setMaxFileSize(qint64 maxSizeBytes)
+            {
+                QMutexLocker locker(&m_mutex);
+                m_maxFileSize = maxSizeBytes;
+            }
 
-int MockLogBackend::entryCount() const
-{
-    QMutexLocker locker(&m_mutex);
-    return m_entries.size();
-}
+            void MockLogBackend::setMaxFiles(int maxFiles)
+            {
+                QMutexLocker locker(&m_mutex);
+                m_maxFiles = maxFiles;
+            }
 
-void MockLogBackend::clear()
-{
-    QMutexLocker locker(&m_mutex);
-    m_entries.clear();
-}
+            QList<zmon::LogEntry> MockLogBackend::entries() const
+            {
+                QMutexLocker locker(&m_mutex);
+                return m_entries;
+            }
 
-QString MockLogBackend::format() const
-{
-    QMutexLocker locker(&m_mutex);
-    return m_format;
-}
+            int MockLogBackend::entryCount() const
+            {
+                QMutexLocker locker(&m_mutex);
+                return m_entries.size();
+            }
 
-qint64 MockLogBackend::maxFileSize() const
-{
-    QMutexLocker locker(&m_mutex);
-    return m_maxFileSize;
-}
+            void MockLogBackend::clear()
+            {
+                QMutexLocker locker(&m_mutex);
+                m_entries.clear();
+            }
 
-int MockLogBackend::maxFiles() const
-{
-    QMutexLocker locker(&m_mutex);
-    return m_maxFiles;
-}
+            QString MockLogBackend::format() const
+            {
+                QMutexLocker locker(&m_mutex);
+                return m_format;
+            }
 
-int MockLogBackend::flushCount() const
-{
-    QMutexLocker locker(&m_mutex);
-    return m_flushCount;
-}
+            qint64 MockLogBackend::maxFileSize() const
+            {
+                QMutexLocker locker(&m_mutex);
+                return m_maxFileSize;
+            }
 
-int MockLogBackend::rotationCount() const
-{
-    QMutexLocker locker(&m_mutex);
-    return m_rotationCount;
-}
+            int MockLogBackend::maxFiles() const
+            {
+                QMutexLocker locker(&m_mutex);
+                return m_maxFiles;
+            }
 
-} // namespace Logging
-} // namespace Infrastructure
+            int MockLogBackend::flushCount() const
+            {
+                QMutexLocker locker(&m_mutex);
+                return m_flushCount;
+            }
+
+            int MockLogBackend::rotationCount() const
+            {
+                QMutexLocker locker(&m_mutex);
+                return m_rotationCount;
+            }
+
+        } // namespace Logging
+    } // namespace Infrastructure
 } // namespace ZMonitor
-

@@ -7,7 +7,6 @@ add_executable(test_alarm_manager
 
 target_link_libraries(test_alarm_manager
     PRIVATE
-    GTest::gtest
     GTest::gtest_main
     zmon_test_mocks
     Qt6::Core

@@ -13,8 +13,6 @@
 #   or
 #   . scripts/setup_build_env.sh
 
-set -e
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
@@ -25,7 +23,7 @@ echo ""
 
 # 1. Configure Qt Path
 echo "Step 1: Configuring Qt path..."
-DEFAULT_QT_PATH="/Users/dustinwind/Qt/6.9.2/macos"
+DEFAULT_QT_PATH="${DEFAULT_QT_PATH:-}"
 
 if [ -n "$QT6_DIR" ]; then
     QT_PATH="$QT6_DIR"
@@ -33,19 +31,33 @@ if [ -n "$QT6_DIR" ]; then
 elif [ -n "$CMAKE_PREFIX_PATH" ] && [[ "$CMAKE_PREFIX_PATH" == *"Qt"* ]]; then
     QT_PATH=$(echo "$CMAKE_PREFIX_PATH" | cut -d: -f1)
     echo "  Using CMAKE_PREFIX_PATH: $QT_PATH"
-elif [ -d "$DEFAULT_QT_PATH" ]; then
+elif [ -n "$DEFAULT_QT_PATH" ] && [ -d "$DEFAULT_QT_PATH" ]; then
     QT_PATH="$DEFAULT_QT_PATH"
-    echo "  Using default Qt path: $QT_PATH"
+    echo "  Using DEFAULT_QT_PATH: $QT_PATH"
+elif [ -n "$DEFAULT_QT_PATH" ]; then
+    echo "  Error: DEFAULT_QT_PATH is set but directory does not exist: $DEFAULT_QT_PATH"
+    echo "  Please verify the path and ensure Qt is installed."
+    echo ""
+    echo "Setup failed. Please fix Qt path and try again."
+    return 1 2>/dev/null || exit 1
 else
     echo "  Error: Qt installation not found."
-    echo "  Please set QT6_DIR or CMAKE_PREFIX_PATH environment variable."
-    echo "  Example: export QT6_DIR=\"/path/to/Qt/6.x.x/macos\""
+    echo "  Please set one of the following environment variables:"
+    echo "    export DEFAULT_QT_PATH=\"/Users/username/Qt/6.9.2/macos\""
+    echo "    export QT6_DIR=\"/Users/username/Qt/6.9.2/macos\""
+    echo "    export CMAKE_PREFIX_PATH=\"/Users/username/Qt/6.9.2/macos:\$CMAKE_PREFIX_PATH\""
+    echo ""
+    echo "Setup failed. Please configure Qt path and try again."
     return 1 2>/dev/null || exit 1
 fi
 
 # Verify Qt installation
 if [ ! -f "$QT_PATH/lib/cmake/Qt6/Qt6Config.cmake" ]; then
     echo "  Error: Qt6Config.cmake not found at: $QT_PATH/lib/cmake/Qt6/Qt6Config.cmake"
+    echo "  The Qt path appears to be invalid or incomplete."
+    echo "  Please verify your Qt installation and set the correct path."
+    echo ""
+    echo "Setup failed. Please fix Qt path and try again."
     return 1 2>/dev/null || exit 1
 fi
 
@@ -83,6 +95,8 @@ if command -v cmake &> /dev/null; then
     fi
 else
     echo "  ✗ CMake not found. Please install CMake 3.16 or higher."
+    echo ""
+    echo "Setup failed. Please install CMake and try again."
     return 1 2>/dev/null || exit 1
 fi
 echo ""
@@ -97,6 +111,8 @@ elif command -v g++ &> /dev/null; then
     echo "  ✓ C++ compiler found: $COMPILER_VERSION"
 else
     echo "  ✗ C++ compiler not found. Please install clang++ or g++."
+    echo ""
+    echo "Setup failed. Please install a C++ compiler and try again."
     return 1 2>/dev/null || exit 1
 fi
 echo ""

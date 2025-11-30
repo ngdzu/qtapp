@@ -36,12 +36,12 @@ The script automatically:
    - Converts the capture to PNG format
 
 4. **Saves the screenshot**
-   - Output: `project-dashboard/sensor-simulator/resources/screenshot.png`
+   - Output: `project-dashboard/sensor-simulator/media/screenshot.png`
    - Overwrites any existing screenshot file
 
 ## Output
 
-- Screenshot saved to: `project-dashboard/sensor-simulator/resources/screenshot.png`
+- Screenshot saved to: `project-dashboard/sensor-simulator/media/screenshot.png`
 - The screenshot shows the current state of the UI after any QML changes
 
 ## Notes

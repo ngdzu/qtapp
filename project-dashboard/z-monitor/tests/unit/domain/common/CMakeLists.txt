@@ -7,7 +7,6 @@ add_executable(result_test
 
 target_link_libraries(result_test
     PRIVATE
-    GTest::gtest
     GTest::gtest_main
     zmon_domain_common
 )
@@ -26,7 +25,6 @@ add_executable(retry_policy_test
 
 target_link_libraries(retry_policy_test
     PRIVATE
-    GTest::gtest
     GTest::gtest_main
     zmon_domain_common
 )
@@ -45,7 +43,6 @@ add_executable(circuit_breaker_test
 
 target_link_libraries(circuit_breaker_test
     PRIVATE
-    GTest::gtest
     GTest::gtest_main
     zmon_domain_common
 )

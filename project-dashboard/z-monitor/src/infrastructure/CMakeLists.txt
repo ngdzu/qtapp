@@ -91,7 +91,6 @@ target_include_directories(z_monitor_infrastructure
 # Infrastructure layer depends on domain and application layers
 target_link_libraries(z_monitor_infrastructure
     PUBLIC
-    z_monitor_domain
     z_monitor_application
     z_monitor_proto # Protocol Buffers generated classes for telemetry
 )
@@ -117,9 +116,17 @@ endif()
 if(USE_QXORM)
     target_link_libraries(z_monitor_infrastructure
         PUBLIC
-        qxorm
+        QxOrm # Library target created by QxOrm's CMakeLists.txt
         Qt6::Sql
     )
+
+    # Ensure QxOrm headers are available to infrastructure sources
+    target_include_directories(z_monitor_infrastructure
+        PUBLIC
+        ${qxorm_SOURCE_DIR}/include
+        ${CMAKE_BINARY_DIR}/_deps/qxorm-src/include
+    )
+
     target_compile_definitions(z_monitor_infrastructure
         PUBLIC
         USE_QXORM
