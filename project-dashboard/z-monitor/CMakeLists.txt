@@ -67,10 +67,9 @@ if(Z_MONITOR_USE_SPDLOG)
         GIT_TAG v1.12.0
     )
     FetchContent_MakeAvailable(spdlog)
-    
+
     # Alternative: Use find_package if spdlog is installed system-wide
     # find_package(spdlog REQUIRED)
-    
     message(STATUS "spdlog backend enabled")
     add_compile_definitions(Z_MONITOR_USE_SPDLOG)
 else()
@@ -83,7 +82,7 @@ find_package(Qt6 COMPONENTS Sql REQUIRED)
 if(USE_QXORM)
     # Try to find QxOrm using find_package first (if installed system-wide)
     find_package(QxOrm QUIET)
-    
+
     if(NOT QxOrm_FOUND)
         # Use FetchContent to download QxOrm from GitHub
         include(FetchContent)
@@ -93,12 +92,12 @@ if(USE_QXORM)
             GIT_TAG v1.4.5
         )
         FetchContent_MakeAvailable(qxorm)
-        
+
         message(STATUS "QxOrm enabled (downloaded via FetchContent)")
     else()
         message(STATUS "QxOrm enabled (found via find_package)")
     endif()
-    
+
     add_compile_definitions(USE_QXORM)
 else()
     message(STATUS "QxOrm disabled (using manual SQL only)")
@@ -110,20 +109,22 @@ if(ENABLE_SQLCIPHER)
     # On macOS: brew install sqlcipher
     # On Windows: Download from https://www.zetetic.net/sqlcipher/
     find_package(SQLCipher QUIET)
-    
+
     if(NOT SQLCipher_FOUND)
         # Try pkg-config as fallback
         find_package(PkgConfig QUIET)
+
         if(PkgConfig_FOUND)
             pkg_check_modules(SQLCipher QUIET sqlcipher)
         endif()
     endif()
-    
+
     if(SQLCipher_FOUND)
         message(STATUS "SQLCipher enabled (found via find_package)")
         add_compile_definitions(ENABLE_SQLCIPHER)
-        # Note: Qt6::Sql driver must be built with SQLCipher support
-        # This typically requires rebuilding Qt with SQLCipher driver
+
+    # Note: Qt6::Sql driver must be built with SQLCipher support
+    # This typically requires rebuilding Qt with SQLCipher driver
     else()
         message(WARNING "SQLCipher requested but not found. Database encryption will not work.")
         message(WARNING "Install SQLCipher library and rebuild Qt with SQLCipher driver support.")
@@ -146,11 +147,12 @@ if(NOT Protobuf_FOUND)
         GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
         GIT_TAG v21.12
     )
+
     # Set protobuf options before making it available
     set(protobuf_BUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(protobuf)
-    
+
     message(STATUS "Protobuf enabled (downloaded via FetchContent)")
 else()
     message(STATUS "Protobuf enabled (found via find_package)")
@@ -175,6 +177,7 @@ set(PROTO_HDRS ${PROTO_OUTPUT_DIR}/${PROTO_NAME}.pb.h)
 if(TARGET protobuf::protoc)
     # Using FetchContent - protoc is a target
     get_target_property(PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION)
+
     if(NOT PROTOC_EXECUTABLE)
         # If IMPORTED_LOCATION is not set, use the target directly in COMMAND
         set(PROTOC_EXECUTABLE $<TARGET_FILE:protobuf::protoc>)
@@ -185,6 +188,7 @@ elseif(Protobuf_PROTOC_EXECUTABLE)
 else()
     # Fallback: try to find protoc in PATH
     find_program(PROTOC_EXECUTABLE protoc)
+
     if(NOT PROTOC_EXECUTABLE)
         message(FATAL_ERROR "protoc executable not found. Please install Protocol Buffers compiler.")
     endif()
@@ -195,8 +199,8 @@ add_custom_command(
     OUTPUT ${PROTO_SRCS} ${PROTO_HDRS}
     COMMAND ${PROTOC_EXECUTABLE}
     ARGS --cpp_out=${PROTO_OUTPUT_DIR}
-         --proto_path=${PROTO_DIR}
-         ${PROTO_FILE}
+    --proto_path=${PROTO_DIR}
+    ${PROTO_FILE}
     DEPENDS ${PROTO_FILE}
     COMMENT "Generating C++ classes from ${PROTO_FILE}"
 )
@@ -209,13 +213,13 @@ add_library(z_monitor_proto STATIC
 
 target_link_libraries(z_monitor_proto
     PUBLIC
-        protobuf::libprotobuf
+    protobuf::libprotobuf
 )
 
 target_include_directories(z_monitor_proto
     PUBLIC
-        ${PROTO_OUTPUT_DIR}
-        ${PROTO_DIR}
+    ${PROTO_OUTPUT_DIR}
+    ${PROTO_DIR}
 )
 
 # Add custom target for proto generation (for manual regeneration)
@@ -248,9 +252,9 @@ if(YAML_AVAILABLE EQUAL 0)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Generating schema constants from YAML"
         BYPRODUCTS
-            ${SCHEMA_HEADER}
-            ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_tables.sql
-            ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_indices.sql
+        ${SCHEMA_HEADER}
+        ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_tables.sql
+        ${CMAKE_CURRENT_SOURCE_DIR}/schema/generated/ddl/create_indices.sql
         VERBATIM
     )
 else()
@@ -281,15 +285,15 @@ add_executable(generate_query_reference
 
 target_link_libraries(generate_query_reference
     PRIVATE
-        z_monitor_infrastructure
-        z_monitor_domain
-        Qt6::Core
-        Qt6::Sql
+    z_monitor_infrastructure
+    z_monitor_domain
+    Qt6::Core
+    Qt6::Sql
 )
 
 target_include_directories(generate_query_reference
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Ensure infrastructure is built before generate_query_reference
@@ -304,6 +308,7 @@ add_custom_target(generate_query_docs
 
 # Add tests subdirectory (optional, can be disabled)
 option(BUILD_TESTING "Build tests" ON)
+
 if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(tests)
@@ -312,4 +317,43 @@ endif()
 # Install main executable
 install(TARGETS z-monitor RUNTIME DESTINATION /opt/z-monitor/)
 
+# Build test_sensor_integration (standalone integration test for SharedMemorySensorDataSource)
+add_executable(test_sensor_integration
+    test_sensor_integration.cpp
+)
 
+target_link_libraries(test_sensor_integration
+    PRIVATE
+    z_monitor_infrastructure
+    z_monitor_domain
+    Qt6::Core
+)
+
+target_include_directories(test_sensor_integration
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+# Ensure infrastructure is built before test_sensor_integration
+add_dependencies(test_sensor_integration z_monitor_infrastructure)
+
+# Build test_shared_memory_connection (minimal C++ test for shared memory connection)
+add_executable(test_shared_memory_connection
+    test_shared_memory_connection.cpp
+)
+
+# No Qt dependencies - pure C++ with Unix sockets
+target_include_directories(test_shared_memory_connection
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+# Build test_header_size (verify RingBufferHeader layout compatibility)
+add_executable(test_header_size
+    test_header_size.cpp
+)
+
+target_include_directories(test_header_size
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)

@@ -151,6 +151,7 @@ User: "Do the next task"
 - **No hardcoded values** - Use constants or configuration
 - **Error handling** - Use `Result<T, Error>` for operations that can fail
 - **Never stop working on the task until it is done** - Complete all subtasks and verification steps before moving on
+- **⚠️ NEVER commit code** - Do not execute git commit commands or suggest git commit commands. The user must be the one who commits. Never run `git add` and `git commit`.
 - **⚠️ Loop Detection and Safety Stop:** If you detect that you are repeatedly doing the same action or making the same attempt without progress, **stop after 10 repetitions** and provide a summary:
   - **What has been done:** List all completed steps, files created/modified, and progress made
   - **What is getting stuck:** Identify the specific issue, error, or blocker preventing progress
@@ -209,3 +210,4 @@ The "No Hardcoded Values" rule is covered in `./cpp_guidelines.md` (Section 4: C
 
 ### Note on Constants and Hardcoded Values
 The "No Hardcoded Values" rule is covered in `cpp_guidelines.mdc` (Section 4: Constants and Magic Numbers). Always use constants, configuration, or constants files instead of hardcoded strings, numbers, or paths in production code.
+

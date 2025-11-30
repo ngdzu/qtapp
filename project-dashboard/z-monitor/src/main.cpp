@@ -3,21 +3,33 @@
  * @brief Entry point for the Z Monitor Qt application.
  *
  * This file bootstraps the Qt application and loads the QML-based
- * user interface. At this bootstrap stage the UI is a placeholder
- * dashboard view; future iterations will wire QObject controllers
- * from the interface layer as described in the architecture docs.
+ * user interface. Controllers are instantiated and registered with QML
+ * for live sensor data display.
  */
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QUrl>
+#include <memory>
+
+// Infrastructure
+#include "infrastructure/sensors/SharedMemorySensorDataSource.h"
+#include "infrastructure/caching/VitalsCache.h"
+#include "infrastructure/caching/WaveformCache.h"
+
+// Application
+#include "application/services/MonitoringService.h"
+
+// Interface
+#include "interface/controllers/DashboardController.h"
+#include "interface/controllers/WaveformController.h"
 
 /**
  * @brief Application entry point.
  *
- * Creates the Qt application object and loads the root QML file for
- * the Z Monitor interface. The function returns the Qt event loop
- * exit code.
+ * Creates the Qt application object, instantiates service and controller layers,
+ * registers controllers with QML, and loads the root QML file for the Z Monitor interface.
  *
  * @param argc Argument count from the C runtime.
  * @param argv Argument vector from the C runtime.
@@ -27,15 +39,60 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
+    // Create infrastructure layer
+    // Note: Ownership transferred to QObject parent hierarchy or managed by shared_ptr
+    auto sensorDataSource = std::make_shared<zmon::SharedMemorySensorDataSource>(
+        "/tmp/z-monitor-sensor.sock",
+        &app);
+
+    auto vitalsCache = std::make_shared<zmon::VitalsCache>(259200);    // 3 days @ 60 Hz
+    auto waveformCache = std::make_shared<zmon::WaveformCache>(22500); // 30 seconds @ 250 Hz × 3 channels
+
+    // Create application service layer
+    // TODO: Replace nullptr repositories with real implementations when available
+    auto monitoringService = new zmon::MonitoringService(
+        nullptr, // patientRepo - not yet implemented
+        nullptr, // telemetryRepo - not yet implemented
+        nullptr, // alarmRepo - not yet implemented
+        nullptr, // vitalsRepo - not yet implemented
+        sensorDataSource,
+        vitalsCache,
+        waveformCache,
+        &app); // Parent to app for lifecycle management
+
+    // Create interface controllers
+    auto dashboardController = new zmon::DashboardController(
+        monitoringService,
+        vitalsCache.get(),
+        &app);
+
+    auto waveformController = new zmon::WaveformController(
+        waveformCache.get(),
+        &app);
+
+    // Start monitoring service
+    bool started = monitoringService->start();
+    if (!started)
+    {
+        qWarning() << "Failed to start monitoring service";
+        // Continue anyway - UI will show disconnected state
+    } // Create QML engine
     QQmlApplicationEngine engine;
+
+    // Register controllers as QML singletons (accessible globally in QML)
+    engine.rootContext()->setContextProperty("dashboardController", dashboardController);
+    engine.rootContext()->setContextProperty("waveformController", waveformController);
+
     const QUrl mainQmlUrl(QStringLiteral("qrc:/qml/Main.qml"));
 
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreated,
         &app,
-        [mainQmlUrl](QObject *obj, const QUrl &objUrl) {
-            if (!obj && mainQmlUrl == objUrl) {
+        [mainQmlUrl](QObject *obj, const QUrl &objUrl)
+        {
+            if (!obj && mainQmlUrl == objUrl)
+            {
                 QCoreApplication::exit(-1);
             }
         },
@@ -45,5 +102,3 @@ int main(int argc, char *argv[])
 
     return app.exec();
 }
-
-

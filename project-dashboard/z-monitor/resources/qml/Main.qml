@@ -194,6 +194,14 @@ ApplicationWindow {
                     }
                 }
 
+                // Connection Status
+                ConnectionStatus {
+                    Layout.preferredWidth: 220
+                    Layout.preferredHeight: 36
+                    connected: dashboardController.isMonitoring
+                    sensorType: "Shared Memory"
+                }
+
                 // Divider
                 Rectangle {
                     width: 1

@@ -31,7 +31,8 @@
 #ifndef SYS_memfd_create
 #define SYS_memfd_create 319
 #endif
-static int memfd_create(const char *name, unsigned int flags) {
+static int memfd_create(const char *name, unsigned int flags)
+{
     return syscall(SYS_memfd_create, name, flags);
 }
 #else
@@ -44,12 +45,25 @@ static int memfd_create(const char *name, unsigned int flags) {
 #ifndef MFD_ALLOW_SEALING
 #define MFD_ALLOW_SEALING 0x0002U
 #endif
-static int memfd_create(const char *name, unsigned int flags) {
-    // Use shm_open as fallback
-    int fd = shm_open(name, O_CREAT | O_RDWR | O_TRUNC, 0600);
-    if (fd >= 0) {
+static int memfd_create(const char *name, unsigned int flags)
+{
+    // Use shm_open as fallback - macOS requires '/' prefix
+    char namebuf[256];
+    if (name[0] != '/')
+    {
+        snprintf(namebuf, sizeof(namebuf), "/%s", name);
+        name = namebuf;
+    }
+
+    // Remove any existing shm with this name first
+    shm_unlink(name);
+
+    int fd = shm_open(name, O_CREAT | O_RDWR | O_EXCL, 0600);
+    if (fd >= 0)
+    {
         // Set close-on-exec if requested
-        if (flags & MFD_CLOEXEC) {
+        if (flags & MFD_CLOEXEC)
+        {
             fcntl(fd, F_SETFD, FD_CLOEXEC);
         }
     }
@@ -61,34 +75,37 @@ Simulator::Simulator(QObject *parent)
     : QObject(parent)
 {
     // Initialize shared memory transport (primary)
-    if (initializeSharedMemory()) {
+    if (initializeSharedMemory())
+    {
         // Setup vitals timer (60 Hz = 16.67 ms)
         connect(&m_vitalsTimer, &QTimer::timeout, this, &Simulator::sendVitals);
         m_vitalsTimer.setInterval(VITALS_INTERVAL_MS);
         m_vitalsTimer.setTimerType(Qt::PreciseTimer);
         m_vitalsTimer.start();
-        
+
         // Setup waveform timer (250 Hz = 4 ms)
         connect(&m_waveformTimer, &QTimer::timeout, this, &Simulator::sendWaveform);
         m_waveformTimer.setInterval(WAVEFORM_INTERVAL_MS);
         m_waveformTimer.setTimerType(Qt::PreciseTimer);
         m_waveformTimer.start();
-        
+
         // Setup heartbeat timer (update every frame)
-        connect(&m_heartbeatTimer, &QTimer::timeout, this, [this]() {
+        connect(&m_heartbeatTimer, &QTimer::timeout, this, [this]()
+                {
             if (m_sharedMemoryWriter) {
                 uint64_t timestamp = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch());
                 m_sharedMemoryWriter->writeHeartbeat(timestamp);
-            }
-        });
+            } });
         m_heartbeatTimer.setInterval(10); // Update every 10ms
         m_heartbeatTimer.start();
-        
+
         qInfo() << "Simulator: Shared memory transport initialized (60 Hz vitals, 250 Hz waveforms)";
-    } else {
+    }
+    else
+    {
         qWarning() << "Simulator: Failed to initialize shared memory, falling back to WebSocket only";
     }
-    
+
     // Legacy WebSocket timer (for fallback/compatibility)
     connect(&m_telemetryTimer, &QTimer::timeout, this, &Simulator::sendTelemetry);
     // Send telemetry several times per second (e.g. 5Hz => 200ms)
@@ -112,17 +129,19 @@ Simulator::Simulator(QObject *parent)
 Simulator::~Simulator()
 {
     cleanupSharedMemory();
-    
+#ifdef WEBSOCKETS_ENABLED
     if (m_server)
     {
         m_server->close();
         delete m_server;
         m_server = nullptr;
     }
+#endif
 }
 
 void Simulator::startServer(quint16 port)
 {
+#ifdef WEBSOCKETS_ENABLED
     if (m_server)
         return;
 
@@ -137,27 +156,38 @@ void Simulator::startServer(quint16 port)
     {
         qWarning() << "SensorSimulator: failed to listen on port" << port;
     }
+#else
+    Q_UNUSED(port);
+    qWarning() << "Simulator: WebSocket support disabled (compiled without Qt6WebSockets)";
+#endif
 }
 
 void Simulator::onNewConnection()
 {
+#ifdef WEBSOCKETS_ENABLED
     QWebSocket *socket = m_server->nextPendingConnection();
     m_clients.insert(socket);
     connect(socket, &QWebSocket::textMessageReceived, this, &Simulator::onTextMessageReceived);
     connect(socket, &QWebSocket::disconnected, this, &Simulator::onClientDisconnected);
     if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
         qDebug() << "SensorSimulator: client connected";
+#endif
 }
 
 void Simulator::onTextMessageReceived(const QString &message)
 {
+#ifdef WEBSOCKETS_ENABLED
     if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
         qDebug() << "SensorSimulator: received message:" << message;
     // For now, ignore control messages from clients
+#else
+    Q_UNUSED(message);
+#endif
 }
 
 void Simulator::onClientDisconnected()
 {
+#ifdef WEBSOCKETS_ENABLED
     QWebSocket *socket = qobject_cast<QWebSocket *>(sender());
     if (socket)
     {
@@ -166,6 +196,7 @@ void Simulator::onClientDisconnected()
         if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
             qDebug() << "SensorSimulator: client disconnected";
     }
+#endif
 }
 
 // Helper function for random walk (Brownian motion)
@@ -180,33 +211,33 @@ static double randomWalk(double value, double min, double max, double step)
 static QVariantList generateECGChunk(int samples, double &phase, int heartRate)
 {
     QVariantList values;
-    constexpr int SAMPLE_RATE = 250; // Hz
+    constexpr int SAMPLE_RATE = 250;            // Hz
     const double beatPeriod = 60.0 / heartRate; // seconds per beat
     const double samplesPerBeat = SAMPLE_RATE * beatPeriod;
-    
+
     for (int i = 0; i < samples; i++)
     {
         const double t = phase / samplesPerBeat; // 0 to 1 progress through beat
-        
+
         // Synthetic ECG function (approximate PQRST complex)
         double y = 0;
-        
+
         // Baseline noise
         y += (QRandomGenerator::global()->generateDouble() - 0.5) * 5;
-        
+
         // P wave
         y += 10 * std::exp(-std::pow((t - 0.2) * 20, 2));
-        
+
         // QRS Complex
-        y -= 10 * std::exp(-std::pow((t - 0.45) * 50, 2)); // Q
+        y -= 10 * std::exp(-std::pow((t - 0.45) * 50, 2));  // Q
         y += 100 * std::exp(-std::pow((t - 0.5) * 100, 2)); // R peak
-        y -= 15 * std::exp(-std::pow((t - 0.55) * 50, 2)); // S
-        
+        y -= 15 * std::exp(-std::pow((t - 0.55) * 50, 2));  // S
+
         // T wave
         y += 15 * std::exp(-std::pow((t - 0.8) * 15, 2));
-        
+
         values.append(qRound(y));
-        
+
         phase++;
         if (phase >= samplesPerBeat)
         {
@@ -251,18 +282,24 @@ void Simulator::sendTelemetry()
 
     // Also print to stdout so container logs show the changing vitals for debugging
     if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+#ifdef WEBSOCKETS_ENABLED
         qDebug() << "Telemetry: hr=" << m_hr << "spo2=" << m_spo2 << "rr=" << m_rr << "(clients=" << m_clients.size() << ")";
+#else
+        qDebug() << "Telemetry: hr=" << m_hr << "spo2=" << m_spo2 << "rr=" << m_rr;
+#endif
 
     // Notify QML/UI directly so vitals display can update in real time
     emit vitalsUpdated(m_hr, m_spo2, m_rr);
-    
+
     // Emit waveform data for real-time visualization
     emit waveformUpdated(waveformSamples);
 
+#ifdef WEBSOCKETS_ENABLED
     for (QWebSocket *client : qAsConst(m_clients))
     {
         client->sendTextMessage(text);
     }
+#endif
 
     // Emit a debug/info log for UI visibility (also used by QML)
     emit logEmitted("Debug", QString("Sent telemetry: hr=%1 spo2=%2 rr=%3").arg(m_hr).arg(m_spo2).arg(m_rr));
@@ -281,8 +318,10 @@ void Simulator::triggerCritical()
     msg["timestamp_ms"] = static_cast<qint64>(QDateTime::currentMSecsSinceEpoch());
     QJsonDocument d(msg);
     QString t = QString::fromUtf8(d.toJson(QJsonDocument::Compact));
+#ifdef WEBSOCKETS_ENABLED
     for (QWebSocket *client : qAsConst(m_clients))
         client->sendTextMessage(t);
+#endif
 }
 
 void Simulator::triggerWarning()
@@ -297,8 +336,10 @@ void Simulator::triggerWarning()
     msg["timestamp_ms"] = static_cast<qint64>(QDateTime::currentMSecsSinceEpoch());
     QJsonDocument d(msg);
     QString t = QString::fromUtf8(d.toJson(QJsonDocument::Compact));
+#ifdef WEBSOCKETS_ENABLED
     for (QWebSocket *client : qAsConst(m_clients))
         client->sendTextMessage(t);
+#endif
 }
 
 void Simulator::triggerNotification(const QString &text)
@@ -312,8 +353,10 @@ void Simulator::triggerNotification(const QString &text)
     msg["timestamp_ms"] = static_cast<qint64>(QDateTime::currentMSecsSinceEpoch());
     QJsonDocument d(msg);
     QString t = QString::fromUtf8(d.toJson(QJsonDocument::Compact));
+#ifdef WEBSOCKETS_ENABLED
     for (QWebSocket *client : qAsConst(m_clients))
         client->sendTextMessage(t);
+#endif
 
     emit logEmitted("Info", text);
 }
@@ -357,19 +400,22 @@ void Simulator::sendVitals()
     m_hr = qRound(randomWalk(m_hr, 50, 160, 2));
     m_spo2 = qRound(randomWalk(m_spo2, 85, 100, 0.5));
     m_rr = qRound(randomWalk(m_rr, 8, 30, 0.5));
-    
+
     // Write to shared memory ring buffer
-    if (m_sharedMemoryWriter) {
+    if (m_sharedMemoryWriter)
+    {
         uint64_t timestamp = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch());
-        if (!m_sharedMemoryWriter->writeVitalsFrame(timestamp, m_hr, m_spo2, m_rr)) {
+        if (!m_sharedMemoryWriter->writeVitalsFrame(timestamp, m_hr, m_spo2, m_rr))
+        {
             qWarning() << "Simulator: Failed to write vitals frame to shared memory";
         }
     }
-    
+
     // Notify QML/UI
     emit vitalsUpdated(m_hr, m_spo2, m_rr);
-    
-    if (!qgetenv("SIMULATOR_DEBUG").isEmpty()) {
+
+    if (!qgetenv("SIMULATOR_DEBUG").isEmpty())
+    {
         qDebug() << "Simulator: Vitals written (hr=" << m_hr << " spo2=" << m_spo2 << " rr=" << m_rr << ")";
     }
 }
@@ -378,106 +424,119 @@ void Simulator::sendWaveform()
 {
     // Generate ECG waveform samples (10 samples per frame at 250 Hz)
     QVariantList waveformSamples = generateECGChunk(WAVEFORM_SAMPLES_PER_FRAME, m_ecgPhase, m_hr);
-    
+
     // Convert to vector of ints
     std::vector<int> values;
-    for (const QVariant &sample : waveformSamples) {
+    for (const QVariant &sample : waveformSamples)
+    {
         values.push_back(sample.toInt());
     }
-    
+
     // Write to shared memory ring buffer
-    if (m_sharedMemoryWriter) {
+    if (m_sharedMemoryWriter)
+    {
         uint64_t timestamp = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch());
         int64_t startTimestamp = static_cast<int64_t>(QDateTime::currentMSecsSinceEpoch());
-        
+
         if (!m_sharedMemoryWriter->writeWaveformFrame(timestamp, "ecg", SAMPLE_RATE,
-                                                       startTimestamp, values)) {
+                                                      startTimestamp, values))
+        {
             qWarning() << "Simulator: Failed to write waveform frame to shared memory";
         }
     }
-    
+
     // Notify QML/UI for visualization
     emit waveformUpdated(waveformSamples);
 }
 
-bool Simulator::initializeSharedMemory() {
+bool Simulator::initializeSharedMemory()
+{
     // Calculate ring buffer size
-    size_t headerSize = sizeof(SensorSimulator::RingBufferHeader);
+    size_t headerSize = sizeof(zmon::RingBufferHeader);
     size_t framesSize = FRAME_SIZE * FRAME_COUNT;
     m_mappedSize = headerSize + framesSize;
-    
+
     // Create memfd
     m_memfdFd = memfd_create("zmonitor-sim-ring", MFD_CLOEXEC | MFD_ALLOW_SEALING);
-    if (m_memfdFd < 0) {
+    if (m_memfdFd < 0)
+    {
         qCritical() << "Simulator: Failed to create memfd:" << strerror(errno);
         return false;
     }
-    
+
     // Set size
-    if (ftruncate(m_memfdFd, m_mappedSize) < 0) {
+    if (ftruncate(m_memfdFd, m_mappedSize) < 0)
+    {
         qCritical() << "Simulator: Failed to set memfd size:" << strerror(errno);
         ::close(m_memfdFd);
         m_memfdFd = -1;
         return false;
     }
-    
+
     // Map shared memory
     m_mappedMemory = mmap(nullptr, m_mappedSize, PROT_READ | PROT_WRITE, MAP_SHARED, m_memfdFd, 0);
-    if (m_mappedMemory == MAP_FAILED) {
+    if (m_mappedMemory == MAP_FAILED)
+    {
         qCritical() << "Simulator: Failed to mmap memfd:" << strerror(errno);
         ::close(m_memfdFd);
         m_memfdFd = -1;
         return false;
     }
-    
+
     // Initialize SharedMemoryWriter
-    m_sharedMemoryWriter = std::make_unique<SensorSimulator::SharedMemoryWriter>(
+    m_sharedMemoryWriter = std::make_unique<zmon::SharedMemoryWriter>(
         m_mappedMemory, m_mappedSize, FRAME_SIZE, FRAME_COUNT);
-    
-    if (!m_sharedMemoryWriter->initialize()) {
+
+    if (!m_sharedMemoryWriter->initialize())
+    {
         qCritical() << "Simulator: Failed to initialize shared memory writer";
         cleanupSharedMemory();
         return false;
     }
-    
+
     // Start control server (socket path matches Z-Monitor default: /tmp/z-monitor-sensor.sock)
     // Note: Documentation mentions unix://run/zmonitor-sim.sock but code uses /tmp/z-monitor-sensor.sock
     m_controlServer = std::make_unique<SensorSimulator::ControlServer>("/tmp/z-monitor-sensor.sock", this);
     m_controlServer->setMemfdInfo(m_memfdFd, m_mappedSize);
-    
-    if (!m_controlServer->start()) {
+
+    if (!m_controlServer->start())
+    {
         qCritical() << "Simulator: Failed to start control server";
         cleanupSharedMemory();
         return false;
     }
-    
-    qInfo() << "Simulator: Shared memory initialized (size:" << m_mappedSize 
+
+    qInfo() << "Simulator: Shared memory initialized (size:" << m_mappedSize
             << " bytes, frames:" << FRAME_COUNT << ", frame size:" << FRAME_SIZE << " bytes)";
-    
+
     return true;
 }
 
-void Simulator::cleanupSharedMemory() {
+void Simulator::cleanupSharedMemory()
+{
     // Stop control server
-    if (m_controlServer) {
+    if (m_controlServer)
+    {
         m_controlServer->stop();
         m_controlServer.reset();
     }
-    
+
     // Cleanup writer
     m_sharedMemoryWriter.reset();
-    
+
     // Unmap memory
-    if (m_mappedMemory && m_mappedMemory != MAP_FAILED) {
+    if (m_mappedMemory && m_mappedMemory != MAP_FAILED)
+    {
         munmap(m_mappedMemory, m_mappedSize);
         m_mappedMemory = nullptr;
     }
-    
+
     // Close memfd
-    if (m_memfdFd >= 0) {
+    if (m_memfdFd >= 0)
+    {
         ::close(m_memfdFd);
         m_memfdFd = -1;
     }
-    
+
     m_mappedSize = 0;
 }

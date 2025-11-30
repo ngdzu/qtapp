@@ -2,6 +2,7 @@
 
 # Infrastructure layer sources
 set(INFRASTRUCTURE_SOURCES
+
     # Logging infrastructure
     logging/ILogBackend.h
     logging/LogEntry.h
@@ -13,23 +14,23 @@ set(INFRASTRUCTURE_SOURCES
     logging/backends/CustomBackend.cpp
     logging/backends/SpdlogBackend.h
     logging/backends/SpdlogBackend.cpp
-    
+
     # Platform adapters (Qt-based)
     adapters/SettingsManager.h
     adapters/SettingsManager.cpp
-    
+
     # Infrastructure interfaces
     interfaces/IPatientLookupService.h
     interfaces/ITelemetryServer.h
     interfaces/ISensorDataSource.h
     interfaces/IArchiver.h
-    
+
     # Authentication adapters
     authentication/MockUserManagementService.h
     authentication/MockUserManagementService.cpp
     authentication/HospitalUserManagementAdapter.h
     authentication/HospitalUserManagementAdapter.cpp
-    
+
     # Sensor adapters
     sensors/SharedMemoryRingBuffer.h
     sensors/SharedMemoryRingBuffer.cpp
@@ -37,11 +38,17 @@ set(INFRASTRUCTURE_SOURCES
     sensors/SharedMemoryControlChannel.cpp
     sensors/SharedMemorySensorDataSource.h
     sensors/SharedMemorySensorDataSource.cpp
-    
+
+    # Caching
+    caching/VitalsCache.h
+    caching/VitalsCache.cpp
+    caching/WaveformCache.h
+    caching/WaveformCache.cpp
+
     # Network adapters
     network/MockNetworkManager.h
     network/MockNetworkManager.cpp
-    
+
     # Persistence adapters
     persistence/DatabaseManager.h
     persistence/DatabaseManager.cpp
@@ -51,8 +58,8 @@ set(INFRASTRUCTURE_SOURCES
     persistence/SQLiteActionLogRepository.cpp
     persistence/SQLitePatientRepository.h
     persistence/SQLitePatientRepository.cpp
-    persistence/generated/SchemaInfo.h  # Generated from schema/database.yaml
-    
+    persistence/generated/SchemaInfo.h # Generated from schema/database.yaml
+
     # ORM mappings (optional, only if USE_QXORM is enabled)
     persistence/orm/OrmRegistry.h
     persistence/orm/OrmRegistry.cpp
@@ -70,31 +77,31 @@ add_dependencies(z_monitor_infrastructure generate_schema z_monitor_proto)
 # Set include directories (project-relative paths)
 target_include_directories(z_monitor_infrastructure
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
 # Infrastructure layer depends on domain and application layers
 target_link_libraries(z_monitor_infrastructure
     PUBLIC
-        z_monitor_domain
-        z_monitor_application
-        z_monitor_proto  # Protocol Buffers generated classes for telemetry
+    z_monitor_domain
+    z_monitor_application
+    z_monitor_proto # Protocol Buffers generated classes for telemetry
 )
 
 # Infrastructure layer uses full Qt dependencies
 target_link_libraries(z_monitor_infrastructure
     PUBLIC
-        Qt6::Core
-        Qt6::Gui
-        Qt6::Sql
-        Qt6::Network
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Sql
+    Qt6::Network
 )
 
 # Link spdlog if enabled
 if(Z_MONITOR_USE_SPDLOG)
     target_link_libraries(z_monitor_infrastructure
         PUBLIC
-            spdlog::spdlog
+        spdlog::spdlog
     )
 endif()
 
@@ -102,12 +109,11 @@ endif()
 if(USE_QXORM)
     target_link_libraries(z_monitor_infrastructure
         PUBLIC
-            qxorm
-            Qt6::Sql
+        qxorm
+        Qt6::Sql
     )
     target_compile_definitions(z_monitor_infrastructure
         PUBLIC
-            USE_QXORM
+        USE_QXORM
     )
 endif()
-

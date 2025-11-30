@@ -105,9 +105,27 @@ namespace zmon
             return;
         }
 
-        // Receive control message
+        // **CRITICAL:** Use recvmsg() to receive BOTH control message AND file descriptor in ONE call
+        // Using recv() first would consume the data but lose the SCM_RIGHTS ancillary data
+
+        struct msghdr msg;
+        struct iovec iov;
         ControlMessage message;
-        ssize_t received = ::recv(m_socketFd, &message, sizeof(message), 0);
+        char cmsg_buffer[CMSG_SPACE(sizeof(int))];
+
+        ::memset(&msg, 0, sizeof(msg));
+        ::memset(&iov, 0, sizeof(iov));
+        ::memset(&message, 0, sizeof(message));
+
+        iov.iov_base = &message;
+        iov.iov_len = sizeof(message);
+
+        msg.msg_iov = &iov;
+        msg.msg_iovlen = 1;
+        msg.msg_control = cmsg_buffer;
+        msg.msg_controllen = sizeof(cmsg_buffer);
+
+        ssize_t received = ::recvmsg(m_socketFd, &msg, 0);
 
         if (received < 0)
         {
@@ -135,11 +153,16 @@ namespace zmon
             return;
         }
 
-        // Receive file descriptor via SCM_RIGHTS
+        // Extract file descriptor from ancillary data
         int fd = -1;
-        if (!receiveFileDescriptor(fd))
+        struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+        if (cmsg && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
         {
-            qWarning() << "SharedMemoryControlChannel: Failed to receive file descriptor";
+            ::memcpy(&fd, CMSG_DATA(cmsg), sizeof(int));
+        }
+        else
+        {
+            qWarning() << "SharedMemoryControlChannel: No file descriptor received in SCM_RIGHTS";
             return;
         }
 
@@ -148,6 +171,7 @@ namespace zmon
         {
             m_memfdFd = fd;
             m_ringBufferSize = message.ringBufferSize;
+            qInfo() << "SharedMemoryControlChannel: Handshake completed, fd=" << m_memfdFd << "size=" << m_ringBufferSize;
             emit handshakeCompleted(m_memfdFd, m_ringBufferSize);
         }
         else if (message.type == ControlMessage::MessageType::Shutdown)
@@ -159,6 +183,8 @@ namespace zmon
 
     bool SharedMemoryControlChannel::receiveFileDescriptor(int &fd)
     {
+        // This method is now deprecated - kept for compatibility but not used
+        // The file descriptor is received in onSocketDataAvailable() via recvmsg()
         struct msghdr msg;
         struct iovec iov;
         char buffer[1];

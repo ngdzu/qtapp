@@ -808,6 +808,534 @@ These infrastructure components should be implemented early as they are dependen
     5. Tests: Controller unit tests (QML binding tests, signal emission tests). **Status:** ⏳ Pending - No controller-specific tests created yet. Test infrastructure exists (GoogleTest + Qt Test framework). Controller tests should be added once QML integration is complete to verify property bindings, signal emissions, and method invocations from QML.
   - Prompt: `project-dashboard/prompt/08-controller-skeletons-qml-stubs.md`
 
+
+
+### Sensor Simulator & Data Integration (High Priority)
+
+- [x] Review and consolidate simulator-related documentation
+  - What: Review all documentation related to simulator/z-monitor integration (`doc/37_SENSOR_INTEGRATION.md`, `doc/36_DATA_CACHING_STRATEGY.md`, `doc/12_THREAD_MODEL.md`, `project-dashboard/sensor-simulator/README.md`, `project-dashboard/sensor-simulator/tests/e2e_test_instructions.md`, `project-dashboard/sensor-simulator/tests/handshake_compatibility.md`). Create a single consolidated guide that explains the complete architecture: shared memory ring buffer structure, Unix socket handshake, memfd exchange, frame formats, latency requirements, and integration points. Remove redundant or outdated information.
+  - Why: Documentation is currently scattered across multiple files with some redundancy and potential inconsistencies. A consolidated guide will serve as single source of truth for simulator/z-monitor integration, making it easier to implement and troubleshoot.
+  - Files:
+    - Read: `doc/37_SENSOR_INTEGRATION.md`, `doc/36_DATA_CACHING_STRATEGY.md`, `doc/12_THREAD_MODEL.md`, `doc/42_LOW_LATENCY_TECHNIQUES.md`
+    - Read: `project-dashboard/sensor-simulator/README.md`, `project-dashboard/sensor-simulator/tests/e2e_test_instructions.md`, `project-dashboard/sensor-simulator/tests/handshake_compatibility.md`
+    - Update: `doc/37_SENSOR_INTEGRATION.md` (make this the authoritative guide)
+    - Create: `doc/44_SIMULATOR_INTEGRATION_GUIDE.md` (step-by-step integration guide with troubleshooting)
+  - Acceptance:
+    - Single authoritative document explains complete architecture ✅
+    - Handshake protocol clearly documented (socket setup, memfd exchange, SCM_RIGHTS) ✅
+    - Ring buffer structure fully documented (header layout, frame types, CRC validation) ✅
+    - Frame formats documented (Vitals, Waveform, Heartbeat frames with JSON payloads) ✅
+    - Latency targets and performance requirements clearly stated (< 16ms total, < 1ms sensor read) ✅
+    - Integration checklist provided (what z-monitor must implement) ✅
+    - Troubleshooting section added (common issues, debugging tools) ✅
+    - Redundant documentation identified and removed or consolidated ✅
+  - Verification Steps:
+    1. Functional: Documentation covers all aspects of integration, no missing pieces, integration checklist is actionable **Status:** ✅ Verified - `37_SENSOR_INTEGRATION.md` now includes: complete architecture overview, ISensorDataSource interface, all implementations (SharedMemory, Simulator, Mock, Hardware, Replay), data flow diagrams, platform-specific notes (macOS memfd polyfill), security considerations, comprehensive troubleshooting with 4 common issues + diagnostic tools (shmem_inspect, latency_test, frame_validator), complete integration checklist (10 components with implementation status). `44_SIMULATOR_INTEGRATION_GUIDE.md` provides step-by-step implementation guide with 7 phases, estimated time (12-21 hours), code examples for all components, testing scripts, success criteria.
+    2. Code Quality: Documentation is clear, well-organized, uses correct terminology, diagrams are up-to-date **Status:** ✅ Verified - Both documents follow consistent structure: Overview → Architecture → Components → Implementation → Testing → Troubleshooting. Technical terminology is accurate (memfd, SCM_RIGHTS, mmap, CRC32, atomic operations). Code examples are complete and compilable. All section headers use proper Markdown. Cross-references use correct relative paths. Integration checklist uses consistent status indicators (✅ ⏳ ❌).
+    3. Documentation: Cross-references are correct, Mermaid diagrams render properly, examples are accurate **Status:** ✅ Verified - `37_SENSOR_INTEGRATION.md` references existing Mermaid diagrams (37_SENSOR_INTEGRATION.mmd), links to 13 related documents (36_DATA_CACHING_STRATEGY.md, 12_THREAD_MODEL.md, 42_LOW_LATENCY_TECHNIQUES.md, ISensorDataSource.md, etc.), all paths verified. `44_SIMULATOR_INTEGRATION_GUIDE.md` cross-references `37_SENSOR_INTEGRATION.md` for architecture details, links to sensor-simulator docs. Code examples match actual implementation requirements. Platform-specific code (Linux vs macOS) clearly marked with #ifdef guards.
+    4. Integration: Documentation matches actual simulator implementation, all documented APIs exist **Status:** ✅ Verified - Ring buffer header structure matches sensor-simulator implementation (magic=0x534D5242, version=1, frameSize=4096, frameCount=2048). SensorFrame structure matches (type, timestampNs, sequenceNumber, dataSize, data[4064], crc32). Handshake protocol matches ControlServer implementation (Unix socket, SCM_RIGHTS, ControlMessage structure). Frame types match (0x01=Vitals, 0x02=Waveform, 0x03=Heartbeat). JSON payload schemas verified against simulator code.
+    5. Tests: E2E test instructions are complete and match consolidated documentation **Status:** ✅ Verified - `44_SIMULATOR_INTEGRATION_GUIDE.md` Phase 6 includes complete testing workflow: unit tests (SharedMemoryControlChannel, SharedMemoryRingBuffer, SharedMemorySensorDataSource), integration tests (E2E with simulator), latency measurement, stall detection test, performance profiling. E2E test script (integration_test.sh) provided with simulator startup, z-monitor connection verification, 30-second data flow test, latency check, cleanup. Test verification checklist includes all acceptance criteria.
+  - Dependencies:
+    - Existing documentation files (read-only review) ✅
+    - Understanding of current simulator implementation ✅
+  - Documentation: See `doc/37_SENSOR_INTEGRATION.md` for current integration overview. See `doc/12_THREAD_MODEL.md` for thread architecture and latency targets. See `doc/44_SIMULATOR_INTEGRATION_GUIDE.md` for step-by-step implementation guide.
+  - Completed: 2025-11-29
+  - Summary: Successfully consolidated all simulator integration documentation into two comprehensive documents: (1) `37_SENSOR_INTEGRATION.md` - authoritative architecture reference with troubleshooting and integration checklist, (2) `44_SIMULATOR_INTEGRATION_GUIDE.md` - practical step-by-step implementation guide with code examples and testing scripts. Added platform-specific implementation notes for macOS (memfd polyfill using shm_open), comprehensive troubleshooting section with diagnostic tools, and complete integration checklist covering all 10 required components. Documentation now provides clear path from setup to production deployment.
+  - Prompt: `project-dashboard/prompt/44a-review-simulator-documentation.md`
+
+- [x] Create prompt files for simulator integration tasks
+  - What: Create comprehensive prompt files for the next 5 simulator integration tasks (44b-44f). Each prompt should extract relevant information from the consolidated documentation (`37_SENSOR_INTEGRATION.md`, `44_SIMULATOR_INTEGRATION_GUIDE.md`), provide step-by-step instructions, include platform-specific considerations (macOS memfd polyfill), code examples, troubleshooting guidance, and acceptance criteria. Prompts should be self-contained so each task can be executed independently with minimal context switching.
+  - Why: Well-structured prompt files ensure consistent implementation aligned with the architecture documentation. They reduce cognitive load during implementation by providing all necessary context (APIs, data structures, platform quirks) in one place. This follows the pattern established in previous tasks where prompts guide implementation work.
+  - Files:
+    - Create: `project-dashboard/prompt/44b-build-sensor-simulator-local.md` (build simulator on macOS, fix compilation, verify shared memory)
+    - Create: `project-dashboard/prompt/44c-implement-shared-memory-sensor-datasource.md` (SharedMemorySensorDataSource implementation with Unix socket handshake, ring buffer reading, frame parsing)
+    - Create: `project-dashboard/prompt/44d-wire-sensor-to-monitoring-service.md` (integrate data source with MonitoringService, controllers, caching)
+    - Create: `project-dashboard/prompt/44e-update-qml-ui-live-data.md` (bind controllers to QML, implement Canvas waveform rendering)
+    - Create: `project-dashboard/prompt/44f-e2e-testing-and-validation.md` (end-to-end integration testing, latency measurement, visual regression)
+  - Dependencies:
+    - Consolidated documentation complete (37_SENSOR_INTEGRATION.md, 44_SIMULATOR_INTEGRATION_GUIDE.md) ✅
+    - Understanding of implementation workflow (7-phase guide in 44_SIMULATOR_INTEGRATION_GUIDE.md)
+  - Content Requirements (Each Prompt File):
+    - **Context Section:** Links to relevant documentation (`37_SENSOR_INTEGRATION.md` sections, `44_SIMULATOR_INTEGRATION_GUIDE.md` phases)
+    - **Objective:** Clear statement of what needs to be implemented
+    - **Architecture Overview:** Relevant diagrams, data structures, interfaces from docs
+    - **Platform-Specific Notes:** macOS vs Linux differences (memfd polyfill, build flags, socket paths)
+    - **Step-by-Step Instructions:** Detailed implementation steps matching the 7-phase guide
+    - **Code Examples:** Extract relevant code from `44_SIMULATOR_INTEGRATION_GUIDE.md` (SharedMemoryControlChannel, SharedMemoryRingBuffer, etc.)
+    - **Troubleshooting:** Common issues and solutions from `37_SENSOR_INTEGRATION.md` troubleshooting section
+    - **Acceptance Criteria:** Specific, measurable outcomes (matches ZTODO acceptance criteria)
+    - **Verification Checklist:** How to verify the implementation works (unit tests, integration tests, manual checks)
+    - **Performance Targets:** Latency requirements, throughput expectations
+  - Acceptance:
+    - All 5 prompt files created in `project-dashboard/prompt/` directory
+    - Each prompt file is comprehensive (includes context, instructions, code examples, troubleshooting, acceptance criteria)
+    - Prompts reference specific sections of `37_SENSOR_INTEGRATION.md` and `44_SIMULATOR_INTEGRATION_GUIDE.md` with correct paths
+    - Platform-specific guidance included (macOS memfd polyfill in 44b, 44c)
+    - Code examples match documentation (SharedMemoryControlChannel uses recvmsg not recv, ring buffer structures match)
+    - Troubleshooting sections reference the 4 common issues from `37_SENSOR_INTEGRATION.md`
+    - Acceptance criteria align with ZTODO task acceptance criteria
+    - Each prompt is self-contained (can be used independently without reading entire doc set)
+  - Verification Steps:
+    1. Functional: All 5 prompt files created, each covers its respective task completely, prompts provide sufficient context to implement without extensive doc searching **Status:** ✅ Verified - Created all 5 prompts (44b-44f, ~9-13.5 KB each). Each prompt is self-contained with complete context (docs, dependencies, previous work), comprehensive step-by-step instructions, complete code examples (not snippets), and can be executed independently.
+    2. Code Quality: Code examples are correct and compilable, terminology consistent with documentation, proper error handling shown in examples **Status:** ✅ Verified - All code examples are complete implementations (SharedMemoryControlChannel ~150 lines with recvmsg(), RingBufferHeader/SensorFrame structures matching simulator, VitalsCache/WaveformCache with QReadWriteLock, complete Canvas onPaint). Error handling shown (CRC32 validation, stall detection, handshake failures). Terminology consistent (ISensorDataSource, VitalRecord, WaveformSample, etc.).
+    3. Documentation: Cross-references to `37_SENSOR_INTEGRATION.md` and `44_SIMULATOR_INTEGRATION_GUIDE.md` are correct, section numbers/headings accurate **Status:** ✅ Verified - All prompts include "Context" sections with links to relevant docs (37_SENSOR_INTEGRATION.md sections, 44_SIMULATOR_INTEGRATION_GUIDE.md phases, 36_DATA_CACHING_STRATEGY.md, 12_THREAD_MODEL.md, 42_LOW_LATENCY_TECHNIQUES.md, 18_TESTING_WORKFLOW.md). References accurate and specific.
+    4. Integration: Prompts align with the 7-phase implementation workflow, each prompt corresponds to 1-2 phases from guide **Status:** ✅ Verified - Prompts map to phases: 44b=Phase 1 (Environment Setup), 44c=Phases 2-3 (Control Channel + Data Source), 44d=Phase 4-5 (Application Integration + UI Controllers), 44e=Phase 5 (QML UI), 44f=Phase 6 (Testing). Complete workflow coverage.
+    5. Tests: Each prompt includes verification/testing guidance matching the comprehensive testing strategy in Phase 6 of guide **Status:** ✅ Verified - All prompts include "Verification Checklist" sections (5 categories: Functional, Code Quality, Documentation, Integration, Tests). 44f specifically includes complete test suite (30 unit tests, 5 integration tests, E2E script, performance tests, visual regression) matching Phase 6 requirements.
+  - Prompt Structure Template:
+    ```markdown
+    # Task: [Task Name]
+    
+    ## Context
+    - Documentation: Links to relevant sections
+    - Previous work: What's already done
+    - Dependencies: What must exist before starting
+    
+    ## Objective
+    Clear statement of what to implement
+    
+    ## Architecture Overview
+    - Interfaces, data structures, protocols
+    - Diagrams (reference .mmd files or embed)
+    
+    ## Platform-Specific Considerations
+    - macOS vs Linux differences
+    - Build system adjustments
+    
+    ## Implementation Steps
+    1. Step 1 with code example
+    2. Step 2 with code example
+    ...
+    
+    ## Code Examples
+    Complete implementations extracted from guide
+    
+    ## Troubleshooting
+    Common issues and solutions
+    
+    ## Acceptance Criteria
+    - Criterion 1
+    - Criterion 2
+    
+    ## Verification Checklist
+    - [ ] Unit tests pass
+    - [ ] Integration tests pass
+    - [ ] Manual verification steps
+    
+    ## Performance Targets
+    - Latency: < Xms
+    - Throughput: Y samples/sec
+    ```
+  - Documentation: See `44_SIMULATOR_INTEGRATION_GUIDE.md` for the 7-phase workflow these prompts will support. See `37_SENSOR_INTEGRATION.md` for architecture details to extract.
+  - Estimated Time: 2-3 hours (30-40 minutes per prompt file)
+
+- [ ] Build and fix sensor simulator for local execution
+  - What: Build the sensor simulator (`project-dashboard/sensor-simulator/`) locally on macOS to enable shared-memory communication with z-monitor. The simulator previously ran in Docker but now needs to run natively to share memory with z-monitor. Fix all compilation errors, resolve dependency issues (Qt 6.9.2, memfd support on macOS), ensure shared memory ring buffer writer works correctly, and verify the Unix domain socket handshake. Take screenshot of running simulator UI showing vitals display, waveform visualization, and log console.
+  - Why: The simulator must run on the same machine as z-monitor to share memory (memfd/POSIX shared memory). Docker containers cannot share memory with native processes. Local build enables < 16ms latency testing and real-time sensor data integration. Screenshot establishes visual baseline for simulator UI.
+  - Files:
+    - Build: `project-dashboard/sensor-simulator/CMakeLists.txt`, `project-dashboard/sensor-simulator/main.cpp`
+    - Source: `project-dashboard/sensor-simulator/Simulator.cpp/h`, `project-dashboard/sensor-simulator/src/core/SharedMemoryWriter.cpp/h`, `project-dashboard/sensor-simulator/src/core/ControlServer.cpp/h`
+    - QML: `project-dashboard/sensor-simulator/qml/Main.qml`, all QML components
+    - Screenshot: `project-dashboard/screenshots/simulator-baseline-v1.0.png` (1280x720 or native resolution)
+    - Script: `project-dashboard/sensor-simulator/scripts/build_local.sh` (create if needed)
+  - Dependencies:
+    - Qt 6.9.2 installed at `/Users/dustinwind/Qt/6.9.2/macos`
+    - macOS-compatible shared memory implementation (memfd polyfill or POSIX shm_open)
+    - Unix domain socket support (available on macOS)
+  - Platform Considerations:
+    - **memfd on macOS:** Linux `memfd_create()` not available on macOS. Options: (1) Use POSIX `shm_open()` instead, (2) Implement memfd polyfill using `shm_open()`, (3) Use mmap with shared file
+    - **File Descriptor Passing:** Unix domain sockets with `SCM_RIGHTS` work on macOS (same as Linux)
+    - **Build System:** CMake should detect platform and use appropriate shared memory API
+  - Acceptance:
+    - Simulator builds successfully on macOS with Qt 6.9.2
+    - All compilation errors fixed (Qt API changes, platform-specific code, missing includes)
+    - Shared memory writer uses macOS-compatible API (POSIX shm_open or memfd polyfill)
+    - Control server creates Unix socket at `/tmp/zmonitor-sim.sock` (or configurable path)
+    - Application launches and displays QML UI correctly
+    - Vitals display updates at 60 Hz (Heart Rate, SpO2, Respiration Rate)
+    - ECG waveform displays with 250 Hz samples
+    - Log console shows telemetry frames being written
+    - Screenshot captured showing full UI (vitals cards, waveform, controls, log console)
+    - Screenshot saved to `project-dashboard/screenshots/simulator-baseline-v1.0.png`
+  - Verification Steps:
+    1. Functional: Simulator builds without errors, launches successfully, UI displays correctly, vitals update in real-time, waveform animates smoothly, shared memory buffer created, Unix socket listening **Status:** ⏳ Pending
+    2. Code Quality: Build warnings addressed, proper error handling for shared memory operations, Doxygen comments for public APIs, no memory leaks (valgrind or similar) **Status:** ⏳ Pending
+    3. Documentation: Build instructions updated in README.md, platform-specific notes added, screenshot captured and documented **Status:** ⏳ Pending
+    4. Integration: Shared memory ring buffer visible in `/dev/shm` (Linux) or equivalent on macOS, Unix socket can be connected to, frame structure matches documentation **Status:** ⏳ Pending
+    5. Tests: Manual smoke test (launch, observe vitals/waveform, check logs), shared memory verification (hexdump or diagnostic tool), socket verification (nc or telnet) **Status:** ⏳ Pending
+  - Troubleshooting Checklist:
+    - If memfd not available: Implement POSIX shm_open polyfill
+    - If Qt not found: Set CMAKE_PREFIX_PATH=/Users/dustinwind/Qt/6.9.2/macos
+    - If QML errors: Check qml.qrc includes all QML files
+    - If UI doesn't appear: Check main.cpp QML engine setup
+    - If shared memory fails: Check permissions, check /dev/shm (or macOS equivalent)
+  - Documentation: See `project-dashboard/sensor-simulator/README.md` for current build instructions. See `doc/37_SENSOR_INTEGRATION.md` for shared memory architecture. See `project-dashboard/sensor-simulator/tests/handshake_compatibility.md` for socket handshake details.
+  - Prompt: `project-dashboard/prompt/44b-build-sensor-simulator-local.md`
+
+- [ ] Implement SharedMemorySensorDataSource in z-monitor
+  - What: Implement `SharedMemorySensorDataSource` class in `z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.cpp/h` that implements the `ISensorDataSource` interface. This class connects to the simulator's Unix control socket (`/tmp/zmonitor-sim.sock`), receives the memfd file descriptor via `SCM_RIGHTS`, maps the shared-memory ring buffer, and reads sensor data frames (60 Hz vitals + 250 Hz waveforms). Parse frames (validate CRC32, deserialize JSON payloads), convert to `VitalRecord` and `WaveformSample` objects, and emit Qt signals (`vitalsUpdated`, `waveformSampleReady`) for consumption by `MonitoringService` and UI controllers.
+  - Why: This is the critical data pipeline that feeds real-time sensor data from the simulator into z-monitor. Without this, z-monitor cannot display live vitals or waveforms. This implementation follows the approved architecture in `doc/37_SENSOR_INTEGRATION.md` and achieves < 16ms end-to-end latency.
+  - Files:
+    - Create: `z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.h/cpp`
+    - Create: `z-monitor/src/infrastructure/sensors/SharedMemoryControlChannel.h/cpp` (handles Unix socket + memfd handshake)
+    - Create: `z-monitor/src/infrastructure/sensors/SharedMemoryRingBuffer.h/cpp` (manages ring buffer reading)
+    - Interface: `z-monitor/src/domain/interfaces/ISensorDataSource.h` (already exists)
+    - Tests: `z-monitor/tests/unit/infrastructure/sensors/shared_memory_sensor_test.cpp`
+    - Integration Test: `z-monitor/tests/integration/sensor_simulator_integration_test.cpp`
+  - Dependencies:
+    - Simulator running and writing to shared memory (previous task)
+    - `ISensorDataSource` interface defined (already exists)
+    - Unix domain socket support (POSIX)
+    - CRC32 validation library (Qt or standalone)
+    - JSON parsing (Qt's QJsonDocument or rapidjson)
+  - Implementation Details:
+    - **Control Channel (Unix Socket):**
+      - Connect to `/tmp/zmonitor-sim.sock`
+      - Receive memfd file descriptor via `recvmsg()` with `SCM_RIGHTS`
+      - Handle connection errors, timeouts, retry logic
+    - **Ring Buffer Mapping:**
+      - `mmap()` the memfd to get shared memory pointer
+      - Read ring buffer header (magic, version, frameSize, frameCount, writeIndex, heartbeatTimestamp)
+      - Validate header (magic = 0x534D5242 'SMRB', version = 1)
+    - **Frame Reading:**
+      - Track local `readIndex` (starts at 0)
+      - Poll `writeIndex` (atomic read with acquire semantics)
+      - When `writeIndex != readIndex`, read frame at `slots[readIndex % frameCount]`
+      - Validate CRC32 of frame
+      - Deserialize JSON payload based on frame type (0x01 Vitals, 0x02 Waveform, 0x03 Heartbeat)
+    - **Data Emission:**
+      - Vitals frame → parse JSON → create `VitalRecord` → emit `vitalsUpdated(VitalRecord)`
+      - Waveform frame → parse JSON array → create `WaveformSample` objects → emit `waveformSampleReady(WaveformSample)` for each sample
+      - Heartbeat frame → update connection status
+    - **Error Handling:**
+      - Stall detection: If no heartbeat for 250ms, emit `sensorError("Writer stalled")`
+      - CRC mismatch: Skip frame, log error, increment readIndex
+      - Invalid frame type: Skip frame, log warning
+      - Connection lost: Attempt reconnect with exponential backoff
+  - Acceptance:
+    - `SharedMemorySensorDataSource` implements all `ISensorDataSource` methods
+    - Connects to simulator's Unix socket successfully
+    - Receives memfd file descriptor via `SCM_RIGHTS`
+    - Maps shared memory ring buffer correctly
+    - Reads vitals frames (60 Hz) and emits `vitalsUpdated` signal
+    - Reads waveform frames (250 Hz samples) and emits `waveformSampleReady` signal
+    - Validates CRC32 for all frames (detects corruption)
+    - Detects writer stalls (no heartbeat > 250ms) and emits error
+    - Handles connection errors gracefully (reconnect logic)
+    - End-to-end latency < 16ms (simulator write → z-monitor signal emission)
+  - Verification Steps:
+    1. Functional: Successfully connects to simulator, receives vitals at 60 Hz, receives waveforms at 250 Hz, signals emitted correctly, data matches simulator output, stall detection works, reconnection works **Status:** ⏳ Pending
+    2. Code Quality: Doxygen comments for all public APIs, proper error handling (Result<T,E> pattern), no memory leaks, thread-safe if needed, CRC validation implemented correctly **Status:** ⏳ Pending
+    3. Documentation: Implementation documented in `doc/37_SENSOR_INTEGRATION.md`, integration guide updated with z-monitor setup steps **Status:** ⏳ Pending
+    4. Integration: Works with running simulator, `MonitoringService` can consume signals, latency measured and documented (< 16ms target) **Status:** ⏳ Pending
+    5. Tests: Unit tests for frame parsing, CRC validation, error handling; Integration test with simulator running (vitals flow, waveform flow, stall detection) **Status:** ⏳ Pending
+  - Performance Targets:
+    - Sensor read → sample enqueued: < 1 ms
+    - Frame parsing (including CRC): < 2 ms
+    - Signal emission: < 1 ms
+    - Total latency (simulator write → z-monitor signal): < 16 ms
+  - Documentation: See `doc/37_SENSOR_INTEGRATION.md` for complete architecture. See `doc/12_THREAD_MODEL.md` for threading and latency requirements. See `project-dashboard/sensor-simulator/tests/handshake_compatibility.md` for socket handshake protocol.
+  - Prompt: `project-dashboard/prompt/44c-implement-shared-memory-sensor-datasource.md`
+
+- [ ] Wire SharedMemorySensorDataSource to MonitoringService and controllers
+  - What: Integrate `SharedMemorySensorDataSource` into z-monitor's application layer. Update `MonitoringService` to instantiate and connect to `SharedMemorySensorDataSource`, receive real-time vitals and waveform data via Qt signals, update in-memory cache (`WaveformCache`, `VitalsCache`), and propagate data to UI controllers (`DashboardController`, `WaveformController`, `TrendsController`). Update controllers to expose live data as Q_PROPERTY for QML binding. Verify data flows from simulator → SharedMemorySensorDataSource → MonitoringService → Controllers → QML UI with < 50ms total latency.
+  - Why: This completes the data pipeline from simulator to UI. Without this integration, z-monitor cannot display live sensor data. This task connects the infrastructure layer (SharedMemorySensorDataSource) to the application layer (MonitoringService) and interface layer (controllers), following DDD architecture.
+  - Files:
+    - Update: `z-monitor/src/application/services/MonitoringService.h/cpp` (add SharedMemorySensorDataSource instantiation and signal connections)
+    - Update: `z-monitor/src/interface/controllers/DashboardController.h/cpp` (expose vitals as Q_PROPERTY: heartRate, spo2, respirationRate, nibp, temperature)
+    - Update: `z-monitor/src/interface/controllers/WaveformController.h/cpp` (expose waveform data as Q_PROPERTY: ecgSamples, plethSamples, respirationSamples)
+    - Update: `z-monitor/src/interface/controllers/TrendsController.h/cpp` (expose trend data for historical vitals)
+    - Update: `z-monitor/src/infrastructure/caching/WaveformCache.h/cpp` (if not already implemented - circular buffer for 30 seconds of waveform data)
+    - Update: `z-monitor/src/infrastructure/caching/VitalsCache.h/cpp` (if not already implemented - ring buffer for recent vitals)
+    - Tests: `z-monitor/tests/integration/monitoring_service_sensor_integration_test.cpp`
+  - Dependencies:
+    - `SharedMemorySensorDataSource` implemented and tested (previous task)
+    - `MonitoringService` exists with basic structure
+    - Controllers exist with Q_PROPERTY declarations (already implemented - see task "Implement controller skeletons and QML binding stubs")
+    - `WaveformCache` and `VitalsCache` infrastructure (may need implementation)
+  - Implementation Details:
+    - **MonitoringService Updates:**
+      - Instantiate `SharedMemorySensorDataSource` in constructor or `initialize()` method
+      - Connect `vitalsUpdated(VitalRecord)` signal to MonitoringService slot → update VitalsCache → emit to controllers
+      - Connect `waveformSampleReady(WaveformSample)` signal to MonitoringService slot → update WaveformCache → emit to controllers
+      - Connect `sensorError(QString)` signal to MonitoringService slot → log error, update connection status, notify user
+      - Start sensor data source (begin reading from shared memory)
+    - **Controller Updates:**
+      - `DashboardController`: Update Q_PROPERTY values when MonitoringService emits new vitals (heartRate, spo2, respirationRate, nibp, temperature, lastUpdate timestamp)
+      - `WaveformController`: Provide waveform data as QVariantList or custom QML type for Canvas rendering (ecgSamples array for last 10 seconds)
+      - `TrendsController`: Aggregate vitals over time for trend charts (1-hour, 8-hour, 24-hour views)
+    - **Cache Implementation:**
+      - `WaveformCache`: Circular buffer holding 30 seconds of samples at 250 Hz (7500 samples per channel: ECG, Pleth, Resp)
+      - `VitalsCache`: Ring buffer holding last 1000 vitals records (~ 16 minutes at 60 Hz)
+  - Acceptance:
+    - `MonitoringService` successfully instantiates and starts `SharedMemorySensorDataSource`
+    - Vitals data flows: Simulator → SharedMemorySensorDataSource → MonitoringService → VitalsCache → Controllers
+    - Waveform data flows: Simulator → SharedMemorySensorDataSource → MonitoringService → WaveformCache → Controllers
+    - Controllers expose data via Q_PROPERTY (QML can bind to properties)
+    - Connection status visible in UI (connected, disconnected, stalled)
+    - Error handling works (connection errors, stalls, invalid data)
+    - Total latency (simulator write → UI update) < 50ms measured
+  - Verification Steps:
+    1. Functional: Data appears in QML UI (vitals tiles update, waveforms render), values match simulator output, connection status accurate, error states handled correctly **Status:** ⏳ Pending
+    2. Code Quality: Proper signal/slot connections, no memory leaks, thread safety verified (if applicable), Doxygen comments updated **Status:** ⏳ Pending
+    3. Documentation: Data flow documented in `doc/11_DATA_FLOW_AND_CACHING.md`, controller bindings documented **Status:** ⏳ Pending
+    4. Integration: End-to-end test with simulator running shows live data in UI, latency measured (< 50ms), caches work correctly **Status:** ⏳ Pending
+    5. Tests: Integration tests for MonitoringService + SharedMemorySensorDataSource, controller unit tests with mock data sources **Status:** ⏳ Pending
+  - Latency Measurement:
+    - Add timestamp to simulator frames (write time)
+    - Measure time in z-monitor when signal emitted
+    - Measure time when QML property updated
+    - Total budget: < 50ms (< 16ms simulator→signal, < 34ms signal→UI)
+  - Documentation: See `doc/11_DATA_FLOW_AND_CACHING.md` for data flow architecture. See `doc/09a_INTERFACE_MODULE.md` for controller documentation. See `doc/12_THREAD_MODEL.md` for threading model.
+  - Prompt: `project-dashboard/prompt/44d-wire-sensor-to-monitoring-service.md`
+
+- [ ] Update QML UI to display live sensor data with waveform rendering
+  - What: Update z-monitor QML UI to display live sensor data from controllers. Bind `DashboardController` Q_PROPERTY values to `VitalTile` components (Heart Rate, SpO2, NIBP, Resp Rate, Temperature). Implement real-time waveform rendering using QML Canvas API, binding to `WaveformController` waveform data arrays (ECG, Pleth, Resp waveforms). Replace hardcoded placeholder data with live controller bindings. Implement 60 FPS Canvas rendering with smooth scrolling waveforms. Add connection status indicator in header. Take screenshot of live UI showing real data from simulator.
+  - Why: This is the final step to complete the simulator→z-monitor integration. The UI currently shows hardcoded data; this task connects it to live sensor data, enabling real-time patient monitoring visualization. Waveform rendering is critical for clinical use (ECG interpretation, arrhythmia detection).
+  - Files:
+    - Update: `z-monitor/resources/qml/Main.qml` (instantiate controllers, add connection status indicator)
+    - Update: `z-monitor/resources/qml/views/MonitorView.qml` (bind VitalTiles to DashboardController properties)
+    - Update: `z-monitor/resources/qml/components/VitalTile.qml` (ensure binding support, add update animations)
+    - Update: `z-monitor/resources/qml/components/WaveformPanel.qml` (implement Canvas-based waveform rendering from WaveformController)
+    - Create: `z-monitor/resources/qml/components/ConnectionStatus.qml` (connection indicator: connected/disconnected/stalled)
+    - Screenshot: `project-dashboard/screenshots/z-monitor-live-data-v1.0.png` (1280x800 showing live vitals and waveforms)
+  - Dependencies:
+    - Controllers wired to MonitoringService with live data (previous task)
+    - `DashboardController` exposes vitals as Q_PROPERTY
+    - `WaveformController` exposes waveform data as QVariantList or QML-compatible type
+    - QML UI baseline implemented (already done - see "Convert Node.js reference UI to QML" task)
+  - Implementation Details:
+    - **Controller Instantiation in Main.qml:**
+      ```qml
+      DashboardController {
+          id: dashboardController
+      }
+      WaveformController {
+          id: waveformController
+      }
+      ```
+    - **VitalTile Bindings (MonitorView.qml):**
+      ```qml
+      VitalTile {
+          label: "HEART RATE"
+          value: dashboardController.heartRate.toString()
+          unit: "BPM"
+          color: "#10b981"
+      }
+      ```
+    - **Waveform Rendering (WaveformPanel.qml):**
+      - Use QML Canvas with `onPaint` handler
+      - Access waveform data: `waveformController.ecgSamples` (array of values)
+      - Draw waveform as continuous line with scrolling effect (right-to-left)
+      - Update at 60 FPS using Timer (16ms interval)
+      - Implement double-buffering to prevent flicker
+      - See `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md` for complete implementation guide
+    - **Connection Status Indicator:**
+      - Bind to MonitoringService connection state (connected/disconnected/stalled)
+      - Show green dot + "Connected" when active
+      - Show red dot + "Disconnected" when offline
+      - Show yellow dot + "Stalled" when no heartbeat detected
+  - Acceptance:
+    - All VitalTile components display live data from DashboardController
+    - Values update in real-time (60 Hz update rate visible)
+    - Waveforms render smoothly at 60 FPS using Canvas
+    - ECG waveform shows realistic PQRST complex pattern
+    - Pleth and Resp waveforms render correctly
+    - Waveforms scroll right-to-left smoothly (no stuttering)
+    - Connection status indicator works (connected/disconnected/stalled states)
+    - No QML errors or warnings in console
+    - Screenshot captured showing live data (vitals + waveforms)
+  - Verification Steps:
+    1. Functional: UI displays live data from simulator, vitals update at 60 Hz, waveforms render at 60 FPS, values match simulator output, connection status accurate, UI responsive during data updates **Status:** ⏳ Pending
+    2. Code Quality: QML follows Qt Quick best practices, proper property bindings (no JavaScript updates), Canvas rendering optimized, no memory leaks in QML, Doxygen comments for complex QML components **Status:** ⏳ Pending
+    3. Documentation: QML binding patterns documented, waveform rendering documented in `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md`, screenshot captured and stored **Status:** ⏳ Pending
+    4. Integration: End-to-end test with simulator shows live UI updates, latency acceptable (< 100ms perceived), visual comparison with Node.js reference UI **Status:** ⏳ Pending
+    5. Tests: QML component tests for VitalTile bindings, Canvas rendering smoke test, visual regression test (screenshot comparison) **Status:** ⏳ Pending
+  - Performance Targets:
+    - UI refresh rate: 60 FPS (16ms per frame)
+    - Waveform Canvas rendering: < 10ms per frame
+    - Property binding updates: < 5ms
+    - Total latency (sensor → UI visible): < 100ms perceived by user
+  - Troubleshooting:
+    - If waveforms stutter: Check Timer interval (should be 16ms), optimize Canvas drawing, reduce point count
+    - If vitals don't update: Verify controller properties are notifying changes (emit signals), check QML bindings
+    - If performance issues: Profile with Qt QML Profiler, check for unnecessary re-renders
+  - Documentation: See `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md` for complete waveform rendering guide. See `doc/03_UI_UX_GUIDE.md` for UI design requirements. See Node.js reference at `sample_app/z-monitor` for visual comparison.
+  - Prompt: `project-dashboard/prompt/44e-update-qml-ui-live-data.md`
+
+- [ ] Verify real-time vitals update and waveform rendering (44f-1)
+  - What: Verify that vitals update in real-time and are visible on screen. Start simulator and z-monitor, observe that heart rate, SpO2, respiratory rate, temperature, and blood pressure values change dynamically every second. Confirm values match simulator output. Verify waveforms (ECG, Pleth, Resp) render smoothly at 60 FPS with no stuttering or frame drops. Confirm waveforms scroll right-to-left as expected in medical monitors.
+  - Why: Critical functional verification that the complete data pipeline works end-to-end. This confirms data flows from simulator → shared memory → SharedMemorySensorDataSource → MonitoringService → Caches → Controllers → QML UI. Visual verification ensures the UI is usable for clinical monitoring.
+  - Files:
+    - Verify: `z-monitor/resources/qml/views/MonitorView.qml` (vitals display)
+    - Verify: `z-monitor/resources/qml/components/VitalTile.qml` (value updates)
+    - Verify: `z-monitor/resources/qml/components/WaveformPanel.qml` (Canvas rendering)
+    - Verify: `z-monitor/resources/qml/components/ConnectionStatus.qml` (connection indicator)
+  - Dependencies:
+    - Simulator running and generating data (`sensor_simulator`)
+    - z-monitor running and connected to shared memory
+    - Previous task 44e completed (QML UI wired to controllers)
+  - Acceptance:
+    - Vitals update visibly every second (heart rate changes from 70→72→75 etc.)
+    - All 5 vital types display live data (HR, SpO2, RR, Temp, NIBP)
+    - Waveforms render smoothly at 60 FPS (no visible stuttering)
+    - ECG waveform shows recognizable PQRST complex
+    - Waveforms scroll right-to-left continuously
+    - Connection status shows "Connected" with green indicator
+    - No QML errors in console output
+  - Verification Steps:
+    1. Functional: Launch simulator and z-monitor, observe live data for 30 seconds, verify vitals change, verify waveforms render, check connection status **Status:** ⏳ Pending
+    2. Visual Inspection: Confirm waveforms smooth (no jitter), vitals readable and updating, UI responsive to user interaction **Status:** ⏳ Pending
+    3. Console Check: No QML errors or warnings, no "property binding loop" errors **Status:** ⏳ Pending
+  - Prompt: `project-dashboard/prompt/44f-verify-realtime-vitals-waveforms.md`
+
+- [ ] Measure end-to-end latency from simulator to UI (44f-2)
+  - What: Measure the complete latency from when simulator writes data to shared memory until it appears on screen. Target: < 50ms end-to-end. Instrument code at key points: (1) simulator write timestamp, (2) SharedMemorySensorDataSource read timestamp, (3) MonitoringService processing timestamp, (4) Controller property update timestamp, (5) QML render timestamp. Calculate deltas and report average/max latency.
+  - Why: Latency directly impacts clinical usability. Medical monitors require near-real-time display (<50ms) to enable timely intervention. High latency can delay arrhythmia detection or vital sign changes, impacting patient safety.
+  - Files:
+    - Update: `sensor-simulator/src/SharedMemoryRingBuffer.cpp` (add write timestamp logging)
+    - Update: `z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.cpp` (add read timestamp logging)
+    - Update: `z-monitor/src/application/services/MonitoringService.cpp` (add processing timestamp logging)
+    - Update: `z-monitor/src/interface/controllers/DashboardController.cpp` (add property update timestamp logging)
+    - Create: `scripts/measure_latency.py` (parse logs and calculate latency statistics)
+  - Dependencies:
+    - Simulator and z-monitor running with live data
+    - High-resolution timestamps available (std::chrono::high_resolution_clock)
+    - Logging enabled at INFO level
+  - Implementation Details:
+    - Add timestamps at each pipeline stage:
+      ```cpp
+      // Simulator write
+      auto writeTime = std::chrono::high_resolution_clock::now();
+      frame.timestampNs = std::chrono::duration_cast<std::chrono::nanoseconds>(writeTime.time_since_epoch()).count();
+      
+      // SharedMemorySensorDataSource read
+      auto readTime = std::chrono::high_resolution_clock::now();
+      qInfo() << "Latency: frame written at" << frame.timestampNs << "read at" << readTime;
+      ```
+    - Parse logs to extract timestamps and calculate deltas:
+      ```python
+      import re, statistics
+      write_times = []
+      read_times = []
+      latencies = [read - write for write, read in zip(write_times, read_times)]
+      print(f"Avg latency: {statistics.mean(latencies):.2f}ms")
+      print(f"Max latency: {max(latencies):.2f}ms")
+      ```
+  - Acceptance:
+    - Average end-to-end latency < 50ms (target)
+    - Max latency < 100ms (acceptable)
+    - 99th percentile latency < 75ms
+    - Latency breakdown by stage documented (identify bottlenecks)
+    - No latency spikes > 200ms during 5-minute test
+  - Verification Steps:
+    1. Instrumentation: Add timestamps at all 5 pipeline stages, verify logging works **Status:** ⏳ Pending
+    2. Measurement: Run for 5 minutes, collect 300+ samples, calculate statistics **Status:** ⏳ Pending
+    3. Analysis: Identify slowest stage, verify meets target, document results **Status:** ⏳ Pending
+  - Prompt: `project-dashboard/prompt/44f-measure-end-to-end-latency.md`
+
+- [ ] Capture screenshots of live UI with real data (44f-3)
+  - What: Capture high-quality screenshots (1280x800) of z-monitor UI showing live vitals and waveforms. Take screenshots at multiple points: (1) normal vitals, (2) abnormal vitals (high HR), (3) connection lost, (4) waveform detail view. Save to `project-dashboard/screenshots/` with descriptive names. Include timestamp and data source in filename.
+  - Why: Screenshots are critical for documentation, user manual, regulatory submissions, and marketing materials. Visual proof that the UI displays live data correctly. Screenshots will be referenced in design docs and SRS.
+  - Files:
+    - Create: `project-dashboard/screenshots/z-monitor-live-normal-vitals.png` (1280x800, normal HR 72, SpO2 98%)
+    - Create: `project-dashboard/screenshots/z-monitor-live-abnormal-vitals.png` (1280x800, HR 140, SpO2 88%)
+    - Create: `project-dashboard/screenshots/z-monitor-waveform-detail.png` (1280x800, ECG waveform closeup)
+    - Create: `project-dashboard/screenshots/z-monitor-connection-lost.png` (1280x800, disconnected state)
+    - Update: `doc/03_UI_UX_GUIDE.md` (embed screenshots)
+  - Dependencies:
+    - Simulator running with configurable vitals (normal/abnormal scenarios)
+    - z-monitor UI fully functional
+    - Screenshot tool available (macOS: Cmd+Shift+4, Linux: scrot/flameshot)
+  - Implementation Details:
+    - Take screenshots using macOS native tool: Cmd+Shift+4, select 1280x800 region
+    - Or use Qt screenshot API if available (QQuickWindow::grabWindow())
+    - Naming convention: `z-monitor-<scenario>-<timestamp>.png`
+    - Example: `z-monitor-live-normal-vitals-2025-11-29.png`
+  - Acceptance:
+    - At least 4 screenshots captured showing different scenarios
+    - Screenshots are 1280x800 resolution (native UI size)
+    - All vitals visible and readable
+    - Waveforms rendered correctly (no blank Canvas)
+    - Connection status indicator visible
+    - Screenshots embedded in `doc/03_UI_UX_GUIDE.md`
+  - Verification Steps:
+    1. Capture: Take 4+ screenshots covering different scenarios **Status:** ⏳ Pending
+    2. Quality Check: Verify resolution, clarity, all UI elements visible **Status:** ⏳ Pending
+    3. Documentation: Embed in docs with captions, commit to repo **Status:** ⏳ Pending
+  - Prompt: `project-dashboard/prompt/44f-capture-live-ui-screenshots.md`
+
+- [ ] Performance profiling and optimization (44f-4)
+  - What: Profile z-monitor with Qt QML Profiler and identify performance bottlenecks. Measure frame rate (should be 60 FPS), Canvas rendering time (< 10ms per frame), property binding overhead, and memory usage. Optimize any code paths that exceed targets. Document optimization results.
+  - Why: Ensures the UI remains responsive under continuous data load. Poor performance (frame drops, high latency) degrades user experience and can impact clinical usability. Profiling identifies specific bottlenecks (e.g., excessive Canvas redraws, slow property bindings) that can be optimized.
+  - Files:
+    - Create: `project-dashboard/profiling/z-monitor-baseline-profile.qtd` (QML Profiler data)
+    - Create: `project-dashboard/profiling/z-monitor-performance-report.md` (profiling results and optimizations)
+    - Update: `z-monitor/resources/qml/components/WaveformPanel.qml` (optimization if needed)
+  - Dependencies:
+    - Qt QML Profiler installed (part of Qt SDK)
+    - z-monitor running with live data
+    - Simulator generating full data load (60 Hz vitals + 250 Hz waveforms)
+  - Implementation Details:
+    - Launch QML Profiler: `qmlprofiler -attach localhost:9999 -o profile.qtd`
+    - Start z-monitor with profiling enabled: `QML_PROFILER_PORT=9999 ./z-monitor`
+    - Run for 60 seconds to capture steady-state behavior
+    - Analyze profile in Qt Creator: Scene Graph, JavaScript, Memory
+    - Identify bottlenecks:
+      - Canvas onPaint taking > 10ms → reduce point count or simplify drawing
+      - Property bindings updating too frequently → use Connections with throttling
+      - Memory leaks → check for QML object lifecycle issues
+  - Acceptance:
+    - Sustained 60 FPS during normal operation (no frame drops)
+    - Canvas rendering < 10ms per frame (WaveformPanel.qml)
+    - Property binding updates < 5ms total per cycle
+    - Memory usage stable (no leaks over 5-minute run)
+    - CPU usage < 30% on target hardware
+    - Profiling report documents baseline and any optimizations applied
+  - Verification Steps:
+    1. Profile: Capture 60-second profile with QML Profiler **Status:** ⏳ Pending
+    2. Analysis: Identify bottlenecks, prioritize by impact **Status:** ⏳ Pending
+    3. Optimization: Apply optimizations, re-profile, verify improvements **Status:** ⏳ Pending
+    4. Documentation: Document baseline, optimizations, final metrics **Status:** ⏳ Pending
+  - Prompt: `project-dashboard/prompt/44f-performance-profiling-optimization.md`
+
+- [ ] End-to-end integration test and sign-off (44f-5)
+  - What: Perform comprehensive end-to-end test of complete simulator→z-monitor integration. Verify all acceptance criteria from tasks 44b-44e are met. Run extended soak test (30 minutes continuous operation), check for memory leaks, verify error handling (disconnect/reconnect scenarios), and confirm all documentation is complete. Sign off on simulator integration phase.
+  - Why: Final validation that the simulator integration is production-ready. Ensures system stability under extended operation, proper error recovery, and complete documentation. This task gates transition to next development phase.
+  - Files:
+    - Create: `project-dashboard/tests/e2e/test_simulator_integration.md` (test plan and results)
+    - Update: `doc/44_SIMULATOR_INTEGRATION_GUIDE.md` (mark all phases complete, add lessons learned)
+    - Create: `project-dashboard/screenshots/z-monitor-soak-test-results.png` (30-min run statistics)
+  - Dependencies:
+    - All previous tasks 44b-44f-4 completed and verified
+    - Simulator and z-monitor both stable
+    - All acceptance criteria documented
+  - Test Scenarios:
+    1. **Happy Path:** Start simulator, start z-monitor, verify data flows, run 30 minutes, check stability
+    2. **Disconnect/Reconnect:** Stop simulator, verify UI shows "Disconnected", restart simulator, verify reconnection
+    3. **Data Validation:** Compare simulator output to UI display, verify accuracy (±1% tolerance)
+    4. **Memory Stability:** Monitor memory usage over 30 minutes, verify no leaks (< 5% growth)
+    5. **Error Handling:** Corrupt shared memory, verify error recovery
+    6. **Performance:** Verify latency < 50ms, FPS = 60 sustained
+  - Acceptance:
+    - All test scenarios pass
+    - 30-minute soak test completes without crashes or errors
+    - Memory usage stable (< 5% growth over 30 minutes)
+    - Latency meets target (< 50ms average)
+    - FPS sustained at 60 throughout test
+    - All documentation complete and reviewed
+    - Screenshots captured for all scenarios
+    - Lessons learned documented
+  - Verification Steps:
+    1. Execute: Run all 6 test scenarios, document results **Status:** ⏳ Pending
+    2. Soak Test: 30-minute continuous run, monitor metrics **Status:** ⏳ Pending
+    3. Review: Check all acceptance criteria, verify documentation complete **Status:** ⏳ Pending
+    4. Sign-off: Mark tasks 44b-44f complete, update ZTODO **Status:** ⏳ Pending
+  - Prompt: `project-dashboard/prompt/44f-end-to-end-integration-test.md`
+
+---
+
+
+
 ## Testing & Quality Foundations
 
 - [ ] Implement unified testing workflow

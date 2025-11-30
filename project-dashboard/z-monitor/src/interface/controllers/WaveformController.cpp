@@ -7,13 +7,19 @@
  */
 
 #include "WaveformController.h"
+#include "infrastructure/caching/WaveformCache.h"
+#include <QVariantMap>
 
 namespace zmon
 {
-    WaveformController::WaveformController(QObject *parent) : QObject(parent)
+    WaveformController::WaveformController(WaveformCache *waveformCache, QObject *parent)
+        : QObject(parent),
+          m_waveformCache(waveformCache),
+          m_updateTimer(new QTimer(this))
     {
-        // TODO: Connect to MonitoringService for waveform data stream
-        // TODO: Set up 60 FPS timer for waveform updates
+        // Set up 60 FPS timer (16ms interval)
+        m_updateTimer->setInterval(16);
+        connect(m_updateTimer, &QTimer::timeout, this, &WaveformController::updateWaveformData);
     }
 
     void WaveformController::setUpdateRate(int rate)
@@ -22,7 +28,12 @@ namespace zmon
         {
             m_updateRate = rate;
             emit updateRateChanged();
-            // TODO: Update timer interval based on rate
+
+            // Update timer interval (milliseconds = 1000 / Hz)
+            if (m_updateTimer)
+            {
+                m_updateTimer->setInterval(1000 / rate);
+            }
         }
     }
 
@@ -55,17 +66,58 @@ namespace zmon
 
     void WaveformController::startWaveforms()
     {
-        // TODO: Start waveform data stream from MonitoringService
-        // TODO: Start 60 FPS timer
+        if (m_updateTimer)
+        {
+            m_updateTimer->start();
+        }
     }
 
     void WaveformController::stopWaveforms()
     {
-        // TODO: Stop waveform data stream
-        // TODO: Stop timer
+        if (m_updateTimer)
+        {
+            m_updateTimer->stop();
+        }
+
         m_ecgData.clear();
         m_plethData.clear();
         emit ecgDataChanged();
+        emit plethDataChanged();
+    }
+
+    void WaveformController::updateWaveformData()
+    {
+        if (!m_waveformCache)
+        {
+            return;
+        }
+
+        // Get last 6 seconds for ECG (250 Hz × 6 sec = 1,500 samples per channel)
+        // Display sweeps at 25 mm/s across typical 6-second display width
+        int displaySeconds = 6;
+
+        // Get ECG samples
+        auto ecgSamples = m_waveformCache->getChannelSamples("ecg", displaySeconds);
+        m_ecgData.clear();
+        for (const auto &sample : ecgSamples)
+        {
+            QVariantMap point;
+            point["time"] = sample.timestampMs;
+            point["value"] = sample.value * m_ecgGain; // Apply gain
+            m_ecgData.append(point);
+        }
+        emit ecgDataChanged();
+
+        // Get Pleth samples
+        auto plethSamples = m_waveformCache->getChannelSamples("pleth", displaySeconds);
+        m_plethData.clear();
+        for (const auto &sample : plethSamples)
+        {
+            QVariantMap point;
+            point["time"] = sample.timestampMs;
+            point["value"] = sample.value * m_plethGain; // Apply gain
+            m_plethData.append(point);
+        }
         emit plethDataChanged();
     }
 } // namespace zmon

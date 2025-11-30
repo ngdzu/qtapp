@@ -6,6 +6,7 @@
         <file>components/NavButton.qml</file>
         <file>components/VitalTile.qml</file>
         <file>components/WaveformPanel.qml</file>
+        <file>components/ConnectionStatus.qml</file>
         
         <!-- Views -->
         <file>views/MonitorView.qml</file>

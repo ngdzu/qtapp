@@ -254,6 +254,98 @@ void ServiceContainer::configure() {
 
 ---
 
+## Platform-Specific Implementation Notes
+
+### macOS Implementation (memfd Compatibility)
+
+**Challenge:** Linux `memfd_create()` is not available on macOS. Must use POSIX `shm_open()` as alternative.
+
+#### Option 1: POSIX Shared Memory (`shm_open`)
+
+**Simulator Side:**
+```cpp
+#ifdef __APPLE__
+    // macOS: Use POSIX shared memory
+    const char* shmName = "/zmonitor-sim-ring";
+    int shmFd = shm_open(shmName, O_RDWR | O_CREAT | O_EXCL, 0600);
+    if (shmFd < 0) {
+        qCritical() << "shm_open failed:" << strerror(errno);
+        return false;
+    }
+    
+    // Set size
+    if (ftruncate(shmFd, ringBufferSize) < 0) {
+        qCritical() << "ftruncate failed:" << strerror(errno);
+        shm_unlink(shmName);
+        close(shmFd);
+        return false;
+    }
+    
+    // Map memory
+    void* mappedMemory = mmap(nullptr, ringBufferSize, PROT_READ | PROT_WRITE,
+                              MAP_SHARED, shmFd, 0);
+#else
+    // Linux: Use memfd
+    int shmFd = memfd_create("zmonitor-sim-ring", MFD_CLOEXEC | MFD_ALLOW_SEALING);
+    // ... rest of memfd implementation
+#endif
+```
+
+**Z-Monitor Side:**
+```cpp
+// Receive file descriptor via SCM_RIGHTS (same on both platforms)
+int receivedFd = -1;
+if (receiveFileDescriptor(receivedFd)) {
+    // Map shared memory using received file descriptor
+    // Works identically on macOS and Linux after handshake
+    m_mappedMemory = mmap(nullptr, size, PROT_READ, MAP_SHARED, receivedFd, 0);
+}
+```
+
+**Cleanup (macOS-specific):**
+```cpp
+#ifdef __APPLE__
+    // Must explicitly unlink POSIX shared memory
+    shm_unlink("/zmonitor-sim-ring");
+#endif
+// close(fd) automatically cleans up memfd on Linux
+```
+
+**Key Differences:**
+| Feature                     | Linux (memfd)                   | macOS (shm_open)                            |
+| --------------------------- | ------------------------------- | ------------------------------------------- |
+| **Creation**                | `memfd_create()`                | `shm_open()` with name                      |
+| **Namespace**               | Anonymous (no filesystem entry) | Named (`/zmonitor-sim-ring` in `/dev/shm/`) |
+| **Cleanup**                 | Automatic on close              | Requires `shm_unlink()`                     |
+| **Sealing**                 | Supported (`F_ADD_SEALS`)       | Not supported                               |
+| **File Descriptor Passing** | Via `SCM_RIGHTS`                | Via `SCM_RIGHTS` (same)                     |
+| **Performance**             | Identical after mmap()          | Identical after mmap()                      |
+
+**Recommended Approach:**
+- Use preprocessor directives (`#ifdef __APPLE__`) to select implementation
+- File descriptor passing via Unix socket works identically on both platforms
+- After `mmap()`, all ring buffer operations are identical
+
+#### Option 2: memfd Polyfill Library
+
+**Alternative:** Use a cross-platform memfd polyfill library (e.g., `memfd_create_compat`):
+```cpp
+#ifdef __APPLE__
+    #include "memfd_compat.h"  // Polyfill that uses shm_open internally
+#else
+    #include <sys/memfd.h>
+#endif
+
+int fd = memfd_create("zmonitor-sim-ring", MFD_CLOEXEC);
+// Same code on both platforms
+```
+
+**Trade-offs:**
+- **Pros:** Single codebase, no `#ifdef` in business logic
+- **Cons:** Extra dependency, polyfill may not support all features (sealing)
+
+---
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -302,6 +394,298 @@ TEST(MonitoringService, ReceivesVitalsFromSharedMemory) {
 
 ---
 
+## Z-Monitor Integration Checklist
+
+### What Z-Monitor MUST Implement
+
+This checklist defines all components that z-monitor must implement to successfully integrate with the sensor simulator.
+
+#### 1. ISensorDataSource Interface ✅
+
+**Status:** Interface defined in `doc/interfaces/ISensorDataSource.md`
+
+**Requirements:**
+- [ ] Define pure virtual interface with all required methods:
+  - `bool start()` - Start data acquisition
+  - `void stop()` - Stop data acquisition
+  - `bool isActive() const` - Check if active
+  - `DataSourceInfo getInfo() const` - Get data source metadata
+- [ ] Define Qt signals:
+  - `vitalsReceived(const VitalRecord& vital)` - New vitals available
+  - `waveformSampleReady(const WaveformSample& sample)` - New waveform sample
+  - `connectionStatusChanged(bool connected, const QString& sensorType)` - Connection state
+  - `sensorError(const SensorError& error)` - Error occurred
+
+**Files:**
+- `z-monitor/src/domain/interfaces/ISensorDataSource.h`
+- `doc/interfaces/ISensorDataSource.md`
+
+---
+
+#### 2. SharedMemorySensorDataSource Implementation ⏳
+
+**Status:** Not yet implemented
+
+**Requirements:**
+- [ ] Implement `ISensorDataSource` interface
+- [ ] Constructor accepts:
+  - `socketPath` (e.g., "/tmp/z-monitor-sensor.sock")
+  - `ringBufferName` (e.g., "zmonitor-sim-ring")
+- [ ] `start()` method:
+  - Connects to Unix domain socket
+  - Receives file descriptor via `SCM_RIGHTS`
+  - Maps shared memory using `mmap()`
+  - Validates ring buffer header (magic, version)
+  - Starts polling timer (< 50µs interval, `Qt::PreciseTimer`)
+  - Returns `true` on success, `false` on failure
+- [ ] `stop()` method:
+  - Stops polling timer
+  - Unmaps shared memory (`munmap()`)
+  - Closes file descriptor
+  - Disconnects from socket
+- [ ] Polling loop:
+  - Read `writeIndex` from ring buffer header (atomic load, acquire semantics)
+  - If `writeIndex != readIndex`, process frames
+  - Copy frame from `slots[readIndex % frameCount]`
+  - Validate CRC32
+  - Parse frame based on type (Vitals, Waveform, Heartbeat)
+  - Emit appropriate Qt signal
+  - Increment `readIndex`
+- [ ] Stall detection:
+  - Read `heartbeatTimestamp` every poll
+  - If no update for > 250ms, emit `sensorError("Writer stalled")`
+- [ ] Error handling:
+  - CRC mismatch → Skip frame, log error, continue
+  - Invalid frame type → Skip frame, log warning
+  - Connection lost → Emit `connectionStatusChanged(false)`, attempt reconnect
+
+**Files:**
+- `z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.h`
+- `z-monitor/src/infrastructure/sensors/SharedMemorySensorDataSource.cpp`
+
+---
+
+#### 3. SharedMemoryControlChannel ⏳
+
+**Status:** Not yet implemented
+
+**Requirements:**
+- [ ] Handles Unix domain socket connection and file descriptor exchange
+- [ ] `connect(const QString& socketPath)` method:
+  - Creates Unix domain socket (`socket(AF_UNIX, SOCK_STREAM, 0)`)
+  - Connects to simulator's control socket
+  - Returns `true` on success
+- [ ] `receiveFileDescriptor(int& fd)` method:
+  - **CRITICAL:** Uses `recvmsg()` NOT `recv()` for first receive
+  - Receives `ControlMessage` structure
+  - Extracts file descriptor from ancillary data (`SCM_RIGHTS`)
+  - Returns `true` on success
+- [ ] Signal: `handshakeCompleted(int memfdFd, size_t ringBufferSize)`
+- [ ] Signal: `handshakeFailed(const QString& error)`
+
+**Files:**
+- `z-monitor/src/infrastructure/sensors/SharedMemoryControlChannel.h`
+- `z-monitor/src/infrastructure/sensors/SharedMemoryControlChannel.cpp`
+
+**Platform Note:**
+- Code must work on both Linux (memfd) and macOS (shm_open)
+- File descriptor passing via `SCM_RIGHTS` is identical on both platforms
+
+---
+
+#### 4. SharedMemoryRingBuffer ⏳
+
+**Status:** Not yet implemented
+
+**Requirements:**
+- [ ] Wraps shared memory region, provides safe frame reading
+- [ ] Constructor accepts:
+  - `void* mappedMemory` - Pointer to mapped shared memory
+  - `size_t mappedSize` - Size of mapped region
+- [ ] `validateHeader()` method:
+  - Check magic number: `0x534D5242` ('SMRB')
+  - Check version: `1`
+  - Check frame size: `4096` bytes
+  - Check frame count: `2048` frames
+  - Returns `true` if valid
+- [ ] `readFrame(uint64_t readIndex, SensorFrame& outFrame)` method:
+  - Calculate slot: `readIndex % frameCount`
+  - Copy frame from `slots[slot]` into `outFrame`
+  - Validate CRC32
+  - Returns `true` if valid frame
+- [ ] `getWriteIndex()` method:
+  - Atomic load of `writeIndex` with acquire semantics
+  - Returns current write index
+- [ ] `getHeartbeatTimestamp()` method:
+  - Atomic load of `heartbeatTimestamp`
+  - Returns last heartbeat time (ms since epoch)
+
+**Files:**
+- `z-monitor/src/infrastructure/sensors/SharedMemoryRingBuffer.h`
+- `z-monitor/src/infrastructure/sensors/SharedMemoryRingBuffer.cpp`
+
+---
+
+#### 5. Frame Parsing (Vitals, Waveform, Heartbeat) ⏳
+
+**Status:** Not yet implemented
+
+**Requirements:**
+- [ ] Parse Vitals Frame (type `0x01`):
+  - Deserialize JSON payload: `{"hr":72,"spo2":98,"rr":16}`
+  - Create `VitalRecord` object
+  - Populate: `heartRate`, `spo2`, `respirationRate`, `timestamp`
+  - Emit `vitalsReceived(VitalRecord)`
+- [ ] Parse Waveform Frame (type `0x02`):
+  - Deserialize JSON payload: `{"channel":"ecg","sample_rate":250,"start_timestamp_ms":...,"values":[...]}`
+  - Create `WaveformSample` objects for each value
+  - Populate: `channel`, `sampleRate`, `timestamp`, `value`
+  - Emit `waveformSampleReady(WaveformSample)` for each sample
+- [ ] Parse Heartbeat Frame (type `0x03`):
+  - Update connection status (writer is alive)
+  - Reset stall watchdog timer
+
+**Files:**
+- Implement in `SharedMemorySensorDataSource::parseFrame(const SensorFrame& frame)`
+
+---
+
+#### 6. MonitoringService Integration ⏳
+
+**Status:** Partial (MonitoringService exists, needs integration)
+
+**Requirements:**
+- [ ] Update `MonitoringService` to accept `ISensorDataSource*` in constructor (dependency injection)
+- [ ] Connect signals:
+  - `ISensorDataSource::vitalsReceived` → `MonitoringService::onVitalsReceived(VitalRecord)`
+  - `ISensorDataSource::waveformSampleReady` → `MonitoringService::onWaveformSample(WaveformSample)`
+  - `ISensorDataSource::sensorError` → `MonitoringService::onSensorError(SensorError)`
+- [ ] `onVitalsReceived(VitalRecord)` method:
+  - Append to `VitalsCache` (in-memory, critical path)
+  - Evaluate alarm rules via `AlarmAggregate`
+  - Emit `vitalsUpdated` signal to UI controllers
+  - Enqueue to `TelemetryBatch` for network transmission
+- [ ] `onWaveformSample(WaveformSample)` method:
+  - Append to `WaveformCache` (circular buffer, display-only)
+  - Emit `waveformUpdated` signal to `WaveformController`
+- [ ] Start/stop sensor data source in service lifecycle:
+  - `MonitoringService::start()` → `m_sensorDataSource->start()`
+  - `MonitoringService::stop()` → `m_sensorDataSource->stop()`
+
+**Files:**
+- `z-monitor/src/application/services/MonitoringService.h`
+- `z-monitor/src/application/services/MonitoringService.cpp`
+
+---
+
+#### 7. VitalsCache and WaveformCache ⏳
+
+**Status:** Not yet implemented
+
+**Requirements:**
+- [ ] **VitalsCache** (see `doc/36_DATA_CACHING_STRATEGY.md`):
+  - In-memory cache for 3-day capacity (~39 MB)
+  - Thread-safe (`QReadWriteLock`)
+  - `append(VitalRecord)` - Add vital to cache
+  - `getRange(start, end)` - Get vitals in time range
+  - `getUnpersistedVitals()` - Get vitals not yet saved to database
+  - `markAsPersisted(upToTimestamp)` - Mark vitals as saved
+- [ ] **WaveformCache** (see `doc/36_DATA_CACHING_STRATEGY.md`):
+  - Circular buffer for 30 seconds (~0.1 MB)
+  - Display-only (not persisted to database)
+  - `append(WaveformSample)` - Add sample (overwrites oldest)
+  - `getLastSeconds(seconds)` - Get last N seconds of data
+
+**Files:**
+- `z-monitor/src/infrastructure/caching/VitalsCache.h`
+- `z-monitor/src/infrastructure/caching/VitalsCache.cpp`
+- `z-monitor/src/infrastructure/caching/WaveformCache.h`
+- `z-monitor/src/infrastructure/caching/WaveformCache.cpp`
+
+---
+
+#### 8. UI Controllers (DashboardController, WaveformController) ⏳
+
+**Status:** Partial (controllers exist, need data binding)
+
+**Requirements:**
+- [ ] **DashboardController:**
+  - Connect to `MonitoringService::vitalsUpdated` signal
+  - Update Q_PROPERTY values: `heartRate`, `spo2`, `respirationRate`, `nibp`, `temperature`
+  - QML binds to these properties for real-time display
+- [ ] **WaveformController:**
+  - Connect to `MonitoringService::waveformUpdated` signal
+  - Provide waveform data as `QVariantList` for QML Canvas rendering
+  - Support 60 FPS update rate (16ms frame budget)
+
+**Files:**
+- `z-monitor/src/interface/controllers/DashboardController.h`
+- `z-monitor/src/interface/controllers/DashboardController.cpp`
+- `z-monitor/src/interface/controllers/WaveformController.h`
+- `z-monitor/src/interface/controllers/WaveformController.cpp`
+
+---
+
+#### 9. Configuration ⏳
+
+**Status:** Not yet implemented
+
+**Requirements:**
+- [ ] Add settings for sensor data source selection:
+  - `sensor.source` - "shared_memory", "internal_simulator", "mock", or "hardware"
+  - `sensor.shared_memory.socket_path` - Unix socket path (default: "/tmp/z-monitor-sensor.sock")
+  - `sensor.shared_memory.ring_buffer_name` - Shared memory name (default: "zmonitor-sim-ring")
+- [ ] Dependency injection container configures correct `ISensorDataSource` implementation based on settings
+
+**Files:**
+- `z-monitor/config/default.conf` or similar
+- `z-monitor/src/infrastructure/config/Settings.h`
+
+---
+
+#### 10. Testing ⏳
+
+**Status:** Not yet implemented
+
+**Requirements:**
+- [ ] **Unit Tests:**
+  - `SharedMemoryControlChannel` - Socket connection, FD exchange
+  - `SharedMemoryRingBuffer` - Header validation, frame reading, CRC validation
+  - `SharedMemorySensorDataSource` - Frame parsing, signal emission, stall detection
+- [ ] **Integration Tests:**
+  - E2E test with simulator running: verify data flow from simulator → z-monitor → UI
+  - Latency measurement: verify < 16ms end-to-end
+  - Stall detection: kill simulator, verify z-monitor detects within 300ms
+  - Multiple readers: verify multiple z-monitor instances can read simultaneously
+
+**Files:**
+- `z-monitor/tests/unit/infrastructure/sensors/shared_memory_sensor_test.cpp`
+- `z-monitor/tests/integration/sensor_simulator_integration_test.cpp`
+
+---
+
+### Implementation Priority
+
+**Phase 1: Core Infrastructure (High Priority)**
+1. SharedMemoryControlChannel (socket + FD exchange)
+2. SharedMemoryRingBuffer (ring buffer reader)
+3. SharedMemorySensorDataSource (polling loop, frame parsing)
+
+**Phase 2: Application Integration (High Priority)**
+4. VitalsCache and WaveformCache
+5. MonitoringService integration
+
+**Phase 3: UI Integration (Medium Priority)**
+6. DashboardController and WaveformController updates
+7. QML UI data binding
+
+**Phase 4: Testing & Validation (Medium Priority)**
+8. Unit tests
+9. Integration tests
+10. Latency measurement and optimization
+
+---
+
 ## Performance Considerations
 
 ### Data Rate
@@ -325,6 +709,359 @@ MonitoringService processing (< 15ms budget)
 ```
 
 **Total: < 16 ms from simulator write to UI update** ✅
+
+---
+
+## Troubleshooting and Diagnostics
+
+### Common Issues and Solutions
+
+#### Issue 1: Handshake Fails - "Failed to receive file descriptor"
+
+**Symptoms:**
+- Z-Monitor log: "Failed to receive file descriptor via SCM_RIGHTS"
+- Z-Monitor log: "SharedMemoryControlChannel: Connection failed"
+- Simulator shows client connected but no data transfer
+
+**Root Causes:**
+1. **Z-Monitor using `recv()` instead of `recvmsg()` for first receive**
+   - Problem: `recv()` consumes data portion but loses ancillary data (file descriptor)
+   - Solution: Update `SharedMemoryControlChannel::onSocketDataAvailable()` to use `recvmsg()` for first receive
+   - Reference: See `project-dashboard/sensor-simulator/tests/handshake_compatibility.md`
+
+2. **Socket path mismatch**
+   - Simulator: `/tmp/z-monitor-sensor.sock`
+   - Z-Monitor: `/tmp/zmonitor-sim.sock` (different!)
+   - Solution: Verify socket path configuration matches on both sides
+
+3. **Permissions issue**
+   - Socket file created with restrictive permissions
+   - Solution: Create socket with `0666` permissions or ensure both processes run as same user
+
+**Diagnostic Commands:**
+```bash
+# Check if socket exists
+ls -la /tmp/z-monitor-sensor.sock
+
+# Check socket permissions
+stat /tmp/z-monitor-sensor.sock
+
+# Test socket connection (should show "Connected")
+echo "test" | nc -U /tmp/z-monitor-sensor.sock
+
+# Check processes using socket
+lsof | grep z-monitor-sensor.sock
+```
+
+**Fix Checklist:**
+- [ ] Verify socket paths match in both configs
+- [ ] Update Z-Monitor to use `recvmsg()` for first receive
+- [ ] Check socket file permissions (should be readable/writable)
+- [ ] Verify both processes run as same user (or socket has 0666 perms)
+- [ ] Check simulator logs: "ControlServer: Listening on [path]"
+- [ ] Check z-monitor logs: "Connecting to [path]"
+
+---
+
+#### Issue 2: No Data Received - Connection succeeds but no vitals/waveforms
+
+**Symptoms:**
+- Handshake completes successfully
+- Z-Monitor log: "SharedMemorySensorDataSource: Started successfully"
+- No vitals or waveforms appear in UI
+- No `vitalsUpdated` or `waveformSampleReady` signals emitted
+
+**Root Causes:**
+1. **Ring buffer structure mismatch**
+   - Magic number mismatch (simulator: `0x534D5242`, z-monitor expects different)
+   - Version mismatch (simulator: v1, z-monitor expects v2)
+   - Field offset mismatch (different header layouts)
+
+2. **Frame parsing errors**
+   - CRC32 validation failing (data corruption or different CRC algorithm)
+   - JSON deserialization failing (different payload schema)
+   - Frame type not recognized (simulator sends 0x01, z-monitor expects 0x10)
+
+3. **Polling not working**
+   - `writeIndex` not being updated by simulator
+   - Z-Monitor not polling (timer not started)
+   - Polling interval too slow (missing data)
+
+**Diagnostic Commands:**
+```bash
+# Dump shared memory buffer (Linux)
+hexdump -C /dev/shm/zmonitor-sim-ring | head -n 20
+
+# Check if simulator is writing (watch writeIndex)
+watch -n 0.1 'xxd -s 16 -l 8 /dev/shm/zmonitor-sim-ring'
+
+# Verify magic number (should be 52 42 4D 53 = 'SMRB')
+xxd -s 0 -l 4 /dev/shm/zmonitor-sim-ring
+
+# Monitor simulator process CPU (should be ~2-5% if writing)
+top -p $(pgrep sensor_simulator)
+```
+
+**Fix Checklist:**
+- [ ] Run integration test to verify structure compatibility
+- [ ] Verify magic number: `0x534D5242` ('SMRB')
+- [ ] Verify version: `1`
+- [ ] Check CRC32 algorithm (both use same implementation)
+- [ ] Add debug logging to frame parsing (log every frame read)
+- [ ] Verify polling timer is started (`QTimer` running at 50µs interval)
+- [ ] Check simulator logs: "Frame written, writeIndex: X"
+- [ ] Check z-monitor logs: "Frame read, readIndex: X"
+
+---
+
+#### Issue 3: High Latency - Latency > 16ms
+
+**Symptoms:**
+- Data appears in UI but with noticeable delay
+- Measured latency > 16ms (target: < 16ms)
+- Waveforms appear "stuttery" or delayed
+
+**Root Causes:**
+1. **System load**
+   - CPU at 100% (other processes consuming resources)
+   - Thermal throttling (CPU frequency reduced)
+
+2. **Timer precision issues**
+   - Simulator timer interval too long (> 16.67ms for 60Hz vitals)
+   - Z-Monitor polling interval too long (> 50µs)
+   - QTimer not using precise timing (`Qt::PreciseTimer`)
+
+3. **Frame processing overhead**
+   - CRC validation taking too long
+   - JSON parsing taking too long
+   - Memory allocations in hot path
+
+**Diagnostic Commands:**
+```bash
+# Measure end-to-end latency (requires instrumentation)
+# Add timestamps to simulator frames, measure in z-monitor
+
+# Check CPU frequency (should not be throttled)
+sysctl -a | grep machdep.cpu.brand_string  # macOS
+lscpu | grep MHz  # Linux
+
+# Check system load
+top -l 1 | grep "CPU usage"  # macOS
+top -bn1 | grep "Cpu(s)"  # Linux
+
+# Profile z-monitor (find hot spots)
+instruments -t "Time Profiler" ./z-monitor  # macOS
+perf record -g ./z-monitor  # Linux
+```
+
+**Fix Checklist:**
+- [ ] Verify simulator timer: 16.67ms for vitals (60Hz), 4ms for waveforms (250Hz)
+- [ ] Verify z-monitor polling: < 50µs (use `QTimer::setTimerType(Qt::PreciseTimer)`)
+- [ ] Profile frame processing (should be < 200µs per frame)
+- [ ] Remove memory allocations in hot path (pre-allocate buffers)
+- [ ] Optimize CRC32 (use hardware acceleration if available)
+- [ ] Optimize JSON parsing (consider binary format for waveforms)
+- [ ] Check thread priority (RT thread should be high priority)
+- [ ] Verify CPU affinity (pin RT thread to dedicated core)
+
+---
+
+#### Issue 4: Stall Detection Not Working
+
+**Symptoms:**
+- Simulator stops writing but Z-Monitor doesn't detect stall
+- No `sensorError` signal emitted
+- UI shows last vitals indefinitely (stale data)
+
+**Root Causes:**
+1. **Heartbeat not being checked**
+   - Z-Monitor not reading `heartbeatTimestamp` from header
+   - Watchdog timer not running
+
+2. **Threshold too long**
+   - Stall threshold set to > 250ms (too tolerant)
+   - UI appears frozen before detection
+
+**Fix Checklist:**
+- [ ] Verify Z-Monitor reads `heartbeatTimestamp` every poll
+- [ ] Verify stall detection threshold: 250ms (no heartbeat update)
+- [ ] Add debug logging: "Last heartbeat: X ms ago"
+- [ ] Test by killing simulator process (should detect within 300ms)
+- [ ] Verify `sensorError` signal is connected to UI
+
+---
+
+### Diagnostic Tools
+
+#### Tool 1: Shared Memory Inspector (`shmem_inspect`)
+
+**Purpose:** Dump ring buffer header and frames for manual inspection
+
+```bash
+#!/bin/bash
+# shmem_inspect.sh - Inspect shared memory ring buffer
+
+SHM_PATH="/dev/shm/zmonitor-sim-ring"  # Linux
+# SHM_PATH="/tmp/zmonitor-sim-ring"  # macOS
+
+if [ ! -e "$SHM_PATH" ]; then
+    echo "Error: Shared memory not found at $SHM_PATH"
+    exit 1
+fi
+
+echo "=== Ring Buffer Header ==="
+echo "Magic:       $(xxd -s 0 -l 4 -p $SHM_PATH)"  # Should be 534d5242
+echo "Version:     $(xxd -s 4 -l 2 -p $SHM_PATH)"
+echo "Frame Size:  $(xxd -s 6 -l 4 -p $SHM_PATH)"
+echo "Frame Count: $(xxd -s 10 -l 4 -p $SHM_PATH)"
+echo "Write Index: $(xxd -s 16 -l 8 -p $SHM_PATH)"
+echo "Heartbeat:   $(xxd -s 24 -l 8 -p $SHM_PATH)"
+echo ""
+echo "=== First Frame ==="
+xxd -s 64 -l 256 $SHM_PATH  # Dump first frame (skip header)
+```
+
+**Usage:**
+```bash
+chmod +x shmem_inspect.sh
+./shmem_inspect.sh
+```
+
+**Expected Output:**
+```
+=== Ring Buffer Header ===
+Magic:       534d5242
+Version:     0001
+Frame Size:  00001000  (4096 bytes)
+Frame Count: 00000800  (2048 frames)
+Write Index: 000000000000002a  (42)
+Heartbeat:   000001934f8e7c80  (timestamp)
+
+=== First Frame ===
+0000040: 01 00 00 00 00 01 93 4f  8e 7c 40 00 00 00 2a 00  .......O.|@...*.
+0000050: 7b 22 68 72 22 3a 37 32  2c 22 73 70 6f 32 22 3a  {"hr":72,"spo2":
+```
+
+---
+
+#### Tool 2: Latency Measurement (`latency_test`)
+
+**Purpose:** Measure end-to-end latency from simulator write to z-monitor signal
+
+**Implementation:**
+```cpp
+// In simulator: Add write timestamp to frame
+void Simulator::writeFrame(const SensorFrame& frame) {
+    auto nowNs = std::chrono::steady_clock::now().time_since_epoch().count();
+    frame.timestampNs = nowNs;  // Write time
+    writeToRingBuffer(frame);
+}
+
+// In z-monitor: Measure latency on receive
+void SharedMemorySensorDataSource::onFrameReceived(const SensorFrame& frame) {
+    auto nowNs = std::chrono::steady_clock::now().time_since_epoch().count();
+    auto latencyNs = nowNs - frame.timestampNs;
+    auto latencyMs = latencyNs / 1'000'000.0;
+    
+    if (latencyMs > 16.0) {
+        qWarning() << "High latency:" << latencyMs << "ms";
+    }
+    
+    // Emit to metrics collector
+    emit latencyMeasured(latencyMs);
+}
+```
+
+**Usage:**
+1. Build z-monitor with latency measurement enabled
+2. Connect to `latencyMeasured` signal in UI
+3. Display real-time latency graph
+4. Alert if latency > 16ms
+
+---
+
+#### Tool 3: Frame Validator (`frame_validator`)
+
+**Purpose:** Validate frame structure compatibility between simulator and z-monitor
+
+```cpp
+// Integration test that runs both simulator and z-monitor code
+TEST(FrameCompatibility, StructureMatches) {
+    // Simulator creates frame
+    SensorFrame simFrame;
+    simFrame.type = 0x01;  // Vitals
+    simFrame.timestampNs = 123456789;
+    simFrame.sequenceNumber = 42;
+    simFrame.dataSize = 32;
+    strcpy((char*)simFrame.data, "{\"hr\":72,\"spo2\":98,\"rr\":16}");
+    simFrame.crc32 = calculateCRC32(&simFrame, sizeof(simFrame) - 4);
+    
+    // Z-Monitor reads frame
+    VitalRecord vital = parseVitalsFrame(simFrame);
+    
+    // Verify
+    EXPECT_EQ(vital.heartRate, 72);
+    EXPECT_EQ(vital.spo2, 98);
+    EXPECT_EQ(vital.respirationRate, 16);
+}
+```
+
+---
+
+### Debugging Checklist for Integration
+
+**Before Starting:**
+- [ ] Read `doc/37_SENSOR_INTEGRATION.md` (architecture overview)
+- [ ] Read `doc/44_SIMULATOR_INTEGRATION_GUIDE.md` (step-by-step guide)
+- [ ] Read `project-dashboard/sensor-simulator/README.md` (simulator details)
+- [ ] Read `project-dashboard/sensor-simulator/tests/handshake_compatibility.md` (socket handshake)
+- [ ] Understand memfd vs shm_open difference (Linux vs macOS)
+
+**Simulator Setup:**
+- [ ] Simulator builds without errors
+- [ ] Simulator creates shared memory (check `/dev/shm/` or `/tmp/`)
+- [ ] Simulator creates Unix socket (check `/tmp/z-monitor-sensor.sock`)
+- [ ] Simulator log shows: "Listening on /tmp/z-monitor-sensor.sock"
+- [ ] Simulator UI displays vitals updating at 60 Hz
+- [ ] Simulator UI displays waveform updating at 250 Hz
+
+**Z-Monitor Setup:**
+- [ ] Z-Monitor builds without errors
+- [ ] SharedMemorySensorDataSource class exists
+- [ ] SharedMemoryControlChannel class exists (socket handshake)
+- [ ] SharedMemoryRingBuffer class exists (ring buffer reader)
+- [ ] Configuration points to correct socket path
+
+**Handshake:**
+- [ ] Z-Monitor connects to socket (check logs)
+- [ ] Z-Monitor receives file descriptor via `recvmsg()` with `SCM_RIGHTS`
+- [ ] Z-Monitor maps shared memory successfully (`mmap()` succeeds)
+- [ ] Z-Monitor validates ring buffer header (magic, version)
+- [ ] Socket disconnects after handshake (no longer needed)
+
+**Data Flow:**
+- [ ] Simulator writes frames to ring buffer
+- [ ] `writeIndex` increments every 16.67ms (vitals) and 4ms (waveforms)
+- [ ] `heartbeatTimestamp` updates every frame
+- [ ] Z-Monitor polls `writeIndex` (< 50µs interval)
+- [ ] Z-Monitor reads frames when `writeIndex != readIndex`
+- [ ] CRC32 validation passes for all frames
+- [ ] JSON deserialization succeeds
+- [ ] `vitalsUpdated` signal emitted (connects to MonitoringService)
+- [ ] `waveformSampleReady` signal emitted (connects to WaveformController)
+
+**UI Verification:**
+- [ ] Vitals display shows data matching simulator
+- [ ] Waveforms render smoothly (60 FPS)
+- [ ] Connection status shows "Connected"
+- [ ] No QML errors in console
+- [ ] Latency < 16ms (measure with instrumentation)
+
+**Error Handling:**
+- [ ] Stop simulator → Z-Monitor detects stall within 300ms
+- [ ] Invalid CRC → Frame skipped, error logged
+- [ ] Socket disconnects → Z-Monitor attempts reconnect
+- [ ] Shared memory unmapped → Error logged, graceful shutdown
 
 ---
 
@@ -566,11 +1303,11 @@ This is a **standard high-performance IPC pattern** used in many systems:
 
 ### Performance Comparison
 
-| Approach | Latency | Throughput | CPU Overhead |
-|----------|---------|------------|--------------|
-| **WebSocket + JSON** | > 60ms | ~100 KB/s | High (serialization, network stack) |
-| **Unix Socket + Binary** | ~20-30ms | ~1 MB/s | Medium (syscalls per frame) |
-| **Shared Memory (memfd)** | < 16ms ✅ | ~10+ MB/s | Low (direct memory access) |
+| Approach                  | Latency  | Throughput | CPU Overhead                        |
+| ------------------------- | -------- | ---------- | ----------------------------------- |
+| **WebSocket + JSON**      | > 60ms   | ~100 KB/s  | High (serialization, network stack) |
+| **Unix Socket + Binary**  | ~20-30ms | ~1 MB/s    | Medium (syscalls per frame)         |
+| **Shared Memory (memfd)** | < 16ms ✅ | ~10+ MB/s  | Low (direct memory access)          |
 
 **Why Shared Memory Achieves < 16ms Latency:**
 1. **Zero-Copy:** Data is written directly to shared memory, no copying between processes

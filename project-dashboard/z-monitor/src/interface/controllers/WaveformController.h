@@ -14,9 +14,12 @@
 
 #include <QObject>
 #include <QVariantList>
+#include <QTimer>
 
 namespace zmon
 {
+    // Forward declarations
+    class WaveformCache;
     /**
      * @class WaveformController
      * @brief Controller for ECG and plethysmograph waveform display.
@@ -52,9 +55,11 @@ namespace zmon
     public:
         /**
          * @brief Constructs WaveformController.
+         * @param waveformCache Waveform cache for reading samples
          * @param parent Parent QObject
          */
-        explicit WaveformController(QObject *parent = nullptr);
+        explicit WaveformController(WaveformCache *waveformCache = nullptr,
+                                    QObject *parent = nullptr);
 
         /**
          * @brief Gets ECG waveform data.
@@ -138,7 +143,15 @@ namespace zmon
         void plethGainChanged();
         void sweepSpeedChanged();
 
+    private slots:
+        /**
+         * @brief Update waveform data from cache (60 FPS timer).
+         */
+        void updateWaveformData();
+
     private:
+        WaveformCache *m_waveformCache; ///< Waveform cache (not owned)
+        QTimer *m_updateTimer;          ///< 60 FPS update timer
         QVariantList m_ecgData;
         QVariantList m_plethData;
         int m_updateRate{60};

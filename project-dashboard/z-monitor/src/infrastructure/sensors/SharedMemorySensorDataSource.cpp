@@ -122,6 +122,11 @@ namespace zmon
         if (!m_ringBuffer->isValid())
         {
             qCritical() << "SharedMemorySensorDataSource: Invalid ring buffer";
+            qCritical() << "  Validation details - calling validateHeader()...";
+            if (!m_ringBuffer->validateHeader())
+            {
+                qCritical() << "  validateHeader() returned false";
+            }
             emit sensorError({SensorErrorCode::CommunicationError,
                               "Invalid ring buffer",
                               "SharedMemory",

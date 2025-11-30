@@ -19,6 +19,7 @@ namespace zmon
 
     // Forward declarations
     class MonitoringService;
+    class VitalsCache;
 
     /**
      * @class DashboardController
@@ -51,9 +52,12 @@ namespace zmon
          * @brief Constructor.
          *
          * @param monitoringService Monitoring service for vital signs and state
+         * @param vitalsCache In-memory cache for vitals (accessed for latest values)
          * @param parent Parent QObject
          */
-        explicit DashboardController(MonitoringService *monitoringService = nullptr, QObject *parent = nullptr);
+        explicit DashboardController(MonitoringService *monitoringService = nullptr,
+                                     VitalsCache *vitalsCache = nullptr,
+                                     QObject *parent = nullptr);
 
         /**
          * @brief Destructor.
@@ -193,6 +197,7 @@ namespace zmon
 
     private:
         MonitoringService *m_monitoringService; ///< Monitoring service (not owned)
+        VitalsCache *m_vitalsCache;             ///< Vitals cache (not owned)
 
         QString m_patientName;   ///< Current patient name
         QString m_patientMrn;    ///< Current patient MRN
