@@ -27,14 +27,11 @@ add_executable(z-monitor
 )
 
 # Link all layer libraries to main executable
-# Note: Since layer libraries use PUBLIC linking, we could technically just link
-# to z_monitor_infrastructure and get everything transitively. However, explicitly
-# listing all layers makes the DDD architecture clear and enforces layer boundaries.
+# Note: Infrastructure layer transitively provides domain and application layers
+# via PUBLIC linking. Only infrastructure and Qt GUI libraries need to be linked directly.
 target_link_libraries(z-monitor
     PRIVATE
-    z_monitor_domain # Domain layer (pure C++, no Qt)
-    z_monitor_application # Application layer (Qt Core only)
-    z_monitor_infrastructure # Infrastructure layer (full Qt)
+    z_monitor_infrastructure # Infrastructure layer (provides domain + application transitively)
     Qt6::Core
     Qt6::Gui
     Qt6::Qml

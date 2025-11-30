@@ -7,7 +7,8 @@
 using namespace zmon;
 using namespace zmon::persistence;
 
-class TestSQLiteVitalsRepository : public QObject {
+class TestSQLiteVitalsRepository : public QObject
+{
     Q_OBJECT
 private slots:
     void save_single_vital_ok();
@@ -15,17 +16,17 @@ private slots:
 
 void TestSQLiteVitalsRepository::save_single_vital_ok()
 {
-    int argc = 0; char* argv[] = {nullptr};
+    int argc = 0;
+    char *argv[] = {nullptr};
     QCoreApplication app(argc, argv);
 
     auto dbManager = std::make_shared<MockDatabaseManager>(&app);
-    
+
     // Register the query that SQLiteVitalsRepository will use
     dbManager->registerPreparedQuery(
         QueryId::Vitals::INSERT,
         "INSERT INTO vitals (patient_mrn, timestamp, heart_rate, spo2, respiration_rate, signal_quality, source, is_synced) "
-        "VALUES (:patient_mrn, :timestamp, :heart_rate, :spo2, :respiration_rate, :signal_quality, :source, :is_synced)"
-    );
+        "VALUES (:patient_mrn, :timestamp, :heart_rate, :spo2, :respiration_rate, :signal_quality, :source, :is_synced)");
 
     auto repo = std::make_shared<SQLiteVitalsRepository>(dbManager);
 

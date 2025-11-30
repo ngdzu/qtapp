@@ -367,6 +367,89 @@ namespace zmon
                     .description = "Count total vitals for patient",
                     .parameters = {":patient_mrn"},
                     .isReadOnly = true};
+
+                // ===========================================================================
+                // TELEMETRY BATCH QUERIES
+                // ===========================================================================
+
+                namespace TelemetryMetricsCols = Schema::Columns::TelemetryMetrics;
+                const QString TELEMETRY_METRICS = Schema::Tables::TELEMETRY_METRICS;
+
+                queries[Telemetry::INSERT] = {
+                    .id = Telemetry::INSERT,
+                    .sql = QString(
+                               "INSERT INTO %1 (%2, %3, %4, %5, %6, %7, %8, %9, %10, %11, %12) "
+                               "VALUES (:batch_id, :device_id, :patient_mrn, :data_created_at, "
+                               ":batch_created_at, :signed_at, :record_count, :batch_size_bytes, "
+                               ":status, :retry_count, :created_at)")
+                               .arg(TELEMETRY_METRICS)
+                               .arg(TelemetryMetricsCols::BATCH_ID)
+                               .arg(TelemetryMetricsCols::DEVICE_ID)
+                               .arg(TelemetryMetricsCols::PATIENT_MRN)
+                               .arg(TelemetryMetricsCols::DATA_CREATED_AT)
+                               .arg(TelemetryMetricsCols::BATCH_CREATED_AT)
+                               .arg(TelemetryMetricsCols::SIGNED_AT)
+                               .arg(TelemetryMetricsCols::RECORD_COUNT)
+                               .arg(TelemetryMetricsCols::BATCH_SIZE_BYTES)
+                               .arg(TelemetryMetricsCols::STATUS)
+                               .arg(TelemetryMetricsCols::RETRY_COUNT)
+                               .arg(TelemetryMetricsCols::CREATED_AT),
+                    .description = "Insert telemetry batch metadata with initial status 'retrying'",
+                    .parameters = {":batch_id", ":device_id", ":patient_mrn", ":data_created_at",
+                                   ":batch_created_at", ":signed_at", ":record_count", ":batch_size_bytes",
+                                   ":status", ":retry_count", ":created_at"},
+                    .isReadOnly = false};
+
+                queries[Telemetry::GET_HISTORICAL] = {
+                    .id = Telemetry::GET_HISTORICAL,
+                    .sql = QString(
+                               "SELECT * FROM %1 WHERE %2 >= :start_time AND %2 <= :end_time "
+                               "ORDER BY %2 ASC")
+                               .arg(TELEMETRY_METRICS)
+                               .arg(TelemetryMetricsCols::BATCH_CREATED_AT),
+                    .description = "Get telemetry batches within time range (for reporting/analysis)",
+                    .parameters = {":start_time", ":end_time"},
+                    .isReadOnly = true};
+
+                queries[Telemetry::ARCHIVE] = {
+                    .id = Telemetry::ARCHIVE,
+                    .sql = QString(
+                               "DELETE FROM %1 WHERE %2 < :cutoff_time AND %3 = 'success'")
+                               .arg(TELEMETRY_METRICS)
+                               .arg(TelemetryMetricsCols::BATCH_CREATED_AT)
+                               .arg(TelemetryMetricsCols::STATUS),
+                    .description = "Archive (delete) old telemetry batches with status 'success'",
+                    .parameters = {":cutoff_time"},
+                    .isReadOnly = false};
+
+                queries[Telemetry::GET_UNSENT] = {
+                    .id = Telemetry::GET_UNSENT,
+                    .sql = QString(
+                               "SELECT * FROM %1 WHERE %2 != 'success' ORDER BY %3 ASC")
+                               .arg(TELEMETRY_METRICS)
+                               .arg(TelemetryMetricsCols::STATUS)
+                               .arg(TelemetryMetricsCols::BATCH_CREATED_AT),
+                    .description = "Get unsent telemetry batches (status != 'success'), oldest first",
+                    .parameters = {},
+                    .isReadOnly = true};
+
+                queries[Telemetry::MARK_SENT] = {
+                    .id = Telemetry::MARK_SENT,
+                    .sql = QString(
+                               "UPDATE %1 SET %2 = 'success', %3 = :transmitted_at, "
+                               "%4 = :server_received_at, %5 = :server_ack_at, %6 = :updated_at "
+                               "WHERE %7 = :batch_id")
+                               .arg(TELEMETRY_METRICS)
+                               .arg(TelemetryMetricsCols::STATUS)
+                               .arg(TelemetryMetricsCols::TRANSMITTED_AT)
+                               .arg(TelemetryMetricsCols::SERVER_RECEIVED_AT)
+                               .arg(TelemetryMetricsCols::SERVER_ACK_AT)
+                               .arg(TelemetryMetricsCols::UPDATED_AT)
+                               .arg(TelemetryMetricsCols::BATCH_ID),
+                    .description = "Mark telemetry batch as successfully sent (status = 'success')",
+                    .parameters = {":transmitted_at", ":server_received_at", ":server_ack_at",
+                                   ":updated_at", ":batch_id"},
+                    .isReadOnly = false};
             }
 
             return queries;

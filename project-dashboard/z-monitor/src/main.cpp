@@ -19,6 +19,7 @@
 #include "infrastructure/caching/WaveformCache.h"
 #include "infrastructure/persistence/DatabaseManager.h"
 #include "infrastructure/persistence/SQLiteVitalsRepository.h"
+#include "infrastructure/persistence/SQLiteTelemetryRepository.h"
 
 // Application
 #include "application/services/MonitoringService.h"
@@ -50,17 +51,20 @@ int main(int argc, char *argv[])
     auto vitalsCache = std::make_shared<zmon::VitalsCache>(259200);    // 3 days @ 60 Hz
     auto waveformCache = std::make_shared<zmon::WaveformCache>(22500); // 30 seconds @ 250 Hz × 3 channels
 
-    // Create infrastructure persistence (DatabaseManager + Vitals repository)
+    // Create infrastructure persistence (DatabaseManager + repositories)
     auto dbManager = std::make_shared<zmon::DatabaseManager>(&app);
     auto vitalsRepoConcrete = std::make_shared<zmon::SQLiteVitalsRepository>(dbManager);
     std::shared_ptr<zmon::IVitalsRepository> vitalsRepo = std::static_pointer_cast<zmon::IVitalsRepository>(vitalsRepoConcrete);
 
+    auto telemetryRepoConcrete = std::make_shared<zmon::SQLiteTelemetryRepository>(dbManager);
+    std::shared_ptr<zmon::ITelemetryRepository> telemetryRepo = std::static_pointer_cast<zmon::ITelemetryRepository>(telemetryRepoConcrete);
+
     // Create application service layer
     auto monitoringService = new zmon::MonitoringService(
-        std::shared_ptr<zmon::IPatientRepository>{},   // not yet implemented
-        std::shared_ptr<zmon::ITelemetryRepository>{}, // not yet implemented
-        std::shared_ptr<zmon::IAlarmRepository>{},     // not yet implemented
-        vitalsRepo,                                    // vitals repository
+        std::shared_ptr<zmon::IPatientRepository>{}, // not yet implemented
+        telemetryRepo,                               // telemetry repository
+        std::shared_ptr<zmon::IAlarmRepository>{},   // not yet implemented
+        vitalsRepo,                                  // vitals repository
         sensorDataSource,
         vitalsCache,
         waveformCache,

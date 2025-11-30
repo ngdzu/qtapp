@@ -73,6 +73,28 @@ target_include_directories(test_sqlite_vitals_repository
 
 add_test(NAME SQLiteVitalsRepositoryTest COMMAND test_sqlite_vitals_repository)
 
+# SQLiteTelemetryRepository tests
+add_executable(test_sqlite_telemetry_repository
+    test_sqlite_telemetry_repository.cpp
+    ${Z_MONITOR_ROOT}/tests/mocks/infrastructure/MockDatabaseManager.cpp
+)
+
+target_link_libraries(test_sqlite_telemetry_repository
+    PRIVATE
+    Qt6::Test
+    z_monitor_infrastructure
+    z_monitor_domain
+    Qt6::Core
+    Qt6::Sql
+)
+
+target_include_directories(test_sqlite_telemetry_repository
+    PRIVATE
+    ${Z_MONITOR_ROOT}
+)
+
+add_test(NAME SQLiteTelemetryRepositoryTest COMMAND test_sqlite_telemetry_repository)
+
 add_executable(test_query_registry
     test_query_registry.cpp
 )

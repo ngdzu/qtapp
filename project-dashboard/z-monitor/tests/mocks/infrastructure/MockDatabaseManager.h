@@ -138,10 +138,10 @@ namespace zmon
         Result<void> initializeTestSchema();
 
     private:
-        QSqlDatabase m_db;                          ///< In-memory database connection
-        QMap<QString, QString> m_preparedQueries;   ///< Map of query IDs to SQL statements
-        bool m_inTransaction;                       ///< Transaction state flag
-        static int s_connectionCounter;             ///< Counter for unique connection names
+        QSqlDatabase m_db;                        ///< In-memory database connection
+        QMap<QString, QString> m_preparedQueries; ///< Map of query IDs to SQL statements
+        bool m_inTransaction;                     ///< Transaction state flag
+        static int s_connectionCounter;           ///< Counter for unique connection names
     };
 
 } // namespace zmon

@@ -90,6 +90,19 @@ namespace zmon
                 constexpr const char *DELETE_OLDER_THAN = "vitals.delete_older_than";         ///< Delete vitals older than timestamp
                 constexpr const char *COUNT_BY_PATIENT = "vitals.count_by_patient";           ///< Count vitals for patient
             }
+
+            /**
+             * @namespace Telemetry
+             * @brief Query IDs for telemetry batch operations.
+             */
+            namespace Telemetry
+            {
+                constexpr const char *INSERT = "telemetry.insert";                 ///< Insert telemetry batch metadata
+                constexpr const char *GET_HISTORICAL = "telemetry.get_historical"; ///< Get batches by time range
+                constexpr const char *ARCHIVE = "telemetry.archive";               ///< Archive (delete) old batches
+                constexpr const char *GET_UNSENT = "telemetry.get_unsent";         ///< Get unsent batches
+                constexpr const char *MARK_SENT = "telemetry.mark_sent";           ///< Mark batch as successfully sent
+            }
         }
         /**
          * @class QueryCatalog

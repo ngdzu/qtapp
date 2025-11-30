@@ -168,7 +168,7 @@ namespace zmon
         if (!query.exec(createVitalsTable))
         {
             return Result<void>::error(Error::create(ErrorCode::DatabaseError,
-                                                      QString("Failed to create vitals table: %1").arg(query.lastError().text()).toStdString()));
+                                                     QString("Failed to create vitals table: %1").arg(query.lastError().text()).toStdString()));
         }
 
         // Create patients table (for FK constraints if needed)
@@ -185,7 +185,7 @@ namespace zmon
         if (!query.exec(createPatientsTable))
         {
             return Result<void>::error(Error::create(ErrorCode::DatabaseError,
-                                                      QString("Failed to create patients table: %1").arg(query.lastError().text()).toStdString()));
+                                                     QString("Failed to create patients table: %1").arg(query.lastError().text()).toStdString()));
         }
 
         return Result<void>::ok();
