@@ -7,7 +7,7 @@ import qml 1.0
 
 Window {
     id: window
-    
+
     width: 1000
     height: 700
     visible: true
@@ -15,9 +15,9 @@ Window {
     color: Theme.background
 
     // Intercept window close and ask the user to confirm.
-    onClosing: function(event) {
-        event.accepted = false
-        exitDialog.open()
+    onClosing: function (event) {
+        event.accepted = false;
+        exitDialog.open();
     }
 
     // Application state
@@ -27,18 +27,27 @@ Window {
     property bool isPaused: false
 
     // Live vitals populated from the Simulator C++ backend
+    // hr is the displayed value; hrLatest caches last received sample
     property int hr: 72
+    property int hrLatest: 72
     property int spo2: 98
     property int rr: 16
 
     function pushLog(level, text, source) {
-        var m = logConsole.logModel
-        window.messageCounter += 1
-        var id = window.messageCounter
-        var now = new Date()
-        var timeStr = now.toLocaleTimeString()
-        m.append({ "id": id, "time": timeStr, "sensor": source ? source : "-", "message": text, "level": level })
-        while (m.count > window.logRetention) m.remove(0)
+        var m = logConsole.logModel;
+        window.messageCounter += 1;
+        var id = window.messageCounter;
+        var now = new Date();
+        var timeStr = now.toLocaleTimeString();
+        m.append({
+            "id": id,
+            "time": timeStr,
+            "sensor": source ? source : "-",
+            "message": text,
+            "level": level
+        });
+        while (m.count > window.logRetention)
+            m.remove(0);
     }
 
     // Main layout - matching React reference
@@ -53,15 +62,15 @@ Window {
             anchors.left: parent.left
             anchors.right: parent.right
             height: topBar.height + divider.height
-            
+
             TopBar {
                 id: topBar
                 anchors.top: parent.top
                 lastEventText: window.lastEventText
                 lastEventColor: window.lastEventColor
             }
-            
-                Rectangle {
+
+            Rectangle {
                 id: divider
                 anchors.top: topBar.bottom
                 width: parent.width
@@ -79,7 +88,7 @@ Window {
             z: 998
         }
 
-            RowLayout {
+        RowLayout {
             anchors.top: headerContainer.bottom
             anchors.topMargin: Theme.spacingXl
             anchors.left: parent.left
@@ -97,7 +106,7 @@ Window {
                 Layout.minimumWidth: Theme.controlPanelMinWidth
                 Layout.fillWidth: false
                 spacing: Theme.spacingLg
-                
+
                 ControlPanel {
                     id: controlPanel
                     onTriggerCritical: simulator.triggerCritical()
@@ -105,7 +114,7 @@ Window {
                     onTriggerNotification: simulator.triggerNotification("Manual notification")
                     onPlayDemo: simulator.playDemo()
                 }
-                
+
                 DebugOutput {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -139,11 +148,11 @@ Window {
                     filterLevel: window.filterLevel
                     isPaused: window.isPaused
                     onClearRequested: {
-                        logConsole.logModel.clear()
-                        window.messageCounter = 0
+                        logConsole.logModel.clear();
+                        window.messageCounter = 0;
                     }
                     onTogglePause: {
-                        window.isPaused = !window.isPaused
+                        window.isPaused = !window.isPaused;
                     }
                 }
             }
@@ -157,27 +166,27 @@ Window {
     Connections {
         target: simulator
         function onAlarmTriggered(level) {
-            window.lastEventText = "ALARM(" + level + ")"
-            window.lastEventColor = Theme.error
-            pushLog(level, "ALARM: " + level)
+            window.lastEventText = "ALARM(" + level + ")";
+            window.lastEventColor = Theme.error;
+            pushLog(level, "ALARM: " + level);
         }
         function onNotification(text) {
-            window.lastEventText = "NOTIFY(" + text + ")"
-            window.lastEventColor = Theme.info
-            pushLog("Info", "NOTIFY: " + text)
+            window.lastEventText = "NOTIFY(" + text + ")";
+            window.lastEventColor = Theme.info;
+            pushLog("Info", "NOTIFY: " + text);
         }
         function onVitalsUpdated(newHr, newSpo2, newRr) {
-            // Update window-scoped vitals properties so UI cards refresh
-            window.hr = newHr
-            window.spo2 = newSpo2
-            window.rr = newRr
+            // Cache latest heart rate; display updates are throttled to 1 Hz
+            window.hrLatest = newHr;
+            window.spo2 = newSpo2;
+            window.rr = newRr;
         }
         function onWaveformUpdated(samples) {
             // Feed waveform data to the chart component
-            waveformChart.addSamples(samples)
+            waveformChart.addSamples(samples);
         }
         function onLogEmitted(level, text) {
-            pushLog(level, text)
+            pushLog(level, text);
         }
     }
 
@@ -185,6 +194,16 @@ Window {
     ExitDialog {
         id: exitDialog
         onExitConfirmed: simulator.quitApp()
+    }
+
+    // Throttle heart rate display to 1 Hz
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            window.hr = window.hrLatest;
+        }
     }
 
     Binding {

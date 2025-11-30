@@ -20,10 +20,10 @@ int main(int argc, char *argv[])
     simulator.startServer(9002); // start WebSocket server for device connections
 
     QQmlApplicationEngine engine;
-    
-    // Add import path for QML modules
-    engine.addImportPath("qrc:/qml");
-    
+
+    // Add import path for QML modules - using qrc:/ as base so 'import qml 1.0' finds qmldir at qrc:/qml/qmldir
+    engine.addImportPath("qrc:/");
+
     engine.rootContext()->setContextProperty("simulator", &simulator);
     // Ensure quit requests from QML are handled on the application (main) thread
     QObject::connect(&simulator, &Simulator::quitRequested, &app, &QCoreApplication::quit);

@@ -4,64 +4,67 @@ import qml 1.0
 
 Rectangle {
     id: root
-    
+
     property var dataPoints: [] // Array of numbers
-    property int maxPoints: 1000 // Keep last 1000 points
+    // Render parameters
+    property int sampleRate: 250      // Hz
+    property real secondsVisible: 5.0 // Show ~5 seconds of data on screen
+    property int maxPoints: 5000      // Buffer enough history for smooth scrolling
     property color waveformColor: Theme.accentEmerald
     property color gridColor: Theme.accentEmerald
-    
+
     color: Theme.cardBackground
     border.color: Theme.border
     border.width: 1
     radius: Theme.radiusXl
-    
+
     // Internal buffer to accumulate waveform data
     property var waveformBuffer: []
-    
+
     function addSamples(samples) {
         for (var i = 0; i < samples.length; i++) {
-            waveformBuffer.push(samples[i])
+            waveformBuffer.push(samples[i]);
         }
         // Keep only last maxPoints
         if (waveformBuffer.length > maxPoints) {
-            waveformBuffer = waveformBuffer.slice(waveformBuffer.length - maxPoints)
+            waveformBuffer = waveformBuffer.slice(waveformBuffer.length - maxPoints);
         }
-        canvas.requestPaint()
+        canvas.requestPaint();
     }
-    
+
     // Grid background pattern
     Canvas {
         id: gridCanvas
         anchors.fill: parent
         z: 0
-        
+
         Component.onCompleted: {
-            requestPaint()
+            requestPaint();
         }
-        
+
         onPaint: {
-            var ctx = getContext("2d")
-            ctx.strokeStyle = Theme.colorWithOpacity(Theme.accentEmerald, 0.1)
-            ctx.lineWidth = 0.5
-            
+            var ctx = getContext("2d");
+            ctx.strokeStyle = Theme.colorWithOpacity(Theme.accentEmerald, 0.1);
+            ctx.lineWidth = 0.5;
+
             // Vertical lines (every 20px)
             for (var x = 0; x < width; x += 20) {
-                ctx.beginPath()
-                ctx.moveTo(x, 0)
-                ctx.lineTo(x, height)
-                ctx.stroke()
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
             }
-            
+
             // Horizontal lines (every 20px)
             for (var y = 0; y < height; y += 20) {
-                ctx.beginPath()
-                ctx.moveTo(0, y)
-                ctx.lineTo(width, y)
-                ctx.stroke()
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
             }
         }
     }
-    
+
     // Header - matching React reference
     RowLayout {
         id: header
@@ -70,7 +73,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.margins: Theme.spacingLg
         spacing: Theme.spacingSm
-        
+
         Text {
             text: "Lead II"
             color: Theme.accentEmerald
@@ -78,9 +81,11 @@ Rectangle {
             font.bold: true
             font.letterSpacing: 2
         }
-        
-        Item { Layout.fillWidth: true }
-        
+
+        Item {
+            Layout.fillWidth: true
+        }
+
         Text {
             text: "250 Hz / 25 mm/s"
             color: Theme.textMuted
@@ -88,7 +93,7 @@ Rectangle {
             font.family: Theme.fontFamilyMono
         }
     }
-    
+
     // Waveform canvas
     Canvas {
         id: canvas
@@ -98,49 +103,50 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.margins: Theme.spacingMd
         z: 10
-        
+
         Component.onCompleted: {
             // Initial paint to show grid even before data arrives
-            requestPaint()
+            requestPaint();
         }
-        
+
         onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            
-            if (waveformBuffer.length < 2) return
-            
-            // Show last 300 samples (window size)
-            var windowSize = 300
-            var slice = waveformBuffer.slice(-windowSize)
-            
+            var ctx = getContext("2d");
+            ctx.clearRect(0, 0, width, height);
+
+            if (waveformBuffer.length < 2)
+                return;
+
+            // Compute window size based on desired visible seconds
+            var windowSize = Math.max(2, Math.floor(root.sampleRate * root.secondsVisible));
+            var slice = waveformBuffer.slice(-windowSize);
+
             // Normalize data to fit height
-            var min = -50 // Expected min value
-            var max = 150 // Expected max value (R peak is ~100)
-            var range = max - min
-            
-            ctx.strokeStyle = waveformColor
-            ctx.lineWidth = 2
-            ctx.lineJoin = "round"
-            ctx.shadowColor = Theme.colorWithOpacity(Theme.accentEmerald, 0.5)
-            ctx.shadowBlur = 4
-            
-            ctx.beginPath()
+            var min = -50; // Expected min value
+            var max = 150; // Expected max value (R peak is ~100)
+            var range = max - min;
+
+            ctx.strokeStyle = waveformColor;
+            ctx.lineWidth = 2;
+            ctx.lineJoin = "round";
+            ctx.shadowColor = Theme.colorWithOpacity(Theme.accentEmerald, 0.5);
+            ctx.shadowBlur = 4;
+
+            ctx.beginPath();
             for (var i = 0; i < slice.length; i++) {
-                var x = (i / (slice.length - 1)) * width
-                var normalizedY = (slice[i] - min) / range
-                var y = height - (normalizedY * height)
-                
+                var x = (i / (slice.length - 1)) * width;
+                var normalizedY = (slice[i] - min) / range;
+                var y = height - (normalizedY * height);
+
                 if (i === 0) {
-                    ctx.moveTo(x, y)
+                    ctx.moveTo(x, y);
                 } else {
-                    ctx.lineTo(x, y)
+                    ctx.lineTo(x, y);
                 }
             }
-            ctx.stroke()
+            ctx.stroke();
         }
     }
-    
+
     // Scan line effect (gradient overlay on right)
     Rectangle {
         anchors.top: canvas.top
@@ -149,9 +155,14 @@ Rectangle {
         width: Theme.waveformScanlineWidth
         z: 20
         gradient: Gradient {
-            GradientStop { position: 0.0; color: "transparent" }
-            GradientStop { position: 1.0; color: root.color }
+            GradientStop {
+                position: 0.0
+                color: "transparent"
+            }
+            GradientStop {
+                position: 1.0
+                color: root.color
+            }
         }
     }
 }
-
