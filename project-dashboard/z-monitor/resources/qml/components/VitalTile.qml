@@ -20,7 +20,7 @@ Rectangle {
     property string label: "VITAL"
     property string value: "0"
     property string unit: ""
-    property color color: "#10b981"
+    property color accentColor: "#10b981"
     property string subValue: ""
 
     // Match React flex-col justify-between p-2 h-full structure
@@ -35,7 +35,7 @@ Rectangle {
             font.pixelSize: 11 // text-xs
             font.bold: true
             font.letterSpacing: 1.5
-            color: root.color
+            color: root.accentColor
             Layout.alignment: Qt.AlignTop
         }
 
@@ -54,7 +54,7 @@ Rectangle {
                 font.pixelSize: 48 // text-5xl
                 font.family: "monospace"
                 font.bold: true
-                color: root.color
+                color: root.accentColor
                 anchors.baseline: parent.baseline
             }
 

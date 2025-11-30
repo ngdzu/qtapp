@@ -6,7 +6,8 @@
 -- Generated from schema/database.yaml - DO NOT EDIT MANUALLY
 -- To update: Edit schema/database.yaml and regenerate this file
 
-BEGIN TRANSACTION;
+-- Note: Transactions are managed programmatically by DatabaseManager
+-- Do not add explicit BEGIN TRANSACTION or COMMIT statements
 
 -- ═══════════════════════════════════════════════════════════
 -- PATIENTS TABLE INDICES
@@ -94,6 +95,4 @@ CREATE INDEX IF NOT EXISTS idx_predictive_scores_patient_time ON predictive_scor
 CREATE INDEX IF NOT EXISTS idx_archival_jobs_status ON archival_jobs (status);
 
 -- Note: migrate.py script records this migration automatically
-
-COMMIT;
 

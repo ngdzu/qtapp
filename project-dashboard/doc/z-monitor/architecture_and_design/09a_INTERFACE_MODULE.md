@@ -562,3 +562,4 @@ QML Components are reusable UI widgets that can be composed into Views.
 
 *This document provides detailed class designs for the Interface Module. For other modules, see the module-specific documents listed in [09_CLASS_DESIGNS_OVERVIEW.md](./09_CLASS_DESIGNS_OVERVIEW.md).*
 
+

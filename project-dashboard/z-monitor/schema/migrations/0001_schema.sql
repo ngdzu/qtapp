@@ -8,9 +8,9 @@
 --
 -- Schema Version: 1.0.0
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- PATIENTS TABLE
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS patients (
     mrn TEXT PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
@@ -30,9 +30,9 @@ CREATE TABLE IF NOT EXISTS patients (
     CHECK (admitted_at IS NULL OR discharged_at IS NULL OR discharged_at >= admitted_at)
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- VITALS TABLE (Time-Series)
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS vitals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uuid TEXT,
@@ -54,9 +54,9 @@ CREATE TABLE IF NOT EXISTS vitals (
     FOREIGN KEY (batch_id) REFERENCES telemetry_metrics(batch_id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- TELEMETRY METRICS TABLE
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS telemetry_metrics (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     batch_id TEXT NOT NULL UNIQUE,
@@ -88,9 +88,9 @@ CREATE TABLE IF NOT EXISTS telemetry_metrics (
     updated_at INTEGER
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- ALARMS TABLE
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS alarms (
     alarm_id INTEGER PRIMARY KEY AUTOINCREMENT,
     patient_id TEXT,
@@ -108,9 +108,9 @@ CREATE TABLE IF NOT EXISTS alarms (
     context_snapshot_id INTEGER
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- ADMISSION EVENTS TABLE
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS admission_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp INTEGER NOT NULL,
@@ -124,9 +124,9 @@ CREATE TABLE IF NOT EXISTS admission_events (
     details TEXT
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- ACTION LOG TABLE
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS action_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp_ms INTEGER NOT NULL,
@@ -146,9 +146,9 @@ CREATE TABLE IF NOT EXISTS action_log (
     previous_hash TEXT
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- SETTINGS TABLE
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -156,9 +156,9 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_by TEXT
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- USERS TABLE
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
     user_id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
@@ -168,9 +168,9 @@ CREATE TABLE IF NOT EXISTS users (
     last_login INTEGER
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- CERTIFICATES TABLE
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS certificates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     device_id TEXT NOT NULL,
@@ -187,9 +187,9 @@ CREATE TABLE IF NOT EXISTS certificates (
     created_at INTEGER NOT NULL
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- SECURITY AUDIT LOG TABLE
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS security_audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp INTEGER NOT NULL,
@@ -206,9 +206,9 @@ CREATE TABLE IF NOT EXISTS security_audit_log (
     previous_hash TEXT
 );
 
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 -- ADDITIONAL TABLES
--- ═══════════════════════════════════════════════════════════
+-- -----------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS snapshots (
     snapshot_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -302,3 +302,4 @@ CREATE TABLE IF NOT EXISTS schema_version (
     description TEXT,
     migration_type TEXT DEFAULT 'schema'
 );
+

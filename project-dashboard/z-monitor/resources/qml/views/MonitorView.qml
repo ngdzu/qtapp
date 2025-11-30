@@ -167,7 +167,7 @@ Item {
                 label: "HEART RATE"
                 value: dashboardController.heartRate > 0 ? dashboardController.heartRate.toString() : "--"
                 unit: "BPM"
-                color: "#10b981" // ECG green
+                accentColor: "#10b981" // ECG green
                 subValue: "PVC: 0"
             }
 
@@ -178,7 +178,7 @@ Item {
                 label: "SPO2"
                 value: dashboardController.spo2 > 0 ? dashboardController.spo2.toString() : "--"
                 unit: "%"
-                color: "#3b82f6" // SPO2 blue
+                accentColor: "#3b82f6" // SPO2 blue
                 subValue: "PI: 2.4"
             }
 
@@ -189,7 +189,7 @@ Item {
                 label: "NIBP"
                 value: dashboardController.bloodPressure !== "" ? dashboardController.bloodPressure : "--/--"
                 unit: "mmHg"
-                color: "#71717a" // TEXT_MUTED from constants.ts
+                accentColor: "#71717a" // TEXT_MUTED from constants.ts
                 subValue: "MAP: 93"
             }
 
@@ -200,7 +200,7 @@ Item {
                 label: "RESP RATE"
                 value: dashboardController.respiratoryRate > 0 ? dashboardController.respiratoryRate.toString() : "--"
                 unit: "rpm"
-                color: "#eab308" // RESP yellow
+                accentColor: "#eab308" // RESP yellow
             }
 
             // Temp Tile (flex-1)
@@ -210,7 +210,7 @@ Item {
                 label: "TEMP"
                 value: dashboardController.temperature > 0 ? dashboardController.temperature.toFixed(1) : "--"
                 unit: "°C"
-                color: "#ffffff" // white from React
+                accentColor: "#ffffff" // white from React
                 subValue: "T2: 36.5"
             }
         }

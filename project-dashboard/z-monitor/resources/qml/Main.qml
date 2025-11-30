@@ -44,15 +44,15 @@ ApplicationWindow {
     readonly property color colorWarning: Theme.colors.warning
     readonly property color colorSuccess: Theme.colors.success
 
-    // View States
-    enum ViewState {
-        Monitor,
-        Trends,
-        Analysis,
-        Settings
-    }
+    // View states (lowercase property per QML rules)
+    readonly property var viewState: ({
+            Monitor: 0,
+            Trends: 1,
+            Analysis: 2,
+            Settings: 3
+        })
 
-    property int currentView: root.ViewState.Monitor
+    property int currentView: root.viewState.Monitor
     property bool showNotifications: false
 
     // Main Layout
@@ -291,11 +291,13 @@ ApplicationWindow {
                 anchors.margins: 4
                 source: {
                     switch (root.currentView) {
-                    case root.ViewState.Monitor:
+                    case root.viewState.Monitor:
                         return "views/MonitorView.qml";
-                    case root.ViewState.Trends:
+                    case root.viewState.Trends:
                         return "views/TrendsView.qml";
-                    case root.ViewState.Settings:
+                    case root.viewState.Analysis:
+                        return "views/AnalysisView.qml";
+                    case root.viewState.Settings:
                         return "views/SettingsView.qml";
                     default:
                         return "views/MonitorView.qml";
@@ -324,25 +326,25 @@ ApplicationWindow {
                     NavButton {
                         text: "MONITOR"
                         icon: "📊"
-                        active: root.currentView === root.ViewState.Monitor
+                        active: root.currentView === root.viewState.Monitor
                         activeColor: root.colorECG
-                        onClicked: root.currentView = root.ViewState.Monitor
+                        onClicked: root.currentView = root.viewState.Monitor
                     }
 
                     NavButton {
                         text: "AI ANALYSIS"
                         icon: "🧠"
-                        active: root.currentView === root.ViewState.Analysis
+                        active: root.currentView === root.viewState.Analysis
                         activeColor: "#a855f7" // Purple-500
-                        onClicked: root.currentView = root.ViewState.Analysis
+                        onClicked: root.currentView = root.viewState.Analysis
                     }
 
                     NavButton {
                         text: "TRENDS"
                         icon: "📈"
-                        active: root.currentView === root.ViewState.Trends
+                        active: root.currentView === root.viewState.Trends
                         activeColor: root.colorSPO2
-                        onClicked: root.currentView = root.ViewState.Trends
+                        onClicked: root.currentView = root.viewState.Trends
                     }
 
                     Rectangle {
@@ -401,8 +403,8 @@ ApplicationWindow {
                     NavButton {
                         text: "MENU"
                         icon: "⚙️"
-                        active: root.currentView === root.ViewState.Settings
-                        onClicked: root.currentView = root.ViewState.Settings
+                        active: root.currentView === root.viewState.Settings
+                        onClicked: root.currentView = root.viewState.Settings
                     }
 
                     NavButton {

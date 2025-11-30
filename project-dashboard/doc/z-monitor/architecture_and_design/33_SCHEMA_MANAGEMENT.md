@@ -1012,6 +1012,98 @@ if __name__ == "__main__":
     main()
 ```
 
+### **7.3 Transaction Handling in Migrations**
+
+**⚠️ IMPORTANT: DatabaseManager uses programmatic transactions, not SQL transaction commands.**
+
+**Migration File Rules:**
+
+✅ **DO NOT** include explicit `BEGIN TRANSACTION` or `COMMIT` statements in migration SQL files  
+✅ DatabaseManager automatically wraps each migration file in a programmatic transaction  
+✅ All statements in a migration file execute atomically (all-or-nothing)  
+✅ If any statement fails, the entire migration is rolled back  
+
+**Correct Migration File Format:**
+
+```sql
+-- schema/migrations/0002_add_indices.sql
+-- Note: Transactions are managed programmatically by DatabaseManager
+-- Do not add explicit BEGIN TRANSACTION or COMMIT statements
+
+CREATE INDEX IF NOT EXISTS idx_patients_mrn ON patients (mrn);
+CREATE INDEX IF NOT EXISTS idx_vitals_timestamp ON vitals (timestamp);
+CREATE INDEX IF NOT EXISTS idx_alarms_patient_priority ON alarms (patient_mrn, priority, start_time);
+
+-- Note: migrate.py script records this migration automatically
+```
+
+**Incorrect Migration File Format (DO NOT USE):**
+
+```sql
+-- ❌ WRONG: Explicit transaction commands are ignored
+BEGIN TRANSACTION;
+
+CREATE INDEX idx_patients_mrn ON patients (mrn);
+
+COMMIT;
+```
+
+**How DatabaseManager Handles Transactions:**
+
+```cpp
+// From DatabaseManager::executeMigrations()
+for (const QString &migrationPath : migrations)
+{
+    // Load migration SQL from file
+    QFile migrationFile(migrationPath);
+    QString sql = migrationFile.readAll();
+    
+    // Split into individual statements
+    QStringList statements = sql.split(";", Qt::SkipEmptyParts);
+    
+    // Wrap ENTIRE migration in programmatic transaction
+    if (!m_writeDb.transaction()) {
+        // Handle transaction begin failure
+    }
+    
+    // Execute each statement
+    for (const QString &stmt : statements) {
+        // Skip explicit transaction commands (ignored)
+        if (stmt.contains(QRegularExpression("^(BEGIN|COMMIT|ROLLBACK)"))) {
+            continue;  // Transaction managed programmatically
+        }
+        
+        if (!query.exec(stmt)) {
+            migrationSuccess = false;
+            break;
+        }
+    }
+    
+    // Commit or rollback based on success
+    if (migrationSuccess) {
+        m_writeDb.commit();   // All statements succeeded
+    } else {
+        m_writeDb.rollback(); // Any statement failed → rollback all
+    }
+}
+```
+
+**Benefits of Programmatic Transactions:**
+
+✅ **Atomic migrations** - All statements in a migration file execute or none do  
+✅ **Automatic rollback** - If any statement fails, database remains in consistent state  
+✅ **Simpler SQL files** - Migration files only contain DDL/DML, no transaction boilerplate  
+✅ **Easier testing** - Migration logic in C++ is testable with unit/integration tests  
+✅ **Better error handling** - C++ code can provide detailed error messages and logging  
+
+**Migration Best Practices:**
+
+1. **Keep migrations atomic** - Each migration file should represent one logical change
+2. **Test migrations** - Run migration tests against copy of production database schema
+3. **Idempotent DDL** - Use `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS`
+4. **Document changes** - Add comment header explaining what the migration does
+5. **No data in schema migrations** - Use separate data migration files if needed (see 34_DATA_MIGRATION_WORKFLOW.md)
+
 ---
 
 ## 8. CMake Integration
@@ -1148,15 +1240,15 @@ git commit -m "Add emergency_contact column to patients table"
 
 ## 11. Benefits Summary
 
-| Problem | Solution | Benefit |
-|---------|----------|---------|
-| Hardcoded column names | Schema constants | ✅ Autocomplete, compile-time checking |
-| Schema in multiple places | YAML single source | ✅ One place to edit |
-| Manual DDL writing | Generated SQL | ✅ No typos, consistent |
-| Hard to find column usages | Named constants | ✅ Ctrl+Click finds all |
-| Schema drift | Pre-commit hook | ✅ Always synchronized |
-| Manual migrations | Migration runner | ✅ Automated, tracked |
-| Hard to refactor columns | Constants + generator | ✅ Rename in YAML → updates everywhere |
+| Problem                    | Solution              | Benefit                               |
+| -------------------------- | --------------------- | ------------------------------------- |
+| Hardcoded column names     | Schema constants      | ✅ Autocomplete, compile-time checking |
+| Schema in multiple places  | YAML single source    | ✅ One place to edit                   |
+| Manual DDL writing         | Generated SQL         | ✅ No typos, consistent                |
+| Hard to find column usages | Named constants       | ✅ Ctrl+Click finds all                |
+| Schema drift               | Pre-commit hook       | ✅ Always synchronized                 |
+| Manual migrations          | Migration runner      | ✅ Automated, tracked                  |
+| Hard to refactor columns   | Constants + generator | ✅ Rename in YAML → updates everywhere |
 
 ---
 
@@ -1972,10 +2064,10 @@ if __name__ == "__main__":
 
 **Both patterns work together:**
 
-| Pattern | Purpose | Generated From | Use Case |
-|---------|---------|----------------|----------|
-| **SchemaInfo.h** | Column/table name constants | `schema/database.yaml` | Type-safe column names in queries |
-| **QueryRegistry.h** | Query ID constants | `QueryCatalog.cpp` (manual) | Type-safe query IDs for prepared statements |
+| Pattern             | Purpose                     | Generated From              | Use Case                                    |
+| ------------------- | --------------------------- | --------------------------- | ------------------------------------------- |
+| **SchemaInfo.h**    | Column/table name constants | `schema/database.yaml`      | Type-safe column names in queries           |
+| **QueryRegistry.h** | Query ID constants          | `QueryCatalog.cpp` (manual) | Type-safe query IDs for prepared statements |
 
 **Example: Using Both Together**
 
@@ -2170,13 +2262,13 @@ def main():
 
 ### 15.2 Migration Error Categories
 
-| Error Type | Handling | Log? | Return? | Rationale |
-|------------|----------|------|---------|-----------|
-| **SQL syntax error** | Rollback, stop | ✅ Yes | ✅ Yes | Infrastructure failure, needs audit |
-| **Constraint violation** | Rollback, stop | ✅ Yes | ✅ Yes | Data integrity issue, needs audit |
-| **File not found** | Stop | ✅ Yes | ✅ Yes | Infrastructure failure, needs audit |
-| **Database locked** | Retry or stop | ✅ Yes | ✅ Yes | Infrastructure failure, needs audit |
-| **Disk full** | Rollback, stop | ✅ Yes | ✅ Yes | Critical system failure, needs audit |
+| Error Type               | Handling       | Log?  | Return? | Rationale                            |
+| ------------------------ | -------------- | ----- | ------- | ------------------------------------ |
+| **SQL syntax error**     | Rollback, stop | ✅ Yes | ✅ Yes   | Infrastructure failure, needs audit  |
+| **Constraint violation** | Rollback, stop | ✅ Yes | ✅ Yes   | Data integrity issue, needs audit    |
+| **File not found**       | Stop           | ✅ Yes | ✅ Yes   | Infrastructure failure, needs audit  |
+| **Database locked**      | Retry or stop  | ✅ Yes | ✅ Yes   | Infrastructure failure, needs audit  |
+| **Disk full**            | Rollback, stop | ✅ Yes | ✅ Yes   | Critical system failure, needs audit |
 
 **Key Principle:** All migration errors are infrastructure failures and should be logged and returned (see [20_ERROR_HANDLING_STRATEGY.md](./20_ERROR_HANDLING_STRATEGY.md) Section 4.3).
 

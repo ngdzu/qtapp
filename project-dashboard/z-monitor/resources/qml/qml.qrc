@@ -13,10 +13,12 @@
         <file>components/VitalTile.qml</file>
         <file>components/WaveformPanel.qml</file>
         <file>components/ConnectionStatus.qml</file>
+        <file>components/TrendPanel.qml</file>
         
         <!-- Views -->
         <file>views/MonitorView.qml</file>
         <file>views/TrendsView.qml</file>
+        <file>views/AnalysisView.qml</file>
         <file>views/SettingsView.qml</file>
     </qresource>
 </RCC>

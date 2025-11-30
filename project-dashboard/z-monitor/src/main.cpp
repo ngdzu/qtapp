@@ -57,6 +57,10 @@ int main(int argc, char *argv[])
     // Qt will automatically append "/sqldrivers" when searching for SQL plugins
     // MUST be done before any QSqlDatabase operations
     QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
+    // Also add explicit sqldrivers subdir to be safe
+    QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath() + "/sqldrivers");
+    qInfo() << "Qt library paths:" << QCoreApplication::libraryPaths();
+    qInfo() << "Available SQL drivers:" << QSqlDatabase::drivers();
 
     // Verify SQLite driver is available
     if (!QSqlDatabase::isDriverAvailable("QSQLITE"))

@@ -11,7 +11,8 @@
 -- included in the initial schema (0001_initial.sql), so this migration
 -- only handles data migrations and settings updates.
 
-BEGIN TRANSACTION;
+-- Note: Transactions are managed programmatically by DatabaseManager
+-- Do not add explicit BEGIN TRANSACTION or COMMIT statements
 
 -- Step 1: Remove bedId from settings (deprecated, replaced by bed_location in patients table)
 DELETE FROM settings WHERE key = 'bedId';
@@ -28,4 +29,3 @@ WHERE admitted_at IS NULL AND discharged_at IS NULL;
 
 -- Note: migrate.py script records this migration automatically
 
-COMMIT;

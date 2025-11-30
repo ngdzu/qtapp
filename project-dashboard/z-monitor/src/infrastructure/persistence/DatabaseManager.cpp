@@ -139,8 +139,8 @@ namespace zmon
         }
 #endif // USE_QXORM
 
-        // Initialize all queries from QueryCatalog
-        persistence::QueryCatalog::initializeQueries(this);
+        // Note: Query initialization is deferred until after migrations are executed
+        // Call persistence::QueryCatalog::initializeQueries(this) after executeMigrations()
 
         m_isOpen = true;
         emit connectionOpened();
@@ -268,9 +268,8 @@ namespace zmon
         // Simple migration: Execute schema files in order
         // For production: Use a schema_version table to track which migrations have been applied
         QStringList migrations = {
-            ":/schema/migrations/0001_initial.sql",
-            ":/schema/migrations/0002_add_indices.sql",
-            ":/schema/migrations/0003_adt_workflow.sql"};
+            ":/schema/migrations/0001_schema.sql",
+            ":/schema/migrations/0002_add_indices.sql"};
 
         for (const QString &migrationPath : migrations)
         {
@@ -283,13 +282,25 @@ namespace zmon
             }
 
             QString sql = migrationFile.readAll();
+            qInfo() << "Loaded migration" << migrationPath << "(bytes=" << sql.size() << ") first 200 chars:" << sql.left(200);
             migrationFile.close();
 
             // Split SQL into individual statements (QSqlQuery can't exec multiple)
             QStringList statements = sql.split(";", Qt::SkipEmptyParts);
+            qInfo() << "Executing" << statements.size() << "statements from" << migrationPath;
 
             QSqlQuery query(m_writeDb);
             bool migrationSuccess = true;
+
+            // Ensure foreign keys enforcement
+            query.exec("PRAGMA foreign_keys = ON");
+
+            // Begin transaction programmatically for this migration
+            if (!m_writeDb.transaction())
+            {
+                qWarning() << "Failed to begin transaction for migration:" << migrationPath << m_writeDb.lastError().text();
+                migrationSuccess = false;
+            }
 
             // Execute each statement separately
             for (const QString &stmt : statements)
@@ -303,9 +314,11 @@ namespace zmon
                     continue;
                 }
 
-                // Skip transaction commands (we're not using transactions for now)
-                if (trimmedStmt.contains(QRegularExpression("^(BEGIN|COMMIT|ROLLBACK)", QRegularExpression::CaseInsensitiveOption)))
+                // Ignore explicit transaction commands inside files since we use programmatic transactions
+                if (trimmedStmt.contains(QRegularExpression("^(BEGIN|BEGIN TRANSACTION|COMMIT|ROLLBACK)", QRegularExpression::CaseInsensitiveOption)))
                 {
+                    // Log once for visibility, but do not execute
+                    qInfo() << "Ignoring explicit transaction statement in" << migrationPath << ":" << trimmedStmt.left(40);
                     continue;
                 }
 
@@ -315,10 +328,31 @@ namespace zmon
                     // Only log error if it's not "table already exists"
                     if (!error.text().contains("already exists", Qt::CaseInsensitive))
                     {
-                        qWarning() << "Migration statement failed:" << trimmedStmt.left(100);
+                        qWarning() << "Migration statement failed (first 100 chars):" << trimmedStmt.left(100);
                         qWarning() << "SQL Error:" << error.text();
                         migrationSuccess = false;
                     }
+                }
+                else
+                {
+                    qInfo() << "Executed statement (first 80 chars):" << trimmedStmt.left(80);
+                }
+            }
+
+            // Commit or rollback based on success
+            if (migrationSuccess)
+            {
+                if (!m_writeDb.commit())
+                {
+                    qWarning() << "Failed to commit migration transaction:" << migrationPath << m_writeDb.lastError().text();
+                    migrationSuccess = false;
+                }
+            }
+            else
+            {
+                if (!m_writeDb.rollback())
+                {
+                    qWarning() << "Failed to rollback migration transaction:" << migrationPath << m_writeDb.lastError().text();
                 }
             }
 
