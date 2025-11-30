@@ -16,6 +16,33 @@ The simulator exposes a modern QML UI (title: "Telemetry Simulator") and a low-l
 
 ## Build & Run (Local)
 
+### Quick Build (macOS)
+
+Use the provided build script:
+
+```bash
+cd project-dashboard/sensor-simulator
+./scripts/build_local.sh
+```
+
+To clean and rebuild:
+
+```bash
+./scripts/build_local.sh clean
+```
+
+### Manual Build (macOS)
+
+```bash
+cd project-dashboard/sensor-simulator
+mkdir -p build && cd build
+CMAKE_PREFIX_PATH=/Users/dustinwind/Qt/6.9.2/macos cmake ..
+make -j8
+./sensor_simulator
+```
+
+### Manual Build (Linux)
+
 ```bash
 cd project-dashboard/sensor-simulator
 mkdir -p build && cd build
@@ -23,6 +50,19 @@ cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . --config Release
 ./sensor_simulator
 ```
+
+### Platform Notes
+
+**macOS:**
+- Uses POSIX `shm_open()` as memfd polyfill (Linux `memfd_create()` not available)
+- Requires Qt 6.9.2 installed at `/Users/dustinwind/Qt/6.9.2/macos` (adjust `CMAKE_PREFIX_PATH` if different)
+- Shared memory objects created via `shm_open()` instead of memfd
+- Unix domain socket created at `/tmp/z-monitor-sensor.sock`
+- WebSocket support is optional (requires Qt6::WebSockets module)
+
+**Linux:**
+- Uses native `memfd_create()` for shared memory
+- Shared memory visible at `/dev/shm/zmonitor-sim-ring`
 
 ## Run with Docker Compose
 
