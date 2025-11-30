@@ -4,7 +4,7 @@
  *
  * Displays waveforms (left 8 cols) and vital signs (right 4 cols)
  * Binds to dashboardController and waveformController for live data
- * Converted from Node.js MonitorView.tsx
+ * Converted from Node.js MonitorView.tsx - exact grid structure match
  */
 
 import QtQuick
@@ -15,115 +15,203 @@ import "qrc:/qml/components"
 Item {
     id: root
 
-    // Grid layout: 8 cols waveforms + 4 cols vitals
+    // Grid layout matching React grid-cols-12 gap-1
     RowLayout {
         anchors.fill: parent
-        spacing: 4
+        spacing: 4 // gap-1 in Tailwind (4px)
 
-        // Left Column: Waveforms (2/3 width)
-        Column {
+        // Left Column: Waveforms (col-span-8 = 8/12 = 66.67%)
+        ColumnLayout {
             Layout.fillHeight: true
-            Layout.fillWidth: true
-            Layout.preferredWidth: parent.width * 0.67
-            spacing: 4
+            Layout.preferredWidth: parent.width * 0.6667
+            spacing: 4 // gap-1
 
-            // ECG Panel
-            WaveformPanel {
-                width: parent.width
-                height: (root.height - 8) / 3
-                label: "II ECG"
-                labelColor: "#10b981" // Green
-                waveformColor: "#10b981"
-                showFilter: true
+            // ECG Panel (flex-1)
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: "#18181b" // medical-panel
+                border.color: "#27272a" // zinc-800
+                border.width: 1
+                radius: 4
 
-                // Bind to controller data
-                waveformData: waveformController.ecgData
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 8 // p-2
+                    spacing: 4 // mb-1
+
+                    // Header row
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: "II ECG"
+                            font.pixelSize: 14 // text-sm
+                            font.bold: true
+                            font.letterSpacing: 1.5 // tracking-wider
+                            color: "#10b981" // emerald-500
+                        }
+                        Item {
+                            Layout.fillWidth: true
+                        }
+                        Text {
+                            text: "FILTER: MON"
+                            font.pixelSize: 11 // text-xs
+                            color: "#52525b" // zinc-600
+                        }
+                    }
+
+                    // Waveform area
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        WaveformPanel {
+                            anchors.fill: parent
+                            label: ""
+                            labelColor: "#10b981"
+                            waveformColor: "#10b981"
+                            showFilter: false
+                            waveformData: waveformController.ecgData
+                        }
+                    }
+                }
             }
 
-            // Pleth Panel
-            WaveformPanel {
-                width: parent.width
-                height: (root.height - 8) / 3
-                label: "PLETH"
-                labelColor: "#3b82f6" // Blue
-                waveformColor: "#3b82f6"
+            // SPO2 Panel (Pleth) (flex-1)
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: "#18181b"
+                border.color: "#27272a"
+                border.width: 1
+                radius: 4
 
-                // Bind to controller data
-                waveformData: waveformController.plethData
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 4
+
+                    Text {
+                        text: "PLETH"
+                        font.pixelSize: 14
+                        font.bold: true
+                        font.letterSpacing: 1.5
+                        color: "#3b82f6" // blue-500
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        WaveformPanel {
+                            anchors.fill: parent
+                            label: ""
+                            labelColor: "#3b82f6"
+                            waveformColor: "#3b82f6"
+                            showFilter: false
+                            waveformData: waveformController.plethData
+                        }
+                    }
+                }
             }
 
-            // Resp Panel (placeholder - not implemented yet)
-            WaveformPanel {
-                width: parent.width
-                height: (root.height - 8) / 3
-                label: "RESP"
-                labelColor: "#eab308" // Yellow
-                waveformColor: "#eab308"
+            // Resp Panel (flex-1)
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: "#18181b"
+                border.color: "#27272a"
+                border.width: 1
+                radius: 4
 
-                // TODO: Add respData when implemented
-                waveformData: []
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 4
+
+                    Text {
+                        text: "RESP"
+                        font.pixelSize: 14
+                        font.bold: true
+                        font.letterSpacing: 1.5
+                        color: "#eab308" // yellow-500
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        WaveformPanel {
+                            anchors.fill: parent
+                            label: ""
+                            labelColor: "#eab308"
+                            waveformColor: "#eab308"
+                            showFilter: false
+                            waveformData: []
+                        }
+                    }
+                }
             }
         }
 
-        // Right Column: Vital Signs (1/3 width)
-        Column {
+        // Right Column: Vital Signs (col-span-4 = 4/12 = 33.33%)
+        ColumnLayout {
             Layout.fillHeight: true
-            Layout.fillWidth: true
-            Layout.preferredWidth: parent.width * 0.33
-            spacing: 4
+            Layout.preferredWidth: parent.width * 0.3333
+            spacing: 4 // gap-1
 
-            // Heart Rate Tile
+            // HR Tile (flex-1)
             VitalTile {
-                width: parent.width
-                height: (root.height - 12) / 4
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 label: "HEART RATE"
                 value: dashboardController.heartRate > 0 ? dashboardController.heartRate.toString() : "--"
                 unit: "BPM"
-                color: "#10b981" // Green
+                color: "#10b981" // ECG green
                 subValue: "PVC: 0"
             }
 
-            // SpO2 Tile
+            // SpO2 Tile (flex-1)
             VitalTile {
-                width: parent.width
-                height: (root.height - 12) / 4
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 label: "SPO2"
                 value: dashboardController.spo2 > 0 ? dashboardController.spo2.toString() : "--"
                 unit: "%"
-                color: "#3b82f6" // Blue
+                color: "#3b82f6" // SPO2 blue
                 subValue: "PI: 2.4"
             }
 
-            // NIBP Tile
+            // NIBP Tile (flex-1)
             VitalTile {
-                width: parent.width
-                height: (root.height - 12) / 4
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 label: "NIBP"
                 value: dashboardController.bloodPressure !== "" ? dashboardController.bloodPressure : "--/--"
                 unit: "mmHg"
-                color: "#a1a1aa" // Zinc-400
-                subValue: "MAP: --"
+                color: "#71717a" // TEXT_MUTED from constants.ts
+                subValue: "MAP: 93"
             }
 
-            // Resp Rate Tile
+            // Resp Rate Tile (flex-1)
             VitalTile {
-                width: parent.width
-                height: (root.height - 12) / 4
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 label: "RESP RATE"
                 value: dashboardController.respiratoryRate > 0 ? dashboardController.respiratoryRate.toString() : "--"
                 unit: "rpm"
-                color: "#eab308" // Yellow
+                color: "#eab308" // RESP yellow
             }
 
-            // Temp Tile
+            // Temp Tile (flex-1)
             VitalTile {
-                width: parent.width
-                height: (root.height - 12) / 4
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 label: "TEMP"
                 value: dashboardController.temperature > 0 ? dashboardController.temperature.toFixed(1) : "--"
                 unit: "°C"
-                color: "#d946ef" // Fuchsia
-                subValue: "T2: --"
+                color: "#ffffff" // white from React
+                subValue: "T2: 36.5"
             }
         }
     }
