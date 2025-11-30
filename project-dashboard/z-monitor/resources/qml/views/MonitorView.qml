@@ -147,7 +147,7 @@ Item {
                             labelColor: "#eab308"
                             waveformColor: "#eab308"
                             showFilter: false
-                            waveformData: []
+                            waveformData: waveformController.respData
                         }
                     }
                 }

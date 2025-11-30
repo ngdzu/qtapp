@@ -82,8 +82,10 @@ namespace zmon
 
         m_ecgData.clear();
         m_plethData.clear();
+        m_respData.clear();
         emit ecgDataChanged();
         emit plethDataChanged();
+        emit respDataChanged();
     }
 
     void WaveformController::updateWaveformData()
@@ -101,7 +103,8 @@ namespace zmon
         const int targetPoints = 600; // 60 FPS × 10 sec display window
 
         // Get ECG samples from cache (raw 250 Hz)
-        auto ecgSamples = m_waveformCache->getChannelSamples("ecg", displaySeconds);
+        // Channel name must match WaveformSample::CHANNEL_ECG_LEAD_II = "ECG_LEAD_II"
+        auto ecgSamples = m_waveformCache->getChannelSamples("ECG_LEAD_II", displaySeconds);
         m_ecgData.clear();
 
         if (!ecgSamples.empty())
@@ -167,7 +170,8 @@ namespace zmon
         emit ecgDataChanged();
 
         // Get Pleth samples from cache (raw 250 Hz)
-        auto plethSamples = m_waveformCache->getChannelSamples("pleth", displaySeconds);
+        // Channel name must match WaveformSample::CHANNEL_PLETH = "PLETH"
+        auto plethSamples = m_waveformCache->getChannelSamples("PLETH", displaySeconds);
         m_plethData.clear();
 
         if (!plethSamples.empty())
@@ -227,5 +231,66 @@ namespace zmon
             }
         }
         emit plethDataChanged();
+
+        // Get Respiration samples from cache (raw 25 Hz)
+        auto respSamples = m_waveformCache->getChannelSamples("RESP", displaySeconds);
+        m_respData.clear();
+
+        if (!respSamples.empty())
+        {
+            // Calculate decimation step (25 Hz is lower than 250 Hz, so less decimation needed)
+            size_t decimationStep = std::max(size_t(1), respSamples.size() / targetPoints);
+
+            for (size_t i = 0; i < respSamples.size(); i += decimationStep)
+            {
+                size_t windowEnd = std::min(i + decimationStep, respSamples.size());
+
+                auto minIt = respSamples.begin() + i;
+                auto maxIt = respSamples.begin() + i;
+                double minVal = respSamples[i].value;
+                double maxVal = respSamples[i].value;
+
+                for (size_t j = i; j < windowEnd; ++j)
+                {
+                    if (respSamples[j].value < minVal)
+                    {
+                        minVal = respSamples[j].value;
+                        minIt = respSamples.begin() + j;
+                    }
+                    if (respSamples[j].value > maxVal)
+                    {
+                        maxVal = respSamples[j].value;
+                        maxIt = respSamples.begin() + j;
+                    }
+                }
+
+                // Add min and max points in chronological order
+                if ((*minIt).timestampMs < (*maxIt).timestampMs)
+                {
+                    QVariantMap minPoint;
+                    minPoint["time"] = (*minIt).timestampMs;
+                    minPoint["value"] = minVal;
+                    m_respData.append(minPoint);
+
+                    QVariantMap maxPoint;
+                    maxPoint["time"] = (*maxIt).timestampMs;
+                    maxPoint["value"] = maxVal;
+                    m_respData.append(maxPoint);
+                }
+                else
+                {
+                    QVariantMap maxPoint;
+                    maxPoint["time"] = (*maxIt).timestampMs;
+                    maxPoint["value"] = maxVal;
+                    m_respData.append(maxPoint);
+
+                    QVariantMap minPoint;
+                    minPoint["time"] = (*minIt).timestampMs;
+                    minPoint["value"] = minVal;
+                    m_respData.append(minPoint);
+                }
+            }
+        }
+        emit respDataChanged();
     }
 } // namespace zmon

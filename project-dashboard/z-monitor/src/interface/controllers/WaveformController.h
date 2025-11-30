@@ -40,6 +40,9 @@ namespace zmon
         /// Plethysmograph waveform data buffer (array of {time, value} objects)
         Q_PROPERTY(QVariantList plethData READ plethData NOTIFY plethDataChanged)
 
+        /// Respiration waveform data buffer (array of {time, value} objects)
+        Q_PROPERTY(QVariantList respData READ respData NOTIFY respDataChanged)
+
         /// Waveform update rate in Hz (default: 60 FPS)
         Q_PROPERTY(int updateRate READ updateRate WRITE setUpdateRate NOTIFY updateRateChanged)
 
@@ -72,6 +75,12 @@ namespace zmon
          * @return List of {time, value} objects
          */
         QVariantList plethData() const { return m_plethData; }
+
+        /**
+         * @brief Gets respiration waveform data.
+         * @return List of {time, value} objects
+         */
+        QVariantList respData() const { return m_respData; }
 
         /**
          * @brief Gets waveform update rate.
@@ -138,6 +147,7 @@ namespace zmon
     signals:
         void ecgDataChanged();
         void plethDataChanged();
+        void respDataChanged();
         void updateRateChanged();
         void ecgGainChanged();
         void plethGainChanged();
@@ -154,6 +164,7 @@ namespace zmon
         QTimer *m_updateTimer;          ///< 60 FPS update timer
         QVariantList m_ecgData;
         QVariantList m_plethData;
+        QVariantList m_respData;
         int m_updateRate{60};
         double m_ecgGain{10.0};
         double m_plethGain{1.0};

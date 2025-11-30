@@ -16,6 +16,7 @@
 
 // Infrastructure
 #include "infrastructure/sensors/SharedMemorySensorDataSource.h"
+#include "infrastructure/sensors/InMemorySensorDataSource.h"
 #include "infrastructure/caching/VitalsCache.h"
 #include "infrastructure/caching/WaveformCache.h"
 #include "infrastructure/persistence/DatabaseManager.h"
@@ -76,9 +77,22 @@ int main(int argc, char *argv[])
 
     // Create infrastructure layer
     // Note: Objects managed by shared_ptr should NOT have QObject parent to avoid double-delete
-    auto sensorDataSource = std::make_shared<zmon::SharedMemorySensorDataSource>(
+    // Use InMemorySensorDataSource only in DEBUG mode (for development/testing without simulator)
+    // In RELEASE mode, use SharedMemorySensorDataSource (requires external simulator)
+    std::shared_ptr<zmon::ISensorDataSource> sensorDataSource;
+#ifdef NDEBUG
+    // RELEASE mode: Use SharedMemorySensorDataSource (requires external simulator)
+    sensorDataSource = std::make_shared<zmon::SharedMemorySensorDataSource>(
         "/tmp/z-monitor-sensor.sock",
         nullptr); // No QObject parent - managed by shared_ptr only
+    qInfo() << "Using SharedMemorySensorDataSource (RELEASE mode - requires external simulator)";
+#else
+    // DEBUG mode: Use InMemorySensorDataSource (no external simulator required)
+    sensorDataSource = std::make_shared<zmon::InMemorySensorDataSource>(
+        0,  // Random seed (0 = use current time)
+        nullptr); // No QObject parent - managed by shared_ptr only
+    qInfo() << "Using InMemorySensorDataSource (DEBUG mode - no external simulator required)";
+#endif
 
     auto vitalsCache = std::make_shared<zmon::VitalsCache>(259200);    // 3 days @ 60 Hz
     auto waveformCache = std::make_shared<zmon::WaveformCache>(22500); // 30 seconds @ 250 Hz × 3 channels

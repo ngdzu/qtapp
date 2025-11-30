@@ -38,6 +38,8 @@ set(INFRASTRUCTURE_SOURCES
     sensors/SharedMemoryControlChannel.cpp
     sensors/SharedMemorySensorDataSource.h
     sensors/SharedMemorySensorDataSource.cpp
+    sensors/InMemorySensorDataSource.h
+    sensors/InMemorySensorDataSource.cpp
 
     # Caching
     caching/VitalsCache.h

@@ -38,15 +38,20 @@ Rectangle {
             font.letterSpacing: 1.5
         }
 
+        // Waveform/chart container: reserve 80% of the panel height (after the title)
         Item {
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            // Compute preferred height as 80% of the remaining panel height after the title
+            Layout.preferredHeight: Math.max(100, Math.floor((panel.height - (children[0].height + 24)) * 0.8))
 
             ChartView {
                 id: chart
                 anchors.fill: parent
-                theme: ChartView.ChartThemeDark
-                backgroundColor: panelBg
+                    // Tighten Y axis to reduce top/bottom empty space without altering plotted values.
+                    var range = Math.max(1, (maxY - minY));
+                    var pad = range * 0.02; // 2% visual padding
+                    yAxis.min = minY - pad;
+                    yAxis.max = maxY + pad;
                 legend.visible: false
                 antialiasing: true
                 backgroundRoundness: 0
@@ -74,29 +79,36 @@ Rectangle {
                     name: panel.title
                     upperSeries: LineSeries {
                         id: line
-                        color: panel.strokeColor
-                        width: 2
-                    }
-                    lowerSeries: LineSeries {
-                        color: panel.strokeColor
-                        width: 0
-                    }
-                    color: Qt.rgba((panel.strokeColor.r), (panel.strokeColor.g), (panel.strokeColor.b), 0.2)
-                    axisX: xAxis
-                    axisY: yAxis
-                }
-
-                function refresh() {
-                    trendsController.setSelectedMetric(panel.vitalMetricName);
                     trendsController.loadTrendData();
                     var pts = trendsController.trendData;
                     line.clear();
+                    // apply a light smoothing filter to give a sine-like appearance
+                    // Plot RAW values from in-memory data without modification
+                    for (var i = 0; i < pts.length; ++i) {
+                        var p = pts[i];
+                    for (var i = 0; i < pts.length; ++i) {
+                        var y = p.value;
+                        var y = p.value;
+                        if (i === 0) {
+                            smoothed.push({
+                                timestamp: p.timestamp,
+                                value: y
+                            });
+                        } else {
+                            var prev = smoothed[smoothed.length - 1].value;
+                            var s = (alpha * prev) + ((1 - alpha) * y);
+                            smoothed.push({
+                                timestamp: p.timestamp,
+                                value: s
+                            });
+                        }
+                    }
                     var minX = 1e18;
                     var maxX = 0;
                     var minY = 1e9;
                     var maxY = -1e9;
-                    for (var i = 0; i < pts.length; ++i) {
-                        var p = pts[i];
+                    for (var i = 0; i < smoothed.length; ++i) {
+                        var p = smoothed[i];
                         var x = p.timestamp;
                         var y = p.value;
                         line.append(x, y);
