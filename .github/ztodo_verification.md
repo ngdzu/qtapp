@@ -80,6 +80,8 @@ Before marking a ZTODO item as complete, perform ALL verification steps:
 - ✅ Follows architecture patterns
 - ✅ No memory leaks
 - ✅ No security vulnerabilities
+- ✅ **Affected targets build successfully** (NEW)
+- ✅ **Dependent targets build successfully** (NEW)
 
 **How to Verify:**
 - Linter checks (`clang-format`, `clang-tidy`)
@@ -87,6 +89,45 @@ Before marking a ZTODO item as complete, perform ALL verification steps:
 - Code review
 - Documentation generation
 - Memory leak detection
+- **Build verification script** (`./scripts/verify-build.sh <files...>`)
+
+**Build Verification (REQUIRED):**
+
+For every task that creates, modifies, or deletes files, you MUST verify that affected CMake targets build successfully:
+
+1. **Identify Affected Files:** List all files created, modified, or deleted during the task
+2. **Run Build Verification Script:** Execute `./scripts/verify-build.sh <file1> <file2> ...`
+3. **Script Automatically:**
+   - Finds the closest `CMakeLists.txt` for each file
+   - Identifies which CMake targets include those files
+   - Builds each affected target
+   - Identifies all targets that depend on affected targets (transitive dependencies)
+   - Builds all dependent targets
+4. **Verify Success:** All builds must succeed with no errors
+
+**Example Usage:**
+```bash
+# After implementing LocalPatientService
+./scripts/verify-build.sh \
+  src/infrastructure/patient/LocalPatientService.cpp \
+  src/infrastructure/patient/LocalPatientService.h
+
+# Output:
+# ✓ Found CMakeLists.txt: src/infrastructure/CMakeLists.txt
+# ✓ Affected target: z_monitor_infrastructure
+# ✓ Building z_monitor_infrastructure... SUCCESS
+# ✓ Dependent targets: z-monitor, z_monitor_tests
+# ✓ Building z-monitor... SUCCESS
+# ✓ Building z_monitor_tests... SUCCESS
+# ✅ All affected targets built successfully
+```
+
+**When to Run:**
+- After implementing new classes/files
+- After modifying existing source files
+- After updating CMakeLists.txt
+- Before marking a task as complete
+- As part of verification checklist
 
 **Example:**
 ```markdown
@@ -96,6 +137,8 @@ Before marking a ZTODO item as complete, perform ALL verification steps:
   - [ ] Doxygen comments added
   - [ ] Code follows style guidelines
   - [ ] No memory leaks detected
+  - [ ] Affected targets build successfully (verify-build.sh)
+  - [ ] Dependent targets build successfully (verify-build.sh)
 ```
 
 ### Documentation Verification
@@ -193,6 +236,8 @@ When working on a ZTODO item, use this checklist:
 - [ ] Code follows architecture patterns
 - [ ] No memory leaks (verified with Valgrind/AddressSanitizer)
 - [ ] No security vulnerabilities (static analysis)
+- [ ] **Affected targets build successfully** (`./scripts/verify-build.sh <files...>`)
+- [ ] **Dependent targets build successfully** (automatically checked by verify-build.sh)
 
 ### Documentation Verification
 - [ ] All relevant design documents updated (see `.cursor/rules/documentation_maintenance.mdc`)

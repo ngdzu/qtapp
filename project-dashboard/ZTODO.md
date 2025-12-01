@@ -2449,6 +2449,29 @@ While the UI works without these repositories (data flows through caches), these
 
 ## Testing & Quality Foundations
 
+- [ ] Implement Build Verification Script (verify-build.sh)
+  - What: Create `scripts/verify-build.sh` shell script that takes a list of modified/created files as arguments, automatically identifies affected CMake targets and their dependents, and builds all affected targets to ensure changes don't break the build. Script must: (1) Parse each file path to find nearest CMakeLists.txt, (2) Identify which target(s) include that file (parse CMakeLists.txt or use CMake API), (3) Build each affected target, (4) Query CMake dependency graph to find all targets that depend on affected targets (transitive dependencies), (5) Build all dependent targets, (6) Report success/failure with clear output.
+  - Why: Automates build verification during ZTODO task verification; ensures code changes don't break compilation; catches build issues early; required for all verification workflows.
+  - Files: `scripts/verify-build.sh` (main script), `scripts/cmake-helpers/find-affected-targets.sh` (helper to parse CMakeLists.txt), `scripts/cmake-helpers/find-dependent-targets.sh` (helper to query dependency graph), documentation in `.github/ztodo_verification.md` (already updated).
+  - Acceptance: Script correctly identifies affected targets for various file types (C++, headers, QML, CMakeLists.txt); builds targets incrementally; reports clear success/failure; handles edge cases (file not in any target, multiple targets, header-only libraries); performance acceptable (<30s for typical changes).
+  - Subtasks:
+    - [ ] Implement file-to-CMakeLists.txt path resolution (walk up directory tree)
+    - [ ] Implement CMakeLists.txt parsing to find target containing file (regex or CMake --graphviz)
+    - [ ] Implement CMake dependency graph query (cmake --graphviz + parse dot file, or use cmake --build --target <target> --verbose)
+    - [ ] Implement incremental target build (cmake --build build --target <target>)
+    - [ ] Add error handling and clear reporting (colors, progress indicators)
+    - [ ] Add dry-run mode (--dry-run) to show what would be built without building
+    - [ ] Add verbose mode (--verbose) for debugging
+    - [ ] Document script usage in .github/ztodo_verification.md
+    - [ ] Add unit tests for script (test with sample CMake projects)
+  - Verification Steps:
+    1. Functional: Script correctly identifies targets for test files; builds affected targets; detects build failures; handles edge cases (new files, deleted files, CMakeLists.txt changes).
+    2. Code Quality: Shell script follows best practices (set -euo pipefail, quotes, error handling); documented functions; clear variable names.
+    3. Documentation: Usage documented in ztodo_verification.md; README.md mentions script; script has --help flag.
+    4. Integration: Works with z-monitor CMake structure; integrates with verification workflow; CI can use script.
+    5. Tests: Test cases cover various scenarios (single file, multiple files, header files, QML files, CMakeLists.txt changes); edge cases tested.
+  - Prompt: `project-dashboard/prompt/verify-build-script.md`
+
 - [ ] Implement unified testing workflow
   - What: Create GoogleTest + Qt Test scaffolding under `z-monitor/tests/unit/`, integration suites under `z-monitor/tests/integration/`, E2E suites under `z-monitor/tests/e2e/`, and benchmark suites under `z-monitor/tests/benchmarks/`. Organize tests by DDD layer: `tests/unit/domain/`, `tests/unit/application/`, `tests/unit/infrastructure/`, `tests/unit/interface/`. Apply `ctest` labels (`unit`, `integration`, `benchmark`) and follow the process documented in `doc/18_TESTING_WORKFLOW.md`.
   - Why: Testing groundwork must be established early to support iterative development. DDD-aligned test structure matches code organization.
