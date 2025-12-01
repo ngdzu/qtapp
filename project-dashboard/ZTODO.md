@@ -2649,17 +2649,97 @@ While the UI works without these repositories (data flows through caches), these
   - Prompt: `project-dashboard/prompt/13-logservice-qml-model.md`  (When finished: mark this checklist item done.)
 
 - [ ] Implement AdmissionService with IPatientLookupService integration
-  - What: Implement `AdmissionService` in application layer to integrate with `IPatientLookupService` for patient lookups. Add `lookupPatient(mrn)` method that first checks local database cache, then uses lookup service if not found. Cache lookup results in local `patients` table via `IPatientRepository`. AdmissionService orchestrates patient admission/discharge/transfer workflows.
-  - Why: Enables quick patient assignment by entering patient ID, with automatic lookup from external systems (HIS/EHR). Application service pattern ensures business logic is centralized and testable.
-  - Files: `z-monitor/src/application/services/AdmissionService.cpp/h`, implement integration with `IPatientLookupService`, use `IPatientRepository` for caching, update `PatientController` to use AdmissionService.
-  - Acceptance: `AdmissionService::lookupPatient(mrn)` successfully looks up patient from external system and caches result locally. Unit tests with `MockPatientLookupService` verify lookup flow. Admission/discharge/transfer workflows work correctly.
+  - What: Implement `AdmissionService` (lookup, admit, discharge, transfer) integrating `IPatientLookupService` & `IPatientRepository` (cache-first, fallback to remote). All public methods return `Result<T, Error>` and emit domain events (`PatientAdmitted`, `PatientDischarged`, `PatientTransferred`).
+  - Why: Centralizes ADT workflow logic; enables patient assignment per `19_ADT_WORKFLOW.md`; supports caching & audit logging.
+  - Files: `z-monitor/src/application/services/AdmissionService.cpp/h`, update `PatientController` to call new methods, extend `doc/19_ADT_WORKFLOW.md`.
+  - Acceptance: Lookup performs cache hit/miss correctly; admission/discharge/transfer persist events & log actions; domain events emitted; error paths return proper `Result`.
+  - Subtasks:
+    - [ ] Implement core class & constructor DI
+    - [ ] Add `lookupPatient(mrn)` with cache logic
+    - [ ] Add `admitPatient(info, source)` storing ADT metadata
+    - [ ] Add `dischargePatient(mrn)` & `transferPatient(mrn, targetDevice)`
+    - [ ] Emit domain events & action log entries
+    - [ ] Doxygen documentation for all public APIs
+    - [ ] Error handling via `Result` throughout
   - Verification Steps:
-    1. Functional: Patient lookup works (cache hit, cache miss with HIS lookup), admission/discharge/transfer workflows function correctly, patient data cached properly
-    2. Code Quality: Doxygen comments, error handling, follows DDD application service patterns
-    3. Documentation: AdmissionService API documented, workflow documented in `doc/19_ADT_WORKFLOW.md`
-    4. Integration: AdmissionService integrates with IPatientLookupService and IPatientRepository, PatientController uses AdmissionService
-    5. Tests: Unit tests for lookup flow, admission/discharge/transfer tests, cache tests
+    1. Functional: All workflows succeed; cache logic validated
+    2. Code Quality: No magic numbers; clang-format/tidy clean
+    3. Documentation: Doxygen complete; ADT doc updated
+    4. Integration: PatientController wired; audit/action log entries
+    5. Tests: Unit tests (lookup/admit/discharge/transfer) pass
   - Prompt: `project-dashboard/prompt/13b-patient-lookup-integration.md`  (When finished: mark this checklist item done.)
+
+- [ ] Implement LocalPatientService (Development IPatientLookupService)
+  - What: Development-only `LocalPatientService` implementing `IPatientLookupService` providing seeded patient roster, fuzzy name search, latency simulation & failure modes.
+  - Why: Offline development & UI prototyping without HIS/EHR dependency.
+  - Files: `src/infrastructure/patient/LocalPatientService.h/.cpp`, `schema/sample/patients_seed.sql`, doc update in `19_ADT_WORKFLOW.md` (Development Lookup section).
+  - Acceptance: >=10 sample patients, MRN & name lookup (<50ms), latency toggle (0/25/100ms), documented API.
+  - Verification Steps: Functional (lookups + latency), Code Quality (no magic values), Documentation (workflow doc section), Integration (Injected in dev mode), Tests (unit tests for MRN hit/miss, fuzzy search, failure simulation).
+  - Prompt: `project-dashboard/prompt/13c-local-patient-service.md`
+
+- [ ] Add Development Mode Macro & CMake Option
+  - What: Add `option(Z_MONITOR_DEV_MODE "Enable development mocks" ON)` and `add_compile_definitions(Z_MONITOR_DEV_MODE)`; guard mock injections.
+  - Why: Prevent shipping dev-only adapters in production builds.
+  - Files: Root `CMakeLists.txt`, `src/main.cpp`, docs (`22_CODE_ORGANIZATION.md`, `19_ADT_WORKFLOW.md`).
+  - Acceptance: Toggling option includes/excludes mock services cleanly.
+  - Verification Steps: Functional (injection changes), Code Quality (macro limited scope), Documentation (dev mode described), Integration (build matrix dev/prod), Tests (CI builds both modes).
+  - Prompt: `project-dashboard/prompt/13d-dev-mode-macro.md`
+
+- [ ] Inject LocalPatientService & AdmissionService in main.cpp
+  - What: Construct & inject `LocalPatientService` (dev mode) and wire `AdmissionService` into `PatientController`.
+  - Why: Enable admission workflow in development runtime.
+  - Files: `src/main.cpp`, `PatientController.*`, update diagram in `02_ARCHITECTURE.md`.
+  - Acceptance: Manual MRN admission works end-to-end; no null ptrs.
+  - Verification Steps: Functional (admit/discharge), Code Quality (Result handling), Documentation (architecture update), Integration (other controllers unaffected), Tests (integration test).
+  - Prompt: `project-dashboard/prompt/13e-inject-local-patient-service.md`
+
+- [ ] Create ADT UI Components (AdmissionModal.qml & PatientBanner.qml)
+  - What: Implement modal & banner components with states (Admitted, Standby) and admission methods (Manual, Barcode mock, Central Station placeholder).
+  - Why: UI realization of ADT workflow.
+  - Files: `resources/qml/components/AdmissionModal.qml`, `PatientBanner.qml`, update `Main.qml`, `views/SettingsView.qml`.
+  - Acceptance: Modal opens, validates MRN, updates banner <250ms.
+  - Verification Steps: Functional (state transitions), Code Quality (QML lint, theme usage), Documentation (added doc section), Integration (no layout regressions), Tests (QML tests admission/discharge).
+  - Prompt: `project-dashboard/prompt/13f-adt-ui-components.md`
+
+- [ ] Implement Barcode Scanning Abstraction (IAdmissionMethod + MockBarcodeScanner)
+  - What: Strategy interface `IAdmissionMethod`; mock barcode scanner populates MRN via user click.
+  - Why: Future real scanner swap minimal friction.
+  - Files: `src/interface/adt/IAdmissionMethod.h`, `MockBarcodeScanner.h/.cpp`, QML integration.
+  - Acceptance: Method switch works; mock populates MRN field.
+  - Verification Steps: Functional (strategy swap), Code Quality (doc + no magic), Documentation (ADT method abstraction section), Integration (AdmissionModal uses interface), Tests (unit test for mock scanner).
+  - Prompt: `project-dashboard/prompt/13g-barcode-abstraction.md`
+
+- [ ] Wire PatientController to AdmissionService & ADT UI
+  - What: Add Q_INVOKABLEs (`admitByMrn`, `dischargeCurrent`, `simulateBarcodeScan`) & property updates; connect signals.
+  - Why: Bridge UI ↔ application layer.
+  - Files: `src/interface/controllers/PatientController.*`, QML bindings.
+  - Acceptance: Actions reflect instantly; errors surfaced gracefully.
+  - Verification Steps: Functional (methods), Code Quality (no blocking UI), Documentation (controller API update), Integration (imports intact), Tests (unit + QML).
+  - Prompt: `project-dashboard/prompt/13h-wire-patient-controller-adt.md`
+
+- [ ] Implement ADT Workflow Tests (Unit + Integration + QML)
+  - What: Unit (AdmissionService, LocalPatientService), integration (admit/discharge/transfer + action log), QML (modal states), negative cases.
+  - Why: Ensure correctness & prevent regressions.
+  - Files: `tests/unit/application/AdmissionServiceTest.cpp`, `tests/unit/infrastructure/LocalPatientServiceTest.cpp`, `tests/integration/AdtWorkflowTest.cpp`, QML test harness.
+  - Acceptance: All scenarios pass; coverage ≥80% for new services.
+  - Verification Steps: Functional (scenario matrix), Code Quality (stable tests), Documentation (test plan in ADT doc), Integration (real repositories or temp DB), Tests (coverage report).
+  - Prompt: `project-dashboard/prompt/13i-adt-workflow-tests.md`
+
+- [ ] Sample Patient Seed & Migration
+  - What: Dev-only patient seed script executed conditionally; idempotent insert.
+  - Why: Consistent development dataset.
+  - Files: `schema/sample/patients_seed.sql`, `scripts/migrate.py` conditional logic, doc update.
+  - Acceptance: Patients loaded in dev mode only.
+  - Verification Steps: Functional (seed presence), Code Quality (idempotent, no magic values), Documentation (seed process), Integration (migrations unaffected), Tests (integration checks when macro ON).
+  - Prompt: `project-dashboard/prompt/13j-sample-patient-seed.md`
+
+- [ ] Update ADT Documentation & Architecture References
+  - What: Expand `19_ADT_WORKFLOW.md` (development lookup, barcode strategy, UI states, dev mode) & update `02_ARCHITECTURE.md` data flow; add Mermaid diagram `adt_flow.mmd`.
+  - Why: Keep documentation authoritative.
+  - Files: Updated docs + new diagram.
+  - Acceptance: Diagram renders; sections cross-linked.
+  - Verification Steps: Functional (diagram accuracy), Code Quality (markdown style), Documentation (coverage complete), Integration (README link if needed), Tests (mermaid render script passes).
+  - Prompt: `project-dashboard/prompt/13k-update-adt-documentation.md`
 
 
 ## Security & Certificates (ordered but distinct)
