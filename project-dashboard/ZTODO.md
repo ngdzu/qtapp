@@ -1,5 +1,18 @@
 # Z Monitor Development Tasks
 
+## Task ID Convention
+
+**ALL tasks use format: `TASK-{CATEGORY}-{NUMBER}`**
+
+- Categories: INFRA (Infrastructure), DOM (Domain), APP (Application), UI (User Interface), DB (Database), NET (Networking), SEC (Security), TEST (Testing), PERF (Performance), DOC (Documentation), CONFIG (Configuration), DEPLOY (Deployment), PUBLISH (Publishing), I18N (Internationalization), A11Y (Accessibility), MONITOR (Monitoring), MAINT (Maintenance), REG (Regulatory), TRAIN (Training), DATA (Data Management)
+- Number: Zero-padded 3-digit sequential (001, 002, ...)
+- Examples: `TASK-INFRA-001`, `TASK-UI-042`, `TASK-DB-015`, `TASK-TEST-001`
+- **See `.github/ztodo_task_guidelines.md` for complete task creation guidelines**
+
+**Note:** Existing tasks without IDs are being migrated. New tasks MUST include IDs from creation.
+
+---
+
 ## ⚠️ CRITICAL: API Documentation Required
 
 **ALL CODE MUST INCLUDE DOXYGEN-STYLE COMMENTS FROM THE BEGINNING.**
@@ -749,7 +762,7 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See `doc/30_DATABASE_ACCESS_STRATEGY.md` for database strategy (non-critical path), `doc/33_SCHEMA_MANAGEMENT.md` for migration workflow, `doc/10_DATABASE_DESIGN.md` for schema structure
   - Prompt: `project-dashboard/prompt/db-fix-01-migration-transactions.md`
 
-- [ ] Add Qt Plugin Path Configuration for SQL Driver
+- [ ] TASK-INFRA-017: Add Qt Plugin Path Configuration for SQL Driver
   - What: Configure Qt plugin search path to include the local build directory where libqsqlite.dylib is deployed. Add `QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath())` to main.cpp before any QSqlDatabase operations. This tells Qt to search for plugins in the same directory as the executable, where CMake copies libqsqlite.dylib to the `sqldrivers/` subdirectory. Verify plugin is found by checking QT_DEBUG_PLUGINS=1 output.
   - Why: **CURRENT STATE:** Qt plugin loader searches `/Users/dustinwind/Qt/6.9.2/macos/plugins/sqldrivers/` (Qt installation directory) but the SQLite plugin is deployed to `/Users/dustinwind/Development/Qt/qtapp/project-dashboard/z-monitor/build/src/sqldrivers/libqsqlite.dylib` (local build directory). Adding application directory to plugin search path allows Qt to find the locally deployed plugin. **NOTE:** main.cpp already has this code (lines 59-60), but it may not be working correctly due to timing or path issues. Investigate and fix.
   - Files:
@@ -798,7 +811,7 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See Qt documentation for QCoreApplication::addLibraryPath(), see `doc/33_SCHEMA_MANAGEMENT.md` for schema management and database setup
   - Prompt: `project-dashboard/prompt/db-fix-02-plugin-path-config.md`
 
-- [ ] Fix ResultTest Compilation Errors (valueOr method)
+- [ ] TASK-TEST-003: Fix ResultTest Compilation Errors (valueOr method)
   - What: Fix compilation errors in `tests/unit/domain/core/ResultTest.cpp` where `valueOr()` method is called but doesn't exist in `Result<T, Error>` template class. Either: (1) Implement `valueOr()` method in `Result<T, Error>` class (recommended), or (2) Update tests to use `isOk() ? value() : defaultValue` pattern instead of `valueOr(defaultValue)`. The `valueOr()` method should return the contained value if Result is Ok, or a provided default value if Result is Error.
   - Why: Compilation fails with "no member named 'valueOr' in 'zmon::Result<int, zmon::Error>'" preventing test suite from building. This is a common Result/Option monad pattern that improves test readability and error handling. Fixing this enables test suite to build and run, which is essential for TDD workflow.
   - Files:
@@ -840,7 +853,7 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See Result class documentation, common Result/Option monad patterns
   - Prompt: `project-dashboard/prompt/db-fix-03-result-valueor-method.md`
 
-- [ ] Implement CMake Caching for Qt SQL Plugin
+- [ ] TASK-INFRA-018: Implement CMake Caching for Qt SQL Plugin
   - What: Modify SQL plugin deployment in `src/CMakeLists.txt` to cache the plugin locally and avoid re-downloading on every clean build. Use CMake's file(DOWNLOAD) with EXPECTED_HASH to verify integrity, or use FetchContent with FETCHCONTENT_UPDATES_DISCONNECTED to avoid re-fetching. Store cached plugin in `project-dashboard/z-monitor/.cmake-cache/` or use CMake's built-in cache directory. Document caching mechanism for developer setup.
   - Why: **DEVELOPER EXPERIENCE:** Current CMake setup queries Qt installation and copies plugin every build. On clean builds, this re-downloads or re-copies the plugin unnecessarily. Caching improves build performance and enables offline development. User requirement: "If missing SQL driver, the CMake file should resolve it without downloading a fresh copy every time."
   - Files:
@@ -864,7 +877,7 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See CMake documentation for file(COPY), file(SHA256), FetchContent, see BUILD.md for developer setup
   - Prompt: `project-dashboard/prompt/db-fix-04-cmake-plugin-caching.md`
 
-- [ ] Create Developer Setup Documentation for Database
+- [ ] TASK-DOC-003: Create Developer Setup Documentation for Database
   - What: Create comprehensive developer setup documentation in `BUILD.md` covering: (1) Qt installation and path configuration, (2) SQLite plugin deployment and verification, (3) Database initialization (migrations), (4) Common troubleshooting (driver not found, tables not created, plugin path issues), (5) Offline build support (cached plugin), (6) Environment variable configuration (CMAKE_PREFIX_PATH, QT_PLUGIN_PATH). Include step-by-step instructions with commands, expected output, and verification steps. Add section to main README.md linking to BUILD.md.
   - Why: **DEVELOPER ONBOARDING:** New developers need clear instructions to set up database environment. Current issues (plugin path, transaction handling, migration failures) indicate documentation gaps. Comprehensive setup guide reduces onboarding time and prevents common configuration errors. User requirement: "Fix it in the good way so that other developer can set up their dev environment."
   - Files:
@@ -1893,7 +1906,7 @@ These infrastructure components should be implemented early as they are dependen
     - If decimation loses detail: Use min-max decimation instead of averaging
   - Prompt: `project-dashboard/prompt/45e-implement-trends-controller.md`
 
-- [ ] Implement SystemController with real system monitoring integration (45e-7)
+- [ ] TASK-UI-001: Implement SystemController with real system monitoring integration (45e-7)
   - What: Refactor `SystemController` to provide real system status instead of stub data. Integrate with Qt system APIs for battery level (QBattery Info if available), CPU temperature (platform-specific), memory usage (Qt sysinfo or platform APIs), network latency (ping to server). Implement periodic updates (every 5 seconds) via QTimer. Add connection state monitoring (connected/disconnected to central server).
   - Why: SystemController provides device health monitoring for diagnostics and troubleshooting. Currently returns hardcoded values (battery=100%, temp=0.0°C). Real system monitoring is important for identifying hardware issues, network problems, and ensuring device operates within safe parameters.
   - Files:
@@ -2025,7 +2038,7 @@ These infrastructure components should be implemented early as they are dependen
     - No blocking I/O on UI thread (use async where possible)
   - Prompt: `project-dashboard/prompt/45e-implement-system-controller.md`
 
-- [ ] Implement remaining controllers (AuthenticationController, NotificationController, ProvisioningController, DiagnosticsController) (45e-8)
+- [ ] TASK-UI-003: Implement remaining controllers (AuthenticationController, NotificationController, ProvisioningController, DiagnosticsController) (45e-8)
   - What: Implement the remaining 4 controllers that are less critical for MVP: `AuthenticationController` (login/logout, user session), `NotificationController` (notification banner, notification history), `ProvisioningController` (device provisioning, network setup, certificate management), `DiagnosticsController` (device diagnostics, log viewer, test modes). Each controller should integrate with appropriate application services and repositories.
   - Why: These controllers complete the interface layer but are lower priority than core monitoring functionality. Authentication is needed for multi-user support, notifications for user alerts, provisioning for device setup, and diagnostics for troubleshooting.
   - Files:
@@ -2062,7 +2075,7 @@ These infrastructure components should be implemented early as they are dependen
 
 ---
 
-- [ ] Verify real-time vitals update and waveform rendering (44f-1)
+- [ ] TASK-TEST-004: Verify real-time vitals update and waveform rendering (44f-1)
   - What: Verify that vitals update in real-time and are visible on screen. Start simulator and z-monitor, observe that heart rate, SpO2, respiratory rate, temperature, and blood pressure values change dynamically every second. Confirm values match simulator output. Verify waveforms (ECG, Pleth, Resp) render smoothly at 60 FPS with no stuttering or frame drops. Confirm waveforms scroll right-to-left as expected in medical monitors.
   - Why: Critical functional verification that the complete data pipeline works end-to-end. This confirms data flows from simulator → shared memory → SharedMemorySensorDataSource → MonitoringService → Caches → Controllers → QML UI. Visual verification ensures the UI is usable for clinical monitoring.
   - Files:
@@ -2088,7 +2101,7 @@ These infrastructure components should be implemented early as they are dependen
     3. Console Check: No QML errors or warnings, no "property binding loop" errors **Status:** ⏳ Pending
   - Prompt: `project-dashboard/prompt/44f-verify-realtime-vitals-waveforms.md`
 
-- [ ] Measure end-to-end latency from simulator to UI (44f-2)
+- [ ] TASK-PERF-001: Measure end-to-end latency from simulator to UI (44f-2)
   - What: Measure the complete latency from when simulator writes data to shared memory until it appears on screen. Target: < 50ms end-to-end. Instrument code at key points: (1) simulator write timestamp, (2) SharedMemorySensorDataSource read timestamp, (3) MonitoringService processing timestamp, (4) Controller property update timestamp, (5) QML render timestamp. Calculate deltas and report average/max latency.
   - Why: Latency directly impacts clinical usability. Medical monitors require near-real-time display (<50ms) to enable timely intervention. High latency can delay arrhythmia detection or vital sign changes, impacting patient safety.
   - Files:
@@ -2133,7 +2146,7 @@ These infrastructure components should be implemented early as they are dependen
     3. Analysis: Identify slowest stage, verify meets target, document results **Status:** ⏳ Pending
   - Prompt: `project-dashboard/prompt/44f-measure-end-to-end-latency.md`
 
-- [ ] Capture screenshots of live UI with real data (44f-3)
+- [ ] TASK-DOC-004: Capture screenshots of live UI with real data (44f-3)
   - What: Capture high-quality screenshots (1280x800) of z-monitor UI showing live vitals and waveforms. Take screenshots at multiple points: (1) normal vitals, (2) abnormal vitals (high HR), (3) connection lost, (4) waveform detail view. Save to `project-dashboard/screenshots/` with descriptive names. Include timestamp and data source in filename.
   - Why: Screenshots are critical for documentation, user manual, regulatory submissions, and marketing materials. Visual proof that the UI displays live data correctly. Screenshots will be referenced in design docs and SRS.
   - Files:
@@ -2164,7 +2177,7 @@ These infrastructure components should be implemented early as they are dependen
     3. Documentation: Embed in docs with captions, commit to repo **Status:** ⏳ Pending
   - Prompt: `project-dashboard/prompt/44f-capture-live-ui-screenshots.md`
 
-- [ ] Performance profiling and optimization (44f-4)
+- [ ] TASK-PERF-002: Performance profiling and optimization (44f-4)
   - What: Profile z-monitor with Qt QML Profiler and identify performance bottlenecks. Measure frame rate (should be 60 FPS), Canvas rendering time (< 10ms per frame), property binding overhead, and memory usage. Optimize any code paths that exceed targets. Document optimization results.
   - Why: Ensures the UI remains responsive under continuous data load. Poor performance (frame drops, high latency) degrades user experience and can impact clinical usability. Profiling identifies specific bottlenecks (e.g., excessive Canvas redraws, slow property bindings) that can be optimized.
   - Files:
@@ -2198,7 +2211,7 @@ These infrastructure components should be implemented early as they are dependen
     4. Documentation: Document baseline, optimizations, final metrics **Status:** ⏳ Pending
   - Prompt: `project-dashboard/prompt/44f-performance-profiling-optimization.md`
 
-- [ ] End-to-end integration test and sign-off (44f-5)
+- [ ] TASK-TEST-005: End-to-end integration test and sign-off (44f-5)
   - What: Perform comprehensive end-to-end test of complete simulator→z-monitor integration. Verify all acceptance criteria from tasks 44b-44e are met. Run extended soak test (30 minutes continuous operation), check for memory leaks, verify error handling (disconnect/reconnect scenarios), and confirm all documentation is complete. Sign off on simulator integration phase.
   - Why: Final validation that the simulator integration is production-ready. Ensures system stability under extended operation, proper error recovery, and complete documentation. This task gates transition to next development phase.
   - Files:
@@ -2453,7 +2466,7 @@ While the UI works without these repositories (data flows through caches), these
 
 ## Testing & Quality Foundations
 
-- [ ] Implement Build Verification Script (verify-build.sh)
+- [ ] TASK-TEST-001: Implement Build Verification Script (verify-build.sh)
   - What: Create `scripts/verify-build.sh` shell script that takes a list of modified/created files as arguments, automatically identifies affected CMake targets and their dependents, and builds all affected targets to ensure changes don't break the build. Script must: (1) Parse each file path to find nearest CMakeLists.txt, (2) Identify which target(s) include that file (parse CMakeLists.txt or use CMake API), (3) Build each affected target, (4) Query CMake dependency graph to find all targets that depend on affected targets (transitive dependencies), (5) Build all dependent targets, (6) Report success/failure with clear output.
   - Why: Automates build verification during ZTODO task verification; ensures code changes don't break compilation; catches build issues early; required for all verification workflows.
   - Files: `scripts/verify-build.sh` (main script), `scripts/cmake-helpers/find-affected-targets.sh` (helper to parse CMakeLists.txt), `scripts/cmake-helpers/find-dependent-targets.sh` (helper to query dependency graph), documentation in `.github/ztodo_verification.md` (already updated).
@@ -2476,7 +2489,7 @@ While the UI works without these repositories (data flows through caches), these
     5. Tests: Test cases cover various scenarios (single file, multiple files, header files, QML files, CMakeLists.txt changes); edge cases tested.
   - Prompt: `project-dashboard/prompt/verify-build-script.md`
 
-- [ ] Implement unified testing workflow
+- [ ] TASK-TEST-006: Implement unified testing workflow
   - What: Create GoogleTest + Qt Test scaffolding under `z-monitor/tests/unit/`, integration suites under `z-monitor/tests/integration/`, E2E suites under `z-monitor/tests/e2e/`, and benchmark suites under `z-monitor/tests/benchmarks/`. Organize tests by DDD layer: `tests/unit/domain/`, `tests/unit/application/`, `tests/unit/infrastructure/`, `tests/unit/interface/`. Apply `ctest` labels (`unit`, `integration`, `benchmark`) and follow the process documented in `doc/18_TESTING_WORKFLOW.md`.
   - Why: Testing groundwork must be established early to support iterative development. DDD-aligned test structure matches code organization.
   - Acceptance: Test framework integrated, test structure matches DDD layers, ctest labels work, tests can run independently, CI integration works.
@@ -2487,7 +2500,7 @@ While the UI works without these repositories (data flows through caches), these
     4. Integration: CI runs tests, test reports generated, coverage integration works
     5. Tests: Test framework tests, test organization verified
 
-- [ ] Add coverage pipeline
+- [ ] TASK-TEST-007: Add coverage pipeline
   - What: Enable coverage builds with `-DENABLE_COVERAGE=ON`, integrate `lcov`/`genhtml`, and enforce minimum 80% line coverage on critical components (`src/domain/`, `src/application/`, `src/infrastructure/persistence/`, `src/infrastructure/network/`). Publish reports from `build_coverage/coverage/index.html`.
   - Why: Maintains confidence in critical code paths. Per REQ-NFR-MAIN-002, critical components require 90%+ coverage, normal components 80%+.
   - Acceptance: Coverage builds work, reports generated, CI enforces coverage thresholds, coverage tracked per component.
@@ -2498,7 +2511,7 @@ While the UI works without these repositories (data flows through caches), these
     4. Integration: CI runs coverage builds, reports published, thresholds enforced
     5. Tests: Coverage measurement verified, threshold enforcement tested
 
-- [ ] Implement Benchmark Framework and Performance Measurement
+- [ ] TASK-PERF-003: Implement Benchmark Framework and Performance Measurement
   - What: Add Google Benchmark library to CMake, create benchmark directory structure (`tests/benchmarks/core/`, `tests/benchmarks/ui/`, `tests/benchmarks/network/`, `tests/benchmarks/integration/`), implement critical benchmarks (alarm detection latency, database query performance, UI response time, memory usage). Create benchmark comparison script (`scripts/compare_benchmarks.py`) and setup script (`scripts/setup_benchmark_env.sh`). Integrate into CI/CD with nightly execution workflow.
   - Why: Performance benchmarks are critical for safety-critical requirements, especially alarm detection latency (< 50ms). Automated nightly benchmarks detect performance regressions early and ensure system meets all performance targets.
   - Files:
@@ -2532,34 +2545,34 @@ While the UI works without these repositories (data flows through caches), these
   - Documentation: See `doc/40_BENCHMARK_AND_PERFORMANCE_MEASUREMENT.md` for complete benchmark strategy, framework design, CI/CD integration, and nightly execution workflow. See `doc/18_TESTING_WORKFLOW.md` for testing workflow integration.
   - Prompt: `project-dashboard/prompt/40-implement-benchmark-framework.md`
 
-- [ ] Integrate benchmarking harness
+- [ ] TASK-PERF-004: Integrate benchmarking harness
   - What: Add Google Benchmark targets for AlarmManager, SignalProcessor, telemetry serialization, and certificate validation routines. Store results (CSV/JSON) for regression tracking.
   - Why: Detects performance regressions early.
 
-- [ ] Automate lint/static analysis
+- [ ] TASK-TEST-008: Automate lint/static analysis
   - What: Extend `scripts/run_tests.sh lint` to invoke clang-format, clang-tidy, and cppcheck; gate CI on lint success.
   - Why: Keeps codebase consistent and surfaces issues before compilation.
 
-- [ ] Add CI workflows for build + tests
+- [ ] TASK-INFRA-019: Add CI workflows for build + tests
   - What: Add GitHub Actions (or preferred CI) jobs: `build`, `unit-tests`, `render-diagrams`, `integration-tests` that run the server simulator.
   - Why: Keeps repo healthy and verifies that docs/diagrams render correctly in CI.
   - Prompt: `project-dashboard/prompt/19-ci-workflows-build-tests.md`  (When finished: mark this checklist item done.)
 
-- [ ] Enforce testing workflow in CI
+- [ ] TASK-TEST-009: Enforce testing workflow in CI
   - What: Update CI workflows to call `./scripts/run_tests.sh all`, publish coverage + benchmark artifacts, and fail builds when thresholds/regressions occur.
   - Why: Ensures automation matches the documented workflow.
 
-- [ ] Add mermaid render script and CI check
+- [ ] TASK-DOC-005: Add mermaid render script and CI check
   - What: Add `scripts/render-mermaid.sh` and a CI job that runs it and fails on parse errors. Document usage in `.github/copilot-instructions.md`.
   - Why: Prevents malformed diagrams from being committed (we had parser issues earlier).
   - Prompt: `project-dashboard/prompt/20-render-mermaid-script-ci.md`  (When finished: mark this checklist item done.)
 
-- [ ] Add E2E containerized test harness
+- [ ] TASK-TEST-010: Add E2E containerized test harness
   - What: Compose the Z Monitor (headless) and the server simulator in docker-compose test environment and run basic E2E scenarios.
   - Why: Validates connectivity, DB writes, and archival behavior in a reproducible environment.
   - Prompt: `project-dashboard/prompt/21-e2e-containerized-harness.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement Archiver interface and archiving tests
+- [ ] TASK-DATA-001: Implement Archiver interface and archiving tests
   - What: Create `IArchiver` interface and tests that show moving rows older than 7 days to an `archived_vitals` table or external archive file. Add unit tests for retention policy enforcement.
   - Why: Archival is required by requirements; must be testable and configurable.
   - Prompt: `project-dashboard/prompt/18-implement-archiver-interface.md`  (When finished: mark this checklist item done.)
@@ -2567,7 +2580,7 @@ While the UI works without these repositories (data flows through caches), these
 
 ## Parallel Tasks (can be done concurrently)
 
-- [ ] QML UI skeleton and components
+- [ ] TASK-UI-004: QML UI skeleton and components
   - What: Implement QML UI following interface layer structure. Files in `z-monitor/resources/qml/` or `z-monitor/src/interface/qml/`: `Main.qml`, `Sidebar.qml`, `TopBar.qml`, `StatCard.qml`, `PatientBanner.qml`, `WaveformChart.qml`, `TrendChart.qml`, `AlarmIndicator.qml`, and placeholder `views/` (DashboardView, DiagnosticsView, TrendsView, SettingsView, LoginView, AdmissionModal).
   - Why: Visual scaffolding enables early UX validation and manual QA. QML components follow declarative rendering pattern (no separate C++ visualization service).
   - Acceptance: QML app boots and displays placeholders at `1280x800`, all views load correctly, components render properly.
@@ -2583,12 +2596,12 @@ While the UI works without these repositories (data flows through caches), these
     5. Tests: QML component tests, visual regression tests (optional)
   - Prompt: `project-dashboard/prompt/09-qml-ui-skeleton.md`  (When finished: mark this checklist item done.)
 
-- [ ] Alarm UI & animation prototypes (QML)
+- [ ] TASK-UI-005: Alarm UI & animation prototypes (QML)
   - What: Prototype critical alarm full-screen flash, per-card highlight, audio stubs, and Alarm History panel in QML.
   - Why: Visual design for alarms should be validated separately from backend logic.
   - Prompt: `project-dashboard/prompt/10-alarm-ui-prototypes.md`  (When finished: mark this checklist item done.)
 
-- [ ] DeviceSimulator and synthetic signal generation (Legacy Fallback)
+- [ ] TASK-TEST-011: DeviceSimulator and synthetic signal generation (Legacy Fallback)
   - What: Implement a test-only `DeviceSimulator` in infrastructure layer capable of generating vitals, ECG waveform samples, pleth waveform, and simulated events (arrhythmia, motion artifact) for UI demos. **Note:** This is legacy fallback. Primary sensor data source is `ISensorDataSource` with `SharedMemorySensorDataSource` implementation. DeviceSimulator implements `ISensorDataSource` interface.
   - Why: Provides deterministic input for UI, controller, and integration tests when external sensor simulator unavailable. Fallback ensures testing can continue without external dependencies.
   - Files: `z-monitor/src/infrastructure/sensors/DeviceSimulator.cpp/h` (implements ISensorDataSource), unit tests in `z-monitor/tests/unit/infrastructure/DeviceSimulatorTests.cpp`.
@@ -2601,7 +2614,7 @@ While the UI works without these repositories (data flows through caches), these
     5. Tests: Unit tests for signal generation, deterministic playback tests, event injection tests
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement WebSocketSensorDataSource (ISensorDataSource) - Optional Legacy
+- [ ] TASK-NET-001: Implement WebSocketSensorDataSource (ISensorDataSource) - Optional Legacy
   - What: **Note:** This is optional legacy adapter. Primary sensor data source is `SharedMemorySensorDataSource` (shared-memory ring buffer). WebSocket adapter may be deprecated. If implementing, create `WebSocketSensorDataSource` that implements `ISensorDataSource` and connects to `sensor-simulator` (`ws://localhost:9002`). Adapter should translate incoming JSON messages into vitals/waveform signals.
   - Why: Legacy fallback for WebSocket-based simulator. Shared memory is preferred (< 16 ms latency vs > 60 ms for WebSocket).
   - Files: `z-monitor/src/infrastructure/sensors/WebSocketSensorDataSource.cpp/h` (implements ISensorDataSource), unit tests.
@@ -2614,7 +2627,7 @@ While the UI works without these repositories (data flows through caches), these
     5. Tests: Unit tests for WebSocket connection, JSON parsing, signal emission
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
 
-- [ ] Add factory and configuration for selecting sensor data source implementation
+- [ ] TASK-INFRA-020: Add factory and configuration for selecting sensor data source implementation
   - What: Add `SensorDataSourceFactory::Create()` in infrastructure layer which returns appropriate `ISensorDataSource` implementation based on configuration: `SharedMemorySensorDataSource` (preferred, default), `DeviceSimulator` (fallback), `MockSensorDataSource` (testing), `WebSocketSensorDataSource` (optional legacy). Factory uses dependency injection pattern.
   - Why: Keeps Z Monitor code decoupled from sensor transport; simplifies CI and developer workflows. Factory pattern enables runtime selection of sensor data source.
   - Files: `z-monitor/src/infrastructure/sensors/SensorDataSourceFactory.cpp/h`, update `MonitoringService` to use factory.
@@ -2634,19 +2647,19 @@ While the UI works without these repositories (data flows through caches), these
   - Status: ✅ **COMPLETED** - Added real-time ECG waveform visualization with PQRST complex generation. Enhanced log console with filters, pause functionality, and improved styling. All features implemented and tested.
   - Prompt: `project-dashboard/prompt/11-device-simulator.md`  (When finished: mark this checklist item done.)
 
- - [ ] Integrate Sensor-simulator into top-level build
+ - [ ] TASK-INFRA-021: Integrate Sensor-simulator into top-level build
   - What: Ensure the top-level `CMakeLists.txt` adds `add_subdirectory(project-dashboard/sensor-simulator)` so the simulator builds with the repository and can be built in CI.
   - Why: Makes it easy to build the simulator in automation and to run smoke tests.
   - Acceptance: `cmake ..` at repo root configures the simulator target.
   - Prompt: `project-dashboard/prompt/21-e2e-containerized-harness.md`  (When finished: mark this checklist item done.)
 
- - [ ] Containerized acceptance tests for simulator
+ - [ ] TASK-TEST-012: Containerized acceptance tests for simulator
   - What: Add `docker-compose.simulator.yml` that runs `central-server-simulator` and the `sensor-simulator` (headless or with virtual display) to exercise basic scenarios.
   - Why: Enables repeatable E2E smoke tests in CI.
   - Acceptance: `docker-compose -f docker-compose.simulator.yml up --build` brings up server + simulator and runs a smoke script.
   - Prompt: `project-dashboard/prompt/21-e2e-containerized-harness.md`  (When finished: mark this checklist item done.)
 
-- [ ] Central server simulator (mTLS later)
+- [ ] TASK-NET-002: Central server simulator (mTLS later)
   - What: Create `project-dashboard/central-server-simulator/` with a simple REST endpoint `POST /api/v1/telemetry/vitals` that can accept JSON and returns ack. Implement toggles to simulate network failures and delays. Server simulates central telemetry server for local testing.
   - Why: Enables local end-to-end testing of networking flows without requiring production server infrastructure.
   - Note: Add optional `GET /api/v1/patients/{mrn}` endpoint for patient lookup to support `IPatientLookupService` integration. This endpoint should return patient demographics in JSON format (per REQ-INT-HIS-001).
@@ -2661,7 +2674,7 @@ While the UI works without these repositories (data flows through caches), these
     5. Tests: Server unit tests, integration tests with device, mTLS tests (when implemented)
   - Prompt: `project-dashboard/prompt/12-central-server-simulator.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement LogService with QML model binding (after async logging infrastructure)
+- [ ] TASK-MONITOR-001: Implement LogService with QML model binding (after async logging infrastructure)
   - What: After async logging infrastructure is complete, ensure `LogService` exposes in-memory buffer (last 1000 entries) to QML as QAbstractListModel for Diagnostics view. LogService uses `ILogBackend` interface and runs on Database I/O Thread.
   - Why: Diagnostics and logs are required for debugging and QA. Async architecture ensures logging doesn't block UI or real-time threads.
   - Files: `z-monitor/src/infrastructure/logging/LogService.cpp/h` (already refactored for async), ensure `diagnosticsModel()` method returns QAbstractListModel for QML.
@@ -2675,7 +2688,7 @@ While the UI works without these repositories (data flows through caches), these
     5. Tests: QML model tests, async behavior tests, Diagnostics View integration tests
   - Prompt: `project-dashboard/prompt/13-logservice-qml-model.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement AdmissionService with IPatientLookupService integration
+- [ ] TASK-APP-001: Implement AdmissionService with IPatientLookupService integration
   - What: Implement `AdmissionService` (lookup, admit, discharge, transfer) integrating `IPatientLookupService` & `IPatientRepository` (cache-first, fallback to remote). All public methods return `Result<T, Error>` and emit domain events (`PatientAdmitted`, `PatientDischarged`, `PatientTransferred`).
   - Why: Centralizes ADT workflow logic; enables patient assignment per `19_ADT_WORKFLOW.md`; supports caching & audit logging.
   - Files: `z-monitor/src/application/services/AdmissionService.cpp/h`, update `PatientController` to call new methods, extend `doc/19_ADT_WORKFLOW.md`.
@@ -2696,7 +2709,7 @@ While the UI works without these repositories (data flows through caches), these
     5. Tests: Unit tests (lookup/admit/discharge/transfer) pass
   - Prompt: `project-dashboard/prompt/13b-patient-lookup-integration.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement LocalPatientService (Development IPatientLookupService)
+- [ ] TASK-INFRA-022: Implement LocalPatientService (Development IPatientLookupService)
   - What: Development-only `LocalPatientService` implementing `IPatientLookupService` providing seeded patient roster, fuzzy name search, latency simulation & failure modes.
   - Why: Offline development & UI prototyping without HIS/EHR dependency.
   - Files: `src/infrastructure/patient/LocalPatientService.h/.cpp`, `schema/sample/patients_seed.sql`, doc update in `19_ADT_WORKFLOW.md` (Development Lookup section).
@@ -2704,7 +2717,7 @@ While the UI works without these repositories (data flows through caches), these
   - Verification Steps: Functional (lookups + latency), Code Quality (no magic values), Documentation (workflow doc section), Integration (Injected in dev mode), Tests (unit tests for MRN hit/miss, fuzzy search, failure simulation).
   - Prompt: `project-dashboard/prompt/13c-local-patient-service.md`
 
-- [ ] Add Development Mode Macro & CMake Option
+- [ ] TASK-INFRA-023: Add Development Mode Macro & CMake Option
   - What: Add `option(Z_MONITOR_DEV_MODE "Enable development mocks" ON)` and `add_compile_definitions(Z_MONITOR_DEV_MODE)`; guard mock injections.
   - Why: Prevent shipping dev-only adapters in production builds.
   - Files: Root `CMakeLists.txt`, `src/main.cpp`, docs (`22_CODE_ORGANIZATION.md`, `19_ADT_WORKFLOW.md`).
@@ -2712,7 +2725,7 @@ While the UI works without these repositories (data flows through caches), these
   - Verification Steps: Functional (injection changes), Code Quality (macro limited scope), Documentation (dev mode described), Integration (build matrix dev/prod), Tests (CI builds both modes).
   - Prompt: `project-dashboard/prompt/13d-dev-mode-macro.md`
 
-- [ ] Inject LocalPatientService & AdmissionService in main.cpp
+- [ ] TASK-INFRA-024: Inject LocalPatientService & AdmissionService in main.cpp
   - What: Construct & inject `LocalPatientService` (dev mode) and wire `AdmissionService` into `PatientController`.
   - Why: Enable admission workflow in development runtime.
   - Files: `src/main.cpp`, `PatientController.*`, update diagram in `02_ARCHITECTURE.md`.
@@ -2720,7 +2733,7 @@ While the UI works without these repositories (data flows through caches), these
   - Verification Steps: Functional (admit/discharge), Code Quality (Result handling), Documentation (architecture update), Integration (other controllers unaffected), Tests (integration test).
   - Prompt: `project-dashboard/prompt/13e-inject-local-patient-service.md`
 
-- [ ] Create ADT UI Components (AdmissionModal.qml & PatientBanner.qml)
+- [ ] TASK-UI-006: Create ADT UI Components (AdmissionModal.qml & PatientBanner.qml)
   - What: Implement modal & banner components with states (Admitted, Standby) and admission methods (Manual, Barcode mock, Central Station placeholder).
   - Why: UI realization of ADT workflow.
   - Files: `resources/qml/components/AdmissionModal.qml`, `PatientBanner.qml`, update `Main.qml`, `views/SettingsView.qml`.
@@ -2728,7 +2741,7 @@ While the UI works without these repositories (data flows through caches), these
   - Verification Steps: Functional (state transitions), Code Quality (QML lint, theme usage), Documentation (added doc section), Integration (no layout regressions), Tests (QML tests admission/discharge).
   - Prompt: `project-dashboard/prompt/13f-adt-ui-components.md`
 
-- [ ] Implement Barcode Scanning Abstraction (IAdmissionMethod + MockBarcodeScanner)
+- [ ] TASK-UI-007: Implement Barcode Scanning Abstraction (IAdmissionMethod + MockBarcodeScanner)
   - What: Strategy interface `IAdmissionMethod`; mock barcode scanner populates MRN via user click.
   - Why: Future real scanner swap minimal friction.
   - Files: `src/interface/adt/IAdmissionMethod.h`, `MockBarcodeScanner.h/.cpp`, QML integration.
@@ -2736,7 +2749,7 @@ While the UI works without these repositories (data flows through caches), these
   - Verification Steps: Functional (strategy swap), Code Quality (doc + no magic), Documentation (ADT method abstraction section), Integration (AdmissionModal uses interface), Tests (unit test for mock scanner).
   - Prompt: `project-dashboard/prompt/13g-barcode-abstraction.md`
 
-- [ ] Wire PatientController to AdmissionService & ADT UI
+- [ ] TASK-UI-008: Wire PatientController to AdmissionService & ADT UI
   - What: Add Q_INVOKABLEs (`admitByMrn`, `dischargeCurrent`, `simulateBarcodeScan`) & property updates; connect signals.
   - Why: Bridge UI ↔ application layer.
   - Files: `src/interface/controllers/PatientController.*`, QML bindings.
@@ -2744,7 +2757,7 @@ While the UI works without these repositories (data flows through caches), these
   - Verification Steps: Functional (methods), Code Quality (no blocking UI), Documentation (controller API update), Integration (imports intact), Tests (unit + QML).
   - Prompt: `project-dashboard/prompt/13h-wire-patient-controller-adt.md`
 
-- [ ] Implement ADT Workflow Tests (Unit + Integration + QML)
+- [ ] TASK-TEST-013: Implement ADT Workflow Tests (Unit + Integration + QML)
   - What: Unit (AdmissionService, LocalPatientService), integration (admit/discharge/transfer + action log), QML (modal states), negative cases.
   - Why: Ensure correctness & prevent regressions.
   - Files: `tests/unit/application/AdmissionServiceTest.cpp`, `tests/unit/infrastructure/LocalPatientServiceTest.cpp`, `tests/integration/AdtWorkflowTest.cpp`, QML test harness.
@@ -2752,7 +2765,7 @@ While the UI works without these repositories (data flows through caches), these
   - Verification Steps: Functional (scenario matrix), Code Quality (stable tests), Documentation (test plan in ADT doc), Integration (real repositories or temp DB), Tests (coverage report).
   - Prompt: `project-dashboard/prompt/13i-adt-workflow-tests.md`
 
-- [ ] Sample Patient Seed & Migration
+- [ ] TASK-DB-002: Sample Patient Seed & Migration
   - What: Dev-only patient seed script executed conditionally; idempotent insert.
   - Why: Consistent development dataset.
   - Files: `schema/sample/patients_seed.sql`, `scripts/migrate.py` conditional logic, doc update.
@@ -2760,7 +2773,7 @@ While the UI works without these repositories (data flows through caches), these
   - Verification Steps: Functional (seed presence), Code Quality (idempotent, no magic values), Documentation (seed process), Integration (migrations unaffected), Tests (integration checks when macro ON).
   - Prompt: `project-dashboard/prompt/13j-sample-patient-seed.md`
 
-- [ ] Update ADT Documentation & Architecture References
+- [ ] TASK-DOC-006: Update ADT Documentation & Architecture References
   - What: Expand `19_ADT_WORKFLOW.md` (development lookup, barcode strategy, UI states, dev mode) & update `02_ARCHITECTURE.md` data flow; add Mermaid diagram `adt_flow.mmd`.
   - Why: Keep documentation authoritative.
   - Files: Updated docs + new diagram.
@@ -2778,14 +2791,14 @@ While the UI works without these repositories (data flows through caches), these
   - Note: Security documentation has been enhanced with detailed authentication, session management, secure boot, tamper detection, and incident response procedures. See `doc/16_DOCUMENTATION_IMPROVEMENTS.md` for complete list of improvements.
   - Prompt: `project-dashboard/prompt/14-security-architecture-provisioning.md`  (When finished: mark this checklist item done.)
 
-- [ ] Add scripts for CA + cert generation (after infra agreed)
+- [ ] TASK-SEC-004: Add scripts for CA + cert generation (after infra agreed)
   - What: Create `scripts/generate-selfsigned-certs.sh` that generates CA, server, and client certs for local testing. Include instructions for converting to PKCS12 if needed.
   - Why: Provides reproducible certs for simulator and device tests. NOTE: create *after* the previous task is approved.
   - Files: `scripts/generate-selfsigned-certs.sh`, `central-server-simulator/certs/README.md`.
   - Note: Script should follow the step-by-step process documented in `doc/15_CERTIFICATE_PROVISIONING.md`. Include options for: CA creation, device certificate generation with device ID in SAN, certificate bundle creation, and PKCS12 export. Reference workflow diagrams in `doc/15_CERTIFICATE_PROVISIONING.mmd` for process flow.
   - Prompt: `project-dashboard/prompt/15-generate-selfsigned-certs-script.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement device provisioning and pairing system
+- [ ] TASK-SEC-005: Implement device provisioning and pairing system
   - What: Implement QR code-based device provisioning workflow to replace manual network configuration. Includes QR code generation, pairing code management, secure configuration push, and connection testing.
   - Why: Industry-standard approach for embedded medical devices eliminates manual certificate installation and reduces configuration errors. Provides secure, auditable device provisioning.
   - Files: `src/core/ProvisioningService.cpp/h`, `src/controllers/ProvisioningController.cpp/h`, update `SettingsView.qml` with provisioning UI, update `NetworkManager` for provisioned configuration.
@@ -2819,7 +2832,7 @@ While the UI works without these repositories (data flows through caches), these
   - Documentation: See `doc/17_DEVICE_PROVISIONING.md` for complete provisioning workflow specification.
   - Prompt: `project-dashboard/prompt/17-device-provisioning.md`  (When finished: mark this checklist item done.)
 
-- [ ] Create automated certificate provisioning script
+- [ ] TASK-SEC-001: Create automated certificate provisioning script
   - What: Create comprehensive automation script `scripts/provision-device-certificate.sh` that automates the complete certificate provisioning workflow for devices. Script should handle CA setup (if needed), device certificate generation, validation, and optionally installation/transfer to device.
   - Why: Automates the manual certificate provisioning process documented in `doc/15_CERTIFICATE_PROVISIONING.md`, reducing human error and ensuring consistent certificate generation across all devices.
   - Files: `scripts/provision-device-certificate.sh`, `scripts/cert-utils.sh` (helper functions), `scripts/cert-config.conf` (configuration template).
@@ -2845,14 +2858,14 @@ While the UI works without these repositories (data flows through caches), these
   - Tests: Unit tests for certificate generation, validation, device ID extraction. Integration tests for complete provisioning workflow. Verify certificates work with mTLS connections.
   - Prompt: `project-dashboard/prompt/15b-automated-certificate-provisioning.md`  (When finished: mark this checklist item done.)
 
-- [ ] mTLS integration spike for NetworkManager
+- [ ] TASK-SEC-002: mTLS integration spike for NetworkManager
   - What: Implement a small C++ example that configures `QSslConfiguration` with the generated client cert and validates handshake against the simulator using mutual auth.
   - Why: Confirms approach works on target platforms before full NetworkManager implementation.
   - Note: Must include certificate validation (expiration, revocation, device ID match), TLS 1.2+ enforcement, strong cipher suites, and basic security audit logging. See `doc/06_SECURITY.md` section 6 for comprehensive security requirements.
   - Note: Follow certificate provisioning steps in `doc/15_CERTIFICATE_PROVISIONING.md` to generate test certificates. Use workflow diagrams in `doc/15_CERTIFICATE_PROVISIONING.mmd` as reference for certificate lifecycle.
   - Prompt: `project-dashboard/prompt/16-mtls-integration-spike.md`  (When finished: mark this checklist item done.)
 
-- [ ] Implement comprehensive security for data transmission
+- [ ] TASK-SEC-003: Implement comprehensive security for data transmission
   - What: Implement full security architecture for telemetry and sensor data transmission including: certificate management and validation, digital signatures on payloads, timestamp/nonce for replay prevention, rate limiting, circuit breaker pattern, and security audit logging. Follow DDD structure - security adapters in infrastructure layer.
   - Why: Ensures secure, authenticated, and auditable transmission of sensitive patient data to central server. Per REQ-SEC-ENC-001, REQ-SEC-ENC-002, REQ-SEC-CERT-001, REQ-SEC-CERT-002, REQ-SEC-AUDIT-001, REQ-REG-HIPAA-001.
   - Files: `z-monitor/src/infrastructure/network/NetworkManager.cpp/h`, `z-monitor/src/infrastructure/security/CertificateManager.cpp/h`, `z-monitor/src/infrastructure/security/SignatureService.cpp/h`, `z-monitor/src/infrastructure/security/EncryptionService.cpp/h`, update `z-monitor/src/infrastructure/persistence/SQLiteAuditRepository.cpp/h` for security audit log storage.
@@ -2878,7 +2891,7 @@ While the UI works without these repositories (data flows through caches), these
 
 ## Database Encryption & Archival (dependent)
 
-- [ ] SQLCipher integration plan and build spike
+- [ ] TASK-DB-001: SQLCipher integration plan and build spike
   - What: Research how to add SQLCipher to the CMake build for macOS/Linux and add a spike that compiles and links SQLCipher for local runs. SQLCipher provides AES-256-CBC encryption for database at rest (per REQ-SEC-ENC-003, REQ-DATA-SEC-001, REQ-REG-HIPAA-001).
   - Why: Encryption-at-rest is mandatory for patient data. HIPAA requires encryption of PHI at rest. Device theft or unauthorized access must not expose patient data.
   - Files: Update `z-monitor/CMakeLists.txt` with SQLCipher find/configuration, create `z-monitor/cmake/FindSQLCipher.cmake`, update `z-monitor/src/infrastructure/persistence/DatabaseManager.cpp/h` to use SQLCipher.
@@ -2890,12 +2903,6 @@ While the UI works without these repositories (data flows through caches), these
     4. Integration: DatabaseManager uses SQLCipher, encryption transparent to repositories
     5. Tests: Encryption verification tests, performance tests, key management tests
   - Prompt: `project-dashboard/prompt/17-sqlcipher-integration-plan.md`  (When finished: mark this checklist item done.)
-
-- [ ] Implement Archiver interface and archiving tests
-  - What: Create `IArchiver` interface and tests that show moving rows older than 7 days to an `archived_vitals` table or external archive file. Add unit tests for retention policy enforcement.
-  - Why: Archival is required by requirements; must be testable and configurable.
-  - Prompt: `project-dashboard/prompt/18-implement-archiver-interface.md`  (When finished: mark this checklist item done.)
-
 
 
 ## Software Engineering Best Practices & Design Decisions
@@ -2944,7 +2951,7 @@ While the UI works without these repositories (data flows through caches), these
   - Documentation: See `doc/20_ERROR_HANDLING_STRATEGY.md` for complete error handling strategy, patterns, error codes, recovery strategies, and layer-specific guidelines.
   - Prompt: `project-dashboard/prompt/20-error-handling-implementation.md`  (When finished: mark this checklist item done.)
 
-- [ ] Review and implement Logging Strategy
+- [ ] TASK-DOC-007: Review and implement Logging Strategy
   - What: Implement structured logging following `doc/21_LOGGING_STRATEGY.md` and `doc/43_ASYNC_LOGGING_ARCHITECTURE.md`, including log levels, structured context, log rotation, and async non-blocking architecture. This task focuses on structured logging features (context, categories, levels) on top of the async infrastructure.
   - Why: Provides comprehensive, searchable logging with appropriate performance characteristics for real-time systems. Builds on async logging infrastructure.
   - Files: Update `src/infrastructure/logging/LogService.cpp/h` (already refactored for async), add structured context support, implement category filtering, add log level filtering.
@@ -2954,7 +2961,7 @@ While the UI works without these repositories (data flows through caches), these
   - Documentation: See `doc/21_LOGGING_STRATEGY.md` for logging strategy and `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` for async architecture.
   - Prompt: `project-dashboard/prompt/21-logging-strategy-implementation.md`  (When finished: mark this checklist item done.)
 
-- [ ] Review and implement Code Organization
+- [ ] TASK-MAINT-001: Review and implement Code Organization
   - What: Organize code following `doc/22_CODE_ORGANIZATION.md`, including directory structure, namespace conventions, module boundaries, and dependency rules.
   - Why: Ensures maintainable, scalable codebase with clear module boundaries and dependencies.
   - Files: Reorganize source files if needed, add namespaces, update includes, verify module boundaries.
@@ -2962,7 +2969,7 @@ While the UI works without these repositories (data flows through caches), these
   - Tests: Build system tests, dependency analysis tests.
   - Prompt: `project-dashboard/prompt/22-code-organization-review.md`  (When finished: mark this checklist item done.)
 
-- [ ] Review and implement Memory & Resource Management
+- [ ] TASK-MAINT-002: Review and implement Memory & Resource Management
   - What: Implement memory management following `doc/23_MEMORY_RESOURCE_MANAGEMENT.md`, including smart pointers, RAII, pre-allocation, and resource cleanup.
   - Why: Prevents memory leaks, ensures predictable performance, and manages resources correctly.
   - Files: Update all classes to use smart pointers, implement RAII for resources, pre-allocate buffers for real-time operations, add resource cleanup.
@@ -2970,7 +2977,7 @@ While the UI works without these repositories (data flows through caches), these
   - Tests: Memory leak tests, resource cleanup tests, performance tests.
   - Prompt: `project-dashboard/prompt/23-memory-management-review.md`  (When finished: mark this checklist item done.)
 
-- [ ] Review and implement Configuration Management
+- [ ] TASK-CONFIG-001: Review and implement Configuration Management
   - What: Implement configuration management following `doc/24_CONFIGURATION_MANAGEMENT.md`, including validation, defaults, migration, and audit logging.
   - Why: Ensures type-safe, validated configuration with proper defaults and migration support.
   - Files: Update `src/core/SettingsManager.cpp/h`, implement validation, add configuration migration, implement audit logging.
@@ -2978,7 +2985,7 @@ While the UI works without these repositories (data flows through caches), these
   - Tests: Configuration validation tests, migration tests, audit logging tests.
   - Prompt: `project-dashboard/prompt/24-configuration-management-implementation.md`  (When finished: mark this checklist item done.)
 
-- [ ] Review and implement API Versioning
+- [ ] TASK-CONFIG-002: Review and implement API Versioning
   - What: Implement API versioning following `doc/25_API_VERSIONING.md`, including version negotiation, backward compatibility, and migration support.
   - Why: Enables API evolution while maintaining compatibility with existing clients.
   - Files: Update `src/core/NetworkManager.cpp/h`, implement version negotiation, add API version detection, implement migration logic.
@@ -2988,7 +2995,7 @@ While the UI works without these repositories (data flows through caches), these
 
 ## Documentation, Compliance & Diagrams
 
-- [ ] Set up API documentation generation with Doxygen
+- [ ] TASK-DOC-008: Set up API documentation generation with Doxygen
   - What: Configure Doxygen to generate API documentation from source code comments. Create Doxyfile configuration, establish comment style guidelines, integrate with CMake build system, and set up documentation generation workflow.
   - Why: Ensures API documentation stays synchronized with codebase and provides comprehensive reference for developers. Auto-generated documentation reduces maintenance burden and ensures consistency.
   - Files: Create `project-dashboard/Doxyfile`, update `CMakeLists.txt` with Doxygen target, create `doc/26_API_DOCUMENTATION.md` with guidelines, add documentation comments to all public APIs.
@@ -3025,7 +3032,7 @@ While the UI works without these repositories (data flows through caches), these
   - Documentation: See `doc/26_API_DOCUMENTATION.md` for complete API documentation strategy. See `scripts/README_DOXYGEN.md` for workflow details.
   - Prompt: `project-dashboard/prompt/26-api-documentation-setup.md`  (When finished: mark this checklist item done.)
 
-- [ ] Document all public APIs with Doxygen comments
+- [ ] TASK-DOC-009: Document all public APIs with Doxygen comments
   - What: Add comprehensive Doxygen comments to all public classes, methods, properties, and enums. Ensure 100% coverage of public APIs. Include examples, cross-references, and usage notes.
   - Why: Complete API documentation enables developers to understand and use the API effectively. Examples and cross-references improve usability.
   - Files: Update all header files in `src/core/`, `src/controllers/`, `src/interfaces/`, `src/models/` with Doxygen comments.
@@ -3041,7 +3048,7 @@ While the UI works without these repositories (data flows through caches), these
   - Tests: Run Doxygen and verify no warnings for undocumented public APIs, verify examples compile, check cross-references.
   - Prompt: `project-dashboard/prompt/27-api-documentation-comments.md`  (When finished: mark this checklist item done.)
 
-- [ ] Maintain System Components Reference (doc/29_SYSTEM_COMPONENTS.md)
+- [ ] TASK-DOC-010: Maintain System Components Reference (doc/29_SYSTEM_COMPONENTS.md)
   - What: Keep `doc/29_SYSTEM_COMPONENTS.md` synchronized with the codebase. When adding/removing/refactoring components, update the component inventory, interaction diagram, and component count.
   - Why: Provides a single authoritative source of truth for all system components (115 total across all layers per `doc/12_THREAD_MODEL.md`). Prevents discrepancies between documentation and implementation.
   - Files: `doc/29_SYSTEM_COMPONENTS.md`, `doc/29_SYSTEM_COMPONENTS.mmd`, `doc/29_SYSTEM_COMPONENTS.svg`, related architecture/design docs.
@@ -3065,7 +3072,7 @@ While the UI works without these repositories (data flows through caches), these
     5. Tests: Manual verification or script to compare doc vs. codebase
   - Prompt: `project-dashboard/prompt/29-maintain-component-reference.md`  (When finished: mark this checklist item done.)
 
-- [ ] Maintain Thread Model (doc/12_THREAD_MODEL.md)
+- [ ] TASK-DOC-011: Maintain Thread Model (doc/12_THREAD_MODEL.md)
   - What: Keep `doc/12_THREAD_MODEL.md` synchronized with system components and thread assignments. When adding/removing components or changing thread topology, update the service-to-thread mapping, thread diagrams, and component counts per thread.
   - Why: Ensures all 115 components are correctly assigned to threads. Prevents ambiguity about which thread a service runs on. Critical for performance optimization and debugging. Thread model defines latency targets (REQ-NFR-PERF-100: < 50ms alarm detection).
   - Files: `doc/12_THREAD_MODEL.md`, `doc/12_THREAD_MODEL.mmd`, `doc/12_THREAD_MODEL.svg`, `doc/29_SYSTEM_COMPONENTS.md`.
@@ -3091,49 +3098,49 @@ While the UI works without these repositories (data flows through caches), these
     5. Tests: Performance tests validate latency targets (REQ-NFR-PERF-100)
   - Prompt: `project-dashboard/prompt/12-maintain-thread-model.md`  (When finished: mark this checklist item done.)
 
-- [ ] Update `doc/10_DATABASE_DESIGN.md` and add ERD
+- [ ] TASK-DOC-012: Update `doc/10_DATABASE_DESIGN.md` and add ERD
   - What: Consolidate the extended DDL into `doc/10_DATABASE_DESIGN.md`, include ERD and index rationale, and retention/archival notes.
   - Prompt: `project-dashboard/prompt/22-update-db-design-erd.md`  (When finished: mark this checklist item done.)
 
-- [ ] Produce API docs: OpenAPI + proto docs
+- [ ] TASK-DOC-013: Produce API docs: OpenAPI + proto docs
   - What: Finalize `openapi/telemetry.yaml` and ensure codegen steps are documented in `doc/`. Add `doc/api/README.md` describing mapping between proto and JSON.
   - Prompt: `project-dashboard/prompt/23-produce-api-docs.md`  (When finished: mark this checklist item done.)
 
-- [ ] Create SRS and V&V outlines
+- [ ] TASK-REG-001: Create SRS and V&V outlines
   - What: Add `doc/SRS.md` (feature list, acceptance criteria) and `doc/VVPlan.md` for verification and validation testing; include list of safety-critical tests.
   - Prompt: `project-dashboard/prompt/24-srs-vvplan.md`  (When finished: mark this checklist item done.)
 
-- [ ] Create threat model summary and FMEA sketch
+- [ ] TASK-SEC-006: Create threat model summary and FMEA sketch
   - What: Draft `doc/threat_model.md` and `doc/FMEA.md` focusing on data confidentiality (at-rest/in-transit), certificate compromise, tampering, and mitigations.
   - Prompt: `project-dashboard/prompt/25-threatmodel-fmea.md`  (When finished: mark this checklist item done.)
 
 
 ## UX & Clinical Validation
 
-- [ ] Perform UI walkthrough and polish
+- [ ] TASK-UI-009: Perform UI walkthrough and polish
   - What: Iterate on the QML layout for `1280x800`, validate readability of stat cards, colors, and alarm indicators with clinical stakeholders.
   - Prompt: `project-dashboard/prompt/26-ui-walkthrough-i18n.md`  (When finished: mark this checklist item done.)
 
-- [ ] Add translation skeletons and i18n check
+- [ ] TASK-I18N-001: Add translation skeletons and i18n check
   - What: Ensure all strings use `qsTr()` and add `i18n/en_US.ts`, `i18n/es_ES.ts` placeholders. Add a script to extract strings and compile `.qm` files.
 
 
 ## Optional Spikes and Performance
 
-- [ ] DI container spike (optional)
+- [ ] TASK-INFRA-025: DI container spike (optional)
   - What: Evaluate `Boost.DI` and simple manual DI patterns; create `doc/13_DEPENDENCY_INJECTION.md` with recommendation. Implement a tiny `AppContainer` prototype if desired.
   - Prompt: `project-dashboard/prompt/27-di-spike-proto-size-spikes.md`  (When finished: mark this checklist item done.)
 
-- [ ] Proto size & nanopb spike for embedded targets
+- [ ] TASK-DEPLOY-001: Proto size & nanopb spike for embedded targets
   - What: Generate nanopb or protobuf-lite builds to measure code size and runtime cost on target. Document tradeoffs in `doc/14_PROTOCOL_BUFFERS.md`.
 
 
 ## Release & Packaging
 
-- [ ] Final multi-stage Dockerfile and runtime optimization
+- [ ] TASK-DEPLOY-002: Final multi-stage Dockerfile and runtime optimization
   - What: Create builder and runtime stages using `qtapp-qt-dev-env:latest` and `qtapp-qt-runtime-nano:latest`. Ensure final image copies only runtime artifacts.
 
-- [ ] Packaging and install target
+- [ ] TASK-PUBLISH-001: Packaging and install target
   - What: Confirm `CMakeLists.txt` installs executable to `/opt/lesson##/` (or `/opt/project-dashboard/`) and create `release/README.md` with run instructions for macOS and Linux.
 
 
@@ -3165,7 +3172,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
 
 **Remaining Interface Docs to Create:**
 
-- [ ] `doc/interfaces/IDatabaseManager.md`
+- [ ] TASK-DOC-014: `doc/interfaces/IDatabaseManager.md`
   - Purpose: Persistent storage and schema migrations for vitals, events, alarms, settings and users. Must support encrypted DB (SQLCipher) and an in-memory mode for tests.
   - Responsibilities:
     - Open/close database with optional encryption key.
@@ -3187,7 +3194,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Example code path: UI requests 1-hour trend -> `TrendsController::RequestTrend(metric, range)` -> calls `IDatabaseManager::QueryVitals(range)` -> data returned to QML (via `TrendsController` signal).
   - Tests to write: open/close, enqueue insert under concurrent producers, migration application order, archive operation correctness, encrypted DB open/close (smoke)
 
-- [ ] `doc/interfaces/INetworkManager.md`
+- [ ] TASK-DOC-015: `doc/interfaces/INetworkManager.md`
   - Purpose: Reliable, authenticated transport to central server; manages connection state and telemetry batching. **Note:** NetworkManager is an infrastructure adapter that uses `ITelemetryServer` interface. Consider documenting NetworkManager as implementation detail rather than separate interface.
   - Responsibilities:
     - Configure TLS/mTLS credentials from `resources/certs/`.
@@ -3210,7 +3217,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: configurable failures, backoff timing behavior, SSL config validation, acknowledgment handling, server URL configuration, mock server integration, certificate validation, signature verification, replay prevention, rate limiting, audit logging.
   - Note: `ITelemetryServer` interface documentation exists at `doc/z-monitor/architecture_and_design/45_ITELEMETRY_SERVER.md`. See `doc/06_SECURITY.md` section 6 for comprehensive security architecture.
 
-- [ ] `doc/z-monitor/architecture_and_design/45_ITELEMETRY_SERVER.md`
+- [ ] TASK-DOC-016: `doc/z-monitor/architecture_and_design/45_ITELEMETRY_SERVER.md`
   - Purpose: Interface for sending telemetry data and sensor data to a central monitoring server. Abstracts server communication to support multiple implementations (production, mock, file-based).
   - Responsibilities:
     - Send telemetry data batches to the server
@@ -3228,7 +3235,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: connection management, telemetry/sensor data transmission, error handling, mock server behavior, server URL configuration.
   - Note: Interface documentation exists at `doc/z-monitor/architecture_and_design/45_ITELEMETRY_SERVER.md`.
 
-- [ ] `doc/interfaces/IAlarmManager.md`
+- [ ] TASK-DOC-017: `doc/interfaces/IAlarmManager.md`
   - Purpose: Centralized alarm evaluation, escalation, history and acknowledgment logic.
   - Responsibilities:
     - Accept alarm events (from analyzers or thresholds), deduplicate, prioritize, and emit signals for UI and logging.
@@ -3244,7 +3251,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Example code path: ECG analyzer detects arrhythmia -> `IAlarmManager::RaiseAlarm()` -> emits `OnAlarmRaised` -> `AlarmController` highlights card and triggers audible tone.
   - Tests to write: priority ordering, silence behavior, acknowledgement persistence, history correctness.
 
-- [ ] `doc/interfaces/IDeviceSimulator.md`
+- [ ] TASK-DOC-018: `doc/interfaces/IDeviceSimulator.md`
   - Purpose: **Note:** DeviceSimulator is legacy fallback. Primary sensor data source is `ISensorDataSource` interface with `SharedMemorySensorDataSource` implementation. DeviceSimulator may be deprecated in favor of external sensor simulator. Document if keeping as fallback.
   - Responsibilities:
     - Generate vitals streams (ECG, pleth), and inject events (arrhythmia, motion artifact) on schedule or via API.
@@ -3259,7 +3266,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: deterministic playback matches expected triggers, event injection causes expected alarms.
   - Note: See `doc/interfaces/ISensorDataSource.md` for primary sensor data source interface. DeviceSimulator is infrastructure adapter implementing ISensorDataSource.
 
-- [ ] `doc/interfaces/IPatientLookupService.md`
+- [ ] TASK-DOC-019: `doc/interfaces/IPatientLookupService.md`
   - Purpose: Interface for looking up patient information from external systems (HIS/EHR) by patient ID.
   - Responsibilities:
     - Query external patient information systems by patient ID (or MRN)
@@ -3275,7 +3282,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: synchronous/asynchronous lookups, error handling, concurrent lookups, integration with PatientManager.
   - Note: Interface documentation exists at `doc/interfaces/IPatientLookupService.md`.
 
-- [ ] `doc/interfaces/ISettingsManager.md`
+- [ ] TASK-DOC-020: `doc/interfaces/ISettingsManager.md`
   - Purpose: Persistent configuration store for device settings and thresholds. **Note:** SettingsManager is infrastructure adapter (Qt-specific). Consider if interface abstraction needed or if SettingsManager can be used directly.
   - Responsibilities:
     - Read/write typed settings, validation, defaulting, and notification of changes.
@@ -3294,7 +3301,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Note: `bedId` has been removed - bed location is part of Patient object managed through ADT workflow.
   - Tests to write: validation rules, persistence, migration of settings schema, device configuration persistence.
 
-- [ ] `doc/interfaces/IAuthenticationService.md`
+- [ ] TASK-DOC-021: `doc/interfaces/IAuthenticationService.md`
   - Purpose: **Note:** Authentication is handled by `SecurityService` (application layer) which uses `IUserManagementService` interface. Hospital user authentication replaces local PIN-based auth. Document SecurityService API instead of separate IAuthenticationService interface.
   - Responsibilities:
     - Authenticate users via `IUserManagementService` (hospital server or mock), maintain current session, enforce lockout policies, provide role checks.
@@ -3319,7 +3326,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: correct/incorrect credentials, lockout behavior, permission checks, session timeout.
   - Note: See `doc/38_AUTHENTICATION_WORKFLOW.md` for complete authentication workflow and `doc/interfaces/IUserManagementService.md` for hospital authentication interface.
 
-- [ ] `doc/interfaces/IArchiver.md`
+- [ ] TASK-DOC-022: `doc/interfaces/IArchiver.md`
   - Purpose: Responsible for moving expired data out of the primary DB into compressed archive stores and/or remote upload staging.
   - Responsibilities:
     - Batch archival jobs, create archive packages (proto or compressed sqlite), optionally upload to server and remove local rows.
@@ -3330,7 +3337,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual Result PurgeArchived(TimeRange r) = 0;`
   - Tests to write: archive creation correctness, safe purge, resume/retry behavior on failures.
 
-- [ ] `doc/interfaces/ILogService.md`
+- [ ] TASK-DOC-023: `doc/interfaces/ILogService.md`
   - Purpose: Centralized logging with async non-blocking architecture. LogService runs on Database I/O Thread and uses `ILogBackend` interface for backend abstraction. Exposes in-memory buffer (last 1000 entries) to QML Diagnostics view.
   - Responsibilities:
     - Append logs with levels, timestamps, and structured context; async non-blocking (< 1μs per call).
@@ -3345,7 +3352,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests: ensure log ordering, level filtering, async behavior (< 1μs latency), queue overflow handling, model bindings to QML.
   - Note: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` for complete async logging architecture.
 
-- [ ] `doc/interfaces/Controllers.md`
+- [ ] TASK-DOC-024: `doc/interfaces/Controllers.md`
   - Purpose: Document each QML-facing controller in interface layer and the properties/methods they expose. Controllers bridge QML to application services following DDD interface layer pattern.
   - For each controller include:
     - `DashboardController` — properties: `heartRate`, `spo2`, `respirationRate`, `ecgWaveformModel`, `plethWaveformModel`; methods: `StartMonitoring()`, `StopMonitoring()`, `RequestTrend(range)`.
@@ -3370,7 +3377,7 @@ Action notes:
 
 ---
 
-- [ ] Complete Phase 6 remaining test compilation issues (blocked by missing features)
+- [ ] TASK-TEST-014: Complete Phase 6 remaining test compilation issues (blocked by missing features)
   - What: Fix remaining test compilation errors in Phase 6 that are blocked by missing API features. Primary issues:
     - Tests using `Result<T>::valueOr()` method (doesn't exist yet - needs implementation in Result.h)
     - Tests using `CircuitBreaker::execute()` method (CircuitBreaker class not implemented yet)
@@ -3427,7 +3434,9 @@ If you'd like, I can now:
 
 These documents should live under `doc/interfaces/` and include an interface overview, responsibilities, threading model, lifecycle/ownership rules, public method signatures (C++ style), error semantics, example code paths and sequence diagrams (where helpful), and a list of unit/integration tests the implementation must satisfy.
 
-- [ ] 1. `doc/interfaces/IDatabaseManager.md`
+**Note:** See TASK-DOC-014 through TASK-DOC-025 for individual interface documentation tasks below.
+
+### TASK-DOC-014: IDatabaseManager Interface Documentation
   - Purpose: Persistent storage and schema migrations for vitals, events, alarms, settings and users. Must support encrypted DB (SQLCipher) and an in-memory mode for tests.
   - Responsibilities:
     - Open/close database with optional encryption key.
@@ -3449,7 +3458,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Example code path: UI requests 1-hour trend -> `TrendsController::RequestTrend(metric, range)` -> calls `IDatabaseManager::QueryVitals(range)` -> data returned to QML (via `TrendsController` signal).
   - Tests to write: open/close, enqueue insert under concurrent producers, migration application order, archive operation correctness, encrypted DB open/close (smoke)
 
-- [ ] 1. `doc/interfaces/INetworkManager.md`
+### TASK-DOC-015: INetworkManager Interface Documentation
   - Purpose: Reliable, authenticated transport to central server; manages connection state and telemetry batching.
   - Responsibilities:
     - Configure TLS/mTLS credentials from `resources/certs/`.
@@ -3470,7 +3479,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Example code path: `DeviceSimulator` emits vitals -> `DashboardController` enqueues to `IDatabaseManager` and asks `INetworkManager` to send batched telemetry via `ITelemetryServer`; on failure, `INetworkManager` persists unsent batches to disk via `IDatabaseManager` archival queue.
   - Tests to write: configurable failures, backoff timing behavior, SSL config validation, acknowledgment handling, server URL configuration, mock server integration.
 
-- [ ] 1. `doc/z-monitor/architecture_and_design/45_ITELEMETRY_SERVER.md`
+### TASK-DOC-016: ITelemetryServer Interface Documentation
   - Purpose: Interface for sending telemetry data and sensor data to a central monitoring server. Abstracts server communication to support multiple implementations (production, mock, file-based).
   - Responsibilities:
     - Send telemetry data batches to the server
@@ -3488,7 +3497,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: connection management, telemetry/sensor data transmission, error handling, mock server behavior, server URL configuration.
   - Note: Interface documentation exists at `doc/z-monitor/architecture_and_design/45_ITELEMETRY_SERVER.md`.
 
-- [ ] 1. `doc/interfaces/IAlarmManager.md`
+### TASK-DOC-017: IAlarmManager Interface Documentation
   - Purpose: Centralized alarm evaluation, escalation, history and acknowledgment logic.
   - Responsibilities:
     - Accept alarm events (from analyzers or thresholds), deduplicate, prioritize, and emit signals for UI and logging.
@@ -3504,7 +3513,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Example code path: ECG analyzer detects arrhythmia -> `IAlarmManager::RaiseAlarm()` -> emits `OnAlarmRaised` -> `AlarmController` highlights card and triggers audible tone.
   - Tests to write: priority ordering, silence behavior, acknowledgement persistence, history correctness.
 
-- [ ] 1. `doc/interfaces/IDeviceSimulator.md`
+### TASK-DOC-018: IDeviceSimulator Interface Documentation
   - Purpose: Deterministic or pseudo-random signal generator used for UI demos and tests.
   - Responsibilities:
     - Generate vitals streams (ECG, pleth), and inject events (arrhythmia, motion artifact) on schedule or via API.
@@ -3518,7 +3527,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Example code path: tests subscribe to `OnVitalsSample`, verify values drive `AlarmManager` logic.
   - Tests to write: deterministic playback matches expected triggers, event injection causes expected alarms.
 
-- [ ] 1. `doc/interfaces/ISettingsManager.md`
+### TASK-DOC-020: ISettingsManager Interface Documentation
   - Purpose: Persistent configuration store for device settings and thresholds.
   - Responsibilities:
     - Read/write typed settings, validation, defaulting, and notification of changes.
@@ -3534,7 +3543,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `measurementUnit`: Measurement system preference ("metric" or "imperial")
   - Tests to write: validation rules, persistence, migration of settings schema, device configuration persistence.
 
-- [ ] 1. `doc/interfaces/IAuthenticationService.md`
+### TASK-DOC-021: IAuthenticationService Interface Documentation
   - Purpose: PIN-based local authentication and role enforcement for UI actions.
   - Responsibilities:
     - Authenticate users (PIN), maintain current session, enforce simple lockout policies, provide role checks.
@@ -3551,7 +3560,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Security notes: PINs must be stored hashed + salted; consider hardware-backed key storage on target platforms; rate-limit attempts to mitigate brute force.
   - Tests to write: correct/incorrect PIN, lockout behavior, role checks.
 
-- [ ] 1. `doc/interfaces/IArchiver.md`
+### TASK-DOC-022: IArchiver Interface Documentation
   - Purpose: Responsible for moving expired data out of the primary DB into compressed archive stores and/or remote upload staging.
   - Responsibilities:
     - Batch archival jobs, create archive packages (proto or compressed sqlite), optionally upload to server and remove local rows.
@@ -3562,7 +3571,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual Result PurgeArchived(TimeRange r) = 0;`
   - Tests to write: archive creation correctness, safe purge, resume/retry behavior on failures.
 
-- [ ] 1. `doc/interfaces/ILogService.md`
+### TASK-DOC-023: ILogService Interface Documentation
   - Purpose: Centralized logging with a QAbstractListModel to expose log records to QML Diagnostics view.
   - Responsibilities:
     - Append logs with levels and timestamps; allow querying and tailing.
@@ -3571,7 +3580,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual QAbstractListModel* AsQmlModel() = 0;`
   - Tests: ensure log ordering, level filtering, model bindings to QML.
 
-- [ ] 1. `doc/interfaces/Controllers.md`
+### TASK-DOC-024: Controllers Documentation
   - Purpose: Document each QML-facing controller and the properties/methods they expose.
   - For each controller include:
     - `DashboardController` — properties: `heartRate`, `spo2`, `ecgWaveformModel`; methods: `StartMonitoring()`, `StopMonitoring()`, `RequestTrend(range)`.
@@ -3810,7 +3819,7 @@ These tasks address critical UI issues preventing data visualization and proper 
     - Verify QML property bindings are correct (use `property: controller.property` syntax)
     - Check console for QML binding warnings or errors
 
-- [ ] Move database migrations out of QRC or create in-memory fake storage abstraction
+- [ ] TASK-DB-003: Move database migrations out of QRC or create in-memory fake storage abstraction
   - What: Currently, database migration SQL files are stored in `schema/schema.qrc` and loaded via QRC resources. This can cause issues with database initialization and makes it harder to test. Either:
     1. Move migration files out of QRC to a regular directory (e.g., `schema/migrations/`) and load them via file system paths, OR
     2. Create an `IDatabaseStorage` abstraction interface and implement an `InMemoryFakeDatabaseStorage` class that implements the same interface as `DatabaseManager` but uses in-memory storage (no file I/O, no migrations). This allows Z Monitor to run without database files for testing/demos.
@@ -3849,7 +3858,7 @@ These tasks address critical UI issues preventing data visualization and proper 
 
 ## ZTODO (Low Priority)
 
-- [ ] Investigate `QCoreApplication::quit()` not exiting the app reliably
+- [ ] TASK-INFRA-026: Investigate `QCoreApplication::quit()` not exiting the app reliably
   - What: In `project-dashboard/sensor-simulator/Simulator.cpp` we observed cases where calling `QCoreApplication::quit()` did not terminate the process inside the container. A temporary fallback (`std::exit(0)`) was added to `Simulator::quitApp()` to guarantee container termination.
   - Why: This is likely due to threads or blocking operations preventing the Qt event loop from exiting, or cleanup tasks stalling. Investigate thread lifecycles, pending timers, and long-running blocking work that might keep the event loop alive. Once resolved, remove the `std::exit(0)` fallback and ensure graceful shutdown and proper resource cleanup.
   - Priority: Low — leave for later investigation after higher-priority tasks are completed.
@@ -3860,7 +3869,7 @@ These tasks address critical UI issues preventing data visualization and proper 
   - Why: Improves readability and usability during demos and manual testing.
   - Acceptance: The simulator UI lists up to 50 most-recent messages and is easier to read; README updated to note the change.
 
-- [ ] Create UI/UX mockups for all views
+- [ ] TASK-UI-010: Create UI/UX mockups for all views
   - What: Create detailed UI mockups for all views (Dashboard, Patient Admission, Settings, Trends, etc.) to guide implementation and ensure consistent design.
   - Why: Mockups help visualize the user experience before implementation and ensure design consistency across views. Currently UI/UX documentation is text-based (80% ready).
   - Priority: Low — Backend is ready for implementation; mockups would help but are not blocking.
@@ -3868,7 +3877,7 @@ These tasks address critical UI issues preventing data visualization and proper 
   - Acceptance: All major views have mockups (wireframes or high-fidelity), mockups are referenced in UI/UX guide, design patterns are consistent.
   - Source: From [35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md](./doc/z-monitor/architecture_and_design/35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md) - Non-blocking remaining work.
 
-- [ ] Create Risk Management File (IEC 62304 compliance)
+- [ ] TASK-REG-002: Create Risk Management File (IEC 62304 compliance)
   - What: Create formal Risk Management File documenting hazards, risks, mitigations, and risk controls for regulatory compliance (IEC 62304).
   - Why: Required for full IEC 62304 compliance and medical device regulatory submission. Currently at 88% IEC 62304 coverage.
   - Priority: Low — Not blocking implementation, but required for regulatory submission.
@@ -3877,7 +3886,7 @@ These tasks address critical UI issues preventing data visualization and proper 
   - Estimate: 8-10 hours (significant effort).
   - Source: From [35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md](./doc/z-monitor/architecture_and_design/35_REQUIREMENTS_ARCHITECTURE_ANALYSIS.md) - Remaining high priority item.
 
-- [ ] Create IAdmissionService interface documentation
+- [ ] TASK-DOC-025: Create IAdmissionService interface documentation
   - What: Create detailed interface documentation for `IAdmissionService` (patient admission/discharge/transfer operations) following the pattern of other interface docs.
   - Why: Completes the interface documentation set. Currently at 80% interface documentation coverage (4/5 interfaces documented).
   - Priority: Low — Can use `AdmissionService` directly; interface abstraction is helpful but not critical.
