@@ -16,11 +16,15 @@
 **ALL ZTODO ITEMS MUST BE VERIFIED BEFORE MARKING COMPLETE.**
 
 - **Rule:** Every task must include verification steps and be verified before completion
-- **Guideline:** See `.cursor/rules/ztodo_verification.mdc` for complete verification workflow
-- **Categories:** Functional, Code Quality, Documentation, Integration, Tests
+- **Guideline:** See `.github/ztodo_verification.md` for complete verification workflow
+- **Categories:** Functional, Code Quality, Documentation, Integration, Tests, Performance, QML (if applicable)
 - **Enforcement:** Tasks cannot be marked complete without passing all verification steps
+- **Build Verification:** ALL tasks that create/modify files MUST run `./scripts/verify-build.sh <files...>` to verify affected targets build
+- **Status Tracking:** Update verification status in task using ✅ markers (e.g., "1. Functional: ✅ Verified - details")
 
 **Verification is not optional - it is a required part of every task completion.**
+
+**📋 Before starting ANY task, read `.github/ztodo_verification.md` to understand ALL verification requirements.**
 
 ---
 

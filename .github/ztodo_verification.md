@@ -42,6 +42,40 @@ Before marking a ZTODO item as complete, perform ALL verification steps:
 3. **Documentation Verification** - Is documentation updated?
 4. **Integration Verification** - Does it integrate correctly?
 5. **Test Verification** - Do all tests pass?
+6. **Performance Verification** - Does it meet performance requirements?
+7. **QML Verification** - (If applicable) Does QML code meet standards?
+
+### 4. Verification Status Tracking
+
+As you complete each verification step, update the task in ZTODO.md:
+
+```markdown
+- Verification Steps:
+  1. Functional: ✅ Verified - All requirements met, edge cases handled
+  2. Code Quality: ✅ Verified - No warnings, Doxygen complete, builds clean
+  3. Documentation: ✅ Verified - Design docs updated, cross-refs validated
+  4. Integration: ✅ Verified - All tests pass, no breaking changes
+  5. Tests: ✅ Verified - 85% coverage, regression tests pass
+  6. Performance: ✅ Verified - < 50ms latency, no regressions
+```
+
+This provides visibility into what has been verified and what remains.
+
+### 5. Rollback Plan
+
+Before implementing, prepare a rollback plan:
+
+1. **Commit baseline** - Ensure clean git state before starting
+2. **Document changes** - List all files modified/created
+3. **If verification fails:**
+   - Revert changes: `git checkout -- <files>` or `git reset --hard HEAD`
+   - Document failure reason
+   - Create issue for future fix
+   - Do NOT mark task complete
+4. **If partial completion:**
+   - Keep working changes in separate branch
+   - Document what works vs. what doesn't
+   - Update task status to reflect partial completion
 
 ## Verification Categories
 
@@ -74,14 +108,17 @@ Before marking a ZTODO item as complete, perform ALL verification steps:
 
 **What to Verify:**
 - ✅ Code follows style guidelines
-- ✅ No linter errors
-- ✅ No compiler warnings
+- ✅ No linter errors (`clang-format`, `clang-tidy`, `qmllint` for QML)
+- ✅ No compiler warnings (-Wall -Wextra -Werror)
 - ✅ Code is properly documented (Doxygen comments)
-- ✅ Follows architecture patterns
-- ✅ No memory leaks
-- ✅ No security vulnerabilities
-- ✅ **Affected targets build successfully** (NEW)
-- ✅ **Dependent targets build successfully** (NEW)
+- ✅ Follows architecture patterns (DDD layers respected)
+- ✅ No memory leaks (AddressSanitizer, Valgrind)
+- ✅ No security vulnerabilities (static analysis)
+- ✅ Thread safety verified (ThreadSanitizer if concurrent)
+- ✅ Error messages are clear and actionable
+- ✅ CMakeLists.txt updated if new files/dependencies added
+- ✅ **Affected targets build successfully**
+- ✅ **Dependent targets build successfully**
 
 **How to Verify:**
 - Linter checks (`clang-format`, `clang-tidy`)
@@ -149,20 +186,30 @@ For every task that creates, modifies, or deletes files, you MUST verify that af
 - ✅ Design documents updated
 - ✅ README updated (if applicable)
 - ✅ Code comments are clear and complete
+- ✅ Cross-references are valid (no broken links)
+- ✅ Examples are tested and correct
+- ✅ Diagrams updated (Mermaid diagrams re-rendered)
+- ✅ Version numbers updated (if applicable)
 
 **How to Verify:**
-- Review documentation files
-- Generate and review API docs
-- Check cross-references
-- Verify examples are correct
+- Review documentation files for completeness
+- Generate and review API docs (Doxygen)
+- Check all cross-references and internal links
+- Run and verify all code examples
+- Re-render Mermaid diagrams (`./scripts/render-mermaid.sh`)
+- Spell-check documentation
+- Verify markdown formatting
 
 **Example:**
 ```markdown
 - [ ] Documentation Verification:
-  - [ ] Design docs updated
+  - [ ] Design docs updated (19_ADT_WORKFLOW.md, 02_ARCHITECTURE.md)
   - [ ] API docs generated and reviewed
-  - [ ] README updated
-  - [ ] Code comments complete
+  - [ ] README updated (if applicable)
+  - [ ] Code comments complete (Doxygen)
+  - [ ] Cross-references validated (no broken links)
+  - [ ] Examples tested and correct
+  - [ ] Mermaid diagrams re-rendered
 ```
 
 ### Integration Verification
@@ -198,20 +245,90 @@ For every task that creates, modifies, or deletes files, you MUST verify that af
 - ✅ Test coverage meets requirements
 - ✅ Tests are meaningful and comprehensive
 - ✅ Edge cases are tested
+- ✅ Error conditions are tested
+- ✅ Thread safety tested (if multi-threaded)
+- ✅ Regression tests pass (existing features still work)
 
 **How to Verify:**
-- Run test suite
-- Check test coverage
+- Run test suite (`./scripts/run_tests.sh all`)
+- Check test coverage (`./scripts/run_tests.sh coverage`)
 - Review test quality
 - Verify test documentation
+- Run regression test suite
+- Run thread sanitizer for concurrent code
 
 **Example:**
 ```markdown
 - [ ] Test Verification:
   - [ ] Unit tests written and pass
   - [ ] Integration tests written and pass
-  - [ ] Test coverage meets threshold
+  - [ ] Test coverage meets threshold (≥80% for new code)
   - [ ] Edge cases tested
+  - [ ] Error conditions tested
+  - [ ] Regression tests pass
+  - [ ] Thread safety verified (if applicable)
+```
+
+### Performance Verification
+
+**What to Verify:**
+- ✅ Meets performance requirements (latency, throughput)
+- ✅ No performance regressions
+- ✅ Memory usage within acceptable limits
+- ✅ CPU usage acceptable
+- ✅ No blocking operations in critical paths
+- ✅ Benchmarks pass (if applicable)
+
+**How to Verify:**
+- Run performance benchmarks
+- Profile code (CPU, memory)
+- Check latency measurements
+- Compare with baseline performance
+- Verify critical path performance (e.g., alarm detection < 50ms)
+
+**Performance Targets (Z Monitor Specific):**
+- Alarm detection: < 50ms from sensor to alarm raised
+- UI update: < 250ms from data to screen
+- Waveform rendering: 60 FPS (< 16ms per frame)
+- Database queries: < 100ms for common queries
+- Network transmission: < 1s for telemetry batch
+
+**Example:**
+```markdown
+- [ ] Performance Verification:
+  - [ ] Meets latency requirements
+  - [ ] No performance regressions (benchmark comparison)
+  - [ ] Memory usage acceptable
+  - [ ] No blocking operations in critical paths
+  - [ ] Benchmarks pass (if applicable)
+```
+
+### QML Verification (for UI tasks)
+
+**What to Verify:**
+- ✅ QML code follows style guidelines
+- ✅ No qmllint errors or warnings
+- ✅ No implicit types or unqualified access
+- ✅ Property bindings are efficient (no binding loops)
+- ✅ Component hierarchy is clean
+- ✅ Accessibility labels present
+- ✅ Responsive layout (adapts to screen sizes)
+
+**How to Verify:**
+- Run `qmllint` on all QML files
+- Check for binding loops in debug output
+- Test on different screen sizes
+- Verify keyboard navigation
+- Check accessibility with screen reader
+
+**Example:**
+```markdown
+- [ ] QML Verification:
+  - [ ] No qmllint errors
+  - [ ] No implicit types
+  - [ ] No binding loops
+  - [ ] Accessibility labels present
+  - [ ] Layout tested on different sizes
 ```
 
 ## Verification Checklist Template
@@ -256,14 +373,34 @@ When working on a ZTODO item, use this checklist:
 ### Test Verification
 - [ ] Unit tests written and pass
 - [ ] Integration tests written and pass
-- [ ] Test coverage meets requirements (see `doc/18_TESTING_WORKFLOW.md`)
+- [ ] Test coverage meets requirements (≥80% for new code, see `doc/18_TESTING_WORKFLOW.md`)
 - [ ] Tests are meaningful and comprehensive
 - [ ] Edge cases are tested
 - [ ] Error conditions are tested
+- [ ] Thread safety tested (if concurrent code)
+- [ ] Regression tests pass (existing features work)
+
+### Performance Verification
+- [ ] Meets performance requirements (latency/throughput)
+- [ ] No performance regressions (benchmark comparison)
+- [ ] Memory usage acceptable
+- [ ] CPU usage acceptable
+- [ ] No blocking operations in critical paths
+- [ ] Benchmarks pass (if applicable)
+
+### QML Verification (if applicable)
+- [ ] No qmllint errors or warnings
+- [ ] No implicit types or unqualified access
+- [ ] No binding loops
+- [ ] Accessibility labels present
+- [ ] Layout tested on different screen sizes
+- [ ] Keyboard navigation works
 
 ### Final Checks
-- [ ] All verification steps completed
+- [ ] All verification steps completed and tracked in ZTODO.md
+- [ ] Verification status updated in task (✅ for each category)
 - [ ] Code reviewed (self-review or peer review)
+- [ ] Rollback plan documented (if verification failed)
 - [ ] Ready for merge/commit
 ```
 
@@ -351,9 +488,29 @@ If verification fails:
 **Verification Steps:**
 1. Functional: Documentation generates successfully, all APIs documented
 2. Code Quality: Doxygen comments follow style, no warnings
-3. Documentation: API docs generated, examples are correct
+3. Documentation: API docs generated, examples are correct, cross-refs valid
 4. Integration: Doxygen workflow runs, CI passes
 5. Tests: Documentation coverage check passes
+
+### Example 4: Implementing QML Component (AdmissionModal)
+
+**Verification Steps:**
+1. Functional: Modal opens, validates input, triggers controller methods
+2. Code Quality: qmllint clean, no implicit types, CMakeLists.txt updated for resources
+3. Documentation: Component usage documented in ADT workflow doc
+4. Integration: Works with PatientController, no layout regressions
+5. Tests: QML test harness verifies admission flow
+6. QML: No binding loops, accessibility labels present, responsive layout
+
+### Example 5: Optimizing Alarm Detection Path
+
+**Verification Steps:**
+1. Functional: Alarm detection works correctly, thresholds respected
+2. Code Quality: No warnings, thread-safe, build verification passes
+3. Documentation: Performance improvements documented
+4. Integration: Builds, tests pass, no breaking changes
+5. Tests: Unit tests + regression tests pass
+6. Performance: Latency < 50ms (verified with benchmark), no memory leaks
 
 ## Integration with AI Assistant
 
