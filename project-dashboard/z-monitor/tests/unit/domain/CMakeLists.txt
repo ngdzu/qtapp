@@ -8,3 +8,6 @@ add_subdirectory(common)
 
 # Security tests
 add_subdirectory(security)
+
+# Events tests
+add_subdirectory(events)

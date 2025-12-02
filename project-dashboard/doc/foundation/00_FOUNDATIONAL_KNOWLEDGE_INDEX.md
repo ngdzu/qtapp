@@ -67,7 +67,7 @@ Each document follows a consistent format with:
 ### 1.1 Domain-Driven Design (DDD)
 - **Status:** ✅ Complete
 - **Document:** `01_software_architecture_and_design_patterns/01_domain_driven_design.md`
-- **Z Monitor Reference:** `../z-monitor/architecture_and_design/28_DOMAIN_DRIVEN_DESIGN.md`
+ - **Z Monitor Reference:** `../architecture/DOC-ARCH-028_domain_driven_design.md`
 - **Coverage:**
   - Bounded contexts
   - Aggregates and entities
@@ -1022,23 +1022,23 @@ Each document follows a consistent format with:
 
 All 74 foundational topics are organized into 14 categories under `foundation/`:
 
-| Category | Documents | Files Created |
-|----------|-----------|---------------|
-| 01. Software Architecture & Design Patterns | 9 docs | ✅ All placeholders created |
-| 02. Database & Data Management | 8 docs | ✅ All placeholders created |
-| 03. Security & Cryptography | 8 docs | ✅ All placeholders created |
-| 04. Concurrency & Threading | 6 docs | ✅ All placeholders created |
-| 05. Memory Management & Performance | 5 docs | ✅ All placeholders created |
-| 06. Error Handling & Resilience | 5 docs | ✅ All placeholders created |
-| 07. Logging, Monitoring & Observability | 4 docs | ✅ All placeholders created |
-| 08. Testing Strategies | 5 docs | ✅ All placeholders created |
-| 09. API Design & Documentation | 5 docs | ✅ All placeholders created |
-| 10. Qt-Specific Knowledge | 5 docs | ✅ All placeholders created (1 complete: Qt Signals & Slots) |
-| 11. Medical Device Specific | 4 docs | ✅ All placeholders created |
-| 12. DevOps & Deployment | 4 docs | ✅ All placeholders created |
-| 13. Code Quality & Maintainability | 4 docs | ✅ All placeholders created |
-| 14. Build Systems & Tooling | 3 docs | ✅ All placeholders created |
-| **Total** | **74 docs** | **74 placeholders + 1 complete = 75 ready to populate** |
+| Category                                    | Documents   | Files Created                                               |
+| ------------------------------------------- | ----------- | ----------------------------------------------------------- |
+| 01. Software Architecture & Design Patterns | 9 docs      | ✅ All placeholders created                                  |
+| 02. Database & Data Management              | 8 docs      | ✅ All placeholders created                                  |
+| 03. Security & Cryptography                 | 8 docs      | ✅ All placeholders created                                  |
+| 04. Concurrency & Threading                 | 6 docs      | ✅ All placeholders created                                  |
+| 05. Memory Management & Performance         | 5 docs      | ✅ All placeholders created                                  |
+| 06. Error Handling & Resilience             | 5 docs      | ✅ All placeholders created                                  |
+| 07. Logging, Monitoring & Observability     | 4 docs      | ✅ All placeholders created                                  |
+| 08. Testing Strategies                      | 5 docs      | ✅ All placeholders created                                  |
+| 09. API Design & Documentation              | 5 docs      | ✅ All placeholders created                                  |
+| 10. Qt-Specific Knowledge                   | 5 docs      | ✅ All placeholders created (1 complete: Qt Signals & Slots) |
+| 11. Medical Device Specific                 | 4 docs      | ✅ All placeholders created                                  |
+| 12. DevOps & Deployment                     | 4 docs      | ✅ All placeholders created                                  |
+| 13. Code Quality & Maintainability          | 4 docs      | ✅ All placeholders created                                  |
+| 14. Build Systems & Tooling                 | 3 docs      | ✅ All placeholders created                                  |
+| **Total**                                   | **74 docs** | **74 placeholders + 1 complete = 75 ready to populate**     |
 
 **Note:** All documents are placeholder files with proper structure and cross-references. Content population is the next phase.
 

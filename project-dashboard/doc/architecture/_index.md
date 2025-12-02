@@ -78,6 +78,16 @@
 - **Tags:** architecture, system-overview, embedded, medical-device, patient-monitoring, real-time
 - **Related:** DOC-ARCH-001, DOC-ARCH-002, DOC-ARCH-004, DOC-ARCH-007, DOC-ARCH-008, DOC-ARCH-010, DOC-GUIDE-001, DOC-REF-001
 
+### Domain Modeling
+
+#### [DOC-ARCH-028: Domain-Driven Design Strategy](DOC-ARCH-028_domain_driven_design.md)
+
+- **Version:** v1.0
+- **Status:** Active
+- **Owner:** Architecture Team
+- **Tags:** architecture, ddd, aggregates, events, value-objects, domain-modeling
+- **Related:** DOC-ARCH-001_software_architecture.md, DOC-ARCH-015_project_structure.md, DOC-ARCH-019_class_designs_overview.md
+
 ---
 
 [Back to Master Index](../00_INDEX.md)

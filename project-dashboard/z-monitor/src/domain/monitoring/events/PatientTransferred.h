@@ -14,6 +14,7 @@
 
 #include <string>
 #include <cstdint>
+#include "domain/events/IDomainEvent.h"
 
 namespace zmon
 {
@@ -31,7 +32,7 @@ namespace zmon
          *
          * @note Domain events are plain structs (POD) with no business logic.
          */
-        struct PatientTransferred
+        struct PatientTransferred : public zmon::DomainEvents::IDomainEvent
         {
             /**
              * @brief Patient MRN.
@@ -76,6 +77,12 @@ namespace zmon
                 : patientMrn(mrn), targetDevice(target), sourceDevice(source), timestampMs(ts)
             {
             }
+
+            // IDomainEvent interface
+            const std::string &aggregateId() const override { return patientMrn; }
+            int64_t occurredAtMs() const override { return timestampMs; }
+            const char *eventType() const override { return "PatientTransferred"; }
+            std::unique_ptr<zmon::DomainEvents::IDomainEvent> clone() const override { return std::make_unique<PatientTransferred>(*this); }
         };
 
     } // namespace Events

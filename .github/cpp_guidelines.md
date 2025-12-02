@@ -175,13 +175,13 @@ Hardcoded values are **ONLY acceptable** in:
 
 ### Common Hardcoded Value Patterns to Avoid
 
-| Pattern | ❌ Bad | ✅ Good |
-|---------|--------|---------|
-| **Logging** | `{"mrn", "MRN-12345"}` | `{"mrn", mrn}` |
-| **Function Calls** | `lookupPatient("MRN-12345")` | `lookupPatient(mrn)` |
-| **Object Properties** | `batch.patientMrn = "MRN-12345"` | `batch.patientMrn = m_currentPatientMrn` |
-| **Error Messages** | `"Patient MRN-12345 not found"` | `QString("Patient %1 not found").arg(mrn)` |
-| **Database Queries** | `WHERE mrn = 'MRN-12345'` | `WHERE mrn = :mrn` (with bindValue) |
+| Pattern               | ❌ Bad                            | ✅ Good                                     |
+| --------------------- | -------------------------------- | ------------------------------------------ |
+| **Logging**           | `{"mrn", "MRN-12345"}`           | `{"mrn", mrn}`                             |
+| **Function Calls**    | `lookupPatient("MRN-12345")`     | `lookupPatient(mrn)`                       |
+| **Object Properties** | `batch.patientMrn = "MRN-12345"` | `batch.patientMrn = m_currentPatientMrn`   |
+| **Error Messages**    | `"Patient MRN-12345 not found"`  | `QString("Patient %1 not found").arg(mrn)` |
+| **Database Queries**  | `WHERE mrn = 'MRN-12345'`        | `WHERE mrn = :mrn` (with bindValue)        |
 
 ### Examples of What NOT to Do
 
@@ -694,18 +694,18 @@ void MonitoringService::lookupPatient(const QString& mrn) {
 
 ### Quick Reference
 
-| Topic | Guideline |
-|-------|-----------|
-| **C++ Standard** | C++17 |
-| **Memory** | RAII, smart pointers, Qt parent-child |
-| **Naming** | `PascalCase` classes, `camelCase` functions, `m_` members |
-| **Constants** | No magic numbers, use named constants |
-| **Hardcoded Values** | Never hardcode runtime data (IDs, patient MRN, device ID) |
-| **Error Handling** | `Result<T, Error>`, signals for async, no `qWarning` for errors |
-| **Documentation** | Doxygen comments required for all public APIs |
-| **Qt Version** | Qt 6 APIs only |
-| **Thread Safety** | Document thread requirements, use Qt primitives |
-| **Performance** | Correctness first, optimize hot paths only |
+| Topic                | Guideline                                                       |
+| -------------------- | --------------------------------------------------------------- |
+| **C++ Standard**     | C++17                                                           |
+| **Memory**           | RAII, smart pointers, Qt parent-child                           |
+| **Naming**           | `PascalCase` classes, `camelCase` functions, `m_` members       |
+| **Constants**        | No magic numbers, use named constants                           |
+| **Hardcoded Values** | Never hardcode runtime data (IDs, patient MRN, device ID)       |
+| **Error Handling**   | `Result<T, Error>`, signals for async, no `qWarning` for errors |
+| **Documentation**    | Doxygen comments required for all public APIs                   |
+| **Qt Version**       | Qt 6 APIs only                                                  |
+| **Thread Safety**    | Document thread requirements, use Qt primitives                 |
+| **Performance**      | Correctness first, optimize hot paths only                      |
 
 ### Code Review Checklist
 
@@ -728,7 +728,7 @@ When reviewing code, verify:
 
 - **API Documentation**: See `.cursor/rules/api_documentation.mdc` for complete API documentation requirements
 - **No Hardcoded Values**: See `.cursor/rules/no_hardcoded_values.mdc` for detailed hardcoded values guidelines
-- **Domain-Driven Design**: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` for DDD principles
+- **Domain-Driven Design**: See `doc/architecture/DOC-ARCH-028_domain_driven_design.md` for DDD principles
 - **Error Handling**: See `doc/20_ERROR_HANDLING_STRATEGY.md` for error handling strategy
 - **Code Organization**: See `doc/22_CODE_ORGANIZATION.md` for code organization guidelines
 - **Logging Strategy**: See `doc/21_LOGGING_STRATEGY.md` for structured logging with context

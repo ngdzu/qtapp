@@ -19,7 +19,7 @@
 
 - **Rule:** Every public class, method, property, and enum must be documented with Doxygen-style comments (`/** */`)
 - **Guideline:** See `.cursor/rules/api_documentation.mdc` for complete documentation requirements
-- **Reference:** See `doc/26_API_DOCUMENTATION.md` for API documentation strategy
+- **Reference:** See `project-dashboard/doc/guidelines/DOC-GUIDE-020_api_documentation.md` for API documentation strategy
 - **Enforcement:** Code reviews will reject code without proper documentation
 
 **Documentation is not optional - it is a required part of every public API.**
@@ -44,7 +44,7 @@
 ## Sequential Tasks (must be done in order)
 
 - [x] Bootstrap `z-monitor` project from scratch following DDD structure
-  - Current State: `z-monitor/` source code has been removed. This task rebuilds the executable layout aligned with `doc/architecture/DOC-ARCH-015_project_structure.md (DOC-ARCH-015)` and `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
+  - Current State: `z-monitor/` source code has been removed. This task rebuilds the executable layout aligned with `project-dashboard/doc/architecture/DOC-ARCH-015_project_structure.md (DOC-ARCH-015)` and `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)`.
   - What: Create fresh CMake project with `src/domain`, `src/application`, `src/infrastructure`, `src/interface`, `resources/qml`, `tests`. Add minimal `main.cpp`, placeholder aggregates, baseline controllers, and wiring consistent with documentation.
   - Why: Provides a clean foundation that strictly follows Domain-Driven Design from the outset.
   - Files: `project-dashboard/z-monitor/CMakeLists.txt`, `project-dashboard/z-monitor/src/**`, `project-dashboard/z-monitor/resources/**`, `project-dashboard/doc/architecture/DOC-ARCH-015_project_structure.md (DOC-ARCH-015)`.
@@ -54,20 +54,20 @@
     2. Code Quality – Lint passes, Doxygen runs, includes reference new structure only. **Status:** `z-monitor/src/main.cpp` passes linter; Doxygen-ready comments added to public entry point.
     3. Documentation – Update `README.md`, `doc/architecture/DOC-ARCH-015_project_structure.md (DOC-ARCH-015)` with final layout/screenshot. **Status:** `z-monitor/README.md` created describing DDD-aligned layout; `DOC-ARCH-015_project_structure.md` already aligned with new structure and does not require structural changes.
     4. Integration – CI scripts (`scripts/run_tests.sh`, workflows) aware of new paths. **Status:** Root `CMakeLists.txt` updated to add `add_subdirectory(z-monitor)`; CI scripts will pick up the new target via the existing CMake entry point.
-    5. Tests – Add placeholder unit test verifying project links/starts (can be smoke test). **Status:** Test directory skeletons (`tests/unit`, `tests/integration`, `tests/e2e`, `tests/benchmarks`) added with `.gitkeep` placeholders; actual smoke test will be implemented as part of the testing workflow task in `doc/18_TESTING_WORKFLOW.md`.
+    5. Tests – Add placeholder unit test verifying project links/starts (can be smoke test). **Status:** Test directory skeletons (`tests/unit`, `tests/integration`, `tests/e2e`, `tests/benchmarks`) added with `.gitkeep` placeholders; actual smoke test will be implemented as part of the testing workflow task in `project-dashboard/doc/legacy/architecture_and_design/18_TESTING_WORKFLOW.md`.
   - Prompt: `project-dashboard/prompt/28a-ddd-bootstrap.md` (create if needed).
 
 - [x] Implement domain aggregates, value objects, repositories, and application services
-  - What: Flesh out `PatientAggregate`, `DeviceAggregate`, `TelemetryBatch`, domain events, repositories, and application services as defined in `doc/28_DOMAIN_DRIVEN_DESIGN.md`.
+  - What: Flesh out `PatientAggregate`, `DeviceAggregate`, `TelemetryBatch`, domain events, repositories, and application services as defined in `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)`.
   - Why: Encodes business rules in pure domain code, enabling clear separation and testing.
   - Files: `project-dashboard/z-monitor/src/domain/**`, `project-dashboard/z-monitor/src/application/**`, `project-dashboard/z-monitor/tests/**`.
   - Acceptance: Domain files compile without Qt dependencies; repositories interface defined; unit tests cover aggregates and domain rules.
   - Verification Steps:
     1. Functional – Admission, telemetry, provisioning scenarios simulated via unit/integration tests.
     2. Code Quality – Doxygen comments for all public APIs; domain free of infrastructure includes.
-    3. Documentation – Update `doc/architecture/DOC-ARCH-019_class_designs_overview.md (DOC-ARCH-019)`, `doc/28_DOMAIN_DRIVEN_DESIGN.md` to reflect actual classes.
+    3. Documentation – Update `project-dashboard/doc/architecture/DOC-ARCH-019_class_designs_overview.md (DOC-ARCH-019)`, `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` to reflect actual classes.
     4. Integration – Build/test pipeline green; repository implementations wired to SQLite/network adapters.
-    5. Tests – Unit tests for aggregates, application services; coverage targets per `doc/18_TESTING_WORKFLOW.md`.
+    5. Tests – Unit tests for aggregates, application services; coverage targets per `project-dashboard/doc/legacy/architecture_and_design/18_TESTING_WORKFLOW.md`.
   - Prompt: `project-dashboard/prompt/28b-ddd-domain-implementation.md`.
 
 ---
@@ -86,10 +86,10 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Interface compiles, can create mock backend for testing
     2. Code Quality: Doxygen comments for all methods, interface follows C++ best practices
-    3. Documentation: Interface documented in `doc/43_ASYNC_LOGGING_ARCHITECTURE.md`
+    3. Documentation: Interface documented in `project-dashboard/doc/components/infrastructure/logging/DOC-COMP-029_async_logging.md`
     4. Integration: Interface can be used by LogService (even if backend not implemented)
     5. Tests: Unit tests for mock backend implementation
-  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` section 2.2 for interface design.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/logging/DOC-COMP-029_async_logging.md` section 2.2 for interface design.
   - Prompt: `project-dashboard/prompt/43a-logging-backend-interface.md`
 
 - [x] Implement CustomBackend (Qt-based fallback, no external dependencies)
@@ -103,11 +103,11 @@ These infrastructure components should be implemented early as they are dependen
     3. Documentation: Implementation documented, usage examples provided
     4. Integration: Can be used by LogService, works with async queue
     5. Tests: Unit tests for formatting, rotation, file I/O, error handling
-  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` section 2.4 for CustomBackend design.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/logging/DOC-COMP-029_async_logging.md` section 2.4 for CustomBackend design.
   - Prompt: `project-dashboard/prompt/43b-custom-logging-backend.md`
 
 - [x] Refactor LogService to use async queue and Database I/O Thread
-  - What: Refactor `LogService` in `src/infrastructure/logging/LogService.h/cpp` to use a lock-free MPSC queue and process log entries on the existing **Database I/O Thread** (shared with database operations), as specified in `doc/12_THREAD_MODEL.md` and `doc/43_ASYNC_LOGGING_ARCHITECTURE.md`. All logging methods must return immediately (< 1μs) by enqueueing to the queue; the Database I/O Thread dequeues and calls `ILogBackend::write()`.
+  - What: Refactor `LogService` in `src/infrastructure/logging/LogService.h/cpp` to use a lock-free MPSC queue and process log entries on the existing **Database I/O Thread** (shared with database operations), as specified in `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md` and `project-dashboard/doc/components/infrastructure/logging/DOC-COMP-029_async_logging.md`. All logging methods must return immediately (< 1μs) by enqueueing to the queue; the Database I/O Thread dequeues and calls `ILogBackend::write()`.
   - Why: Ensures logging never blocks calling threads while avoiding an extra dedicated log thread. Logging and database I/O are both non-critical background tasks and share the same Database I/O Thread in the approved thread model.
   - Files: `src/infrastructure/logging/LogService.h`, `src/infrastructure/logging/LogService.cpp`, update thread model documentation if any LogService details change (but keep logging on Database I/O Thread)
   - Dependencies: ILogBackend interface, lock-free queue library (moodycamel::ConcurrentQueue or boost::lockfree::queue), CustomBackend or SpdlogBackend
@@ -115,10 +115,10 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Log calls return immediately, logs appear in file, queue processes correctly, Diagnostics View shows recent logs. **Status:** ✅ LogService implemented with async queue. All logging methods (trace, debug, info, warning, error, critical, fatal) enqueue to queue and return immediately. Queue processing runs on Database I/O Thread via QTimer. In-memory buffer (last 1000 entries) implemented with mutex protection. **Note:** Currently using temporary mutex-based queue (TemporaryQueue) - needs to be replaced with moodycamel::ConcurrentQueue for true lock-free behavior.
     2. Code Quality: No blocking operations, proper thread synchronization, Doxygen comments. **Status:** ✅ All public methods documented with Doxygen comments. Queue enqueue is non-blocking (mutex-based for now). Thread-safe access to recent logs buffer. Proper initialization and cleanup. **Note:** Queue implementation is temporary - replace with moodycamel::ConcurrentQueue for production.
-    3. Documentation: Updated `doc/21_LOGGING_STRATEGY.md`, `doc/12_THREAD_MODEL.md` reflects log thread. **Status:** ✅ Architecture documents already specify LogService runs on Database I/O Thread. Implementation matches documented architecture. No documentation updates needed.
+    3. Documentation: Updated `project-dashboard/doc/guidelines/DOC-GUIDE-012_logging.md`, `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md` reflects log thread. **Status:** ✅ Architecture documents already specify LogService runs on Database I/O Thread. Implementation matches documented architecture. No documentation updates needed.
     4. Integration: LogService can be injected into services, works from any thread. **Status:** ✅ LogService is QObject-based, can be injected via dependency injection. Thread-safe - can be called from any thread. Must be moved to Database I/O Thread before initialize() is called.
     5. Tests: Performance tests (verify < 1μs latency), thread safety tests, integration tests, queue overflow tests. **Status:** ⏳ Tests will be implemented in separate task "Add unit and integration tests for async logging" (task below). Current implementation ready for testing.
-  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` sections 2.1, 3, and 4 for complete architecture.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/logging/DOC-COMP-029_async_logging.md` sections 2.1, 3, and 4 for complete architecture.
   - Prompt: `project-dashboard/prompt/43c-async-logservice-refactor.md`
 
 - [x] Implement SpdlogBackend (production logging library, optional)
@@ -133,7 +133,7 @@ These infrastructure components should be implemented early as they are dependen
     3. Documentation: Integration guide, performance comparison with CustomBackend. **Status:** ✅ CMake integration documented (optional via Z_MONITOR_USE_SPDLOG option). Implementation follows architecture document (43_ASYNC_LOGGING_ARCHITECTURE.md). **Note:** Performance comparison will be done in testing task.
     4. Integration: Can replace CustomBackend in LogService, CMake finds spdlog. **Status:** ✅ SpdlogBackend implements ILogBackend interface, can be used as drop-in replacement for CustomBackend. CMake integration uses FetchContent to download spdlog automatically when enabled. Optional dependency - build works without spdlog.
     5. Tests: Performance benchmarks, format verification, rotation tests. **Status:** ⏳ Tests will be implemented in separate task "Add unit and integration tests for async logging". Current implementation ready for testing.
-  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` section 2.3 and 5.1 for spdlog design.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/logging/DOC-COMP-029_async_logging.md` section 2.3 and 5.1 for spdlog design.
   - Note: This task is optional - CustomBackend can be used in production if performance is acceptable. SpdlogBackend can be implemented later if needed.
   - Prompt: `project-dashboard/prompt/43d-spdlog-backend.md`
 
@@ -148,7 +148,7 @@ These infrastructure components should be implemented early as they are dependen
     3. Documentation: Test documentation updated, performance benchmarks documented. **Status:** ✅ All test files include Doxygen-style header comments. Test structure documented in CMakeLists.txt. Performance tests verify < 1μs latency requirement. **Note:** Performance benchmarks will be documented when tests are executed.
     4. Integration: Tests run in CI, performance tests don't fail on slow machines. **Status:** ✅ CMake test infrastructure set up with GoogleTest (FetchContent). All test targets registered with CTest. Tests can be run via `ctest` or individual executables. Performance tests use reasonable thresholds that account for system variability.
     5. Tests: Tests are comprehensive, maintainable, and fast. **Status:** ✅ Test suite includes unit tests (ILogBackend, CustomBackend, LogService) and integration tests (AsyncLogging). Tests use fixtures for setup/teardown. Mock backend allows isolated testing. Tests are organized by component and follow consistent patterns.
-  - Documentation: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` section 10 for testing guidelines.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/logging/DOC-COMP-029_async_logging.md` section 10 for testing guidelines.
   - Prompt: `project-dashboard/prompt/43e-logging-tests.md`
 
 **Note:** The abstraction layer (ILogBackend) allows starting with CustomBackend and switching to SpdlogBackend later if needed. This enables early implementation and use of logging throughout the application.
@@ -181,7 +181,7 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Build succeeds, all targets link correctly, include paths work, no relative include paths needed. **Status:** ✅ CMake structure created with proper subdirectory organization. All layer libraries (`z_monitor_domain`, `z_monitor_application`, `z_monitor_infrastructure`) are defined. Main executable links all libraries correctly. Include directories configured for project-relative paths.
     2. Code Quality: CMake files follow best practices, clear separation of concerns, proper target dependencies. **Status:** ✅ Each layer has its own CMakeLists.txt managing its sources. Dependencies correctly linked (application → domain, infrastructure → domain+application). Root CMakeLists.txt is minimal (project setup only).
-    3. Documentation: CMake structure documented in `doc/22_CODE_ORGANIZATION.md` section 10.1, build instructions updated. **Status:** ✅ Section 10.1 updated with detailed CMake structure showing subdirectory organization, library targets, and dependency relationships.
+    3. Documentation: CMake structure documented in `project-dashboard/doc/guidelines/DOC-GUIDE-001_code_organization.md` section 10.1, build instructions updated. **Status:** ✅ Section 10.1 updated with detailed CMake structure showing subdirectory organization, library targets, and dependency relationships.
     4. Integration: CI/CD builds work, developers can build successfully. **Status:** ✅ CMake structure follows standard patterns that work with CI/CD. All CMakeLists.txt files created and properly organized.
     5. Tests: Test targets build and run, all libraries link correctly. **Status:** ✅ `tests/CMakeLists.txt` created with structure for unit, integration, and e2e tests. Test targets can link to appropriate layer libraries.
   - Prompt: `project-dashboard/prompt/cmake-structure-refactor.md`
@@ -364,17 +364,17 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Verify `bedId` removed, `deviceLabel` works, ADT methods function correctly, admission events logged. **Status:** ✅ SettingsManager removes `bedId` on initialization, `deviceLabel` is added with default value. AdmissionService implements `admitPatient()`, `dischargePatient()`, `transferPatient()` methods. Admission events are logged to `admission_events` table. SettingsController exposes `deviceLabel` property for QML.
     2. Code Quality: Run linter, check Doxygen comments, verify no warnings. **Status:** ✅ All files include comprehensive Doxygen-style comments. Code follows project style guidelines. Note: Linter warnings may appear due to missing database connection implementation (TODO in SettingsManager), but structure is correct.
-    3. Documentation: Update `doc/architecture/DOC-ARCH-017_database_design.md (DOC-ARCH-017)`, verify `doc/19_ADT_WORKFLOW.md` is accurate. **Status:** ✅ Database design documentation updated with ADT columns in `patients` table. `admission_events` table already documented. Migration notes updated. ADT workflow documentation (19_ADT_WORKFLOW.md) is accurate and referenced.
+    3. Documentation: Update `project-dashboard/doc/architecture/DOC-ARCH-017_database_design.md`, verify `project-dashboard/doc/legacy/architecture_and_design/19_ADT_WORKFLOW.md` is accurate. **Status:** ✅ Database design documentation updated with ADT columns in `patients` table. `admission_events` table already documented. Migration notes updated. ADT workflow documentation (19_ADT_WORKFLOW.md) is accurate and referenced.
     4. Integration: Build succeeds, all tests pass, database migration works. **Status:** ✅ CMakeLists.txt updated to include all new sources (SettingsManager, AdmissionService, SettingsController). Qt6::Sql added to infrastructure and application layers. Database migration SQL file created (0003_adt_workflow.sql). Note: Full integration testing requires DatabaseManager implementation.
     5. Tests: Write unit tests for ADT methods, integration tests for workflow, verify database schema. **Status:** ⚠️ Tests not yet written. Test structure should be added in future task. AdmissionService methods are ready for testing. Database schema verified via migration SQL.
-  - Documentation: See `doc/19_ADT_WORKFLOW.md` for complete ADT workflow specification.
+  - Documentation: See `project-dashboard/doc/legacy/architecture_and_design/19_ADT_WORKFLOW.md` for complete ADT workflow specification.
   - Prompt: `project-dashboard/prompt/08a-refactor-settings-adt.md`  (When finished: mark this checklist item done.)
 
 - [x] Create project scaffolding and repo checklist
   - What: Ensure `z-monitor/` contains the canonical folders following DDD structure: `src/domain/`, `src/application/`, `src/infrastructure/`, `src/interface/`, `resources/qml/`, `resources/assets/`, `resources/i18n/`, `resources/certs/`, `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/benchmarks/`, `schema/`, `doc/`, `proto/`, `openapi/`, `central-server-simulator/` and `doc/migrations/`.
   - Why: Provides a stable DDD-aligned structure to place interfaces, tests, and docs. Foundation for all subsequent development.
   - Files: `project-dashboard/z-monitor/CMakeLists.txt` (top-level), empty `project-dashboard/z-monitor/proto/` and `project-dashboard/z-monitor/openapi/` dirs, `project-dashboard/z-monitor/doc/migrations/README.md`, `project-dashboard/z-monitor/README.md`.
-  - Acceptance: All directories exist, CMakeLists.txt configured, README.md created, structure matches `doc/architecture/DOC-ARCH-015_project_structure.md (DOC-ARCH-015)` and `doc/22_CODE_ORGANIZATION.md`.
+  - Acceptance: All directories exist, CMakeLists.txt configured, README.md created, structure matches `project-dashboard/doc/architecture/DOC-ARCH-015_project_structure.md` and `project-dashboard/doc/guidelines/DOC-GUIDE-001_code_organization.md`.
   - Verification Steps:
     1. Functional: Directory structure verified, CMakeLists.txt builds successfully (even if empty). **Status:** ✅ All required directories exist: `src/domain/`, `src/application/`, `src/infrastructure/`, `src/interface/`, `resources/qml/`, `resources/assets/`, `resources/i18n/`, `resources/certs/`, `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/benchmarks/`, `schema/`, `doc/`, `proto/`, `openapi/`, `central-server-simulator/`, `doc/migrations/`. All CMakeLists.txt files exist and are properly configured.
     2. Code Quality: Structure follows DDD layers (domain, application, infrastructure, interface). **Status:** ✅ Structure follows DDD principles with clear layer separation. Domain layer has no Qt dependencies, application layer uses Qt Core only, infrastructure layer has full Qt dependencies, interface layer handles UI integration.
@@ -387,14 +387,14 @@ These infrastructure components should be implemented early as they are dependen
   - What: Create minimal header-only interface sketches following DDD principles. Domain interfaces in `src/domain/interfaces/`, infrastructure interfaces in `src/infrastructure/interfaces/`. Interfaces: `IPatientRepository`, `ITelemetryRepository`, `IVitalsRepository`, `IAlarmRepository`, `IProvisioningRepository`, `IUserRepository`, `IAuditRepository`, `IPatientLookupService`, `ITelemetryServer`, `ISensorDataSource`, `IUserManagementService`, `IArchiver`, `ILogBackend`.
   - Why: Interfaces allow test-first development (mocks) and make DI decisions easier. DDD separation ensures domain interfaces are pure (no infrastructure dependencies).
   - Files: `project-dashboard/z-monitor/src/domain/interfaces/*.h` (repository interfaces), `project-dashboard/z-monitor/src/infrastructure/interfaces/*.h` (infrastructure adapters), `project-dashboard/doc/z-monitor/architecture_and_design/interfaces/*.md` with rationale and method signatures.
-  - Note: `IPatientLookupService` interface is documented in `doc/interfaces/IPatientLookupService.md` and provides patient lookup from external systems (HIS/EHR) by patient ID.
+  - Note: `IPatientLookupService` interface is documented in `project-dashboard/doc/components/interface/IPatientLookupService.md` and provides patient lookup from external systems (HIS/EHR) by patient ID.
   - Note: `ITelemetryServer` interface is documented in `doc/z-monitor/architecture_and_design/45_ITELEMETRY_SERVER.md` and provides server communication abstraction with support for configurable server URLs and mock implementations for testing.
-  - Note: `ISensorDataSource` interface is documented in `doc/interfaces/ISensorDataSource.md` and provides sensor data acquisition abstraction (simulator, hardware, mock, replay).
+  - Note: `ISensorDataSource` interface is documented in `project-dashboard/doc/components/interface/ISensorDataSource.md` and provides sensor data acquisition abstraction (simulator, hardware, mock, replay).
   - Acceptance: All interfaces defined with pure virtual methods, Doxygen comments, no implementation dependencies, interfaces compile independently.
   - Verification Steps:
     1. Functional: Interfaces compile, can create mock implementations, method signatures match requirements. **Status:** ✅ All interfaces created with pure virtual methods. Domain repository interfaces: IPatientRepository, ITelemetryRepository, IVitalsRepository, IAlarmRepository, IProvisioningRepository, IUserRepository, IAuditRepository. Infrastructure interfaces: IPatientLookupService, ITelemetryServer, ISensorDataSource, IUserManagementService, IArchiver. ILogBackend already existed. All interfaces follow DDD principles (domain interfaces have no infrastructure dependencies).
     2. Code Quality: Doxygen comments on all interfaces, follows C++ best practices, no circular dependencies. **Status:** ✅ All interfaces have comprehensive Doxygen comments with @brief, @param, @return, @note annotations. Interfaces use forward declarations where appropriate. No circular dependencies detected.
-    3. Documentation: Interface documentation created in `doc/interfaces/`, rationale documented. **Status:** ✅ Interface documentation exists in `doc/interfaces/` for IPatientLookupService, ITelemetryServer, ISensorDataSource, IUserManagementService. Documentation includes rationale, method signatures, usage examples, and implementation notes.
+    3. Documentation: Interface documentation created in `project-dashboard/doc/components/interface/`, rationale documented. **Status:** ✅ Interface documentation exists in `project-dashboard/doc/components/interface/` for IPatientLookupService, ITelemetryServer, ISensorDataSource, IUserManagementService. Documentation includes rationale, method signatures, usage examples, and implementation notes.
     4. Integration: Interfaces can be used by application services, mock implementations work. **Status:** ✅ MonitoringService updated to use ISensorDataSource from infrastructure/interfaces. CMakeLists.txt files updated to include all new interfaces. Application layer can depend on infrastructure interfaces via dependency injection.
     5. Tests: Mock implementations compile and can be used in tests. **Status:** ✅ Interface structure supports mock implementations. All interfaces use pure virtual methods enabling easy mocking. MockLogBackend already exists as example pattern.
   - Prompt: `project-dashboard/prompt/02-define-public-interfaces.md`  (When finished: mark this checklist item done.)
@@ -412,14 +412,14 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Harness publishes frames, reader receives and decodes them, heartbeat + stall detection verified. **Status:** ✅ Core implementation complete. SharedMemoryRingBuffer reads frames with CRC32 validation, SharedMemoryControlChannel handles Unix socket handshake, SharedMemorySensorDataSource implements ISensorDataSource interface. Heartbeat/stall detection implemented (250ms threshold). Ring buffer overrun handling implemented (resync to latest frame). Frame parsing for vitals and waveforms implemented (JSON format).
     2. Code Quality: Doxygen comments, clang-tidy clean, zero heap allocations on hot path (except startup). **Status:** ✅ All classes have comprehensive Doxygen comments. Hot path (processFrames) uses stack-allocated variables and pointer operations. Only startup operations (mmap, socket creation) allocate resources. CMakeLists.txt updated to include all source files.
-    3. Documentation: Update `doc/37_SENSOR_INTEGRATION.md`, `doc/12_THREAD_MODEL.md`, `doc/02_ARCHITECTURE.md`, `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md`, `doc/42_LOW_LATENCY_TECHNIQUES.md`. **Status:** ⚠️ Documentation updates pending (can be done in separate task). Core implementation ready for integration.
+    3. Documentation: Update `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md`, `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md`, `project-dashboard/doc/architecture/DOC-ARCH-001_software_architecture.md`, `project-dashboard/doc/components/interface/DOC-COMP-028_waveform_display.md`, `project-dashboard/doc/legacy/architecture_and_design/42_LOW_LATENCY_TECHNIQUES.md`. **Status:** ⚠️ Documentation updates pending (can be done in separate task). Core implementation ready for integration.
     4. Integration: Monitoring dashboard shows live vitals from shared memory; fallback simulators still work. **Status:** ✅ SharedMemorySensorDataSource implements ISensorDataSource interface, can be injected into MonitoringService via dependency injection. Fallback simulators (SimulatorDataSource, MockSensorDataSource) remain available as separate implementations.
     5. Tests: Unit tests for parser/heartbeat/overrun, integration test with shared-memory harness, perf test (< 16 ms).
   - Dependencies: POSIX shared memory (`memfd_create`, `shm_open`), Unix domain sockets, `<atomic>`. **Status:** ✅ Implementation uses POSIX shared memory (mmap), Unix domain sockets (AF_UNIX), and atomic operations (std::atomic for ring buffer indices).
   - Prompt: `project-dashboard/prompt/02c-shared-memory-sensor-datasource.md`
 
 - [x] Add comprehensive documentation explaining memfd and socket handshake architecture
-  - What: Add detailed explanation to `doc/37_SENSOR_INTEGRATION.md` (or create new section/document) that explains:
+  - What: Add detailed explanation to `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md` (or create new section/document) that explains:
     1. **What is memfd?** - Memory file descriptor (`memfd_create`), anonymous shared memory, advantages over traditional `shm_open` (no filesystem namespace pollution, better security, automatic cleanup)
     2. **Why do we need a socket connection?** - File descriptors cannot be passed through shared memory itself. Unix domain sockets support `SCM_RIGHTS` ancillary data to pass file descriptors between processes. The socket is ONLY used for the initial handshake to exchange the memfd file descriptor - all actual data transfer happens through shared memory (zero-copy, < 16ms latency).
     3. **Architecture pattern:** Control channel (socket) for setup/teardown, data channel (shared memory) for high-frequency data transfer. This is a standard pattern for high-performance IPC.
@@ -441,7 +441,7 @@ These infrastructure components should be implemented early as they are dependen
     3. Documentation: Documentation is complete, accurate, and matches implementation. Diagrams are updated if needed. **Status:** ✅ Documentation is complete and accurate. Code examples match actual implementation. ASCII diagrams clearly show the two-phase architecture (connection setup via socket, data transfer via shared memory). Performance comparison table included. Security considerations documented with best practices.
     4. Integration: Documentation aligns with actual code implementation (SharedMemoryControlChannel, SharedMemoryRingBuffer, SharedMemorySensorDataSource). **Status:** ✅ Code examples extracted from actual implementation files. Handshake flow matches `ControlServer::sendFileDescriptor()` and `SharedMemoryControlChannel::onSocketDataAvailable()`. Shared memory mapping matches `SharedMemorySensorDataSource::mapSharedMemory()`. Ring buffer structure matches `SharedMemoryRingBuffer` implementation.
     5. Tests: Documentation reviewed for accuracy, examples verified against actual code. **Status:** ✅ Code examples verified against actual implementation. memfd creation code matches `Simulator::initializeSharedMemory()`. Socket handshake code matches `ControlServer::sendFileDescriptor()` and `SharedMemoryControlChannel::receiveFileDescriptor()`. Shared memory mapping matches `SharedMemorySensorDataSource::mapSharedMemory()`. Foundation document added to `00_FOUNDATIONAL_KNOWLEDGE_INDEX.md`.
-  - Documentation: See `doc/37_SENSOR_INTEGRATION.md` for current sensor integration documentation. See `doc/42_LOW_LATENCY_TECHNIQUES.md` for low-latency techniques context.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md` for current sensor integration documentation. See `project-dashboard/doc/legacy/architecture_and_design/42_LOW_LATENCY_TECHNIQUES.md` for low-latency techniques context.
   - Prompt: `project-dashboard/prompt/37a-memfd-socket-documentation.md`
 
 - [x] Update Sensor Simulator to write shared-memory ring buffer
@@ -469,24 +469,24 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Simulator creates memfd and publishes descriptor via socket, Z-Monitor receives descriptor and maps buffer, frames written at correct rates (60 Hz vitals, 250 Hz waveforms), data matches UI display, heartbeat updates correctly, multiple readers can attach, frame drops detected and logged. **Status:** ✅ Core implementation complete. `SharedMemoryWriter` writes frames to ring buffer with CRC32 validation. `ControlServer` manages Unix domain socket and passes memfd via `SCM_RIGHTS`. `Simulator` creates memfd on startup, initializes ring buffer (2048 frames × 4KB = ~8MB), and writes vitals at 60 Hz and waveforms at 250 Hz. Separate timers for vitals (16.67ms) and waveforms (4ms). Heartbeat updates implemented. WebSocket remains as fallback. **Note:** Integration testing with Z-Monitor pending (requires running both simulator and Z-Monitor together).
     2. Code Quality: Doxygen comments on all classes/methods, thread-safety verified (atomic operations for indices), no memory leaks, proper error handling, file descriptor cleanup, no info leaks (0600 permissions on memfd), CRC32 validation works. **Status:** ✅ All classes have comprehensive Doxygen comments. Thread-safe atomic operations for `writeIndex` and `heartbeatTimestamp`. Proper cleanup in destructors (unmap memory, close memfd, stop control server). Error handling for memfd creation, mmap, and socket operations. CRC32 calculation implemented. **Note:** Linter errors are expected (Qt headers not configured in linter), code should compile correctly with CMake.
-    3. Documentation: `sensor-simulator/README.md` updated with shared memory transport, control socket protocol, ring buffer layout, `doc/37_SENSOR_INTEGRATION.md` updated with simulator implementation details, code examples provided. **Status:** ✅ README.md updated with detailed ring buffer layout, frame types, writing/reading process, and architecture explanation. Ring buffer structure matches Z-Monitor's `SharedMemoryRingBuffer` reader format. Control socket protocol documented. **Note:** Socket path in README shows `unix://run/zmonitor-sim.sock` but code uses `/tmp/z-monitor-sensor.sock` (matches Z-Monitor default) - minor documentation inconsistency.
+    3. Documentation: `sensor-simulator/README.md` updated with shared memory transport, control socket protocol, ring buffer layout, `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md` updated with simulator implementation details, code examples provided. **Status:** ✅ README.md updated with detailed ring buffer layout, frame types, writing/reading process, and architecture explanation. Ring buffer structure matches Z-Monitor's `SharedMemoryRingBuffer` reader format. Control socket protocol documented. **Note:** Socket path in README shows `unix://run/zmonitor-sim.sock` but code uses `/tmp/z-monitor-sensor.sock` (matches Z-Monitor default) - minor documentation inconsistency.
     4. Integration: End-to-end latency measured < 16ms with real UI (simulator write → Z-Monitor signal emission), SharedMemorySensorDataSource successfully reads frames, integration test with Z-Monitor passes, fallback to WebSocket works if shared memory unavailable. **Status:** ✅ Structure compatibility verified. Integration test created (`tests/integration_test.cpp`) verifies structure sizes, field offsets, magic numbers, and frame types match Z-Monitor expectations. E2E test instructions created (`tests/e2e_test_instructions.md`). **Note:** Actual end-to-end testing requires running both simulator and Z-Monitor together. Handshake protocol compatibility note created (`tests/handshake_compatibility.md`) - Z-Monitor may need to use `recvmsg()` for first receive instead of `recv()` to properly receive both ControlMessage and FD together. Ring buffer structure matches Z-Monitor reader expectations. Frame format (JSON payloads) matches Z-Monitor parser. Socket path matches Z-Monitor default (`/tmp/z-monitor-sensor.sock`). WebSocket fallback remains functional.
     5. Tests: Unit tests for SharedMemoryWriter (slot wrap-around, CRC32 calculation, frame serialization, heartbeat updates), unit tests for ControlServer (socket handshake, descriptor passing, multiple connections), integration test with SharedMemorySensorDataSource (end-to-end data flow, latency measurement, stall detection), performance test (verify < 16ms latency target). **Status:** ✅ Basic integration test created (`tests/integration_test.cpp`) to verify structure compatibility. Test verifies: structure sizes match, field offsets match, magic numbers match (0x534D5242), version matches (1), frame type enum values match. Test added to CMakeLists.txt and can be run with `./integration_test`. E2E test instructions created (`tests/e2e_test_instructions.md`) for manual end-to-end testing with success criteria checklist. **Note:** Full unit tests (SharedMemoryWriter, ControlServer) and automated E2E tests should be added in future task. Implementation is ready for testing. All core functionality implemented (CRC32, frame serialization, atomic operations, socket handshake).
-  - Documentation: See `doc/37_SENSOR_INTEGRATION.md` section "Sensor Simulator Details" for ring buffer layout, simulator responsibilities, and data flow. See `doc/42_LOW_LATENCY_TECHNIQUES.md` for low-latency techniques context.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md` section "Sensor Simulator Details" for ring buffer layout, simulator responsibilities, and data flow. See `project-dashboard/doc/legacy/architecture_and_design/42_LOW_LATENCY_TECHNIQUES.md` for low-latency techniques context.
   - Prompt: `project-dashboard/prompt/02d-shared-memory-simulator.md`
 - [x] Implement PermissionRegistry (enum-based role mapping)
   - What: Create a compile-time `PermissionRegistry` service in domain layer that maps each `UserRole` to its default `Permission` bitset, exposes helper APIs (`permissionsForRole`, `toString`, `toDisplayName`), and seeds `SecurityService` / `UserSession` during login. Replace all ad-hoc string comparisons with enum checks wired through the registry.
-  - Why: The RBAC matrix in `doc/38_AUTHENTICATION_WORKFLOW.md` requires a single source of truth for default permissions; relying on strings sprinkled throughout the codebase is brittle and hard to audit. Domain layer ensures business rules are centralized.
+  - Why: The RBAC matrix in `project-dashboard/doc/processes/DOC-PROC-014_authentication_workflow.md` requires a single source of truth for default permissions; relying on strings sprinkled throughout the codebase is brittle and hard to audit. Domain layer ensures business rules are centralized.
   - Files: `project-dashboard/z-monitor/src/domain/security/Permission.h`, `project-dashboard/z-monitor/src/domain/security/UserRole.h`, `project-dashboard/z-monitor/src/domain/security/PermissionRegistry.h/cpp`, unit tests in `project-dashboard/z-monitor/tests/unit/domain/security/PermissionRegistryTest.cpp`.
   - Acceptance:
     - `PermissionRegistry` holds the exact mapping defined in section 3.2 (enum-based). **Status:** ✅ Implemented with compile-time role-to-permission mapping matching RBAC matrix.
     - `SecurityService` uses the registry to populate profiles and perform permission checks. **Status:** ⏳ Pending - SecurityService integration will be done in next task.
     - Unit tests verify each role receives the correct permissions and serialization matches hospital payload expectations. **Status:** ✅ Unit tests implemented covering all roles, permission checks, string serialization, and role hierarchy.
-    - Documentation updated (`38_AUTHENTICATION_WORKFLOW.md`, `architecture/DOC-ARCH-019_class_designs_overview.md (DOC-ARCH-019)`). **Status:** ✅ Updated `38_AUTHENTICATION_WORKFLOW.md` with implementation details.
+    - Documentation updated (`project-dashboard/doc/processes/DOC-PROC-014_authentication_workflow.md`, `project-dashboard/doc/architecture/DOC-ARCH-019_class_designs_overview.md`). **Status:** ✅ Updated `project-dashboard/doc/processes/DOC-PROC-014_authentication_workflow.md` with implementation details.
   - Verification Steps:
     1. Functional: Registry correctly maps all roles to permissions per RBAC matrix, helper functions work correctly, singleton pattern enforced. **Status:** ✅ All role-to-permission mappings verified in unit tests, helper functions tested.
     2. Code Quality: Doxygen comments on all classes/methods, thread-safe (const methods), no Qt dependencies in domain layer (UserRole uses std::string, PermissionRegistry uses QString for application layer integration). **Status:** ✅ All classes documented, thread-safe singleton, domain layer uses std::string where possible.
-    3. Documentation: `38_AUTHENTICATION_WORKFLOW.md` updated with implementation details, code examples provided. **Status:** ✅ Documentation updated with usage examples.
+    3. Documentation: `project-dashboard/doc/processes/DOC-PROC-014_authentication_workflow.md` updated with implementation details, code examples provided. **Status:** ✅ Documentation updated with usage examples.
     4. Integration: CMakeLists.txt updated, test infrastructure added, code compiles. **Status:** ✅ CMakeLists.txt updated, test executable created, ready for SecurityService integration.
     5. Tests: Unit tests for all roles, permission checks, string serialization, role hierarchy. **Status:** ✅ Comprehensive unit tests implemented covering all acceptance criteria.
   - Prompt: `project-dashboard/prompt/38b-permission-registry.md`
@@ -501,7 +501,7 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Use harness to read buffer directly and verify data matches UI.
     2. Code Quality: Doxygen comments, thread-safety review, no info leaks (0600 perms).
-    3. Documentation: Update `sensor-simulator/README.md`, `doc/37_SENSOR_INTEGRATION.md`.
+    3. Documentation: Update `sensor-simulator/README.md`, `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md`.
     4. Integration: End-to-end latency measured < 16 ms with real UI.
     5. Tests: Unit tests for writer (slot wrap, CRC), integration test with SharedMemorySensorDataSource.
   - Prompt: `project-dashboard/prompt/02d-shared-memory-simulator.md`
@@ -545,10 +545,10 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Mock service authenticates test users correctly, invalid credentials rejected, permissions enforced (nurse cannot adjust thresholds, physician can), session timeout works, logout works, network errors handled gracefully. **Status:** ✅ Core implementation complete. MockUserManagementService implements all test users (NURSE001/1234, PHYSICIAN001/5678, TECH001/9999, ADMIN001/0000) with proper role-based permissions from PermissionRegistry. HospitalUserManagementAdapter implements REST API client with error handling. SecurityService manages sessions and permission checking. AuthenticationController and LoginView provide UI integration.
     2. Code Quality: Doxygen comments on all public APIs (interface + implementations), follows interface contract, no hardcoded credentials in production adapter, secret codes never logged in plaintext, linter passes. **Status:** ✅ All public APIs documented with Doxygen comments. Interface contract followed. No hardcoded credentials in production adapter (uses server URL from settings). Secret codes handled securely (not logged). Linter errors are due to missing Qt in environment, not code issues.
-    3. Documentation: `doc/interfaces/IUserManagementService.md` complete (interface definition, data structures, examples), `doc/38_AUTHENTICATION_WORKFLOW.md` complete (workflow, diagrams, role-permission matrix), update `doc/architecture/DOC-ARCH-019_class_designs_overview.md (DOC-ARCH-019)` with SecurityService integration. **Status:** ✅ Documentation exists and is complete. Interface documentation at `doc/interfaces/IUserManagementService.md` and workflow at `doc/38_AUTHENTICATION_WORKFLOW.md` are comprehensive. Class designs document references SecurityService.
+    3. Documentation: `project-dashboard/doc/components/interface/IUserManagementService.md` complete (interface definition, data structures, examples), `project-dashboard/doc/38_AUTHENTICATION_WORKFLOW.md` complete (workflow, diagrams, role-permission matrix), update `project-dashboard/doc/architecture/DOC-ARCH-019_class_designs_overview.md (DOC-ARCH-019)` with SecurityService integration. **Status:** ✅ Documentation exists and is complete. Interface documentation at `project-dashboard/doc/components/interface/IUserManagementService.md` and workflow at `project-dashboard/doc/38_AUTHENTICATION_WORKFLOW.md` are comprehensive. Class designs document references SecurityService.
     4. Integration: Build succeeds, SecurityService integrates with IUserManagementService, LoginView connects to AuthenticationController, authentication flow works end-to-end, tests pass. **Status:** ✅ Core implementation complete. All files created and CMakeLists.txt updated. Integration in main.cpp (service creation and QML registration) needs to be done separately. Build will succeed once Qt6 is available and main.cpp is updated to wire services together.
     5. Tests: Unit tests for MockUserManagementService (valid/invalid credentials, permissions, session validation), unit tests for SecurityService integration, integration tests for full authentication workflow (login → check permissions → logout), mock HTTP server tests (optional). **Status:** ⏳ Tests will be implemented in separate task "Create unit test harness + mock objects". Core implementation ready for testing.
-  - Documentation: See `doc/interfaces/IUserManagementService.md` for complete interface specification. See `doc/38_AUTHENTICATION_WORKFLOW.md` for authentication workflow, sequence diagrams, role-permission matrix, and hospital server integration details.
+  - Documentation: See `project-dashboard/doc/components/interface/IUserManagementService.md` for complete interface specification. See `project-dashboard/doc/38_AUTHENTICATION_WORKFLOW.md` for authentication workflow, sequence diagrams, role-permission matrix, and hospital server integration details.
   - Prompt: `project-dashboard/prompt/38-implement-hospital-authentication.md`
 
 - [x] Implement Action Logging and Auto-Logout Workflow
@@ -589,10 +589,10 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: View vitals works without login, configuration actions require login, inactivity timer works, auto-logout triggers after 15 minutes, inactivity warning shown at 14 minutes, all actions logged correctly (per REQ-FUN-USER-003)
     2. Code Quality: Doxygen comments on all public APIs, dependency injection used (no global log objects), linter passes, no hardcoded dependencies
-    3. Documentation: `doc/39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md` complete, `doc/10_DATABASE_DESIGN.md` updated with `action_log` table, `doc/21_LOGGING_STRATEGY.md` updated with dependency injection, state machine diagrams updated
+    3. Documentation: `project-dashboard/doc/processes/DOC-PROC-005_login_workflow_and_action_logging.md` complete, `project-dashboard/doc/architecture/DOC-ARCH-017_database_design.md` updated with `action_log` table, `project-dashboard/doc/guidelines/DOC-GUIDE-012_logging.md` updated with dependency injection, state machine diagrams updated
     4. Integration: Build succeeds, all services use dependency injection, action logging works end-to-end, auto-logout workflow works, tests pass
     5. Tests: Unit tests for `SQLiteActionLogRepository`, unit tests for inactivity timer, integration tests for auto-logout workflow, tests for permission checks, tests for action logging
-  - Documentation: See `doc/39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md` for complete workflow, action permission matrix, and dependency injection strategy. See `doc/10_DATABASE_DESIGN.md` for `action_log` table schema. See `doc/21_LOGGING_STRATEGY.md` for dependency injection guidelines.
+  - Documentation: See `project-dashboard/doc/processes/DOC-PROC-005_login_workflow_and_action_logging.md` for complete workflow, action permission matrix, and dependency injection strategy. See `project-dashboard/doc/architecture/DOC-ARCH-017_database_design.md` for `action_log` table schema. See `project-dashboard/doc/guidelines/DOC-GUIDE-012_logging.md` for dependency injection guidelines.
   - Prompt: `project-dashboard/prompt/39-implement-action-logging.md`
 
 - [x] Create unit test harness + mock objects
@@ -621,7 +621,7 @@ These infrastructure components should be implemented early as they are dependen
     3. Documentation: `doc/processes/DOC-PROC-009_schema_management.md` complete, YAML schema documented, workflow documented, diagram (MMD + SVG) present. **Status:** ✅ **VERIFIED** - Documentation exists at `doc/processes/DOC-PROC-009_schema_management.md` (migrated from legacy/33_SCHEMA_MANAGEMENT.md), YAML schema has inline documentation, workflow documented with examples, diagram references present (MMD + SVG). **Note: ORM integration documented in QxOrm task.**
     4. Integration: CMake generates schema before build, pre-commit hook runs generator, build succeeds, all tests pass. **Status:** ✅ **VERIFIED** - CMake integration complete (`generate_schema` target exists, `add_dependencies` ensures schema generated before build), pre-commit hook script exists (`scripts/pre-commit-schema-check.sh` - manual installation required), build system configured correctly. **Note: Pre-commit hook needs manual installation (`ln -s ../../scripts/pre-commit-schema-check.sh .git/hooks/pre-commit`).**
     5. Tests: Unit tests verify schema generation, migration runner, constants match YAML, grep confirms no hardcoded column names. **Status:** ✅ **VERIFIED** - Unit tests exist (`test_schema_generation.cpp` with comprehensive test cases), test executable configured in CMake (`test_schema_generation` target), grep verification confirms no hardcoded column names (all repositories use Schema constants), migration runner tested (help output verified). **Note: ORM integration tests completed in QxOrm task.**
-  - Documentation: See `doc/processes/DOC-PROC-009_schema_management.md` for complete schema management strategy and code generation workflow. See `doc/30_DATABASE_ACCESS_STRATEGY.md` for ORM integration details (Section 11: Integration with Schema Management).
+  - Documentation: See `project-dashboard/doc/processes/DOC-PROC-009_schema_management.md` for complete schema management strategy and code generation workflow. See `project-dashboard/doc/guidelines/DOC-GUIDE-014_database_access_strategy.md` for ORM integration details (Section 11: Integration with Schema Management).
   - Prompt: `project-dashboard/prompt/33-implement-schema-management.md`
 
 - [x] Implement QxOrm Integration (Hybrid ORM + Stored Procedures)
@@ -638,7 +638,7 @@ These infrastructure components should be implemented early as they are dependen
     - Update `z-monitor/src/infrastructure/persistence/SQLitePatientRepository.cpp` (use ORM for simple CRUD, keep manual SQL for complex queries)
     - Update `z-monitor/src/infrastructure/persistence/SQLiteUserRepository.cpp` (use ORM)
     - `z-monitor/scripts/validate_orm_schema.py` (validate ORM mappings use Schema constants)
-    - Update `doc/30_DATABASE_ACCESS_STRATEGY.md` (document hybrid approach, when to use ORM vs manual SQL)
+    - Update `project-dashboard/doc/guidelines/DOC-GUIDE-014_database_access_strategy.md` (document hybrid approach, when to use ORM vs manual SQL)
   - Hybrid Strategy:
     - **Use ORM for:**
       - Simple CRUD operations (Patient, User, Settings aggregates)
@@ -664,11 +664,11 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: QxOrm compiles and links, ORM mappings work for simple CRUD, manual SQL still works for complex queries, hybrid approach functions correctly, ORM uses Schema constants, validation script passes. **Status:** ✅ Complete - QxOrm integrated via CMake option `-DUSE_QXORM=ON`, PatientEntity ORM mapping created using Schema constants, OrmRegistry created for initialization, validation script created and tested.
     2. Code Quality: All ORM mappings use Schema constants (grep verification), no hardcoded table/column names in ORM files, Doxygen comments on all mappings, linter passes. **Status:** ✅ Complete - PatientEntity.h uses Schema::Tables:: and Schema::Columns:: constants, no hardcoded strings, comprehensive Doxygen comments added, validation script checks for hardcoded values.
-    3. Documentation: `doc/30_DATABASE_ACCESS_STRATEGY.md` updated with hybrid approach, guidelines for when to use ORM vs manual SQL, ORM integration documented, examples provided. **Status:** ✅ Complete - Documentation updated with hybrid strategy section, examples of when to use ORM vs manual SQL, implementation status updated.
+    3. Documentation: `project-dashboard/doc/guidelines/DOC-GUIDE-014_database_access_strategy.md` updated with hybrid approach, guidelines for when to use ORM vs manual SQL, ORM integration documented, examples provided. **Status:** ✅ Complete - Documentation updated with hybrid strategy section, examples of when to use ORM vs manual SQL, implementation status updated.
     4. Integration: CMake integrates QxOrm (optional dependency), DatabaseManager supports both ORM and SQL, repositories work with hybrid approach, build succeeds, tests pass. **Status:** ✅ Complete - CMake integration done (optional via `-DUSE_QXORM=ON`), OrmRegistry created for initialization, DatabaseManager created with QxOrm connection management support, SQLitePatientRepository created with hybrid ORM + manual SQL approach, infrastructure CMakeLists.txt updated to link QxOrm when enabled. **Note:** SQLitePatientRepository uses ORM for simple CRUD (findByMrn, save, remove) and manual SQL for complex queries (findAll, getAdmissionHistory).
     5. Tests: ORM mapping tests (verify Schema constants used), CRUD operation tests (ORM), complex query tests (manual SQL), hybrid approach tests (both ORM and SQL in same repository), validation script tests. **Status:** ✅ Complete - Comprehensive unit tests created in `test_sqlite_patient_repository.cpp` covering: manual SQL CRUD operations (findByMrn, save, remove, findAll, getAdmissionHistory), ORM CRUD operations (when USE_QXORM enabled), hybrid approach (ORM for simple CRUD, manual SQL for complex queries), Schema constants usage verification, error handling (not found, empty database). Validation script tested and passes. Test executable `test_sqlite_patient_repository` added to CMakeLists.txt with proper dependencies.
   - Dependencies: Schema Management must be completed first (SchemaInfo.h must exist with all constants)
-  - Documentation: See `doc/30_DATABASE_ACCESS_STRATEGY.md` section 3.3 for QxOrm rationale and section 11 for ORM integration details. See `doc/processes/DOC-PROC-009_schema_management.md` section 13 for ORM mapping workflow.
+  - Documentation: See `project-dashboard/doc/guidelines/DOC-GUIDE-014_database_access_strategy.md` section 3.3 for QxOrm rationale and section 11 for ORM integration details. See `project-dashboard/doc/processes/DOC-PROC-009_schema_management.md` section 13 for ORM mapping workflow.
   - Prompt: `project-dashboard/prompt/30-implement-qxorm-integration.md`
 
 - [x] Implement Query Registry for type-safe database queries
@@ -679,10 +679,10 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: All repositories work with QueryId constants, no runtime query lookup failures, prepared statements cache correctly. **Status:** ✅ Complete - All repositories (SQLitePatientRepository, SQLiteActionLogRepository) use QueryId constants. DatabaseManager automatically initializes queries on open(). Prepared statements work correctly.
     2. Code Quality: No magic string queries remain in codebase (grep verification), all QueryId constants have Doxygen comments, linter passes. **Status:** ✅ Complete - Grep verification confirms no magic string queries. All QueryId constants have Doxygen comments. Linter passes (false positives due to missing include paths in lint environment).
-    3. Documentation: `doc/32_QUERY_REGISTRY.md` complete, auto-generated `QUERY_REFERENCE.md` exists and accurate, diagram (MMD + SVG) present. **Status:** ✅ Complete - `doc/32_QUERY_REGISTRY.md` exists with complete specification. `generate_query_reference` executable created for generating `QUERY_REFERENCE.md`. Diagram documentation referenced in doc.
+    3. Documentation: `project-dashboard/doc/components/infrastructure/database/DOC-COMP-032_query_registry.md` complete, auto-generated `QUERY_REFERENCE.md` exists and accurate, diagram (MMD + SVG) present. **Status:** ✅ Complete - `project-dashboard/doc/components/infrastructure/database/DOC-COMP-032_query_registry.md` exists with complete specification. `generate_query_reference` executable created for generating `QUERY_REFERENCE.md`. Diagram documentation referenced in doc.
     4. Integration: Build succeeds, all tests pass, no query registration errors at startup. **Status:** ✅ Complete - CMakeLists.txt updated to include QueryRegistry files. DatabaseManager automatically calls `QueryCatalog::initializeQueries()` on open(). Build succeeds.
     5. Tests: Unit tests verify all queries registered, query IDs unique, prepared statements work, grep confirms no magic strings. **Status:** ✅ Complete - Comprehensive unit tests created in `test_query_registry.cpp` covering: all queries registered, query IDs unique, prepared statements work (Patient::FIND_BY_MRN, Patient::INSERT, Patient::CHECK_EXISTS, Patient::FIND_ALL, ActionLog::GET_LAST_ID), query catalog getQuery() and generateDocumentation() methods, no magic string queries verification.
-  - Documentation: See `doc/32_QUERY_REGISTRY.md` for complete Query Registry pattern specification and implementation guide.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/database/DOC-COMP-032_query_registry.md` for complete Query Registry pattern specification and implementation guide.
   - Prompt: `project-dashboard/prompt/32-implement-query-registry.md`
 
 - [x] Design database schema + write migration SQLs
@@ -692,7 +692,7 @@ These infrastructure components should be implemented early as they are dependen
   - Note: The `settings` table must support `deviceId`, `deviceLabel`, `measurementUnit`, `serverUrl`, and `useMockServer` configuration options. `bedId` has been removed. See `doc/architecture/DOC-ARCH-017_database_design.md (DOC-ARCH-017)` for the settings table schema.
   - Note: The `patients` table serves as a cache for patient lookups. Add `last_lookup_at` and `lookup_source` columns to track when patient data was retrieved from external systems. See `doc/architecture/DOC-ARCH-017_database_design.md (DOC-ARCH-017)` for details.
   - Note: The `certificates` table must track certificate lifecycle including expiration, revocation, and validation status. The `security_audit_log` table must store all security-relevant events for audit and compliance. See `doc/architecture/DOC-ARCH-017_database_design.md (DOC-ARCH-017)` for detailed schemas.
-  - Note: The `action_log` table stores all user actions (login, logout, admission, discharge, settings changes) with hash chain for tamper detection. See `doc/39_LOGIN_WORKFLOW_AND_ACTION_LOGGING.md`.
+  - Note: The `action_log` table stores all user actions (login, logout, admission, discharge, settings changes) with hash chain for tamper detection. See `project-dashboard/doc/processes/DOC-PROC-005_login_workflow_and_action_logging.md`.
   - Note: `ecg_samples` and `pleth_samples` are not separate tables - waveforms are stored in the `snapshots` table with `waveform_type` to distinguish ECG/pleth. `alarm_snapshots` is not a separate table - the `alarms` table has `context_snapshot_id` to reference snapshots. `archival_queue` is not a separate table - `archival_jobs` tracks archival operations.
   - Acceptance: Schema defined in YAML, DDL generated, migrations created, schema matches requirements, ERD generated.
   - Verification Steps:
@@ -759,7 +759,7 @@ These infrastructure components should be implemented early as they are dependen
     - QueryCatalog failures: "Failed to prepare query" errors because tables don't exist for prepared statements
     - Database architecture: Non-critical path (PRIORITY 3), background persistence every 10 minutes, acceptable to have transaction overhead (not in critical path)
   - Dependencies: Requires understanding of Qt QSqlDatabase transaction API, SQL transaction semantics, and schema management workflow
-  - Documentation: See `doc/30_DATABASE_ACCESS_STRATEGY.md` for database strategy (non-critical path), `doc/processes/DOC-PROC-009_schema_management.md` for migration workflow, `doc/10_DATABASE_DESIGN.md` for schema structure
+  - Documentation: See `project-dashboard/doc/guidelines/DOC-GUIDE-014_database_access_strategy.md` for database strategy (non-critical path), `project-dashboard/doc/processes/DOC-PROC-009_schema_management.md` for migration workflow, `project-dashboard/doc/architecture/DOC-ARCH-017_database_design.md` for schema structure
   - Prompt: `project-dashboard/prompt/db-fix-01-migration-transactions.md`
 
 - [x] TASK-INFRA-017: Add Qt Plugin Path Configuration for SQL Driver
@@ -802,7 +802,7 @@ These infrastructure components should be implemented early as they are dependen
     3. Documentation: Plugin path configuration documented, diagnostic script created and works correctly. **Status:** ✅ Verified - Section 8.1 added to doc/legacy/architecture_and_design/33_SCHEMA_MANAGEMENT.md with complete plugin deployment documentation, troubleshooting guide, and verification script usage. Diagnostic script scripts/verify_sql_plugin.sh exists and passes all checks.
     4. Integration: Plugin loads on all supported platforms (macOS, Linux), build succeeds. **Status:** ✅ Verified - Plugin loads successfully on macOS (tested), CMake deployment works correctly, build succeeds without errors.
     5. Tests: Diagnostic script passes, plugin loader debug output shows correct search paths. **Status:** ✅ Verified - scripts/verify_sql_plugin.sh passes all checks ("✅ Plugin deployment verified - should work correctly"), debug output confirms correct library paths ("/Users/dustinwind/Development/Qt/qtapp/project-dashboard/z-monitor/build/src/sqldrivers", "/Users/dustinwind/Qt/6.9.2/macos/plugins", "/Users/dustinwind/Development/Qt/qtapp/project-dashboard/z-monitor/build/src").
-  - Documentation: See `doc/processes/DOC-PROC-009_schema_management.md` for schema management and database setup. See `doc/30_DATABASE_ACCESS_STRATEGY.md` for database architecture.
+  - Documentation: See `project-dashboard/doc/processes/DOC-PROC-009_schema_management.md` for schema management and database setup. See `project-dashboard/doc/guidelines/DOC-GUIDE-014_database_access_strategy.md` for database architecture.
   - Prompt: `project-dashboard/prompt/db-fix-02-plugin-path-config.md`
 
 ---
@@ -828,14 +828,14 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Aggregate enforces business rules, events emitted correctly, value objects validate data, state transitions work. **Status:** ✅ Verified - All 14 unit tests pass, business rules enforced (cannot admit twice, cannot discharge non-admitted, vitals MRN validation), state transitions work correctly.
     2. Code Quality: Doxygen comments, no infrastructure dependencies, follows DDD patterns, linter passes. **Status:** ✅ Verified - Complete Doxygen documentation in PatientAggregate.h/cpp, uses only domain types, immutable value objects with const members, Result<T> error handling.
-    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with aggregate implementation details. **Status:** ⏳ Pending - Documentation file doesn't exist yet (will be created in future task).
+    3. Documentation: Update `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` with aggregate implementation details. **Status:** ✅ Verified - Documentation file created with aggregate section (lifecycle, invariants, events).
     4. Integration: Works with repositories, application services can use aggregate. **Status:** ✅ Verified - Already used in DashboardControllerTest.cpp.
     5. Tests: Unit tests for business rules, value object validation, event emission, state transitions. **Status:** ✅ Verified - Created PatientAggregateTest.cpp with 14 tests, 100% pass rate.
   - Dependencies: Domain events infrastructure (see TASK-DOM-007)
-  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` section 3 for aggregate design patterns.
+  - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` section 3 for aggregate design patterns.
   - Prompt: `project-dashboard/prompt/TASK-DOM-006-patient-aggregate.md`
 
-- [ ] TASK-DOM-007: Implement Domain Events Infrastructure
+- [x] TASK-DOM-007: Implement Domain Events Infrastructure
   - What: Create `IDomainEvent` interface and `DomainEventDispatcher` in `src/domain/events/` to support event-driven architecture. Events should be immutable, timestamped, and include aggregate ID. Dispatcher should support synchronous handlers (for same-transaction operations) and asynchronous handlers (for eventual consistency). Implement event bus pattern with handler registration and type-safe event emission.
   - Why: Domain events decouple aggregates from side effects (logging, notifications, integration). Enables event sourcing, audit trails, and eventual consistency. Critical for HIPAA audit requirements (REQ-REG-HIPAA-003).
   - Files:
@@ -845,12 +845,12 @@ These infrastructure components should be implemented early as they are dependen
     - `tests/unit/domain/events/DomainEventDispatcherTest.cpp`
   - Acceptance: Domain events are immutable and timestamped, dispatcher supports sync/async handlers, handler registration works, type-safe event emission works, unit tests verify event flow.
   - Verification Steps:
-    1. Functional: Events dispatched correctly, handlers receive events, sync/async modes work
-    2. Code Quality: Thread-safe dispatcher, Doxygen comments, follows event sourcing patterns
-    3. Documentation: Document event-driven architecture in `doc/28_DOMAIN_DRIVEN_DESIGN.md`
-    4. Integration: Works with aggregates, application services can subscribe to events
-    5. Tests: Unit tests for dispatcher, handler registration, event emission, thread safety
-  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` section 5 for event sourcing design.
+    1. Functional: Events dispatched correctly, handlers receive events, sync/async modes work. **Status:** ✅ Verified - Dispatcher delivers inline sync handlers and queues async handlers (5 unit tests cover single, multiple, mixed, shutdown scenarios).
+    2. Code Quality: Thread-safe dispatcher, Doxygen comments, follows event sourcing patterns. **Status:** ✅ Verified - `IDomainEvent` and dispatcher implemented with mutex-protected maps, no data races, clone-based safe async copies.
+    3. Documentation: Document event-driven architecture in `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)`. **Status:** ✅ Verified - Section "Domain Events" added (principles, infrastructure, usage, testing, future enhancements).
+    4. Integration: Works with aggregates, application services can subscribe to events. **Status:** ✅ Verified - Patient events updated to implement `IDomainEvent`; domain library builds with new sources.
+    5. Tests: Unit tests for dispatcher, handler registration, event emission, thread safety. **Status:** ✅ Verified - `DomainEventDispatcherTest` passes all 5 tests (sync, multiple handlers, async execution, mixed, graceful shutdown).
+  - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` section 5 for event sourcing design.
   - Prompt: `project-dashboard/prompt/TASK-DOM-007-domain-events.md`
 
 - [ ] TASK-DOM-008: Implement Alarm Aggregate with Threshold Management
@@ -870,11 +870,11 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Alarm detection works, thresholds enforced, acknowledgment/silence/clear workflow works, escalation timers work
     2. Code Quality: Doxygen comments, no infrastructure dependencies, follows DDD patterns, linter passes
-    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with alarm aggregate design
+    3. Documentation: Update `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` with alarm aggregate design
     4. Integration: Works with monitoring service, alarm history persisted
     5. Tests: Unit tests for alarm lifecycle, threshold detection, business rules, permission checks
   - Dependencies: TASK-DOM-007 (Domain Events Infrastructure)
-  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` section 3 for aggregate design. See `doc/38_AUTHENTICATION_WORKFLOW.md` for permission requirements.
+  - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md` section 3 for aggregate design. See `project-dashboard/doc/processes/DOC-PROC-014_authentication_workflow.md` for permission requirements.
   - Prompt: `project-dashboard/prompt/TASK-DOM-008-alarm-aggregate.md`
 
 ---
@@ -892,12 +892,12 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Receives sensor data, detects alarms, emits signals, persists data, handles errors
     2. Code Quality: Doxygen comments, follows application layer patterns, dependency injection used
-    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with application service design
+    3. Documentation: Update `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` with application service design
     4. Integration: Works with sensor sources, alarm aggregate, repositories
     5. Tests: Unit tests for alarm detection, integration tests for workflow, performance tests for < 50ms latency
     6. Performance: Alarm detection measured < 50ms (verified with benchmark)
   - Dependencies: TASK-DOM-008 (Alarm Aggregate), ISensorDataSource interface, IAlarmRepository interface
-  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` section 4 for application service patterns. See `doc/42_LOW_LATENCY_TECHNIQUES.md` for performance requirements.
+  - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md` section 4 for application service patterns. See `project-dashboard/doc/legacy/architecture_and_design/42_LOW_LATENCY_TECHNIQUES.md` for performance requirements.
   - Prompt: `project-dashboard/prompt/TASK-APP-003-monitoring-service.md`
 
 - [ ] TASK-APP-004: Implement TelemetryService with Batch Upload
@@ -913,11 +913,11 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Batches data correctly, compression works, encryption works, retry logic works, circuit breaker works
     2. Code Quality: Doxygen comments, follows application layer patterns, dependency injection used
-    3. Documentation: Update `doc/31_TELEMETRY_ARCHITECTURE.md` with implementation details
+    3. Documentation: Update `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md` with implementation details
     4. Integration: Works with telemetry server, handles network errors gracefully
     5. Tests: Unit tests for batching/compression/retry, integration tests for upload workflow, network failure tests
   - Dependencies: ITelemetryServer interface, RetryPolicy, CircuitBreaker
-  - Documentation: See `doc/31_TELEMETRY_ARCHITECTURE.md` for telemetry design. See `doc/12_THREAD_MODEL.md` for thread architecture.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md` for telemetry design. See `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md` for thread architecture.
   - Prompt: `project-dashboard/prompt/TASK-APP-004-telemetry-service.md`
 
 ---
@@ -935,12 +935,12 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Persists vitals, time-range queries return correct data, retention policy deletes old data, batch inserts work
     2. Code Quality: Uses Query Registry constants, Doxygen comments, no magic strings (grep verification)
-    3. Documentation: Update `doc/32_QUERY_REGISTRY.md` with vitals queries
+    3. Documentation: Update `project-dashboard/doc/components/infrastructure/database/DOC-COMP-032_query_registry.md` with vitals queries
     4. Integration: Works with DatabaseManager, monitoring service can persist vitals
     5. Tests: Unit tests for CRUD, time-series queries, retention policy, batch inserts
     6. Performance: Batch insert performance measured (> 1000 vitals/second target)
   - Dependencies: TASK-INFRA-016 (Query Registry), DatabaseManager, Schema Management
-  - Documentation: See `doc/32_QUERY_REGISTRY.md` for query patterns. See `doc/30_DATABASE_ACCESS_STRATEGY.md` for persistence strategy.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/database/DOC-COMP-032_query_registry.md` for query patterns. See `project-dashboard/doc/guidelines/DOC-GUIDE-014_database_access_strategy.md` for persistence strategy.
   - Prompt: `project-dashboard/prompt/TASK-INFRA-018-vitals-repository.md`
 
 - [ ] TASK-INFRA-019: Implement SQLiteAlarmRepository with Snapshot Support
@@ -954,11 +954,11 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Persists alarms with snapshots, history queries return correct data, snapshot data accessible
     2. Code Quality: Uses Query Registry constants, Doxygen comments, no magic strings (grep verification)
-    3. Documentation: Update `doc/32_QUERY_REGISTRY.md` with alarm queries
+    3. Documentation: Update `project-dashboard/doc/components/infrastructure/database/DOC-COMP-032_query_registry.md` with alarm queries
     4. Integration: Works with DatabaseManager, monitoring service can persist alarms with context
     5. Tests: Unit tests for CRUD, history queries, snapshot linking
   - Dependencies: TASK-INFRA-016 (Query Registry), DatabaseManager, Schema Management
-  - Documentation: See `doc/32_QUERY_REGISTRY.md` for query patterns. See `doc/10_DATABASE_DESIGN.md` for snapshot schema.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/database/DOC-COMP-032_query_registry.md` for query patterns. See `project-dashboard/doc/architecture/DOC-ARCH-017_database_design.md` for snapshot schema.
   - Prompt: `project-dashboard/prompt/TASK-INFRA-019-alarm-repository.md`
 
 - [ ] TASK-INFRA-020: Implement HttpTelemetryServerAdapter with TLS Support
@@ -972,11 +972,11 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: HTTPS upload succeeds, TLS 1.3 negotiated, certificates validated, compression works, timeouts handled
     2. Code Quality: Doxygen comments, proper error handling, follows infrastructure patterns
-    3. Documentation: Update `doc/31_TELEMETRY_ARCHITECTURE.md` with TLS configuration
+    3. Documentation: Update `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md` with TLS configuration
     4. Integration: Works with TelemetryService, handles network errors gracefully
     5. Tests: Unit tests for upload/compression/TLS, integration tests with mock server, network failure tests
   - Dependencies: ITelemetryServer interface, RetryPolicy, CircuitBreaker, Qt Network module
-  - Documentation: See `doc/31_TELEMETRY_ARCHITECTURE.md` for telemetry protocol. See `doc/35_CERTIFICATE_MANAGEMENT.md` for TLS configuration.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md` for telemetry protocol. See `project-dashboard/doc/legacy/architecture_and_design/15_CERTIFICATE_PROVISIONING.md` for TLS configuration.
   - Prompt: `project-dashboard/prompt/TASK-INFRA-020-http-telemetry-adapter.md`
 
 ---
@@ -994,13 +994,13 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Waveforms render smoothly, zoom/pan/freeze work, data updates in real-time
     2. Code Quality: QML follows guidelines, no binding loops (qmllint), Doxygen comments on controller
-    3. Documentation: Update `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md` with QML component details
+    3. Documentation: Update `project-dashboard/doc/components/interface/DOC-COMP-028_waveform_display.md` with QML component details
     4. Integration: Works with WaveformController, receives sensor data
     5. Tests: QML tests for rendering, zoom/pan, freeze mode
     6. Performance: Frame rate measured (60 FPS target, < 16ms per frame)
     7. QML: No qmllint errors, no binding loops, accessibility labels present
   - Dependencies: WaveformController, ISensorDataSource
-  - Documentation: See `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md` for waveform rendering design. See `.cursor/rules/qml_guidelines.mdc` for QML standards.
+  - Documentation: See `project-dashboard/doc/components/interface/DOC-COMP-028_waveform_display.md` for waveform rendering design. See `.cursor/rules/qml_guidelines.mdc` for QML standards.
   - Prompt: `project-dashboard/prompt/TASK-UI-009-waveform-display.md`
 
 - [ ] TASK-UI-010: Implement Alarm Panel with Priority Sorting
@@ -1014,12 +1014,12 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Alarms displayed correctly, priority sorting works, actions work, audio feedback works
     2. Code Quality: QML follows guidelines, no binding loops (qmllint), Doxygen comments on controller
-    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with UI integration
+    3. Documentation: Update `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` with UI integration
     4. Integration: Works with AlarmController, receives alarm events
     5. Tests: QML tests for alarm display, sorting, actions
     7. QML: No qmllint errors, no binding loops, accessibility labels present
   - Dependencies: AlarmController, MonitoringService
-  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` for alarm workflow. See `.cursor/rules/qml_guidelines.mdc` for QML standards.
+  - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` for alarm workflow. See `.cursor/rules/qml_guidelines.mdc` for QML standards.
   - Prompt: `project-dashboard/prompt/TASK-UI-010-alarm-panel.md`
 
 - [ ] TASK-UI-011: Implement Trends View with Time-Series Graphs
@@ -1033,7 +1033,7 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Graphs render correctly, time range selection works, zoom/pan works, overlay works
     2. Code Quality: QML follows guidelines, no binding loops (qmllint), Doxygen comments on controller
-    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with trends UI
+    3. Documentation: Update `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` with trends UI
     4. Integration: Works with TrendsController, queries vitals repository
     5. Tests: QML tests for graph rendering, time range selection, zoom/pan
     7. QML: No qmllint errors, no binding loops, accessibility labels present
@@ -1060,7 +1060,7 @@ These infrastructure components should be implemented early as they are dependen
     4. Integration: Test runs in CI, passes consistently
     5. Tests: Integration test comprehensive, covers happy path and error cases
   - Dependencies: AdmissionService, PatientController, MockPatientLookupService, MockSensorDataSource
-  - Documentation: See `doc/19_ADT_WORKFLOW.md` for admission workflow. See `doc/18_TESTING_WORKFLOW.md` for testing guidelines.
+  - Documentation: See `project-dashboard/doc/legacy/architecture_and_design/19_ADT_WORKFLOW.md` for admission workflow. See `project-dashboard/doc/legacy/architecture_and_design/18_TESTING_WORKFLOW.md` for testing guidelines.
   - Prompt: `project-dashboard/prompt/TASK-TEST-014-admission-integration-test.md`
 
 - [ ] TASK-TEST-015: Implement Performance Benchmarks for Critical Paths
@@ -1076,12 +1076,12 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Benchmarks run successfully, all targets met, CI integration works
     2. Code Quality: Benchmark code follows guidelines, results reproducible
-    3. Documentation: Update `doc/27_PERFORMANCE_AND_PROFILING.md` with benchmark results
+    3. Documentation: Update `project-dashboard/doc/legacy/architecture_and_design/40_BENCHMARK_AND_PERFORMANCE_MEASUREMENT.md` with benchmark results
     4. Integration: Benchmarks run in CI, baseline comparison automated
     5. Tests: Benchmark suite comprehensive, covers all critical paths
     6. Performance: All performance targets verified (< 50ms alarm, < 16ms waveform, < 100ms database)
   - Dependencies: Google Benchmark library, CI infrastructure
-  - Documentation: See `doc/27_PERFORMANCE_AND_PROFILING.md` for performance requirements. See `doc/42_LOW_LATENCY_TECHNIQUES.md` for optimization strategies.
+  - Documentation: See `project-dashboard/doc/legacy/architecture_and_design/40_BENCHMARK_AND_PERFORMANCE_MEASUREMENT.md` for performance requirements. See `project-dashboard/doc/legacy/architecture_and_design/42_LOW_LATENCY_TECHNIQUES.md` for optimization strategies.
   - Prompt: `project-dashboard/prompt/TASK-TEST-015-performance-benchmarks.md`
 
 - [ ] TASK-TEST-016: Implement QML Component Tests with Qt Quick Test
@@ -1098,12 +1098,12 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: QML tests pass, components render correctly, bindings work, interactions work
     2. Code Quality: Test code follows guidelines, no qmllint errors
-    3. Documentation: Update `doc/18_TESTING_WORKFLOW.md` with QML testing guidelines
+    3. Documentation: Update `project-dashboard/doc/legacy/architecture_and_design/18_TESTING_WORKFLOW.md` with QML testing guidelines
     4. Integration: Tests run in CI, all tests pass
     5. Tests: Test suite comprehensive, covers all QML components
     7. QML: All QML test files qmllint clean
   - Dependencies: Qt Quick Test framework, QML components
-  - Documentation: See `doc/18_TESTING_WORKFLOW.md` for testing guidelines. See `.cursor/rules/qml_guidelines.mdc` for QML standards.
+  - Documentation: See `project-dashboard/doc/legacy/architecture_and_design/18_TESTING_WORKFLOW.md` for testing guidelines. See `.cursor/rules/qml_guidelines.mdc` for QML standards.
   - Prompt: `project-dashboard/prompt/TASK-TEST-016-qml-component-tests.md`
 
 ---
@@ -1122,11 +1122,11 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Certificates installed, validated, expiration detected, rotation works, notifications sent
     2. Code Quality: Doxygen comments, proper error handling, follows security best practices
-    3. Documentation: Update `doc/35_CERTIFICATE_MANAGEMENT.md` with implementation details
+    3. Documentation: Update `project-dashboard/doc/legacy/architecture_and_design/15_CERTIFICATE_PROVISIONING.md` with implementation details
     4. Integration: Works with DatabaseManager, notifications system
     5. Tests: Unit tests for lifecycle management, expiration detection, validation
   - Dependencies: SQLiteCertificateRepository, DatabaseManager, Schema Management
-  - Documentation: See `doc/35_CERTIFICATE_MANAGEMENT.md` for certificate lifecycle design.
+  - Documentation: See `project-dashboard/doc/legacy/architecture_and_design/15_CERTIFICATE_PROVISIONING.md` for certificate lifecycle design.
   - Prompt: `project-dashboard/prompt/TASK-SEC-001-certificate-management.md`
 
 - [ ] TASK-SEC-002: Implement Audit Trail with Hash Chain Verification
@@ -1141,15 +1141,15 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Audit entries logged with hash, chain integrity verified, tampering detected
     2. Code Quality: Doxygen comments, cryptographically secure hash (SHA-256), follows security best practices
-    3. Documentation: Update `doc/21_LOGGING_STRATEGY.md` with audit hash chain design
+    3. Documentation: Update `project-dashboard/doc/guidelines/DOC-GUIDE-012_logging.md` with audit hash chain design
     4. Integration: Works with DatabaseManager, all services log to audit trail
     5. Tests: Unit tests for hash chain, integrity verification, tampering detection
   - Dependencies: SQLiteAuditRepository, DatabaseManager, Schema Management
-  - Documentation: See `doc/21_LOGGING_STRATEGY.md` for audit logging design. See `doc/38_AUTHENTICATION_WORKFLOW.md` for security events.
+  - Documentation: See `project-dashboard/doc/guidelines/DOC-GUIDE-012_logging.md` for audit logging design. See `project-dashboard/doc/processes/DOC-PROC-014_authentication_workflow.md` for security events.
   - Prompt: `project-dashboard/prompt/TASK-SEC-002-audit-hash-chain.md`
 
 - [ ] TASK-SEC-003: Implement SQLCipher Integration for Database Encryption
-  - What: Implement SQLCipher integration following the plan in `doc/34_SQLCIPHER_INTEGRATION.md`. Add key derivation (PBKDF2 with 256,000 iterations), key storage in Qt Keychain, encryption settings configuration. Update `DatabaseManager` to support encrypted databases. Add migration path from unencrypted to encrypted databases.
+  - What: Implement SQLCipher integration following the plan in `project-dashboard/doc/architecture/DOC-ARCH-018_sqlcipher_integration.md`. Add key derivation (PBKDF2 with 256,000 iterations), key storage in Qt Keychain, encryption settings configuration. Update `DatabaseManager` to support encrypted databases. Add migration path from unencrypted to encrypted databases.
   - Why: HIPAA requires encryption at rest for Protected Health Information (REQ-REG-HIPAA-001). SQLCipher provides transparent database encryption. Qt Keychain ensures secure key storage.
   - Files:
     - `src/infrastructure/persistence/DatabaseManager.cpp/h` (add SQLCipher support)
@@ -1161,11 +1161,11 @@ These infrastructure components should be implemented early as they are dependen
   - Verification Steps:
     1. Functional: Database encrypted, key derivation works, key storage works, migration works
     2. Code Quality: Doxygen comments, secure key handling (keys never logged), follows security best practices
-    3. Documentation: `doc/34_SQLCIPHER_INTEGRATION.md` implementation status updated
+    3. Documentation: `project-dashboard/doc/architecture/DOC-ARCH-018_sqlcipher_integration.md` implementation status updated
     4. Integration: Works with DatabaseManager, all repositories work with encrypted database
     5. Tests: Unit tests for encryption, key management, migration
   - Dependencies: SQLCipher library, Qt Keychain library, DatabaseManager
-  - Documentation: See `doc/34_SQLCIPHER_INTEGRATION.md` for SQLCipher integration plan. See `doc/30_DATABASE_ACCESS_STRATEGY.md` for database architecture.
+  - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-018_sqlcipher_integration.md` for SQLCipher integration plan. See `project-dashboard/doc/guidelines/DOC-GUIDE-014_database_access_strategy.md` for database architecture.
   - Prompt: `project-dashboard/prompt/TASK-SEC-003-sqlcipher-integration.md`
 
 ---
@@ -1189,7 +1189,7 @@ These infrastructure components should be implemented early as they are dependen
     4. Integration: CI workflow publishes docs, docs accessible via URL
     5. Tests: Verification script checks all public APIs documented, grep confirms no undocumented APIs
   - Dependencies: Doxygen tool, CI infrastructure
-  - Documentation: See `.cursor/rules/api_documentation.mdc` for Doxygen requirements. See `doc/26_API_DOCUMENTATION.md` for API documentation strategy.
+  - Documentation: See `.cursor/rules/api_documentation.mdc` for Doxygen requirements. See `project-dashboard/doc/guidelines/DOC-GUIDE-020_api_documentation.md` for API documentation strategy.
   - Prompt: `project-dashboard/prompt/TASK-DOC-007-doxygen-generation.md`
 
 - [ ] TASK-DOC-008: Create Architecture Decision Records (ADRs)
@@ -1498,7 +1498,7 @@ These infrastructure components should be implemented early as they are dependen
     3. Documentation: BUILD.md comprehensive, README.md updated, cross-references to schema management docs, troubleshooting guide complete. **Status:** ⏳ Pending documentation
     4. Integration: Documentation matches actual build process, commands work on macOS, environment variable setup persists across sessions. **Status:** ⏳ Pending documentation
     5. Tests: New developer onboarding test (follow BUILD.md from scratch), diagnostic script test (verify output accurate). **Status:** ⏳ Pending documentation
-  - Documentation: See `doc/processes/DOC-PROC-009_schema_management.md` for schema management workflow, see `doc/30_DATABASE_ACCESS_STRATEGY.md` for database architecture
+  - Documentation: See `project-dashboard/doc/processes/DOC-PROC-009_schema_management.md` for schema management workflow, see `project-dashboard/doc/guidelines/DOC-GUIDE-014_database_access_strategy.md` for database architecture
   - Prompt: `project-dashboard/prompt/db-fix-05-developer-setup-docs.md`
 
 - [x] Define telemetry proto and/or OpenAPI spec (canonical schema)
@@ -1618,10 +1618,10 @@ These infrastructure components should be implemented early as they are dependen
 ### Sensor Simulator & Data Integration (High Priority)
 
 - [x] Review and consolidate simulator-related documentation
-  - What: Review all documentation related to simulator/z-monitor integration (`doc/37_SENSOR_INTEGRATION.md`, `doc/36_DATA_CACHING_STRATEGY.md`, `doc/12_THREAD_MODEL.md`, `project-dashboard/sensor-simulator/README.md`, `project-dashboard/sensor-simulator/tests/e2e_test_instructions.md`, `project-dashboard/sensor-simulator/tests/handshake_compatibility.md`). Create a single consolidated guide that explains the complete architecture: shared memory ring buffer structure, Unix socket handshake, memfd exchange, frame formats, latency requirements, and integration points. Remove redundant or outdated information.
+  - What: Review all documentation related to simulator/z-monitor integration (`project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md`, `project-dashboard/doc/components/infrastructure/caching/DOC-COMP-026_data_caching_strategy.md`, `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md`, `project-dashboard/sensor-simulator/README.md`, `project-dashboard/sensor-simulator/tests/e2e_test_instructions.md`, `project-dashboard/sensor-simulator/tests/handshake_compatibility.md`). Create a single consolidated guide that explains the complete architecture: shared memory ring buffer structure, Unix socket handshake, memfd exchange, frame formats, latency requirements, and integration points. Remove redundant or outdated information.
   - Why: Documentation is currently scattered across multiple files with some redundancy and potential inconsistencies. A consolidated guide will serve as single source of truth for simulator/z-monitor integration, making it easier to implement and troubleshoot.
   - Files:
-    - Read: `doc/37_SENSOR_INTEGRATION.md`, `doc/36_DATA_CACHING_STRATEGY.md`, `doc/12_THREAD_MODEL.md`, `doc/42_LOW_LATENCY_TECHNIQUES.md`
+    - Read: `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md`, `project-dashboard/doc/components/infrastructure/caching/DOC-COMP-026_data_caching_strategy.md`, `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md`, `project-dashboard/doc/legacy/architecture_and_design/42_LOW_LATENCY_TECHNIQUES.md`
     - Read: `project-dashboard/sensor-simulator/README.md`, `project-dashboard/sensor-simulator/tests/e2e_test_instructions.md`, `project-dashboard/sensor-simulator/tests/handshake_compatibility.md`
     - Update: `doc/37_SENSOR_INTEGRATION.md` (make this the authoritative guide)
     - Create: `doc/44_SIMULATOR_INTEGRATION_GUIDE.md` (step-by-step integration guide with troubleshooting)
@@ -1643,7 +1643,7 @@ These infrastructure components should be implemented early as they are dependen
   - Dependencies:
     - Existing documentation files (read-only review) ✅
     - Understanding of current simulator implementation ✅
-  - Documentation: See `doc/37_SENSOR_INTEGRATION.md` for current integration overview. See `doc/12_THREAD_MODEL.md` for thread architecture and latency targets. See `doc/44_SIMULATOR_INTEGRATION_GUIDE.md` for step-by-step implementation guide.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md` for current integration overview. See `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md` for thread architecture and latency targets. See `project-dashboard/doc/legacy/architecture_and_design/44_SIMULATOR_INTEGRATION_GUIDE.md` for step-by-step implementation guide.
   - Completed: 2025-11-29
   - Summary: Successfully consolidated all simulator integration documentation into two comprehensive documents: (1) `37_SENSOR_INTEGRATION.md` - authoritative architecture reference with troubleshooting and integration checklist, (2) `44_SIMULATOR_INTEGRATION_GUIDE.md` - practical step-by-step implementation guide with code examples and testing scripts. Added platform-specific implementation notes for macOS (memfd polyfill using shm_open), comprehensive troubleshooting section with diagnostic tools, and complete integration checklist covering all 10 required components. Documentation now provides clear path from setup to production deployment.
   - Prompt: `project-dashboard/prompt/44a-review-simulator-documentation.md`
@@ -1838,7 +1838,7 @@ These infrastructure components should be implemented early as they are dependen
     - Frame parsing (including CRC): < 2 ms
     - Signal emission: < 1 ms
     - Total latency (simulator write → z-monitor signal): < 16 ms
-  - Documentation: See `doc/37_SENSOR_INTEGRATION.md` for complete architecture. See `doc/12_THREAD_MODEL.md` for threading and latency requirements. See `project-dashboard/sensor-simulator/tests/handshake_compatibility.md` for socket handshake protocol.
+  - Documentation: See `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-027_sensor_integration.md` for complete architecture. See `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md` for threading and latency requirements. See `project-dashboard/sensor-simulator/tests/handshake_compatibility.md` for socket handshake protocol.
   - Prompt: `project-dashboard/prompt/44c-implement-shared-memory-sensor-datasource.md`
 
 - [x] Wire SharedMemorySensorDataSource to MonitoringService and controllers
@@ -1890,7 +1890,7 @@ These infrastructure components should be implemented early as they are dependen
     - Measure time in z-monitor when signal emitted
     - Measure time when QML property updated
     - Total budget: < 50ms (< 16ms simulator→signal, < 34ms signal→UI)
-  - Documentation: See `doc/architecture/DOC-ARCH-005_data_flow_and_caching.md (DOC-ARCH-005)` for data flow architecture. See `doc/09a_INTERFACE_MODULE.md` for controller documentation. See `doc/12_THREAD_MODEL.md` for threading model.
+  - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-005_data_flow_and_caching.md` for data flow architecture. See `project-dashboard/doc/legacy/architecture_and_design/09a_INTERFACE_MODULE.md` for controller documentation. See `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md` for threading model.
   - Prompt: `project-dashboard/prompt/44d-wire-sensor-to-monitoring-service.md`
 
 - [x] Update QML UI to display live sensor data with waveform rendering (44e)
@@ -3552,13 +3552,13 @@ While the UI works without these repositories (data flows through caches), these
   - Prompt: `project-dashboard/prompt/20-error-handling-implementation.md`  (When finished: mark this checklist item done.)
 
 - [ ] TASK-DOC-007: Review and implement Logging Strategy
-  - What: Implement structured logging following `doc/21_LOGGING_STRATEGY.md` and `doc/43_ASYNC_LOGGING_ARCHITECTURE.md`, including log levels, structured context, log rotation, and async non-blocking architecture. This task focuses on structured logging features (context, categories, levels) on top of the async infrastructure.
+  - What: Implement structured logging following `project-dashboard/doc/guidelines/DOC-GUIDE-012_logging.md` and `project-dashboard/doc/components/infrastructure/logging/DOC-COMP-029_async_logging.md`, including log levels, structured context, log rotation, and async non-blocking architecture. This task focuses on structured logging features (context, categories, levels) on top of the async infrastructure.
   - Why: Provides comprehensive, searchable logging with appropriate performance characteristics for real-time systems. Builds on async logging infrastructure.
   - Files: Update `src/infrastructure/logging/LogService.cpp/h` (already refactored for async), add structured context support, implement category filtering, add log level filtering.
   - Dependencies: Async logging infrastructure must be completed first (ILogBackend, LogService async refactor).
   - Acceptance: Logging uses structured format with context key-value pairs, log rotation works, async logging doesn't block threads (< 1μs per call), sensitive data is not logged, logs are searchable and filterable, categories can be enabled/disabled, log levels are respected.
   - Tests: Structured logging tests, category filtering tests, log level filtering tests, context serialization tests, security tests (verify no sensitive data).
-  - Documentation: See `doc/21_LOGGING_STRATEGY.md` for logging strategy and `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` for async architecture.
+  - Documentation: See `project-dashboard/doc/guidelines/DOC-GUIDE-012_logging.md` for logging strategy and `project-dashboard/doc/components/infrastructure/logging/DOC-COMP-029_async_logging.md` for async architecture.
   - Prompt: `project-dashboard/prompt/21-logging-strategy-implementation.md`  (When finished: mark this checklist item done.)
 
 - [ ] TASK-MAINT-001: Review and implement Code Organization
@@ -3650,7 +3650,7 @@ While the UI works without these repositories (data flows through caches), these
 
 - [ ] TASK-DOC-010: Maintain System Components Reference (doc/29_SYSTEM_COMPONENTS.md)
   - What: Keep `doc/29_SYSTEM_COMPONENTS.md` synchronized with the codebase. When adding/removing/refactoring components, update the component inventory, interaction diagram, and component count.
-  - Why: Provides a single authoritative source of truth for all system components (115 total across all layers per `doc/12_THREAD_MODEL.md`). Prevents discrepancies between documentation and implementation.
+  - Why: Provides a single authoritative source of truth for all system components (115 total across all layers per `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md`). Prevents discrepancies between documentation and implementation.
   - Files: `doc/29_SYSTEM_COMPONENTS.md`, `doc/29_SYSTEM_COMPONENTS.mmd`, `doc/29_SYSTEM_COMPONENTS.svg`, related architecture/design docs.
   - When to Update:
     - Adding new aggregates, services, controllers, repositories, or UI components
@@ -3761,18 +3761,18 @@ If you'd like, I can now:
 
 ## Service Interface Specifications (write detailed docs)
 
-These documents should live under `doc/interfaces/` and include an interface overview, responsibilities, threading model, lifecycle/ownership rules, public method signatures (C++ style), error semantics, example code paths and sequence diagrams (where helpful), and a list of unit/integration tests the implementation must satisfy.
+These documents should live under `project-dashboard/doc/components/interface/` and include an interface overview, responsibilities, threading model, lifecycle/ownership rules, public method signatures (C++ style), error semantics, example code paths and sequence diagrams (where helpful), and a list of unit/integration tests the implementation must satisfy.
 
 **Status:** Interface documentation is partially complete. See existing docs:
-- ✅ `doc/interfaces/IPatientLookupService.md` - Complete
+- ✅ `project-dashboard/doc/components/interface/IPatientLookupService.md` - Complete
 - ✅ `doc/z-monitor/architecture_and_design/45_ITELEMETRY_SERVER.md` - Complete  
-- ✅ `doc/interfaces/ISensorDataSource.md` - Complete
-- ✅ `doc/interfaces/IProvisioningService.md` - Complete
-- ⏳ `doc/interfaces/IAdmissionService.md` - Pending (see Low Priority section)
+- ✅ `project-dashboard/doc/components/interface/ISensorDataSource.md` - Complete
+- ✅ `project-dashboard/doc/components/interface/IProvisioningService.md` - Complete
+- ⏳ `project-dashboard/doc/components/interface/IAdmissionService.md` - Pending (see Low Priority section)
 
 **Remaining Interface Docs to Create:**
 
-- [ ] TASK-DOC-014: `doc/interfaces/IDatabaseManager.md`
+- [ ] TASK-DOC-014: `project-dashboard/doc/components/interface/IDatabaseManager.md`
   - Purpose: Persistent storage and schema migrations for vitals, events, alarms, settings and users. Must support encrypted DB (SQLCipher) and an in-memory mode for tests.
   - Responsibilities:
     - Open/close database with optional encryption key.
@@ -3794,7 +3794,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Example code path: UI requests 1-hour trend -> `TrendsController::RequestTrend(metric, range)` -> calls `IDatabaseManager::QueryVitals(range)` -> data returned to QML (via `TrendsController` signal).
   - Tests to write: open/close, enqueue insert under concurrent producers, migration application order, archive operation correctness, encrypted DB open/close (smoke)
 
-- [ ] TASK-DOC-015: `doc/interfaces/INetworkManager.md`
+- [ ] TASK-DOC-015: `project-dashboard/doc/components/interface/INetworkManager.md`
   - Purpose: Reliable, authenticated transport to central server; manages connection state and telemetry batching. **Note:** NetworkManager is an infrastructure adapter that uses `ITelemetryServer` interface. Consider documenting NetworkManager as implementation detail rather than separate interface.
   - Responsibilities:
     - Configure TLS/mTLS credentials from `resources/certs/`.
@@ -3835,7 +3835,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests to write: connection management, telemetry/sensor data transmission, error handling, mock server behavior, server URL configuration.
   - Note: Interface documentation exists at `doc/z-monitor/architecture_and_design/45_ITELEMETRY_SERVER.md`.
 
-- [ ] TASK-DOC-017: `doc/interfaces/IAlarmManager.md`
+- [ ] TASK-DOC-017: `project-dashboard/doc/components/interface/IAlarmManager.md`
   - Purpose: Centralized alarm evaluation, escalation, history and acknowledgment logic.
   - Responsibilities:
     - Accept alarm events (from analyzers or thresholds), deduplicate, prioritize, and emit signals for UI and logging.
@@ -3851,7 +3851,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Example code path: ECG analyzer detects arrhythmia -> `IAlarmManager::RaiseAlarm()` -> emits `OnAlarmRaised` -> `AlarmController` highlights card and triggers audible tone.
   - Tests to write: priority ordering, silence behavior, acknowledgement persistence, history correctness.
 
-- [ ] TASK-DOC-018: `doc/interfaces/IDeviceSimulator.md`
+- [ ] TASK-DOC-018: `project-dashboard/doc/components/interface/IDeviceSimulator.md`
   - Purpose: **Note:** DeviceSimulator is legacy fallback. Primary sensor data source is `ISensorDataSource` interface with `SharedMemorySensorDataSource` implementation. DeviceSimulator may be deprecated in favor of external sensor simulator. Document if keeping as fallback.
   - Responsibilities:
     - Generate vitals streams (ECG, pleth), and inject events (arrhythmia, motion artifact) on schedule or via API.
@@ -3864,9 +3864,9 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - Signals: `OnVitalsSample(VitalsSample)`, `OnWaveformSample(WaveformSample)`.
   - Example code path: tests subscribe to `OnVitalsSample`, verify values drive `AlarmManager` logic.
   - Tests to write: deterministic playback matches expected triggers, event injection causes expected alarms.
-  - Note: See `doc/interfaces/ISensorDataSource.md` for primary sensor data source interface. DeviceSimulator is infrastructure adapter implementing ISensorDataSource.
+  - Note: See `project-dashboard/doc/components/interface/ISensorDataSource.md` for primary sensor data source interface. DeviceSimulator is infrastructure adapter implementing ISensorDataSource.
 
-- [ ] TASK-DOC-019: `doc/interfaces/IPatientLookupService.md`
+- [ ] TASK-DOC-019: `project-dashboard/doc/components/interface/IPatientLookupService.md`
   - Purpose: Interface for looking up patient information from external systems (HIS/EHR) by patient ID.
   - Responsibilities:
     - Query external patient information systems by patient ID (or MRN)
@@ -3880,9 +3880,9 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual QString GetLastError() const = 0;`
   - Implementation variants: `MockPatientLookupService` (testing), `NetworkPatientLookupService` (production), `DatabasePatientLookupService` (fallback)
   - Tests to write: synchronous/asynchronous lookups, error handling, concurrent lookups, integration with PatientManager.
-  - Note: Interface documentation exists at `doc/interfaces/IPatientLookupService.md`.
+  - Note: Interface documentation exists at `project-dashboard/doc/components/interface/IPatientLookupService.md`.
 
-- [ ] TASK-DOC-020: `doc/interfaces/ISettingsManager.md`
+- [ ] TASK-DOC-020: `project-dashboard/doc/components/interface/ISettingsManager.md`
   - Purpose: Persistent configuration store for device settings and thresholds. **Note:** SettingsManager is infrastructure adapter (Qt-specific). Consider if interface abstraction needed or if SettingsManager can be used directly.
   - Responsibilities:
     - Read/write typed settings, validation, defaulting, and notification of changes.
@@ -3901,7 +3901,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Note: `bedId` has been removed - bed location is part of Patient object managed through ADT workflow.
   - Tests to write: validation rules, persistence, migration of settings schema, device configuration persistence.
 
-- [ ] TASK-DOC-021: `doc/interfaces/IAuthenticationService.md`
+- [ ] TASK-DOC-021: `project-dashboard/doc/components/interface/IAuthenticationService.md`
   - Purpose: **Note:** Authentication is handled by `SecurityService` (application layer) which uses `IUserManagementService` interface. Hospital user authentication replaces local PIN-based auth. Document SecurityService API instead of separate IAuthenticationService interface.
   - Responsibilities:
     - Authenticate users via `IUserManagementService` (hospital server or mock), maintain current session, enforce lockout policies, provide role checks.
@@ -3924,9 +3924,9 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - All authentication events logged to `security_audit_log`
     - Role-based permissions via `PermissionRegistry`
   - Tests to write: correct/incorrect credentials, lockout behavior, permission checks, session timeout.
-  - Note: See `doc/38_AUTHENTICATION_WORKFLOW.md` for complete authentication workflow and `doc/interfaces/IUserManagementService.md` for hospital authentication interface.
+  - Note: See `project-dashboard/doc/38_AUTHENTICATION_WORKFLOW.md` for complete authentication workflow and `project-dashboard/doc/components/interface/IUserManagementService.md` for hospital authentication interface.
 
-- [ ] TASK-DOC-022: `doc/interfaces/IArchiver.md`
+- [ ] TASK-DOC-022: `project-dashboard/doc/components/interface/IArchiver.md`
   - Purpose: Responsible for moving expired data out of the primary DB into compressed archive stores and/or remote upload staging.
   - Responsibilities:
     - Batch archival jobs, create archive packages (proto or compressed sqlite), optionally upload to server and remove local rows.
@@ -3937,7 +3937,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
     - `virtual Result PurgeArchived(TimeRange r) = 0;`
   - Tests to write: archive creation correctness, safe purge, resume/retry behavior on failures.
 
-- [ ] TASK-DOC-023: `doc/interfaces/ILogService.md`
+- [ ] TASK-DOC-023: `project-dashboard/doc/components/interface/ILogService.md`
   - Purpose: Centralized logging with async non-blocking architecture. LogService runs on Database I/O Thread and uses `ILogBackend` interface for backend abstraction. Exposes in-memory buffer (last 1000 entries) to QML Diagnostics view.
   - Responsibilities:
     - Append logs with levels, timestamps, and structured context; async non-blocking (< 1μs per call).
@@ -3952,7 +3952,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests: ensure log ordering, level filtering, async behavior (< 1μs latency), queue overflow handling, model bindings to QML.
   - Note: See `doc/43_ASYNC_LOGGING_ARCHITECTURE.md` for complete async logging architecture.
 
-- [ ] TASK-DOC-024: `doc/interfaces/Controllers.md`
+- [ ] TASK-DOC-024: `project-dashboard/doc/components/interface/Controllers.md`
   - Purpose: Document each QML-facing controller in interface layer and the properties/methods they expose. Controllers bridge QML to application services following DDD interface layer pattern.
   - For each controller include:
     - `DashboardController` — properties: `heartRate`, `spo2`, `respirationRate`, `ecgWaveformModel`, `plethWaveformModel`; methods: `StartMonitoring()`, `StopMonitoring()`, `RequestTrend(range)`.
@@ -3970,7 +3970,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests: QML binding smoke tests, property change notifications, method-call round trips, signal emission tests.
 
 Action notes:
-- File paths: create `doc/interfaces/*.md` for each interface and `doc/interfaces/Controllers.md`.
+- File paths: create `project-dashboard/doc/components/interface/*.md` for each interface and `project-dashboard/doc/components/interface/Controllers.md`.
 - Deliverables per interface doc: responsibilities, signatures, example code paths, tests list, and a short sequence diagram (Mermaid) where helpful.
 - Prioritization: start with repository interfaces (`IPatientRepository`, `ITelemetryRepository`, etc.), then infrastructure interfaces (`ISensorDataSource`, `ITelemetryServer`, `IUserManagementService`), then controllers.
 - DDD Alignment: Domain interfaces in `src/domain/interfaces/`, infrastructure interfaces in `src/infrastructure/interfaces/`. Controllers are interface layer (no separate interface needed).
@@ -4032,7 +4032,7 @@ If you'd like, I can now:
 
 ## Service Interface Specifications (write detailed docs)
 
-These documents should live under `doc/interfaces/` and include an interface overview, responsibilities, threading model, lifecycle/ownership rules, public method signatures (C++ style), error semantics, example code paths and sequence diagrams (where helpful), and a list of unit/integration tests the implementation must satisfy.
+These documents should live under `project-dashboard/doc/components/interface/` and include an interface overview, responsibilities, threading model, lifecycle/ownership rules, public method signatures (C++ style), error semantics, example code paths and sequence diagrams (where helpful), and a list of unit/integration tests the implementation must satisfy.
 
 **Note:** See TASK-DOC-014 through TASK-DOC-025 for individual interface documentation tasks below.
 
@@ -4192,7 +4192,7 @@ These documents should live under `doc/interfaces/` and include an interface ove
   - Tests: QML binding smoke tests, property change notifications, method-call round trips.
 
 Action notes:
-- File paths: create `doc/interfaces/*.md` for each interface and `doc/interfaces/Controllers.md`.
+- File paths: create `project-dashboard/doc/components/interface/*.md` for each interface and `project-dashboard/doc/components/interface/Controllers.md`.
 - Deliverables per interface doc: responsibilities, signatures, example code paths, tests list, and a short sequence diagram (Mermaid) where helpful.
 - Prioritization: start with `IDatabaseManager`, `INetworkManager`, `IAlarmManager`, `IAuthenticationService`, then controllers.
 
@@ -4377,7 +4377,7 @@ These tasks address critical UI issues preventing data visualization and proper 
     5. Tests: **Status:** ⏳ Pending - Code structure verified. Manual testing required: launch Z Monitor and verify data displays. Unit tests and integration tests can be added in future task. For now, functional verification via manual UI testing is sufficient.
   - Dependencies: None (can be done independently, but enables data visualization task)
   - Notes: 
-    - Check if `IDeviceSimulator` interface already exists in `project-dashboard/doc/interfaces/IDeviceSimulator.md`
+    - Check if `IDeviceSimulator` interface already exists in `project-dashboard/doc/components/interface/IDeviceSimulator.md`
     - If `IDeviceSimulator` exists, consider using it instead of creating `ISensorDataSource`
     - Data generation should be deterministic for testing (use seed) but realistic for demos
     - Consider making data source configurable via command-line argument or settings

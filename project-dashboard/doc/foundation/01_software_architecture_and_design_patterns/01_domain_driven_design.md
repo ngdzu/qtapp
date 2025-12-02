@@ -8,7 +8,7 @@
 
 ## Status: ✅ Complete
 
-**Primary Reference:** `../../z-monitor/architecture_and_design/28_DOMAIN_DRIVEN_DESIGN.md`
+**Primary Reference:** `../../architecture/DOC-ARCH-028_domain_driven_design.md`
 
 This document provides foundational knowledge about Domain-Driven Design (DDD) principles and how they apply to the Z Monitor project.
 
@@ -69,12 +69,12 @@ The Z Monitor codebase uses medical device terminology directly:
 
 **Z Monitor Bounded Contexts:**
 
-| Context | Purpose | Key Concepts |
-|---------|---------|--------------|
-| **Monitoring** | Real-time vitals, alarms, telemetry | `PatientAggregate`, `DeviceAggregate`, `TelemetryBatch`, `AlarmAggregate` |
-| **Admission/ADT** | Patient admission, discharge, transfer | `AdmissionAggregate`, `PatientIdentity`, `BedAssignment` |
-| **Provisioning** | Device pairing, certificate management | `ProvisioningSession`, `CredentialBundle`, `DeviceAggregate` |
-| **Security** | Authentication, authorization, audit | `UserSession`, `PinCredential`, `AuditTrailEntry` |
+| Context           | Purpose                                | Key Concepts                                                              |
+| ----------------- | -------------------------------------- | ------------------------------------------------------------------------- |
+| **Monitoring**    | Real-time vitals, alarms, telemetry    | `PatientAggregate`, `DeviceAggregate`, `TelemetryBatch`, `AlarmAggregate` |
+| **Admission/ADT** | Patient admission, discharge, transfer | `AdmissionAggregate`, `PatientIdentity`, `BedAssignment`                  |
+| **Provisioning**  | Device pairing, certificate management | `ProvisioningSession`, `CredentialBundle`, `DeviceAggregate`              |
+| **Security**      | Authentication, authorization, audit   | `UserSession`, `PinCredential`, `AuditTrailEntry`                         |
 
 **Why Separate Contexts:**
 - **Monitoring** needs real-time performance and alarm handling
@@ -792,7 +792,7 @@ In Z Monitor, DDD helps manage the complexity of a medical device application wi
 - **"Implementing Domain-Driven Design" by Vaughn Vernon** - Practical implementation guide
 
 ### Z Monitor References
-- **`28_DOMAIN_DRIVEN_DESIGN.md`** - Z Monitor-specific DDD strategy
+- **`../../architecture/DOC-ARCH-028_domain_driven_design.md`** - Z Monitor-specific DDD strategy
 - **`02_ARCHITECTURE.md`** - Architecture overview with DDD layers
 - **`09_CLASS_DESIGNS.md`** - Class designs organized by DDD layers
 
