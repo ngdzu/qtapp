@@ -1,6 +1,7 @@
 -- Auto-generated DDL for table creation
--- Generated: 2025-12-01 21:53:26 UTC
+-- Generated: 2025-12-02 03:58:32 UTC
 -- Schema Version: 1.0.0
+-- Schema Source Hash: b855d7f7ae96
 -- ⚠️ DO NOT EDIT MANUALLY - Edit schema/database.yaml and regenerate
 
 

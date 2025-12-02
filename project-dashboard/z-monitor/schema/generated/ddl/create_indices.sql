@@ -1,5 +1,6 @@
 -- Auto-generated DDL for index creation
--- Generated: 2025-12-01 21:53:26 UTC
+-- Generated: 2025-12-02 03:58:32 UTC
+-- Schema Source Hash: b855d7f7ae96
 -- ⚠️ DO NOT EDIT MANUALLY - Edit schema/database.yaml and regenerate
 
 CREATE INDEX IF NOT EXISTS idx_action_log_timestamp ON action_log (timestamp_ms);
