@@ -798,6 +798,606 @@ These infrastructure components should be implemented early as they are dependen
     - Documentation updated with plugin path configuration requirements
   - Verification Steps:
     1. Functional: QSQLITE driver loads, no "Driver not loaded" errors, QSqlDatabase::isDriverAvailable("QSQLITE") returns true, database operations work. **Status:** ⏳ Pending investigation
+    2. Code Quality: Debug output in main.cpp shows correct paths, plugin deployment CMake code follows best practices
+    3. Documentation: Plugin path configuration documented, diagnostic script created and works correctly
+    4. Integration: Plugin loads on all supported platforms (macOS, Linux), build succeeds
+    5. Tests: Diagnostic script passes, plugin loader debug output shows correct search paths
+  - Documentation: See `doc/33_SCHEMA_MANAGEMENT.md` for schema management and database setup. See `doc/30_DATABASE_ACCESS_STRATEGY.md` for database architecture.
+  - Prompt: `project-dashboard/prompt/db-fix-02-plugin-path-config.md`
+
+---
+
+## Core Domain Implementation
+
+### Domain Model & Business Logic
+
+- [ ] TASK-DOM-006: Implement Patient Aggregate and Value Objects
+  - What: Implement `PatientAggregate` class in `src/domain/aggregates/patient/PatientAggregate.cpp/h` with value objects (`PatientId`, `MedicalRecordNumber`, `PersonalInfo`, `AllergiesInfo`). Implement admission/discharge methods that emit domain events (`PatientAdmitted`, `PatientDischarged`, `PatientTransferred`). Enforce business rules (cannot admit already-admitted patient, cannot discharge non-admitted patient, MRN format validation). Follow DDD patterns with aggregate root protecting invariants.
+  - Why: Patient is a core aggregate in hospital monitoring system. Encapsulates admission lifecycle (admit → transfer → discharge) with business rules. Domain events enable event sourcing and audit trail. Value objects ensure type safety and validation.
+  - Files:
+    - `src/domain/aggregates/patient/PatientAggregate.h/cpp`
+    - `src/domain/value_objects/PatientId.h`
+    - `src/domain/value_objects/MedicalRecordNumber.h`
+    - `src/domain/value_objects/PersonalInfo.h`
+    - `src/domain/value_objects/AllergiesInfo.h`
+    - `src/domain/events/PatientAdmitted.h`
+    - `src/domain/events/PatientDischarged.h`
+    - `src/domain/events/PatientTransferred.h`
+    - `tests/unit/domain/aggregates/PatientAggregateTest.cpp`
+  - Acceptance: PatientAggregate enforces invariants, domain events emitted on state changes, value objects validate data, unit tests verify business rules (cannot admit twice, cannot discharge non-admitted patient), aggregate state transitions work correctly.
+  - Verification Steps:
+    1. Functional: Aggregate enforces business rules, events emitted correctly, value objects validate data, state transitions work
+    2. Code Quality: Doxygen comments, no infrastructure dependencies, follows DDD patterns, linter passes
+    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with aggregate implementation details
+    4. Integration: Works with repositories, application services can use aggregate
+    5. Tests: Unit tests for business rules, value object validation, event emission, state transitions
+  - Dependencies: Domain events infrastructure (see TASK-DOM-007)
+  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` section 3 for aggregate design patterns.
+  - Prompt: `project-dashboard/prompt/TASK-DOM-006-patient-aggregate.md`
+
+- [ ] TASK-DOM-007: Implement Domain Events Infrastructure
+  - What: Create `IDomainEvent` interface and `DomainEventDispatcher` in `src/domain/events/` to support event-driven architecture. Events should be immutable, timestamped, and include aggregate ID. Dispatcher should support synchronous handlers (for same-transaction operations) and asynchronous handlers (for eventual consistency). Implement event bus pattern with handler registration and type-safe event emission.
+  - Why: Domain events decouple aggregates from side effects (logging, notifications, integration). Enables event sourcing, audit trails, and eventual consistency. Critical for HIPAA audit requirements (REQ-REG-HIPAA-003).
+  - Files:
+    - `src/domain/events/IDomainEvent.h`
+    - `src/domain/events/DomainEventDispatcher.h/cpp`
+    - `src/domain/events/EventBus.h/cpp`
+    - `tests/unit/domain/events/DomainEventDispatcherTest.cpp`
+  - Acceptance: Domain events are immutable and timestamped, dispatcher supports sync/async handlers, handler registration works, type-safe event emission works, unit tests verify event flow.
+  - Verification Steps:
+    1. Functional: Events dispatched correctly, handlers receive events, sync/async modes work
+    2. Code Quality: Thread-safe dispatcher, Doxygen comments, follows event sourcing patterns
+    3. Documentation: Document event-driven architecture in `doc/28_DOMAIN_DRIVEN_DESIGN.md`
+    4. Integration: Works with aggregates, application services can subscribe to events
+    5. Tests: Unit tests for dispatcher, handler registration, event emission, thread safety
+  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` section 5 for event sourcing design.
+  - Prompt: `project-dashboard/prompt/TASK-DOM-007-domain-events.md`
+
+- [ ] TASK-DOM-008: Implement Alarm Aggregate with Threshold Management
+  - What: Implement `AlarmAggregate` in `src/domain/aggregates/alarm/AlarmAggregate.cpp/h` with threshold value objects (`VitalThreshold`, `AlarmSeverity`, `AlarmCondition`). Implement alarm detection logic (value exceeds threshold), alarm acknowledgment workflow, and snooze/silence functionality. Emit domain events (`AlarmRaised`, `AlarmAcknowledged`, `AlarmSilenced`, `AlarmCleared`). Enforce business rules (only certain roles can silence > 60s, alarm history preserved, escalation timers).
+  - Why: Alarm management is critical for patient safety. Business rules ensure alarms cannot be ignored without proper authorization. Domain events enable audit trail for regulatory compliance (REQ-REG-HIPAA-003, REQ-SEC-AUDIT-001).
+  - Files:
+    - `src/domain/aggregates/alarm/AlarmAggregate.h/cpp`
+    - `src/domain/value_objects/VitalThreshold.h`
+    - `src/domain/value_objects/AlarmSeverity.h`
+    - `src/domain/value_objects/AlarmCondition.h`
+    - `src/domain/events/AlarmRaised.h`
+    - `src/domain/events/AlarmAcknowledged.h`
+    - `src/domain/events/AlarmSilenced.h`
+    - `src/domain/events/AlarmCleared.h`
+    - `tests/unit/domain/aggregates/AlarmAggregateTest.cpp`
+  - Acceptance: Alarm detection logic works, threshold management enforced, acknowledgment workflow works, snooze/silence timers work, domain events emitted, business rules enforced (role-based silence duration), unit tests verify alarm lifecycle.
+  - Verification Steps:
+    1. Functional: Alarm detection works, thresholds enforced, acknowledgment/silence/clear workflow works, escalation timers work
+    2. Code Quality: Doxygen comments, no infrastructure dependencies, follows DDD patterns, linter passes
+    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with alarm aggregate design
+    4. Integration: Works with monitoring service, alarm history persisted
+    5. Tests: Unit tests for alarm lifecycle, threshold detection, business rules, permission checks
+  - Dependencies: TASK-DOM-007 (Domain Events Infrastructure)
+  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` section 3 for aggregate design. See `doc/38_AUTHENTICATION_WORKFLOW.md` for permission requirements.
+  - Prompt: `project-dashboard/prompt/TASK-DOM-008-alarm-aggregate.md`
+
+---
+
+## Application Services & Use Cases
+
+- [ ] TASK-APP-003: Implement MonitoringService with Alarm Detection
+  - What: Implement `MonitoringService` in `src/application/services/MonitoringService.cpp/h` that orchestrates real-time vital sign monitoring, alarm detection, and threshold checking. Integrates with `ISensorDataSource` (sensor abstraction), `AlarmAggregate` (alarm business logic), and `IAlarmRepository` (persistence). Implements < 50ms alarm detection latency requirement (REQ-PERF-LATENCY-001). Emits Qt signals for UI updates. Runs on Monitoring Thread.
+  - Why: Core application service that coordinates monitoring workflow. Separates business logic (in domain) from orchestration (application layer). Critical for real-time patient monitoring and alarm detection.
+  - Files:
+    - `src/application/services/MonitoringService.h/cpp`
+    - `tests/unit/application/services/MonitoringServiceTest.cpp`
+    - `tests/integration/application/MonitoringWorkflowTest.cpp`
+  - Acceptance: Monitoring service receives sensor data, detects alarms within < 50ms, emits UI update signals, persists alarms to repository, handles sensor errors gracefully, unit tests verify alarm detection logic, integration tests verify end-to-end workflow.
+  - Verification Steps:
+    1. Functional: Receives sensor data, detects alarms, emits signals, persists data, handles errors
+    2. Code Quality: Doxygen comments, follows application layer patterns, dependency injection used
+    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with application service design
+    4. Integration: Works with sensor sources, alarm aggregate, repositories
+    5. Tests: Unit tests for alarm detection, integration tests for workflow, performance tests for < 50ms latency
+    6. Performance: Alarm detection measured < 50ms (verified with benchmark)
+  - Dependencies: TASK-DOM-008 (Alarm Aggregate), ISensorDataSource interface, IAlarmRepository interface
+  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` section 4 for application service patterns. See `doc/42_LOW_LATENCY_TECHNIQUES.md` for performance requirements.
+  - Prompt: `project-dashboard/prompt/TASK-APP-003-monitoring-service.md`
+
+- [ ] TASK-APP-004: Implement TelemetryService with Batch Upload
+  - What: Implement `TelemetryService` in `src/application/services/TelemetryService.cpp/h` that batches vital signs and alarm events for upload to central server. Implements 10-minute batch interval, compression (gzip), encryption (TLS 1.3), and retry logic (exponential backoff with circuit breaker). Integrates with `ITelemetryServer` interface. Runs on Network Thread. Implements background upload without blocking UI.
+  - Why: Telemetry enables central monitoring dashboard and hospital analytics. Batch upload reduces network overhead. Encryption ensures HIPAA compliance (REQ-REG-HIPAA-002). Circuit breaker prevents cascading failures.
+  - Files:
+    - `src/application/services/TelemetryService.h/cpp`
+    - `src/infrastructure/network/RetryPolicy.h/cpp`
+    - `src/infrastructure/network/CircuitBreaker.h/cpp`
+    - `tests/unit/application/services/TelemetryServiceTest.cpp`
+    - `tests/integration/application/TelemetryWorkflowTest.cpp`
+  - Acceptance: Batches data every 10 minutes, compresses with gzip, encrypts with TLS 1.3, retries with exponential backoff, circuit breaker prevents cascading failures, background upload works, unit tests verify batching logic, integration tests verify upload workflow.
+  - Verification Steps:
+    1. Functional: Batches data correctly, compression works, encryption works, retry logic works, circuit breaker works
+    2. Code Quality: Doxygen comments, follows application layer patterns, dependency injection used
+    3. Documentation: Update `doc/31_TELEMETRY_ARCHITECTURE.md` with implementation details
+    4. Integration: Works with telemetry server, handles network errors gracefully
+    5. Tests: Unit tests for batching/compression/retry, integration tests for upload workflow, network failure tests
+  - Dependencies: ITelemetryServer interface, RetryPolicy, CircuitBreaker
+  - Documentation: See `doc/31_TELEMETRY_ARCHITECTURE.md` for telemetry design. See `doc/12_THREAD_MODEL.md` for thread architecture.
+  - Prompt: `project-dashboard/prompt/TASK-APP-004-telemetry-service.md`
+
+---
+
+## Infrastructure Implementation
+
+- [ ] TASK-INFRA-018: Implement SQLiteVitalsRepository with Time-Series Optimization
+  - What: Implement `SQLiteVitalsRepository` in `src/infrastructure/persistence/SQLiteVitalsRepository.cpp/h` that persists vital signs with time-series optimization. Uses Query Registry for all queries (no magic strings). Implements retention policy (7-day vitals cache, auto-archive older data). Optimizes queries with indices (patient_mrn + timestamp), prepared statements, and batch inserts. Supports time-range queries for trend graphs.
+  - Why: Vitals are high-frequency time-series data (60 Hz). Requires optimized storage and querying. Retention policy prevents unbounded database growth. Query Registry ensures type safety.
+  - Files:
+    - `src/infrastructure/persistence/SQLiteVitalsRepository.h/cpp`
+    - `tests/unit/infrastructure/persistence/SQLiteVitalsRepositoryTest.cpp`
+    - Update `src/infrastructure/persistence/QueryCatalog.cpp` (add vitals queries)
+  - Acceptance: Repository persists vitals, time-range queries work, retention policy enforces 7-day limit, batch inserts work, uses Query Registry (no magic strings), unit tests verify CRUD operations and time-series queries.
+  - Verification Steps:
+    1. Functional: Persists vitals, time-range queries return correct data, retention policy deletes old data, batch inserts work
+    2. Code Quality: Uses Query Registry constants, Doxygen comments, no magic strings (grep verification)
+    3. Documentation: Update `doc/32_QUERY_REGISTRY.md` with vitals queries
+    4. Integration: Works with DatabaseManager, monitoring service can persist vitals
+    5. Tests: Unit tests for CRUD, time-series queries, retention policy, batch inserts
+    6. Performance: Batch insert performance measured (> 1000 vitals/second target)
+  - Dependencies: TASK-INFRA-016 (Query Registry), DatabaseManager, Schema Management
+  - Documentation: See `doc/32_QUERY_REGISTRY.md` for query patterns. See `doc/30_DATABASE_ACCESS_STRATEGY.md` for persistence strategy.
+  - Prompt: `project-dashboard/prompt/TASK-INFRA-018-vitals-repository.md`
+
+- [ ] TASK-INFRA-019: Implement SQLiteAlarmRepository with Snapshot Support
+  - What: Implement `SQLiteAlarmRepository` in `src/infrastructure/persistence/SQLiteAlarmRepository.cpp/h` that persists alarms with context snapshots (vital values at alarm time, waveform segment). Uses Query Registry for all queries. Supports alarm history queries (by patient, by time range, by severity). Links alarms to snapshots table for complete context preservation.
+  - Why: Alarms must preserve complete context for clinical review and regulatory compliance (REQ-REG-HIPAA-003). Snapshot enables clinicians to see exact vital values and waveforms at alarm time.
+  - Files:
+    - `src/infrastructure/persistence/SQLiteAlarmRepository.h/cpp`
+    - `tests/unit/infrastructure/persistence/SQLiteAlarmRepositoryTest.cpp`
+    - Update `src/infrastructure/persistence/QueryCatalog.cpp` (add alarm queries)
+  - Acceptance: Repository persists alarms with snapshots, alarm history queries work, snapshot data preserved, uses Query Registry (no magic strings), unit tests verify CRUD operations and snapshot linking.
+  - Verification Steps:
+    1. Functional: Persists alarms with snapshots, history queries return correct data, snapshot data accessible
+    2. Code Quality: Uses Query Registry constants, Doxygen comments, no magic strings (grep verification)
+    3. Documentation: Update `doc/32_QUERY_REGISTRY.md` with alarm queries
+    4. Integration: Works with DatabaseManager, monitoring service can persist alarms with context
+    5. Tests: Unit tests for CRUD, history queries, snapshot linking
+  - Dependencies: TASK-INFRA-016 (Query Registry), DatabaseManager, Schema Management
+  - Documentation: See `doc/32_QUERY_REGISTRY.md` for query patterns. See `doc/10_DATABASE_DESIGN.md` for snapshot schema.
+  - Prompt: `project-dashboard/prompt/TASK-INFRA-019-alarm-repository.md`
+
+- [ ] TASK-INFRA-020: Implement HttpTelemetryServerAdapter with TLS Support
+  - What: Implement `HttpTelemetryServerAdapter` in `src/infrastructure/network/HttpTelemetryServerAdapter.cpp/h` that implements `ITelemetryServer` interface using Qt Network (QNetworkAccessManager, QNetworkReply). Supports HTTPS with TLS 1.3, certificate validation, compression (gzip), and timeout handling. Integrates with RetryPolicy and CircuitBreaker.
+  - Why: Production implementation of telemetry upload. TLS 1.3 ensures HIPAA compliance (REQ-REG-HIPAA-002). Certificate validation prevents man-in-the-middle attacks.
+  - Files:
+    - `src/infrastructure/network/HttpTelemetryServerAdapter.h/cpp`
+    - `tests/unit/infrastructure/network/HttpTelemetryServerAdapterTest.cpp`
+    - `tests/integration/infrastructure/network/TelemetryUploadTest.cpp`
+  - Acceptance: HTTPS upload works with TLS 1.3, certificate validation works, compression works, timeout handling works, retry/circuit breaker integration works, unit tests verify upload logic, integration tests verify end-to-end upload.
+  - Verification Steps:
+    1. Functional: HTTPS upload succeeds, TLS 1.3 negotiated, certificates validated, compression works, timeouts handled
+    2. Code Quality: Doxygen comments, proper error handling, follows infrastructure patterns
+    3. Documentation: Update `doc/31_TELEMETRY_ARCHITECTURE.md` with TLS configuration
+    4. Integration: Works with TelemetryService, handles network errors gracefully
+    5. Tests: Unit tests for upload/compression/TLS, integration tests with mock server, network failure tests
+  - Dependencies: ITelemetryServer interface, RetryPolicy, CircuitBreaker, Qt Network module
+  - Documentation: See `doc/31_TELEMETRY_ARCHITECTURE.md` for telemetry protocol. See `doc/35_CERTIFICATE_MANAGEMENT.md` for TLS configuration.
+  - Prompt: `project-dashboard/prompt/TASK-INFRA-020-http-telemetry-adapter.md`
+
+---
+
+## User Interface & QML
+
+- [ ] TASK-UI-009: Implement Real-Time Waveform Display Component
+  - What: Create `WaveformDisplay.qml` component in `resources/qml/components/` that renders real-time ECG and pleth waveforms using Qt Quick Shapes or Canvas. Implements 60 FPS rendering (< 16ms per frame) with ring buffer for waveform samples. Supports zoom, pan, and freeze modes. Integrates with `WaveformController` for data binding.
+  - Why: Waveform display is critical for clinical monitoring. 60 FPS ensures smooth visualization. Ring buffer enables efficient memory usage for continuous waveforms.
+  - Files:
+    - `resources/qml/components/WaveformDisplay.qml`
+    - `src/interface/controllers/WaveformController.h/cpp`
+    - `tests/qml/components/WaveformDisplayTest.qml`
+  - Acceptance: Component renders waveforms at 60 FPS, zoom/pan/freeze modes work, ring buffer prevents memory leaks, integrates with controller, QML tests verify rendering.
+  - Verification Steps:
+    1. Functional: Waveforms render smoothly, zoom/pan/freeze work, data updates in real-time
+    2. Code Quality: QML follows guidelines, no binding loops (qmllint), Doxygen comments on controller
+    3. Documentation: Update `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md` with QML component details
+    4. Integration: Works with WaveformController, receives sensor data
+    5. Tests: QML tests for rendering, zoom/pan, freeze mode
+    6. Performance: Frame rate measured (60 FPS target, < 16ms per frame)
+    7. QML: No qmllint errors, no binding loops, accessibility labels present
+  - Dependencies: WaveformController, ISensorDataSource
+  - Documentation: See `doc/41_WAVEFORM_DISPLAY_IMPLEMENTATION.md` for waveform rendering design. See `.cursor/rules/qml_guidelines.mdc` for QML standards.
+  - Prompt: `project-dashboard/prompt/TASK-UI-009-waveform-display.md`
+
+- [ ] TASK-UI-010: Implement Alarm Panel with Priority Sorting
+  - What: Create `AlarmPanel.qml` component in `resources/qml/components/` that displays active alarms sorted by priority (critical → major → minor). Shows alarm details (vital name, threshold, current value, timestamp). Supports acknowledge, silence, and clear actions. Visual/audio feedback for new alarms. Integrates with `AlarmController`.
+  - Why: Alarm panel is primary interface for clinicians to respond to patient conditions. Priority sorting ensures critical alarms are immediately visible. Audio feedback ensures alarms aren't missed.
+  - Files:
+    - `resources/qml/components/AlarmPanel.qml`
+    - `src/interface/controllers/AlarmController.h/cpp`
+    - `tests/qml/components/AlarmPanelTest.qml`
+  - Acceptance: Panel displays alarms sorted by priority, alarm details shown, acknowledge/silence/clear actions work, visual/audio feedback works, integrates with controller, QML tests verify alarm display.
+  - Verification Steps:
+    1. Functional: Alarms displayed correctly, priority sorting works, actions work, audio feedback works
+    2. Code Quality: QML follows guidelines, no binding loops (qmllint), Doxygen comments on controller
+    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with UI integration
+    4. Integration: Works with AlarmController, receives alarm events
+    5. Tests: QML tests for alarm display, sorting, actions
+    7. QML: No qmllint errors, no binding loops, accessibility labels present
+  - Dependencies: AlarmController, MonitoringService
+  - Documentation: See `doc/28_DOMAIN_DRIVEN_DESIGN.md` for alarm workflow. See `.cursor/rules/qml_guidelines.mdc` for QML standards.
+  - Prompt: `project-dashboard/prompt/TASK-UI-010-alarm-panel.md`
+
+- [ ] TASK-UI-011: Implement Trends View with Time-Series Graphs
+  - What: Create `TrendsView.qml` in `resources/qml/views/` that displays time-series graphs for vital signs over 1h/4h/12h/24h periods. Uses Qt Charts or custom Canvas rendering. Supports zoom, pan, and multi-vital overlay. Integrates with `TrendsController` for data queries.
+  - Why: Trends enable clinicians to identify patterns and deterioration over time. Critical for clinical decision-making. Multi-vital overlay allows correlation analysis.
+  - Files:
+    - `resources/qml/views/TrendsView.qml`
+    - `src/interface/controllers/TrendsController.h/cpp`
+    - `tests/qml/views/TrendsViewTest.qml`
+  - Acceptance: View displays time-series graphs, time range selection works, zoom/pan works, multi-vital overlay works, integrates with controller, QML tests verify graph rendering.
+  - Verification Steps:
+    1. Functional: Graphs render correctly, time range selection works, zoom/pan works, overlay works
+    2. Code Quality: QML follows guidelines, no binding loops (qmllint), Doxygen comments on controller
+    3. Documentation: Update `doc/28_DOMAIN_DRIVEN_DESIGN.md` with trends UI
+    4. Integration: Works with TrendsController, queries vitals repository
+    5. Tests: QML tests for graph rendering, time range selection, zoom/pan
+    7. QML: No qmllint errors, no binding loops, accessibility labels present
+  - Dependencies: TrendsController, SQLiteVitalsRepository
+  - Documentation: See `.cursor/rules/qml_guidelines.mdc` for QML standards.
+  - Prompt: `project-dashboard/prompt/TASK-UI-011-trends-view.md`
+
+---
+
+## Testing & Quality
+
+- [ ] TASK-TEST-014: Implement Integration Tests for Admission Workflow
+  - What: Create comprehensive integration tests in `tests/integration/admission/AdmissionWorkflowTest.cpp` that verify end-to-end admission workflow: barcode scan → patient lookup → admission → vital sign display. Uses mock services (MockPatientLookupService, MockSensorDataSource) to simulate hospital systems. Verifies database persistence, UI state updates, and audit logging.
+  - Why: Admission workflow is critical for patient safety. Integration tests verify all layers work together correctly. Mock services enable testing without external dependencies.
+  - Files:
+    - `tests/integration/admission/AdmissionWorkflowTest.cpp`
+    - `tests/mocks/infrastructure/MockPatientLookupService.h/cpp` (if not already exists)
+    - `tests/mocks/infrastructure/MockSensorDataSource.h/cpp` (if not already exists)
+  - Acceptance: Test verifies complete admission workflow, database persistence verified, UI state updates verified, audit logging verified, test uses mocks (no external dependencies), test runs in CI.
+  - Verification Steps:
+    1. Functional: Admission workflow completes successfully, all steps verified, mocks work correctly
+    2. Code Quality: Test code follows guidelines, good coverage, linter passes
+    3. Documentation: Test documentation updated, workflow documented
+    4. Integration: Test runs in CI, passes consistently
+    5. Tests: Integration test comprehensive, covers happy path and error cases
+  - Dependencies: AdmissionService, PatientController, MockPatientLookupService, MockSensorDataSource
+  - Documentation: See `doc/19_ADT_WORKFLOW.md` for admission workflow. See `doc/18_TESTING_WORKFLOW.md` for testing guidelines.
+  - Prompt: `project-dashboard/prompt/TASK-TEST-014-admission-integration-test.md`
+
+- [ ] TASK-TEST-015: Implement Performance Benchmarks for Critical Paths
+  - What: Create performance benchmarks using Google Benchmark in `tests/benchmarks/` for critical performance paths: alarm detection latency (< 50ms target), waveform rendering (60 FPS / < 16ms per frame target), database query performance (< 100ms target), telemetry batch processing. Benchmarks run in CI with baseline comparison to detect regressions.
+  - Why: Performance requirements are critical for patient safety (alarm detection) and user experience (waveform rendering). Benchmarks prevent performance regressions. CI integration ensures performance is monitored continuously.
+  - Files:
+    - `tests/benchmarks/AlarmDetectionBenchmark.cpp`
+    - `tests/benchmarks/WaveformRenderingBenchmark.cpp`
+    - `tests/benchmarks/DatabaseQueryBenchmark.cpp`
+    - `tests/benchmarks/TelemetryBatchBenchmark.cpp`
+    - Update `tests/CMakeLists.txt` (add benchmark targets)
+  - Acceptance: Benchmarks measure all critical paths, performance targets met (alarm < 50ms, waveform < 16ms, database < 100ms), benchmarks run in CI, baseline comparison works, regressions detected.
+  - Verification Steps:
+    1. Functional: Benchmarks run successfully, all targets met, CI integration works
+    2. Code Quality: Benchmark code follows guidelines, results reproducible
+    3. Documentation: Update `doc/27_PERFORMANCE_AND_PROFILING.md` with benchmark results
+    4. Integration: Benchmarks run in CI, baseline comparison automated
+    5. Tests: Benchmark suite comprehensive, covers all critical paths
+    6. Performance: All performance targets verified (< 50ms alarm, < 16ms waveform, < 100ms database)
+  - Dependencies: Google Benchmark library, CI infrastructure
+  - Documentation: See `doc/27_PERFORMANCE_AND_PROFILING.md` for performance requirements. See `doc/42_LOW_LATENCY_TECHNIQUES.md` for optimization strategies.
+  - Prompt: `project-dashboard/prompt/TASK-TEST-015-performance-benchmarks.md`
+
+- [ ] TASK-TEST-016: Implement QML Component Tests with Qt Quick Test
+  - What: Create QML component tests using Qt Quick Test framework in `tests/qml/components/` for all QML components (WaveformDisplay, AlarmPanel, VitalSignsDisplay, TrendsView). Tests verify component rendering, property bindings, signal/slot connections, and user interactions.
+  - Why: QML components are critical for UI functionality. Tests prevent regressions and ensure components work across Qt versions. Qt Quick Test enables declarative testing in QML.
+  - Files:
+    - `tests/qml/components/WaveformDisplayTest.qml`
+    - `tests/qml/components/AlarmPanelTest.qml`
+    - `tests/qml/components/VitalSignsDisplayTest.qml`
+    - `tests/qml/components/TrendsViewTest.qml`
+    - `tests/qml/tst_qml_components.cpp` (test runner)
+    - Update `tests/CMakeLists.txt` (add QML test targets)
+  - Acceptance: QML tests created for all components, tests verify rendering/bindings/interactions, tests run in CI, coverage meets targets (≥80% for components).
+  - Verification Steps:
+    1. Functional: QML tests pass, components render correctly, bindings work, interactions work
+    2. Code Quality: Test code follows guidelines, no qmllint errors
+    3. Documentation: Update `doc/18_TESTING_WORKFLOW.md` with QML testing guidelines
+    4. Integration: Tests run in CI, all tests pass
+    5. Tests: Test suite comprehensive, covers all QML components
+    7. QML: All QML test files qmllint clean
+  - Dependencies: Qt Quick Test framework, QML components
+  - Documentation: See `doc/18_TESTING_WORKFLOW.md` for testing guidelines. See `.cursor/rules/qml_guidelines.mdc` for QML standards.
+  - Prompt: `project-dashboard/prompt/TASK-TEST-016-qml-component-tests.md`
+
+---
+
+## Security & Compliance
+
+- [ ] TASK-SEC-001: Implement Certificate Management and Rotation
+  - What: Implement certificate lifecycle management in `src/infrastructure/security/CertificateManager.cpp/h`. Supports certificate installation, validation, expiration checking, and automatic rotation. Integrates with `certificates` table in database. Monitors certificate expiration and sends notifications 30 days before expiry. Supports multiple certificate types (TLS client/server, code signing).
+  - Why: TLS certificates are required for HIPAA compliance (REQ-REG-HIPAA-002). Certificate expiration can cause service outages. Automatic rotation reduces operational overhead. Certificate validation prevents man-in-the-middle attacks.
+  - Files:
+    - `src/infrastructure/security/CertificateManager.h/cpp`
+    - `src/infrastructure/persistence/SQLiteCertificateRepository.h/cpp`
+    - `tests/unit/infrastructure/security/CertificateManagerTest.cpp`
+    - Update `schema/database.yaml` (verify `certificates` table schema)
+  - Acceptance: Certificates installed/validated, expiration checking works, rotation triggered 30 days before expiry, notifications sent, multiple certificate types supported, unit tests verify lifecycle management.
+  - Verification Steps:
+    1. Functional: Certificates installed, validated, expiration detected, rotation works, notifications sent
+    2. Code Quality: Doxygen comments, proper error handling, follows security best practices
+    3. Documentation: Update `doc/35_CERTIFICATE_MANAGEMENT.md` with implementation details
+    4. Integration: Works with DatabaseManager, notifications system
+    5. Tests: Unit tests for lifecycle management, expiration detection, validation
+  - Dependencies: SQLiteCertificateRepository, DatabaseManager, Schema Management
+  - Documentation: See `doc/35_CERTIFICATE_MANAGEMENT.md` for certificate lifecycle design.
+  - Prompt: `project-dashboard/prompt/TASK-SEC-001-certificate-management.md`
+
+- [ ] TASK-SEC-002: Implement Audit Trail with Hash Chain Verification
+  - What: Implement audit trail hash chain in `src/infrastructure/persistence/SQLiteAuditRepository.cpp/h` that prevents tampering with audit logs. Each audit entry includes hash of previous entry, forming immutable chain. Implements verification function that checks chain integrity. Integrates with `security_audit_log` table. All security-relevant events logged (login, logout, permission changes, certificate changes, configuration changes).
+  - Why: HIPAA requires tamper-proof audit logs (REQ-REG-HIPAA-003, REQ-SEC-AUDIT-002). Hash chain ensures audit trail integrity. Verification detects any tampering attempts.
+  - Files:
+    - `src/infrastructure/persistence/SQLiteAuditRepository.h/cpp`
+    - `src/infrastructure/security/AuditHashChain.h/cpp`
+    - `tests/unit/infrastructure/persistence/SQLiteAuditRepositoryTest.cpp`
+    - Update `schema/database.yaml` (verify `security_audit_log` table schema)
+  - Acceptance: Audit entries include hash chain, chain integrity verified, tampering detected, all security events logged, unit tests verify hash chain integrity and tampering detection.
+  - Verification Steps:
+    1. Functional: Audit entries logged with hash, chain integrity verified, tampering detected
+    2. Code Quality: Doxygen comments, cryptographically secure hash (SHA-256), follows security best practices
+    3. Documentation: Update `doc/21_LOGGING_STRATEGY.md` with audit hash chain design
+    4. Integration: Works with DatabaseManager, all services log to audit trail
+    5. Tests: Unit tests for hash chain, integrity verification, tampering detection
+  - Dependencies: SQLiteAuditRepository, DatabaseManager, Schema Management
+  - Documentation: See `doc/21_LOGGING_STRATEGY.md` for audit logging design. See `doc/38_AUTHENTICATION_WORKFLOW.md` for security events.
+  - Prompt: `project-dashboard/prompt/TASK-SEC-002-audit-hash-chain.md`
+
+- [ ] TASK-SEC-003: Implement SQLCipher Integration for Database Encryption
+  - What: Implement SQLCipher integration following the plan in `doc/34_SQLCIPHER_INTEGRATION.md`. Add key derivation (PBKDF2 with 256,000 iterations), key storage in Qt Keychain, encryption settings configuration. Update `DatabaseManager` to support encrypted databases. Add migration path from unencrypted to encrypted databases.
+  - Why: HIPAA requires encryption at rest for Protected Health Information (REQ-REG-HIPAA-001). SQLCipher provides transparent database encryption. Qt Keychain ensures secure key storage.
+  - Files:
+    - `src/infrastructure/persistence/DatabaseManager.cpp/h` (add SQLCipher support)
+    - `src/infrastructure/security/KeyManager.h/cpp` (key derivation and storage)
+    - `src/infrastructure/security/DatabaseEncryption.h/cpp` (encryption setup)
+    - `tests/unit/infrastructure/security/DatabaseEncryptionTest.cpp`
+    - Update `CMakeLists.txt` (add SQLCipher dependency when ENABLE_SQLCIPHER=ON)
+  - Acceptance: SQLCipher encrypts database, key derivation works (PBKDF2), key stored in Qt Keychain, encryption settings configurable, migration from unencrypted to encrypted works, unit tests verify encryption and key management.
+  - Verification Steps:
+    1. Functional: Database encrypted, key derivation works, key storage works, migration works
+    2. Code Quality: Doxygen comments, secure key handling (keys never logged), follows security best practices
+    3. Documentation: `doc/34_SQLCIPHER_INTEGRATION.md` implementation status updated
+    4. Integration: Works with DatabaseManager, all repositories work with encrypted database
+    5. Tests: Unit tests for encryption, key management, migration
+  - Dependencies: SQLCipher library, Qt Keychain library, DatabaseManager
+  - Documentation: See `doc/34_SQLCIPHER_INTEGRATION.md` for SQLCipher integration plan. See `doc/30_DATABASE_ACCESS_STRATEGY.md` for database architecture.
+  - Prompt: `project-dashboard/prompt/TASK-SEC-003-sqlcipher-integration.md`
+
+---
+
+## Documentation & Knowledge Management
+
+- [ ] TASK-DOC-007: Generate Complete API Documentation with Doxygen
+  - What: Configure Doxygen to generate comprehensive API documentation for all public classes, methods, and interfaces. Create custom Doxygen theme matching project branding. Generate documentation in HTML and PDF formats. Set up automated documentation generation in CI pipeline. Ensure all public APIs have Doxygen comments (grep verification).
+  - Why: API documentation is critical for maintainability and onboarding. Automated generation ensures documentation stays synchronized with code. CI integration prevents missing documentation.
+  - Files:
+    - `Doxyfile` (Doxygen configuration)
+    - `doc/doxygen/custom_theme/` (custom theme files)
+    - `.github/workflows/documentation.yml` (CI workflow for doc generation)
+    - `scripts/generate_api_docs.sh` (documentation generation script)
+    - `scripts/verify_api_docs.py` (verification script to check all public APIs have Doxygen comments)
+  - Acceptance: Doxygen configured, custom theme applied, HTML/PDF docs generated, CI workflow generates docs on every commit, all public APIs have Doxygen comments (grep verification passes), documentation published to GitHub Pages or artifact storage.
+  - Verification Steps:
+    1. Functional: Doxygen generates docs, HTML output works, PDF output works, CI workflow succeeds
+    2. Code Quality: All public APIs have Doxygen comments (grep verification), no Doxygen warnings
+    3. Documentation: Doxygen configuration documented, theme customization documented
+    4. Integration: CI workflow publishes docs, docs accessible via URL
+    5. Tests: Verification script checks all public APIs documented, grep confirms no undocumented APIs
+  - Dependencies: Doxygen tool, CI infrastructure
+  - Documentation: See `.cursor/rules/api_documentation.mdc` for Doxygen requirements. See `doc/26_API_DOCUMENTATION.md` for API documentation strategy.
+  - Prompt: `project-dashboard/prompt/TASK-DOC-007-doxygen-generation.md`
+
+- [ ] TASK-DOC-008: Create Architecture Decision Records (ADRs)
+  - What: Create Architecture Decision Records in `doc/adr/` documenting key architectural decisions: DDD layering, thread model, database choice (SQLite), ORM choice (QxOrm hybrid), logging strategy (async with queue), sensor integration (shared memory), authentication (hospital server), telemetry (batch upload). Use standard ADR template (Context, Decision, Consequences, Alternatives Considered).
+  - Why: ADRs provide historical context for architectural decisions. Helps new developers understand "why" not just "what". Documents tradeoffs and alternatives considered. Critical for long-term maintainability.
+  - Files:
+    - `doc/adr/0001-domain-driven-design.md`
+    - `doc/adr/0002-thread-model.md`
+    - `doc/adr/0003-database-sqlite.md`
+    - `doc/adr/0004-orm-qxorm-hybrid.md`
+    - `doc/adr/0005-async-logging.md`
+    - `doc/adr/0006-shared-memory-sensors.md`
+    - `doc/adr/0007-hospital-authentication.md`
+    - `doc/adr/0008-batch-telemetry.md`
+    - `doc/adr/README.md` (ADR index)
+  - Acceptance: ADRs created for all major architectural decisions, ADRs follow standard template, ADR index created, decisions documented with context/consequences/alternatives.
+  - Verification Steps:
+    1. Functional: ADRs complete, template followed, index created
+    2. Code Quality: ADRs well-written, clear, concise
+    3. Documentation: ADR index links to all ADRs, ADRs cross-reference related docs
+    4. Integration: ADRs integrated into main documentation structure
+    5. Tests: Documentation review, ADRs accurate and complete
+  - Documentation: Use standard ADR template. See existing architecture docs for decision context.
+  - Prompt: `project-dashboard/prompt/TASK-DOC-008-architecture-decision-records.md`
+
+- [ ] TASK-DOC-009: Create Onboarding Guide for New Developers
+  - What: Create comprehensive onboarding guide in `doc/ONBOARDING.md` covering: development environment setup, project structure overview, architecture principles (DDD, thread model), coding standards, testing workflow, common tasks (adding a new feature, fixing a bug), troubleshooting common issues. Include links to all relevant documentation.
+  - Why: Reduces onboarding time for new developers. Ensures consistent understanding of architecture and standards. Provides clear path from setup to first contribution.
+  - Files:
+    - `doc/ONBOARDING.md`
+    - `doc/CONTRIBUTING.md` (contribution guidelines)
+    - `doc/TROUBLESHOOTING.md` (common issues and solutions)
+  - Acceptance: Onboarding guide complete, covers setup/architecture/standards/workflow, troubleshooting guide complete, contribution guidelines complete, all links work.
+  - Verification Steps:
+    1. Functional: Guide complete, all sections covered, links work
+    2. Code Quality: Guide well-written, clear, concise
+    3. Documentation: Guide integrates with existing docs, cross-references work
+    4. Integration: New developer can follow guide successfully
+    5. Tests: Documentation review, guide tested with new developer
+  - Documentation: Review existing docs for content to link. See `.github/copilot-instructions.md` for architecture overview.
+  - Prompt: `project-dashboard/prompt/TASK-DOC-009-onboarding-guide.md`
+
+---
+
+## Deployment & CI/CD
+
+- [ ] TASK-DEPLOY-004: Create Multi-Platform Build Pipeline (macOS, Linux, Windows)
+  - What: Create GitHub Actions workflows in `.github/workflows/` for multi-platform builds (macOS, Linux, Windows). Each platform builds executable, runs tests, generates artifacts (DMG for macOS, AppImage for Linux, MSI for Windows). Workflow includes: code checkout, Qt installation, dependency installation (vcpkg), CMake configuration, build, test execution, artifact packaging, artifact upload.
+  - Why: Multi-platform support is critical for hospital deployment. Automated builds ensure consistency across platforms. Artifact generation enables easy distribution.
+  - Files:
+    - `.github/workflows/build-macos.yml`
+    - `.github/workflows/build-linux.yml`
+    - `.github/workflows/build-windows.yml`
+    - `scripts/package-macos.sh` (DMG creation)
+    - `scripts/package-linux.sh` (AppImage creation)
+    - `scripts/package-windows.sh` (MSI creation)
+  - Acceptance: Workflows build on all platforms, tests pass on all platforms, artifacts generated (DMG/AppImage/MSI), artifacts uploaded to GitHub Releases or artifact storage, workflows run on every commit to main.
+  - Verification Steps:
+    1. Functional: Builds succeed on all platforms, tests pass, artifacts generated correctly
+    2. Code Quality: Workflow YAML valid, scripts follow best practices
+    3. Documentation: Update `doc/25_DEPLOYMENT_AND_PACKAGING.md` with CI/CD details
+    4. Integration: Workflows triggered correctly, artifacts accessible
+    5. Tests: Test execution verified on all platforms, coverage reports generated
+  - Dependencies: GitHub Actions, Qt installer action, vcpkg, packaging tools (create-dmg, linuxdeploy, WiX Toolset)
+  - Documentation: See `doc/25_DEPLOYMENT_AND_PACKAGING.md` for deployment strategy. See `doc/26_CI_DOCKER_AND_BUILDS.md` for CI/CD architecture.
+  - Prompt: `project-dashboard/prompt/TASK-DEPLOY-004-multi-platform-ci.md`
+
+- [ ] TASK-DEPLOY-005: Create Docker Production Image with Multi-Stage Build
+  - What: Create production Dockerfile using multi-stage build pattern. Stages: (1) Builder stage with Qt SDK and build tools, (2) Runtime stage with minimal dependencies. Image includes z-monitor executable, QML resources, Qt runtime libraries, database migrations. Optimized for size (< 500 MB target). Supports configuration via environment variables.
+  - Why: Docker enables consistent deployment across environments. Multi-stage build minimizes image size and attack surface. Environment variable configuration enables flexible deployment.
+  - Files:
+    - `Dockerfile` (production multi-stage build)
+    - `docker-compose.yml` (production compose file)
+    - `.dockerignore` (exclude unnecessary files)
+    - `scripts/docker-entrypoint.sh` (container startup script)
+  - Acceptance: Docker image builds successfully, image size < 500 MB, multi-stage build works, container runs z-monitor, configuration via environment variables works, docker-compose deployment works.
+  - Verification Steps:
+    1. Functional: Image builds, container runs, z-monitor starts, configuration works
+    2. Code Quality: Dockerfile follows best practices, multi-stage build optimized
+    3. Documentation: Update `doc/26_CI_DOCKER_AND_BUILDS.md` with production Docker setup
+    4. Integration: Works with docker-compose, integrates with CI pipeline
+    5. Tests: Container smoke test, environment variable configuration test
+  - Dependencies: Docker, Docker Compose, Qt runtime dependencies
+  - Documentation: See `doc/26_CI_DOCKER_AND_BUILDS.md` for Docker build strategy. See `.cursor/rules/docker_guidelines.mdc` for Docker best practices.
+  - Prompt: `project-dashboard/prompt/TASK-DEPLOY-005-docker-production.md`
+
+---
+
+## Internationalization & Accessibility
+
+- [ ] TASK-I18N-003: Implement Translation Infrastructure with Qt Linguist
+  - What: Set up Qt Linguist infrastructure for internationalization. Create translation files (`.ts`) for supported languages (English, Spanish, French, German). Mark all user-facing strings with `tr()` or `qsTr()` for translation. Create translation workflow: extract strings (`lupdate`), translate (Qt Linguist), compile (`.qm` files with `lrelease`), load at runtime. Integrate with CMake build system.
+  - Why: Hospital environments are multilingual. Translation support is critical for user adoption. Qt Linguist provides robust translation workflow.
+  - Files:
+    - `resources/i18n/z-monitor_en.ts` (English)
+    - `resources/i18n/z-monitor_es.ts` (Spanish)
+    - `resources/i18n/z-monitor_fr.ts` (French)
+    - `resources/i18n/z-monitor_de.ts` (German)
+    - `scripts/update_translations.sh` (lupdate + lrelease)
+    - Update `CMakeLists.txt` (add translation compilation)
+    - Update all QML files and C++ strings to use `qsTr()` / `tr()`
+  - Acceptance: Translation files created, all user-facing strings marked for translation, translation workflow works (extract/translate/compile), runtime language switching works, CMake builds `.qm` files.
+  - Verification Steps:
+    1. Functional: Translations load correctly, language switching works, all strings translated
+    2. Code Quality: All user-facing strings use `tr()` / `qsTr()` (grep verification), no hardcoded strings
+    3. Documentation: Update `doc/28_ACCESSIBILITY_AND_INTERNATIONALIZATION.md` with translation workflow
+    4. Integration: CMake compiles translations, translations deployed with executable
+    5. Tests: Translation loading test, language switching test
+  - Dependencies: Qt Linguist tools (lupdate, lrelease), Qt Translations module
+  - Documentation: See `doc/28_ACCESSIBILITY_AND_INTERNATIONALIZATION.md` for i18n design.
+  - Prompt: `project-dashboard/prompt/TASK-I18N-003-translation-infrastructure.md`
+
+- [ ] TASK-A11Y-002: Implement Screen Reader Support and Keyboard Navigation
+  - What: Add accessibility support to all QML components: ARIA labels (`Accessible.name`, `Accessible.description`), keyboard navigation (Tab order, focus indicators), screen reader announcements for dynamic content (alarms, vital changes), high-contrast mode support. Verify with NVDA (Windows) and VoiceOver (macOS).
+  - Why: Accessibility is required for regulatory compliance and inclusivity. Screen reader support enables visually impaired clinicians. Keyboard navigation supports users with motor disabilities.
+  - Files:
+    - Update all QML files in `resources/qml/` with accessibility properties
+    - `src/interface/accessibility/AccessibilityManager.h/cpp` (accessibility coordination)
+    - `tests/qml/accessibility/AccessibilityTest.qml` (accessibility tests)
+  - Acceptance: All QML components have ARIA labels, keyboard navigation works (Tab order correct, focus visible), screen reader announces dynamic content, high-contrast mode works, tested with NVDA and VoiceOver.
+  - Verification Steps:
+    1. Functional: Screen reader reads all content, keyboard navigation works, high-contrast mode works
+    2. Code Quality: All QML components have accessibility properties, no qmllint warnings
+    3. Documentation: Update `doc/28_ACCESSIBILITY_AND_INTERNATIONALIZATION.md` with accessibility implementation
+    4. Integration: Works with NVDA and VoiceOver, all platforms supported
+    5. Tests: Accessibility tests verify ARIA labels, keyboard navigation, screen reader announcements
+    7. QML: All components have `Accessible.name`, `Accessible.description`, proper focus handling
+  - Dependencies: Qt Accessibility module, screen reader software for testing
+  - Documentation: See `doc/28_ACCESSIBILITY_AND_INTERNATIONALIZATION.md` for accessibility requirements. See `.cursor/rules/qml_guidelines.mdc` for accessibility guidelines.
+  - Prompt: `project-dashboard/prompt/TASK-A11Y-002-screen-reader-support.md`
+
+---
+
+## Monitoring & Observability
+
+- [ ] TASK-MONITOR-002: Implement Application Metrics Collection with Prometheus
+  - What: Integrate Prometheus client library to collect application metrics: alarm detection latency (histogram), waveform rendering FPS (gauge), database query duration (histogram), telemetry upload success/failure (counter), active patient count (gauge), memory usage (gauge). Expose metrics endpoint at `/metrics` for Prometheus scraper. Create Grafana dashboard for visualization.
+  - Why: Metrics enable observability and performance monitoring. Prometheus provides industry-standard metrics collection. Grafana dashboards enable real-time monitoring and alerting.
+  - Files:
+    - `src/infrastructure/monitoring/MetricsCollector.h/cpp`
+    - `src/infrastructure/monitoring/PrometheusExporter.h/cpp`
+    - `grafana/dashboards/z-monitor-dashboard.json`
+    - `prometheus/prometheus.yml` (scraper configuration)
+    - Update `CMakeLists.txt` (add prometheus-cpp dependency)
+  - Acceptance: Metrics collected for all critical paths, Prometheus endpoint exposed, metrics scraped successfully, Grafana dashboard displays metrics, alerting configured for critical metrics (alarm latency > 50ms).
+  - Verification Steps:
+    1. Functional: Metrics collected, Prometheus scrapes successfully, Grafana displays dashboards
+    2. Code Quality: Doxygen comments, minimal performance overhead (< 1% CPU)
+    3. Documentation: Update `doc/27_PERFORMANCE_AND_PROFILING.md` with metrics infrastructure
+    4. Integration: Works with Prometheus and Grafana, metrics available in production
+    5. Tests: Metrics collection test, Prometheus endpoint test
+    6. Performance: Metrics collection overhead measured (< 1% CPU, < 10 MB memory)
+  - Dependencies: prometheus-cpp library, Prometheus server, Grafana
+  - Documentation: See `doc/27_PERFORMANCE_AND_PROFILING.md` for performance monitoring design.
+  - Prompt: `project-dashboard/prompt/TASK-MONITOR-002-prometheus-metrics.md`
+
+---
+
+## Regulatory & Compliance
+
+- [ ] TASK-REG-006: Generate FDA 510(k) Software Documentation Package
+  - What: Generate comprehensive FDA 510(k) software documentation package including: Software Development Plan, Software Requirements Specification (SRS), Software Design Specification (SDS), Software Verification and Validation Plan (SVVP), Hazard Analysis, Traceability Matrix (requirements → design → tests), Risk Management File (ISO 14971). Automated generation where possible (traceability matrix from code/tests).
+  - Why: FDA 510(k) submission requires comprehensive software documentation. Automated generation ensures documentation stays synchronized with code. Traceability matrix proves requirements are implemented and tested.
+  - Files:
+    - `doc/regulatory/fda-510k/software-development-plan.md`
+    - `doc/regulatory/fda-510k/software-requirements-specification.md`
+    - `doc/regulatory/fda-510k/software-design-specification.md`
+    - `doc/regulatory/fda-510k/software-verification-validation-plan.md`
+    - `doc/regulatory/fda-510k/hazard-analysis.md`
+    - `doc/regulatory/fda-510k/risk-management-file.md`
+    - `scripts/generate_traceability_matrix.py` (automated traceability matrix generation)
+    - `doc/regulatory/fda-510k/traceability-matrix.md` (generated)
+  - Acceptance: All FDA 510(k) documents created, traceability matrix generated from code/tests, documents follow FDA guidance, hazard analysis complete, risk management file complete.
+  - Verification Steps:
+    1. Functional: Traceability matrix generation works, all requirements traced to design/tests
+    2. Code Quality: Documentation follows FDA guidance, consistent formatting
+    3. Documentation: All FDA 510(k) documents complete, cross-references work
+    4. Integration: Documentation integrates with existing architecture docs
+    5. Tests: Traceability matrix validation, requirement coverage verification
+  - Dependencies: Existing architecture and design documentation
+  - Documentation: See FDA 510(k) guidance documents. See `doc/02_ARCHITECTURE.md` for system architecture.
+  - Prompt: `project-dashboard/prompt/TASK-REG-006-fda-510k-documentation.md`
+
+---
+
+## Data Management & Archival
+
+- [ ] TASK-DATA-002: Implement Automated Data Archival with Retention Policy
+  - What: Implement automated data archival in `src/infrastructure/archival/ArchivalService.cpp/h` that archives old vitals/alarms/telemetry data to compressed files. Archival runs daily (configurable schedule). Retention policy: vitals (7 days in database, 90 days archived), alarms (indefinite in database, archived after 1 year), telemetry (30 days in database, archived after 90 days). Archived data encrypted and checksummed. Integrates with `archival_jobs` table for tracking.
+  - Why: Prevents unbounded database growth. Archived data available for compliance and analytics. Encryption ensures HIPAA compliance for archived data (REQ-REG-HIPAA-001). Retention policy balances storage costs with compliance requirements.
+  - Files:
+    - `src/infrastructure/archival/ArchivalService.h/cpp`
+    - `src/infrastructure/archival/ArchivalPolicy.h`
+    - `src/infrastructure/persistence/SQLiteArchivalRepository.h/cpp`
+    - `tests/unit/infrastructure/archival/ArchivalServiceTest.cpp`
+    - Update `schema/database.yaml` (verify `archival_jobs` table schema)
+  - Acceptance: Archival service runs on schedule, old data archived correctly, retention policy enforced, archived files encrypted and checksummed, archival jobs tracked in database, unit tests verify archival logic.
+  - Verification Steps:
+    1. Functional: Archival runs on schedule, data archived, retention policy enforced, files encrypted
+    2. Code Quality: Doxygen comments, proper error handling, follows infrastructure patterns
+    3. Documentation: Update `doc/36_DATA_ARCHIVAL_AND_RETENTION.md` with implementation details
+    4. Integration: Works with DatabaseManager, scheduling system, encryption service
+    5. Tests: Unit tests for archival logic, retention policy, encryption, checksum verification
+  - Dependencies: SQLiteArchivalRepository, DatabaseManager, Encryption service, Scheduler
+  - Documentation: See `doc/36_DATA_ARCHIVAL_AND_RETENTION.md` for archival strategy.
+  - Prompt: `project-dashboard/prompt/TASK-DATA-002-automated-archival.md`
+
+---
     2. Code Quality: Debug output clean (remove after verification), error messages helpful, diagnostic script follows best practices. **Status:** ⏳ Pending investigation
     3. Documentation: Plugin deployment documented, path configuration explained, troubleshooting guide added to BUILD.md. **Status:** ⏳ Pending investigation
     4. Integration: Works on macOS with Qt 6.9.2, deployment works in CI, plugin found after CMake build. **Status:** ⏳ Pending investigation
