@@ -1,0 +1,39 @@
+flowchart TD
+    Start([User Action]) --> CheckAction{View-Only or Privileged?}
+    CheckAction -- View-Only --> Proceed[Proceed Without Login]
+    Proceed --> End([Action Complete])
+    CheckAction -- Privileged --> CheckSession{Session Active?}
+    CheckSession -- Yes --> CheckPerms{Has Permission?}
+    CheckPerms -- No --> Deny[Emit Permission Denied]
+    Deny --> End
+    CheckPerms -- Yes --> Execute[Execute Action]
+    Execute --> LogAction[Log to action_log]
+    LogAction --> Result{Success?}
+    Result -- Fail --> LogError[Log Error Details]
+    LogError --> End
+    Result -- Success --> ResetInactivity[Reset Inactivity Timer]
+    ResetInactivity --> End
+    CheckSession -- No --> Prompt[Prompt Login]
+    Prompt --> EnterPIN[Enter PIN]
+    EnterPIN --> Auth[Authenticate]
+    Auth --> AuthOK{Auth Success?}
+    AuthOK -- Fail --> LogLoginFail[Log LOGIN_FAILED]
+    LogLoginFail --> Retry{Retry?}
+    Retry -- No --> End
+    Retry -- Yes --> Prompt
+    AuthOK -- Pass --> CreateSession[Create Session]
+    CreateSession --> StartTimer[Start Inactivity Timer 5min]
+    StartTimer --> LogLogin[Log LOGIN]
+    LogLogin --> Execute
+    StartTimer --> MonitorInactivity[Monitor Inactivity]
+    MonitorInactivity --> InactiveTime{Inactive Time?}
+    InactiveTime -- 4min --> Warning[Show Warning T-1min]
+    Warning --> UserAction{User Acts?}
+    UserAction -- Yes --> ResetInactivity
+    UserAction -- No --> Continue[Continue]
+    Continue --> InactiveTime
+    InactiveTime -- 5min --> AutoLogout[Auto-Logout]
+    AutoLogout --> LogAutoLogout[Log AUTO_LOGOUT]
+    LogAutoLogout --> ClearSession[Clear Session]
+    ClearSession --> ViewOnly[Return to View-Only]
+    ViewOnly --> End

@@ -1,0 +1,35 @@
+flowchart TD
+    Start([Simulator Integration]) --> SelectSim{Simulator Type?}
+    SelectSim -- Sensor --> SensorSim[Sensor Simulator]
+    SelectSim -- Central Server --> CentralSim[Central Server Simulator]
+    SensorSim --> CheckSensorDeps[Check Sensor Simulator Dependencies]
+    CentralSim --> CheckCentralDeps[Check Central Server Dependencies]
+    CheckSensorDeps --> InstallSensorDeps[Install Python/Dependencies]
+    CheckCentralDeps --> InstallCentralDeps[Install Server Dependencies]
+    InstallSensorDeps --> ConfigSensor[Configure Sensor Connection]
+    InstallCentralDeps --> ConfigCentral[Configure Server Endpoints]
+    ConfigSensor --> StartSensor[Start Sensor Simulator]
+    ConfigCentral --> StartCentral[Start Central Server Simulator]
+    StartSensor --> SensorRunning{Sensor Running?}
+    StartCentral --> CentralRunning{Central Running?}
+    SensorRunning -- Fail --> TroubleshootSensor[Troubleshoot Sensor]
+    CentralRunning -- Fail --> TroubleshootCentral[Troubleshoot Central]
+    TroubleshootSensor --> StartSensor
+    TroubleshootCentral --> StartCentral
+    SensorRunning -- Pass --> ConnectApp[Connect Z Monitor to Sensor]
+    CentralRunning -- Pass --> ConnectApp
+    ConnectApp --> TestConn[Test Connection]
+    TestConn --> ConnOK{Connection OK?}
+    ConnOK -- Fail --> CheckConfig[Check Configuration]
+    CheckConfig --> ConnectApp
+    ConnOK -- Pass --> VerifyData[Verify Data Flow]
+    VerifyData --> DataOK{Data Flowing?}
+    DataOK -- Fail --> TroubleshootData[Troubleshoot Data]
+    TroubleshootData --> VerifyData
+    DataOK -- Pass --> RunIntegTests[Run Integration Tests]
+    RunIntegTests --> TestsPass{Tests Pass?}
+    TestsPass -- Fail --> FixIntegration[Fix Integration Issues]
+    FixIntegration --> RunIntegTests
+    TestsPass -- Pass --> MonitorStatus[Monitor Integration Status]
+    MonitorStatus --> Ready[Simulator Integration Ready]
+    Ready --> End([Integration Complete])

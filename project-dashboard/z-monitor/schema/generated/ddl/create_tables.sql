@@ -1,5 +1,5 @@
 -- Auto-generated DDL for table creation
--- Generated: 2025-11-29 16:24:25 UTC
+-- Generated: 2025-12-01 21:53:26 UTC
 -- Schema Version: 1.0.0
 -- ⚠️ DO NOT EDIT MANUALLY - Edit schema/database.yaml and regenerate
 

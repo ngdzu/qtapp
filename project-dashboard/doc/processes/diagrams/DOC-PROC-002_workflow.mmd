@@ -1,0 +1,26 @@
+flowchart TD
+    Start([Certificate Lifecycle]) --> CheckType{New Device or Renewal?}
+    CheckType -- New Device --> GenKeypair[Generate Device Keypair]
+    CheckType -- Renewal --> MonitorExpiry[Monitor Expiry 90/30/7 days]
+    MonitorExpiry --> RequestRenewal[Request Renewal]
+    GenKeypair --> CreateCSR[Create CSR with deviceId]
+    RequestRenewal --> CreateCSR
+    CreateCSR --> SignCA[CA Signs CSR]
+    SignCA --> IssueCert[Issue Client Certificate 365 days]
+    IssueCert --> DeliverCert[Deliver via Provisioning Payload]
+    DeliverCert --> InstallCert[Install to Encrypted Keystore]
+    InstallCert --> SetPerms[Set System-Only Permissions]
+    SetPerms --> ValidateChain{Validate Cert Chain?}
+    ValidateChain -- Fail --> LogError[Log Validation Error]
+    LogError --> Alert[Alert Admin]
+    ValidateChain -- Pass --> TestMTLS[Test mTLS Handshake]
+    TestMTLS --> HandshakeOK{Handshake Success?}
+    HandshakeOK -- No --> LogError
+    HandshakeOK -- Yes --> Active[Certificate Active]
+    Active --> MonitorRevoke{Compromised/Decommissioned?}
+    MonitorRevoke -- Yes --> RevokeCert[Revoke Certificate]
+    RevokeCert --> UpdateCRL[Update CRL/OCSP]
+    UpdateCRL --> BlockConn[Block Connections]
+    BlockConn --> AuditLog[Audit Revocation Event]
+    AuditLog --> End([Certificate Lifecycle End])
+    MonitorRevoke -- No --> Active

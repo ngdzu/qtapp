@@ -1,0 +1,34 @@
+graph LR
+    subgraph "Value Objects (Immutable)"
+        PI[PatientIdentity<br/>+mrn: string<br/>+name: string<br/>+dateOfBirthMs: int64<br/>+sex: string<br/>+allergies: vector&lt;string&gt;]
+        
+        BL[BedLocation<br/>+location: string<br/>+unit: string]
+        
+        DS[DeviceSnapshot<br/>+deviceId: string<br/>+firmwareVersion: string<br/>+lastSyncTimeMs: int64<br/>+batteryLevel: int]
+        
+        MU[MeasurementUnit<br/>+symbol: string<br/>+displayName: string<br/>+type: UnitType]
+        
+        AT[AlarmThreshold<br/>+vitalType: string<br/>+lowLimit: double<br/>+highLimit: double<br/>+hysteresis: double<br/>+priority: AlarmPriority<br/>+enabled: bool]
+    end
+    
+    subgraph "Characteristics"
+        C1["✓ Immutable (all const)"]
+        C2["✓ No identity"]
+        C3["✓ Equality by value"]
+        C4["✓ Thread-safe"]
+    end
+    
+    PI -.exhibits.-> C1
+    PI -.exhibits.-> C2
+    PI -.exhibits.-> C3
+    PI -.exhibits.-> C4
+    
+    style PI fill:#fff4e6
+    style BL fill:#fff4e6
+    style DS fill:#fff4e6
+    style MU fill:#fff4e6
+    style AT fill:#fff4e6
+    style C1 fill:#e8f5e9
+    style C2 fill:#e8f5e9
+    style C3 fill:#e8f5e9
+    style C4 fill:#e8f5e9

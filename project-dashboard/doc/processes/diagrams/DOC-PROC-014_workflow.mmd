@@ -1,0 +1,39 @@
+flowchart TD
+    Start([Login]) --> Enter[Enter Credentials]
+    Enter --> Hash[Hash PIN]
+    Hash --> Backend{Backend?}
+    Backend -- REST --> PostREST[POST /auth/login]
+    Backend -- LDAP --> BindLDAP[Bind LDAP]
+    Backend -- Mock --> MockAuth[Mock Validate]
+    PostREST --> ValidREST{Valid?}
+    BindLDAP --> ValidLDAP{Valid?}
+    MockAuth --> ValidMock{Valid?}
+    ValidREST -- Fail --> LogFail[Log Failure]
+    ValidLDAP -- Fail --> LogFail
+    ValidMock -- Fail --> LogFail
+    LogFail --> Brute{Retry Limit?}
+    Brute -- Yes --> Lock[Lock Account]
+    Lock --> End([Login Failed])
+    Brute -- No --> Delay[Retry Delay]
+    Delay --> Start
+    ValidREST -- Pass --> Profile[Parse Profile]
+    ValidLDAP -- Pass --> MapRoles[Map Roles]
+    ValidMock -- Pass --> Profile
+    MapRoles --> Profile
+    Profile --> Session[Create Session]
+    Session --> Store[Store Token]
+    Store --> Timer[Start Timer]
+    Timer --> LogSuccess[Log Success]
+    LogSuccess --> Emit[Emit Logged In]
+    Emit --> Dashboard[Show Dashboard]
+    Dashboard --> Active[Active Session]
+    Active --> Inactive{Inactive?}
+    Inactive -- Timeout --> Expired[Session Expired]
+    Inactive -- Activity --> Reset[Reset Timer]
+    Reset --> Active
+    Expired --> LogExp[Log Expired]
+    LogExp --> Clear[Clear Session]
+    Clear --> End
+    Active -- Logout --> Revoke[Revoke Token]
+    Revoke --> LogOut[Log Logout]
+    LogOut --> Clear

@@ -1,0 +1,19 @@
+flowchart TD
+    Start([Device Setup]) --> Power[Power On Device]
+    Power --> EnterProv[Enter Provisioning Mode]
+    EnterProv --> GenQR[Generate QR Code]
+    GenQR --> Display[Display Pairing Info]
+    Display --> Scan{Technician Scans?}
+    Scan -- Timeout --> Expire[Pairing Expired]
+    Expire --> Start
+    Scan -- Yes --> Central[Central Validates]
+    Central --> Valid{Valid?}
+    Valid -- No --> Retry[Retry]
+    Retry --> Display
+    Valid -- Yes --> Push[Push Configuration]
+    Push --> Apply[Apply Config]
+    Apply --> Test[Test Connection]
+    Test --> OK{Connection OK?}
+    OK -- No --> Retry
+    OK -- Yes --> Complete[Provisioning Complete]
+    Complete --> End([Device Online])

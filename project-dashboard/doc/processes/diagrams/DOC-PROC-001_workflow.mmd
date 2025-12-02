@@ -1,0 +1,24 @@
+flowchart TD
+    Start([Device Powers On]) --> EnterProvMode[Enter Provisioning Mode]
+    EnterProvMode --> GenQR[Generate QR Code & Pairing Token]
+    GenQR --> Display[Display QR + Pairing Code]
+    Display --> WaitScan{Technician Scans QR?}
+    WaitScan -- Timeout 10min --> Expire[Pairing Expired]
+    Expire --> Start
+    WaitScan -- Yes --> ValidatePairing{Central Station Validates?}
+    ValidatePairing -- No --> InvalidPairing[Log Invalid Pairing]
+    InvalidPairing --> Display
+    ValidatePairing -- Yes --> GenConfig[Central: Generate Config Payload]
+    GenConfig --> EncryptSign[Encrypt with Device PubKey + Sign]
+    EncryptSign --> PushConfig[Push Config to Device]
+    PushConfig --> ValidateConfig{Device Validates Signature?}
+    ValidateConfig -- No --> RejectConfig[Reject Config]
+    RejectConfig --> Display
+    ValidateConfig -- Yes --> ApplyConfig[Apply Configuration]
+    ApplyConfig --> TestConn[Test Connection to Server]
+    TestConn --> ConnSuccess{Connection OK?}
+    ConnSuccess -- No --> RetryConn[Retry/Log Error]
+    RetryConn --> Display
+    ConnSuccess -- Yes --> Complete[Provisioning Complete]
+    Complete --> Exit[Exit Provisioning Mode]
+    Exit --> End([Device Online])

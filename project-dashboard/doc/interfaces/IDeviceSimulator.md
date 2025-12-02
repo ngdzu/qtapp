@@ -1,3 +1,12 @@
+---
+doc_id: DOC-API-011
+title: IDeviceSimulator Interface Specification
+version: 1.0
+status: Draft
+category: API
+subcategory: Infrastructure
+---
+
 # IDeviceSimulator — Interface Specification
 
 Purpose

@@ -1,0 +1,39 @@
+graph TD
+    subgraph "DeviceAggregate"
+        DA[DeviceAggregate<br/>-deviceId: string<br/>-status: ProvisioningStatus<br/>-serverUrl: string<br/>-certificate: string<br/>-privateKey: string]
+        DA -->|provisions| AP[+applyProvisioningPayload&#40;...&#41;: bool]
+        DA -->|marks| MP[+markProvisioned&#40;&#41;: bool]
+        DA -->|fails| MF[+markProvisioningFailed&#40;error&#41;: bool]
+        DA -->|rotates| RC[+rotateCredentials&#40;cert, key&#41;: bool]
+    end
+    
+    subgraph "Provisioning States"
+        S1[Unprovisioned]
+        S2[Provisioning]
+        S3[Provisioned]
+        S4[Failed]
+    end
+    
+    subgraph "Domain Events"
+        EVT1[ProvisioningCompleted]
+        EVT2[ProvisioningFailed]
+    end
+    
+    DA -.state.-> S1
+    DA -.state.-> S2
+    DA -.state.-> S3
+    DA -.state.-> S4
+    MP -.raises.-> EVT1
+    MF -.raises.-> EVT2
+    
+    S1 -->|applyProvisioningPayload| S2
+    S2 -->|markProvisioned| S3
+    S2 -->|markProvisioningFailed| S4
+    
+    style DA fill:#e1f5ff
+    style S1 fill:#fff4e6
+    style S2 fill:#fff4e6
+    style S3 fill:#c8e6c9
+    style S4 fill:#ffcdd2
+    style EVT1 fill:#f3e5f5
+    style EVT2 fill:#f3e5f5

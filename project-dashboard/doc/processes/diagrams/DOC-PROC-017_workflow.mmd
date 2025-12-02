@@ -1,0 +1,32 @@
+flowchart TD
+    Start([New Developer Onboarding]) --> CheckOS[Check OS Requirements]
+    CheckOS --> InstallDeps[Install Dependencies]
+    InstallDeps --> Qt[Install Qt 6]
+    Qt --> CMake[Install CMake 3.16+]
+    CMake --> Compiler[Install C++17 Compiler]
+    Compiler --> Python[Install Python 3]
+    Python --> CloneRepo[Clone Repository]
+    CloneRepo --> SetEnv[Set Environment Variables]
+    SetEnv --> ExportQt[Export DEFAULT_QT_PATH]
+    ExportQt --> SourceScript[source scripts/setup_build_env.sh]
+    SourceScript --> ConfigCMake[cmake -S . -B build]
+    ConfigCMake --> ConfigOK{Configure OK?}
+    ConfigOK -- Fail --> TroubleshootConfig[Troubleshoot Config]
+    TroubleshootConfig --> ConfigCMake
+    ConfigOK -- Pass --> BuildProject[cmake --build build -j8]
+    BuildProject --> BuildOK{Build OK?}
+    BuildOK -- Fail --> TroubleshootBuild[Troubleshoot Build]
+    TroubleshootBuild --> BuildProject
+    BuildOK -- Pass --> RunTests[ctest --output-on-failure]
+    RunTests --> TestsOK{Tests Pass?}
+    TestsOK -- Fail --> FixTests[Review Test Failures]
+    FixTests --> RunTests
+    TestsOK -- Pass --> RunApp[./build/src/z-monitor]
+    RunApp --> AppRuns{App Runs?}
+    AppRuns -- Fail --> TroubleshootRun[Troubleshoot Runtime]
+    TroubleshootRun --> RunApp
+    AppRuns -- Pass --> SetupIDE[Setup IDE/Editor]
+    SetupIDE --> ConfigLinter[Configure Linters]
+    ConfigLinter --> ReadDocs[Read Documentation]
+    ReadDocs --> Ready[Developer Ready]
+    Ready --> End([Setup Complete])

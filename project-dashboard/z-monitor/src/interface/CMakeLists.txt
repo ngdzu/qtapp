@@ -29,6 +29,10 @@ set(INTERFACE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/controllers/DiagnosticsController.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/controllers/WaveformController.h
     ${CMAKE_CURRENT_SOURCE_DIR}/controllers/WaveformController.cpp
+
+    # Bootstrap / DI
+    ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap/DIContainer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap/DIContainer.cpp
 )
 
 # Export to parent scope for use in src/CMakeLists.txt

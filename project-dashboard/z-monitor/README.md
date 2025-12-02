@@ -120,7 +120,7 @@ For detailed build instructions, troubleshooting, and incremental build strategy
 Example:
 
 ```bash
-cmake -S . -B build -DZ_MONITOR_USE_SPDLOG=ON
+cmake -S . -B build -DZ_MONITOR_USE_SPDLOG=ON -DUSE_QXORM=ON
 cmake --build build
 ```
 

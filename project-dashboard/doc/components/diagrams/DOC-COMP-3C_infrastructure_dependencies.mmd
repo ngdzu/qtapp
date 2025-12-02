@@ -1,0 +1,75 @@
+graph TB
+    %% Infrastructure Layer Component Dependencies
+    
+    subgraph "Persistence Layer"
+        DBMGR[DatabaseManager<br/>Connection Management]
+        SPREPO[SQLitePatientRepository]
+        STREPO[SQLiteTelemetryRepository]
+        SAREPO[SQLiteAlarmRepository]
+        SVREPO[SQLiteVitalsRepository]
+    end
+    
+    subgraph "Caching Layer"
+        VCACHE[VitalsCache<br/>3-day 39MB]
+        WCACHE[WaveformCache<br/>30-sec 0.1MB]
+    end
+    
+    subgraph "Adapters"
+        SETTINGS[SettingsManager<br/>Singleton]
+    end
+    
+    subgraph "Logging"
+        LOGSERVICE[LogService<br/>Async Queue]
+        LOGBACKEND[ILogBackend]
+    end
+    
+    subgraph "Application Services"
+        MON[MonitoringService]
+        ADM[AdmissionService]
+        PROV[ProvisioningService]
+        SEC[SecurityService]
+    end
+    
+    %% Repository Dependencies
+    SPREPO --> DBMGR
+    STREPO --> DBMGR
+    SAREPO --> DBMGR
+    SVREPO --> DBMGR
+    
+    %% Application Service to Infrastructure
+    MON --> SPREPO
+    MON --> STREPO
+    MON --> SAREPO
+    MON --> SVREPO
+    MON --> VCACHE
+    MON --> WCACHE
+    
+    ADM --> SPREPO
+    
+    PROV --> SETTINGS
+    SEC --> SETTINGS
+    
+    %% Logging
+    LOGSERVICE --> LOGBACKEND
+    LOGBACKEND --> DBMGR
+    
+    %% All services use logging
+    MON --> LOGSERVICE
+    ADM --> LOGSERVICE
+    PROV --> LOGSERVICE
+    SEC --> LOGSERVICE
+    
+    %% Styling
+    classDef db fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    classDef repo fill:#50C878,stroke:#2E7D4E,color:#fff
+    classDef cache fill:#BD10E0,stroke:#7B0A93,color:#fff
+    classDef adapter fill:#F5A623,stroke:#C07A1A,color:#fff
+    classDef logging fill:#E91E63,stroke:#AD1457,color:#fff
+    classDef service fill:#607D8B,stroke:#37474F,color:#fff
+    
+    class DBMGR db
+    class SPREPO,STREPO,SAREPO,SVREPO repo
+    class VCACHE,WCACHE cache
+    class SETTINGS adapter
+    class LOGSERVICE,LOGBACKEND logging
+    class MON,ADM,PROV,SEC service

@@ -1,3 +1,12 @@
+---
+doc_id: DOC-COMP-051
+title: DeviceSimulator Adapter - WebSocket Adapter Spec
+version: 1.0
+status: Draft
+category: Component
+subcategory: Infrastructure/Simulator
+---
+
 # DeviceSimulator Adapter — WebSocket Adapter Spec
 
 Purpose

@@ -1,3 +1,12 @@
+---
+doc_id: DOC-API-010
+title: IPatientLookupService Interface
+version: 1.0
+status: Approved
+category: API
+subcategory: Domain Services
+---
+
 # IPatientLookupService Interface
 
 ## Purpose

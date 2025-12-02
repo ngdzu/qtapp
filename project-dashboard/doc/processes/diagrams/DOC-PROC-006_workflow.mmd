@@ -1,0 +1,46 @@
+flowchart TD
+    Start([Migration Trigger]) --> DryRun{Dry Run Mode?}
+    DryRun -- Yes --> SimulateMig[Simulate Migration]
+    SimulateMig --> ReportDry[Report Dry Run Results]
+    ReportDry --> End([Migration Complete])
+    DryRun -- No --> PreCheck[Run Pre-Migration Checks]
+    PreCheck --> CheckIntegrity[Check DB Integrity]
+    CheckIntegrity --> CheckFK[Verify Foreign Keys]
+    CheckFK --> CheckSize[Check DB Size]
+    CheckSize --> PreValid{Pre-Validation Pass?}
+    PreValid -- Fail --> LogPreFail[Log Pre-Check Failure]
+    LogPreFail --> Abort[Abort Migration]
+    Abort --> End
+    PreValid -- Pass --> Backup[Backup Database]
+    Backup --> DetectPending[Detect Pending Migrations]
+    DetectPending --> CheckVersion[Check schema_version Table]
+    CheckVersion --> PendingFound{Pending Migrations?}
+    PendingFound -- No --> NoOp[No Migrations to Apply]
+    NoOp --> End
+    PendingFound -- Yes --> OrderMigs[Order by Number Schema/Data/Seed]
+    OrderMigs --> BeginTx[BEGIN TRANSACTION]
+    BeginTx --> ApplyNext{Next Migration?}
+    ApplyNext -- Schema --> ApplyDDL[Apply DDL Changes]
+    ApplyNext -- Data --> TransformData[Transform Existing Data]
+    ApplyNext -- Seed --> InsertDefaults[Insert Seed Data]
+    ApplyDDL --> RecordVersion[Record in schema_version]
+    TransformData --> RecordVersion
+    InsertDefaults --> RecordVersion
+    RecordVersion --> CommitTx[COMMIT TRANSACTION]
+    CommitTx --> MoreMigs{More Migrations?}
+    MoreMigs -- Yes --> ApplyNext
+    MoreMigs -- No --> PostCheck[Run Post-Migration Checks]
+    PostCheck --> VerifyVersion[Verify Schema Version]
+    VerifyVersion --> CheckInvariants[Check Data Invariants]
+    CheckInvariants --> PostValid{Post-Validation Pass?}
+    PostValid -- Fail --> LogPostFail[Log Post-Check Failure]
+    LogPostFail --> Rollback[Rollback Migration]
+    Rollback --> RestoreBackup[Restore from Backup]
+    RestoreBackup --> End
+    PostValid -- Pass --> LogSuccess[Log Migration Success]
+    LogSuccess --> CleanBackup[Clean Old Backups]
+    CleanBackup --> End
+    ApplyNext -- Error --> TxError[Transaction Error]
+    TxError --> RollbackTx[ROLLBACK TRANSACTION]
+    RollbackTx --> LogError[Log Migration Error]
+    LogError --> Rollback

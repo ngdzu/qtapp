@@ -1,0 +1,38 @@
+flowchart TD
+    Start([Development Workflow]) --> CodeChange[Developer Makes Code Change]
+    CodeChange --> LocalUnit[Run Unit Tests Locally]
+    LocalUnit --> UnitPass{Unit Tests Pass?}
+    UnitPass -- Fail --> FixCode[Fix Failing Tests]
+    FixCode --> CodeChange
+    UnitPass -- Pass --> Commit[Commit Changes]
+    Commit --> PreCommit[Pre-Commit Hook]
+    PreCommit --> RunLint[Run Linters clang-format/clang-tidy]
+    RunLint --> LintPass{Lint Pass?}
+    LintPass -- Fail --> FixLint[Fix Lint Issues]
+    FixLint --> Commit
+    LintPass -- Pass --> RunInteg[Run Integration Tests]
+    RunInteg --> IntegPass{Integration Pass?}
+    IntegPass -- Fail --> FixInteg[Fix Integration Issues]
+    FixInteg --> CodeChange
+    IntegPass -- Pass --> Push[Push to Remote]
+    Push --> CITrigger[CI Pipeline Triggered]
+    CITrigger --> CIBuild[Build Project]
+    CIBuild --> BuildOK{Build Success?}
+    BuildOK -- Fail --> NotifyFail[Notify Developer]
+    NotifyFail --> FixCode
+    BuildOK -- Pass --> CIUnit[CI: Run Unit Tests]
+    CIUnit --> CIInteg[CI: Run Integration Tests]
+    CIInteg --> CIE2E[CI: Run E2E Tests]
+    CIE2E --> AllPass{All Tests Pass?}
+    AllPass -- Fail --> NotifyFail
+    AllPass -- Pass --> Coverage[Generate Coverage Report]
+    Coverage --> CoverageOK{Coverage ≥ 80%?}
+    CoverageOK -- Fail --> NotifyLowCov[Notify Low Coverage]
+    NotifyLowCov --> FixCode
+    CoverageOK -- Pass --> Benchmark[Run Benchmarks]
+    Benchmark --> PerfOK{Performance OK?}
+    PerfOK -- Regression --> NotifyPerf[Notify Regression]
+    NotifyPerf --> FixCode
+    PerfOK -- Pass --> CISuccess[CI Success]
+    CISuccess --> MergePR[Merge PR]
+    MergePR --> End([Testing Complete])

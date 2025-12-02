@@ -1,3 +1,12 @@
+---
+doc_id: DOC-COMP-050
+title: Device Simulator - Overview and Design
+version: 1.0
+status: Draft
+category: Component
+subcategory: Infrastructure/Simulator
+---
+
 # Device Simulator — Overview and Design
 
 Purpose

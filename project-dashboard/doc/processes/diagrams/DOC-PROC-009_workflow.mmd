@@ -1,0 +1,38 @@
+flowchart TD
+    Start([Schema Change Required]) --> EditYAML[Edit schema/database.yaml]
+    EditYAML --> DefineTable[Define Table & Columns]
+    DefineTable --> AddConstraints[Add Constraints/Indices]
+    AddConstraints --> ValidateYAML[Validate YAML Syntax]
+    ValidateYAML --> YAMLValid{YAML Valid?}
+    YAMLValid -- Fail --> ShowError[Show Validation Error]
+    ShowError --> EditYAML
+    YAMLValid -- Pass --> RunGen[Run scripts/generate_schema.py]
+    RunGen --> ParseYAML[Parse database.yaml]
+    ParseYAML --> GenSQL[Generate SQL DDL]
+    GenSQL --> GenCPP[Generate C++ Constants]
+    GenCPP --> OutputSQL[Output schema.sql]
+    OutputSQL --> OutputCPP[Output schema_constants.h]
+    OutputCPP --> ReviewGen[Review Generated Code]
+    ReviewGen --> Approved{Changes Approved?}
+    Approved -- No --> EditYAML
+    Approved -- Yes --> CreateMigration[Create Migration File]
+    CreateMigration --> NumMigration[Number Sequentially]
+    NumMigration --> WriteMigSQL[Write Migration SQL]
+    WriteMigSQL --> TestMigration[Test Migration on Empty DB]
+    TestMigration --> MigOK{Migration Works?}
+    MigOK -- Fail --> FixMigration[Fix Migration Script]
+    FixMigration --> WriteMigSQL
+    MigOK -- Pass --> UpdateCode[Update Code to Use Constants]
+    UpdateCode --> RefactorQueries[Refactor Hardcoded Strings]
+    RefactorQueries --> UseSchema[Use Schema::Table::Column]
+    UseSchema --> CompileCheck[Compile & Check Autocomplete]
+    CompileCheck --> CompileOK{Compiles OK?}
+    CompileOK -- Fail --> FixCode[Fix Compilation Errors]
+    FixCode --> UpdateCode
+    CompileOK -- Pass --> RunTests[Run Unit Tests]
+    RunTests --> TestsPass{Tests Pass?}
+    TestsPass -- Fail --> FixTests[Fix Failing Tests]
+    FixTests --> RunTests
+    TestsPass -- Pass --> CommitChanges[Commit YAML + Generated + Migration]
+    CommitChanges --> CI[CI Validates Schema]
+    CI --> End([Schema Change Complete])

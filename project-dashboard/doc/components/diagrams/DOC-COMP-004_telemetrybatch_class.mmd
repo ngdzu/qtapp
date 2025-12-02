@@ -1,0 +1,35 @@
+graph TD
+    subgraph "TelemetryBatch"
+        TB[TelemetryBatch<br/>-batchId: string &#40;UUID&#41;<br/>-deviceId: string<br/>-patientMrn: string<br/>-vitals: vector&lt;VitalRecord&gt;<br/>-alarms: vector&lt;AlarmSnapshot&gt;<br/>-signature: string<br/>-signed: bool]
+        TB -->|adds| AV[+addVital&#40;vital&#41;: bool]
+        TB -->|adds| AA[+addAlarm&#40;alarm&#41;: bool]
+        TB -->|signs| SG[+sign&#40;signature&#41;: bool]
+        TB -->|validates| VL[+validate&#40;&#41;: bool]
+    end
+    
+    subgraph "Batch Contents"
+        VR[VitalRecord<br/>+patientMrn: string<br/>+timestampMs: int64<br/>+heartRate: double<br/>+spo2: double<br/>+respirationRate: double]
+        AS[AlarmSnapshot<br/>+alarmType: string<br/>+priority: AlarmPriority<br/>+timestampMs: int64<br/>+value: double]
+    end
+    
+    subgraph "Business Rules"
+        R1["✓ All vitals from same patient"]
+        R2["✓ Batch size limit enforced"]
+        R3["✓ Must sign before transmission"]
+        R4["✓ Cannot add after signing"]
+    end
+    
+    TB -.contains.-> VR
+    TB -.contains.-> AS
+    TB -.enforces.-> R1
+    TB -.enforces.-> R2
+    TB -.enforces.-> R3
+    TB -.enforces.-> R4
+    
+    style TB fill:#e1f5ff
+    style VR fill:#fff4e6
+    style AS fill:#fff4e6
+    style R1 fill:#c8e6c9
+    style R2 fill:#c8e6c9
+    style R3 fill:#c8e6c9
+    style R4 fill:#c8e6c9

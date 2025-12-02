@@ -1,0 +1,52 @@
+flowchart TD
+    Start([Migration Request]) --> CheckMode{Migration Mode?}
+    CheckMode -- Status --> ShowStatus[Show Applied Migrations]
+    ShowStatus --> End([Migration Complete])
+    CheckMode -- Rollback --> RollbackN[Rollback N Versions]
+    RollbackN --> FindRollbackScript[Find Rollback Script]
+    FindRollbackScript --> RollbackExists{Script Exists?}
+    RollbackExists -- No --> RollbackError[Error: No Rollback Available]
+    RollbackError --> End
+    RollbackExists -- Yes --> BackupBeforeRB[Backup Database]
+    BackupBeforeRB --> ApplyRollback[Apply Rollback Script]
+    ApplyRollback --> UpdateVersion[Update schema_version]
+    UpdateVersion --> VerifyRollback[Verify Rollback]
+    VerifyRollback --> End
+    CheckMode -- Apply --> DetectNew[Detect New Migrations]
+    DetectNew --> ReadVersionTable[Read schema_version]
+    ReadVersionTable --> CompareFiles[Compare with Migration Files]
+    CompareFiles --> NewFound{New Migrations?}
+    NewFound -- No --> NoChanges[No Changes to Apply]
+    NoChanges --> End
+    NewFound -- Yes --> OrderByType[Order: Schema → Data → Seed]
+    OrderByType --> PreValidate[Run Pre-Migration Validation]
+    PreValidate --> PreOK{Validation Pass?}
+    PreOK -- Fail --> AbortMig[Abort Migration]
+    AbortMig --> End
+    PreOK -- Pass --> BackupDB[Backup Database]
+    BackupDB --> StartApply[Start Applying Migrations]
+    StartApply --> NextMig{Next Migration?}
+    NextMig -- Schema --> ApplyDDL[Apply DDL Changes]
+    NextMig -- Data --> CheckLarge{Large Dataset?}
+    CheckLarge -- Yes --> BatchUpdate[Batch Update 10k rows]
+    BatchUpdate --> BatchCommit[Commit per Batch]
+    BatchCommit --> MoreBatches{More Batches?}
+    MoreBatches -- Yes --> BatchUpdate
+    MoreBatches -- No --> LogCompletion[Log Data Migration]
+    CheckLarge -- No --> ApplyDML[Apply DML Directly]
+    ApplyDML --> LogCompletion
+    NextMig -- Seed --> InsertSeed[Insert Seed Data]
+    InsertSeed --> LogCompletion
+    ApplyDDL --> LogCompletion
+    LogCompletion --> RecordHash[Record File Hash]
+    RecordHash --> RecordTime[Record Execution Time]
+    RecordTime --> UpdateSchemaVer[Update schema_version]
+    UpdateSchemaVer --> MoreMigs{More Migrations?}
+    MoreMigs -- Yes --> NextMig
+    MoreMigs -- No --> PostValidate[Run Post-Migration Checks]
+    PostValidate --> PostOK{Validation Pass?}
+    PostOK -- Fail --> RollbackAuto[Auto-Rollback Failed Migration]
+    RollbackAuto --> End
+    PostOK -- Pass --> RecordMetrics[Record Metrics]
+    RecordMetrics --> PublishArtifacts[Publish CI Artifacts]
+    PublishArtifacts --> End

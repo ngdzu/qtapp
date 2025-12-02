@@ -1,0 +1,48 @@
+flowchart TD
+    Start([User Login Attempt]) --> EnterCreds[Enter UserID & PIN]
+    EnterCreds --> HashPIN[Derive pinHash SHA-256]
+    HashPIN --> SelectBackend{Auth Backend?}
+    SelectBackend -- REST --> PostLogin[POST /api/v1/auth/login]
+    SelectBackend -- LDAP --> BindDN[Bind DN with Credentials]
+    SelectBackend -- Mock --> MockAuth[Mock Service Validate]
+    PostLogin --> ServerAuth{Server Validates?}
+    BindDN --> LDAPAuth{LDAP Binds?}
+    MockAuth --> MockResult{Mock Result?}
+    ServerAuth -- Fail --> LogFail[Log LOGIN_FAILED]
+    LDAPAuth -- Fail --> LogFail
+    MockResult -- Fail --> LogFail
+    LogFail --> BruteForce{Retry Limit Exceeded?}
+    BruteForce -- Yes --> LockAccount[Lock Account]
+    LockAccount --> ShowLocked[Show Account Locked]
+    ShowLocked --> End([Login Failed])
+    BruteForce -- No --> RetryDelay[Enforce Retry Delay]
+    RetryDelay --> Start
+    ServerAuth -- Success --> ParseProfile[Parse User Profile]
+    LDAPAuth -- Success --> MapGroups[Map LDAP Groups to Roles]
+    MockResult -- Success --> ParseProfile
+    MapGroups --> ParseProfile
+    ParseProfile --> ExtractRole[Extract UserRole & Permissions]
+    ExtractRole --> CreateSession[Create Session Token]
+    CreateSession --> StoreToken[Store Token in Keystore]
+    StoreToken --> StartTimer[Start Session Timer]
+    StartTimer --> LogSuccess[Log LOGIN_SUCCESS]
+    LogSuccess --> InitPerms[Initialize Permission Registry]
+    InitPerms --> EmitLoggedIn[Emit userLoggedIn Signal]
+    EmitLoggedIn --> ShowDashboard[Show Dashboard]
+    ShowDashboard --> ActiveSession[Active Session]
+    ActiveSession --> InactivityCheck{Inactivity Timer?}
+    InactivityCheck -- Timeout --> SessionExpired[Session Expired]
+    InactivityCheck -- Activity --> ResetTimer[Reset Timer]
+    ResetTimer --> ActiveSession
+    InactivityCheck -- Validate Interval --> ServerValidate[POST /api/v1/auth/validate]
+    ServerValidate --> ValidOK{Valid?}
+    ValidOK -- No --> SessionExpired
+    ValidOK -- Yes --> ActiveSession
+    SessionExpired --> LogExpired[Log SESSION_EXPIRED]
+    LogExpired --> ClearSession[Clear Session]
+    ClearSession --> RequestLogin[Emit requestLoginScreen]
+    RequestLogin --> End
+    ActiveSession --> UserLogout{User Logout?}
+    UserLogout -- Yes --> RevokeToken[POST /api/v1/auth/logout]
+    RevokeToken --> LogLogout[Log USER_LOGOUT]
+    LogLogout --> ClearSession

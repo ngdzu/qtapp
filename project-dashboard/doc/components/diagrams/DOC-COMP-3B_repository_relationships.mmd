@@ -1,0 +1,76 @@
+graph TB
+    %% Repository Interfaces and Implementations
+    %% Shows abstraction layer between application and infrastructure
+    
+    subgraph "Application Layer (Interfaces)"
+        IPREPO[IPatientRepository<br/>findByMrn, save, getAdmissionHistory]
+        ITREPO[ITelemetryRepository<br/>save, getHistorical, getUnsent]
+        IAREPO[IAlarmRepository<br/>save, getActive, getHistory]
+        IPRREPO[IProvisioningRepository<br/>saveDevice, saveSession]
+    end
+    
+    subgraph "Infrastructure Layer (Implementations)"
+        SPREPO[SQLitePatientRepository]
+        STREPO[SQLiteTelemetryRepository]
+        SAREPO[SQLiteAlarmRepository]
+        SPRREPO[SQLiteProvisioningRepository]
+    end
+    
+    subgraph "Database Manager"
+        DBMGR[DatabaseManager<br/>Single Writer Thread]
+    end
+
+    subgraph "Query Registry & Schema"
+        QREG[Query Registry<br/>QueryId::* constants]
+        SCHEMA[Schema Constants<br/>Schema::Tables, Schema::Columns]
+    end
+    
+    subgraph "Domain Aggregates"
+        PATIENT[PatientAggregate]
+        ALARM[AlarmAggregate]
+        DEVICE[DeviceAggregate]
+        TELEM[TelemetryBatch]
+    end
+    
+    %% Interface to Implementation
+    IPREPO -.implements.-> SPREPO
+    ITREPO -.implements.-> STREPO
+    IAREPO -.implements.-> SAREPO
+    IPRREPO -.implements.-> SPRREPO
+    
+    %% Implementation to Database
+    SPREPO --> DBMGR
+    STREPO --> DBMGR
+    SAREPO --> DBMGR
+    SPRREPO --> DBMGR
+
+    %% Implementations use Query Registry and Schema constants
+    SPREPO --> QREG
+    STREPO --> QREG
+    SAREPO --> QREG
+    SPRREPO --> QREG
+    SPREPO --> SCHEMA
+    STREPO --> SCHEMA
+    SAREPO --> SCHEMA
+    SPRREPO --> SCHEMA
+    
+    %% Repository to Domain
+    SPREPO --> PATIENT
+    SAREPO --> ALARM
+    SPRREPO --> DEVICE
+    STREPO --> TELEM
+    
+    %% Styling
+    classDef interface fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    classDef impl fill:#50C878,stroke:#2E7D4E,color:#fff
+    classDef db fill:#F5A623,stroke:#C07A1A,color:#fff
+    classDef domain fill:#BD10E0,stroke:#7B0A93,color:#fff
+    classDef registry fill:#7FDBFF,stroke:#0074D9,color:#001f3f
+    classDef schema fill:#FFDC00,stroke:#FF851B,color:#3D9970
+    
+    class IPREPO,ITREPO,IAREPO,IPRREPO interface
+    class SPREPO,STREPO,SAREPO,SPRREPO impl
+    class DBMGR db
+    class PATIENT,ALARM,DEVICE,TELEM domain
+    class QREG registry
+    class SCHEMA schema

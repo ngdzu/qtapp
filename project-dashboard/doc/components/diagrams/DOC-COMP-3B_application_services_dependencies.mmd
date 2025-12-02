@@ -1,0 +1,66 @@
+graph TB
+    %% Application Layer Service Dependencies Diagram
+    %% Shows how application services depend on repositories and infrastructure services
+    
+    subgraph "Application Services"
+        MON[MonitoringService<br/>Real-Time Vitals]
+        ADM[AdmissionService<br/>ADT Workflow]
+        PROV[ProvisioningService<br/>Device Provisioning]
+        SEC[SecurityService<br/>Auth/RBAC]
+    end
+    
+    subgraph "Repository Interfaces"
+        PREPO[IPatientRepository]
+        TREPO[ITelemetryRepository]
+        AREPO[IAlarmRepository]
+        VRREPO[IVitalsRepository]
+        PROREPO[IProvisioningRepository]
+        AUDREPO[IAuditRepository]
+        ACTREPO[IActionLogRepository]
+    end
+    
+    subgraph "Infrastructure Services"
+        USERMGMT[IUserManagementService]
+        SENSOR[ISensorDataSource]
+        CERT[CertificateManager]
+        SETTINGS[SettingsManager]
+    end
+    
+    subgraph "Domain Caches"
+        VCACHE[VitalsCache<br/>24h History]
+        WCACHE[WaveformCache<br/>10s History]
+    end
+    
+    %% MonitoringService Dependencies
+    MON --> PREPO
+    MON --> TREPO
+    MON --> AREPO
+    MON --> VRREPO
+    MON --> SENSOR
+    MON --> VCACHE
+    MON --> WCACHE
+    
+    %% AdmissionService Dependencies
+    ADM --> ACTREPO
+    
+    %% ProvisioningService Dependencies
+    PROV --> PROREPO
+    PROV --> CERT
+    PROV --> SETTINGS
+    
+    %% SecurityService Dependencies
+    SEC --> USERMGMT
+    SEC --> AUDREPO
+    SEC --> ACTREPO
+    SEC --> SETTINGS
+    
+    %% Styling
+    classDef service fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    classDef repo fill:#50C878,stroke:#2E7D4E,color:#fff
+    classDef infra fill:#F5A623,stroke:#C07A1A,color:#fff
+    classDef cache fill:#BD10E0,stroke:#7B0A93,color:#fff
+    
+    class MON,ADM,PROV,SEC service
+    class PREPO,TREPO,AREPO,VRREPO,PROREPO,AUDREPO,ACTREPO repo
+    class USERMGMT,SENSOR,CERT,SETTINGS infra
+    class VCACHE,WCACHE cache

@@ -1,0 +1,37 @@
+flowchart TD
+    Start([ADT Event Trigger]) --> EventType{Event Type?}
+    EventType -- Admission --> AdmissionMethod{Admission Method?}
+    AdmissionMethod -- Manual --> SearchPatient[Search by MRN/Name]
+    AdmissionMethod -- Barcode --> ScanBarcode[Scan Wristband]
+    AdmissionMethod -- Central Push --> ReceiveAdmit[Receive Auto-Admit]
+    SearchPatient --> LookupHIS[Lookup Patient in HIS]
+    ScanBarcode --> ExtractMRN[Extract MRN]
+    ExtractMRN --> LookupHIS
+    LookupHIS --> PatientFound{Patient Found?}
+    PatientFound -- No --> ShowError[Show Error]
+    ShowError --> End([ADT Complete])
+    PatientFound -- Yes --> ShowPreview[Show Patient Preview]
+    ReceiveAdmit --> ShowPreview
+    ShowPreview --> ConfirmAdmit{Confirm Admission?}
+    ConfirmAdmit -- No --> Cancel[Cancel]
+    Cancel --> End
+    ConfirmAdmit -- Yes --> CreateAssoc[Associate Patient with Device]
+    CreateAssoc --> LogAdmission[Log Admission Event]
+    LogAdmission --> UpdateBanner[Update Patient Banner]
+    UpdateBanner --> DeviceAdmitted[Device Status: ADMITTED]
+    DeviceAdmitted --> End
+    EventType -- Discharge --> ConfirmDischarge{Confirm Discharge?}
+    ConfirmDischarge -- No --> Cancel
+    ConfirmDischarge -- Yes --> ClearAssoc[Clear Patient Association]
+    ClearAssoc --> LogDischarge[Log Discharge Event]
+    LogDischarge --> RetainData[Retain Data per Policy]
+    RetainData --> DeviceStandby[Device Status: STANDBY]
+    DeviceStandby --> End
+    EventType -- Transfer --> DischargeSource[Discharge from Source Device]
+    DischargeSource --> AdmitTarget[Admit to Target Device]
+    AdmitTarget --> CopyMeta{Copy Metadata?}
+    CopyMeta -- Yes --> TransferData[Transfer Reference Data]
+    CopyMeta -- No --> KeepSource[Keep on Source]
+    TransferData --> LogTransfer[Log Transfer Event]
+    KeepSource --> LogTransfer
+    LogTransfer --> End

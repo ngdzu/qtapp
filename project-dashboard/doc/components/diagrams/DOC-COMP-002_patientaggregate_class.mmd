@@ -1,0 +1,35 @@
+graph TD
+    subgraph "PatientAggregate"
+        PA[PatientAggregate<br/>-state: AdmissionState<br/>-identity: PatientIdentity<br/>-bedLocation: BedLocation<br/>-vitalsHistory: vector&lt;VitalRecord&gt;]
+        PA -->|admits| ADM[+admit&#40;identity, bedLocation&#41;: Result&lt;void&gt;]
+        PA -->|discharges| DIS[+discharge&#40;&#41;: Result&lt;void&gt;]
+        PA -->|transfers| TR[+transfer&#40;targetDevice&#41;: Result&lt;void&gt;]
+        PA -->|updates| UV[+updateVitals&#40;vital&#41;: Result&lt;void&gt;]
+    end
+    
+    subgraph "Value Objects"
+        PI[PatientIdentity<br/>+mrn: string<br/>+name: string<br/>+dateOfBirthMs: int64<br/>+sex: string<br/>+allergies: vector&lt;string&gt;]
+        BL[BedLocation<br/>+location: string<br/>+unit: string]
+        VR[VitalRecord<br/>+patientMrn: string<br/>+timestampMs: int64<br/>+heartRate: double<br/>+spo2: double]
+    end
+    
+    subgraph "Domain Events"
+        EVT1[PatientAdmitted]
+        EVT2[PatientDischarged]
+        EVT3[PatientTransferred]
+    end
+    
+    PA -.uses.-> PI
+    PA -.uses.-> BL
+    PA -.uses.-> VR
+    ADM -.raises.-> EVT1
+    DIS -.raises.-> EVT2
+    TR -.raises.-> EVT3
+    
+    style PA fill:#e1f5ff
+    style PI fill:#fff4e6
+    style BL fill:#fff4e6
+    style VR fill:#fff4e6
+    style EVT1 fill:#f3e5f5
+    style EVT2 fill:#f3e5f5
+    style EVT3 fill:#f3e5f5

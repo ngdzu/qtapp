@@ -30,3 +30,21 @@ repos:
         always_run: false
         stages: [commit]
 
+      - id: validate-doc-metadata
+        name: Validate documentation metadata & links
+        entry: bash -c 'python3 scripts/check_doc_links.py'
+        language: system
+        pass_filenames: false
+        files: ^project-dashboard/doc/.*\.md$
+        description: "Ensures all docs have required frontmatter, unique DOC-IDs, valid cross-references. Fails on errors."
+        stages: [commit]
+
+      - id: regenerate-doc-index
+        name: Regenerate documentation index & metadata
+        entry: bash -c 'python3 scripts/generate_doc_index.py'
+        language: system
+        pass_filenames: false
+        files: ^project-dashboard/doc/.*\.md$
+        description: "Rebuilds 00_INDEX.md and _metadata.json from frontmatter."
+        stages: [commit]
+

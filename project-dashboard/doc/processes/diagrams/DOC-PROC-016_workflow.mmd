@@ -1,0 +1,39 @@
+flowchart TD
+    Start([Test Execution]) --> Type{Test Type?}
+    Type -- Unit --> RunUnit[Run Unit Tests]
+    Type -- Integration --> RunInteg[Run Integration Tests]
+    Type -- System --> RunSystem[Run System/E2E Tests]
+    Type -- Performance --> RunPerf[Run Benchmarks]
+    RunUnit --> UnitEnv[Setup Test Env]
+    RunInteg --> IntegEnv[Setup DB + Network]
+    RunSystem --> SystemEnv[Setup Full Stack]
+    RunPerf --> PerfEnv[Setup Benchmark Env]
+    UnitEnv --> ExecuteUnit[Execute Tests]
+    IntegEnv --> ExecuteInteg[Execute Tests]
+    SystemEnv --> ExecuteSystem[Execute Tests]
+    PerfEnv --> ExecutePerf[Execute Benchmarks]
+    ExecuteUnit --> CollectUnit[Collect Results]
+    ExecuteInteg --> CollectInteg[Collect Results]
+    ExecuteSystem --> CollectSystem[Collect Results]
+    ExecutePerf --> CollectPerf[Collect Metrics]
+    CollectUnit --> UnitPass{All Pass?}
+    CollectInteg --> IntegPass{All Pass?}
+    CollectSystem --> SystemPass{All Pass?}
+    CollectPerf --> PerfPass{No Regression?}
+    UnitPass -- Fail --> ReportFail[Report Failures]
+    IntegPass -- Fail --> ReportFail
+    SystemPass -- Fail --> ReportFail
+    PerfPass -- Fail --> ReportRegress[Report Regression]
+    ReportFail --> End([Tests Failed])
+    ReportRegress --> End
+    UnitPass -- Pass --> GenCoverage[Generate Coverage]
+    IntegPass -- Pass --> GenCoverage
+    SystemPass -- Pass --> GenCoverage
+    GenCoverage --> CoverageOK{Coverage ≥ Threshold?}
+    CoverageOK -- No --> ReportLowCov[Report Low Coverage]
+    ReportLowCov --> End
+    CoverageOK -- Yes --> PublishResults[Publish Test Results]
+    PerfPass -- Pass --> PublishPerf[Publish Benchmarks]
+    PublishPerf --> PublishResults
+    PublishResults --> CIArtifacts[Upload CI Artifacts]
+    CIArtifacts --> End([Tests Passed])

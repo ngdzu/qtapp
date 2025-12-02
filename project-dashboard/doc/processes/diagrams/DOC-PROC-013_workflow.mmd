@@ -1,0 +1,33 @@
+flowchart TD
+    Start([ADT Event]) --> Type{Event Type?}
+    Type -- Admit --> Method{Method?}
+    Method -- Manual --> Search[Search Patient]
+    Method -- Barcode --> Scan[Scan Wristband]
+    Method -- Push --> Receive[Receive from Central]
+    Search --> Lookup[Lookup in HIS]
+    Scan --> Extract[Extract MRN]
+    Extract --> Lookup
+    Lookup --> Found{Found?}
+    Found -- No --> Error[Show Error]
+    Error --> End([ADT Complete])
+    Found -- Yes --> Preview[Show Preview]
+    Receive --> Preview
+    Preview --> Confirm{Confirm?}
+    Confirm -- No --> Cancel[Cancel]
+    Cancel --> End
+    Confirm -- Yes --> Associate[Associate Patient]
+    Associate --> LogAdmit[Log Admission]
+    LogAdmit --> UpdateUI[Update Banner]
+    UpdateUI --> Admitted[Status: ADMITTED]
+    Admitted --> End
+    Type -- Discharge --> ConfirmDC{Confirm?}
+    ConfirmDC -- No --> Cancel
+    ConfirmDC -- Yes --> Clear[Clear Association]
+    Clear --> LogDC[Log Discharge]
+    LogDC --> Retain[Retain Data]
+    Retain --> Standby[Status: STANDBY]
+    Standby --> End
+    Type -- Transfer --> DCSource[Discharge Source]
+    DCSource --> AdmitTarget[Admit Target]
+    AdmitTarget --> LogXfer[Log Transfer]
+    LogXfer --> End

@@ -1,0 +1,24 @@
+flowchart TD
+    Start([Certificate Lifecycle]) --> Init{Initial or Renewal?}
+    Init -- Initial --> GenKey[Generate Device Keypair]
+    Init -- Renewal --> CheckExpiry[Check Expiry 90/30/7 days]
+    CheckExpiry --> Renew[Request Renewal]
+    GenKey --> CSR[Create CSR]
+    Renew --> CSR
+    CSR --> Submit[Submit to CA]
+    Submit --> CASign[CA Signs Certificate]
+    CASign --> Deliver[Deliver via QR/Provisioning]
+    Deliver --> Install[Install to Keystore]
+    Install --> Validate{Validate Chain?}
+    Validate -- Fail --> Error[Log Error]
+    Error --> Alert[Alert Admin]
+    Alert --> End([Certificate Failed])
+    Validate -- Pass --> Active[Certificate Active]
+    Active --> Monitor{Monitor Status}
+    Monitor -- Compromised --> Revoke[Revoke Certificate]
+    Revoke --> CRL[Update CRL]
+    CRL --> Block[Block Connections]
+    Block --> Audit[Audit Log]
+    Audit --> End
+    Monitor -- Expiring --> CheckExpiry
+    Monitor -- OK --> Active

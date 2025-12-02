@@ -1,0 +1,3151 @@
+{
+  "generated": "2025-12-02 00:22:53 UTC",
+  "documents": [
+    {
+      "doc_id": "DOC-PROC-009",
+      "title": "Schema Management and Code Generation",
+      "version": "1.0",
+      "category": "Processes",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-ARCH-017  # Database Design",
+        "DOC-COMP-032  # Query Registry",
+        "DOC-PROC-010  # Data Migration Workflow"
+      ],
+      "tags": [
+        "",
+        "database",
+        "schema",
+        "code-generation",
+        "yaml",
+        "migration"
+      ],
+      "source": "",
+      "file_path": "processes/DOC-PROC-009_schema_management.md"
+    },
+    {
+      "doc_id": "DOC-PROC-003",
+      "title": "ADT (Admission, Discharge, Transfer) Workflow",
+      "version": "1.0",
+      "category": "Process",
+      "subcategory": "Patient Management",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "tags": [
+        "process",
+        "workflow",
+        "patient",
+        "admission",
+        "discharge",
+        "transfer",
+        "mrn"
+      ],
+      "related_docs": [
+        "",
+        "DOC-API-001  # IPatientLookupService",
+        "DOC-PROC-005 # Login Workflow & Action Logging",
+        "DESIGN-019   # ADT Workflow (source)"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Clinical Workflows Team"
+      ],
+      "file_path": "processes/DOC-PROC-003_adt_workflow.md"
+    },
+    {
+      "title": "\"Developer Setup Guide\"",
+      "doc_id": "DOC-PROC-017",
+      "version": "1.0",
+      "category": "Process",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-001_system_architecture.md"
+      ],
+      "file_path": "processes/DOC-PROC-017_developer_setup_guide.md"
+    },
+    {
+      "doc_id": "DOC-PROC-007",
+      "title": "Testing Workflow and Strategy",
+      "version": "1.0",
+      "category": "Process",
+      "subcategory": "Quality",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "tags": [
+        "process",
+        "workflow",
+        "testing",
+        "unit",
+        "integration",
+        "e2e",
+        "coverage",
+        "benchmark"
+      ],
+      "related_docs": [
+        "",
+        "DESIGN-018   # Testing Workflow and Strategy (source)",
+        "40_BENCHMARK_AND_PERFORMANCE_MEASUREMENT.md"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "QA Team"
+      ],
+      "file_path": "processes/DOC-PROC-007_testing_workflow_and_strategy.md"
+    },
+    {
+      "doc_id": "DOC-PROC-004",
+      "title": "Authentication and Authorization Workflow",
+      "version": "1.0",
+      "category": "Process",
+      "subcategory": "Security",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "tags": [
+        "process",
+        "workflow",
+        "authentication",
+        "authorization",
+        "rbac",
+        "session"
+      ],
+      "related_docs": [
+        "",
+        "DOC-API-004  # IUserManagementService",
+        "DOC-PROC-005 # Login Workflow & Action Logging",
+        "DESIGN-038   # Authentication workflow (source)"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Security Team"
+      ],
+      "file_path": "processes/DOC-PROC-004_authentication_workflow.md"
+    },
+    {
+      "doc_id": "DOC-PROC-006",
+      "title": "Data Migration Workflow",
+      "version": "1.0",
+      "category": "Process",
+      "subcategory": "Database",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "tags": [
+        "process",
+        "workflow",
+        "migration",
+        "schema",
+        "data",
+        "rollback",
+        "ci"
+      ],
+      "related_docs": [
+        "",
+        "DESIGN-034   # Data migration workflow (source)",
+        "doc/33_SCHEMA_MANAGEMENT.md",
+        "doc/30_DATABASE_ACCESS_STRATEGY.md"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Database Team"
+      ],
+      "file_path": "processes/DOC-PROC-006_data_migration_workflow.md"
+    },
+    {
+      "doc_id": "DOC-PROC-013",
+      "title": "ADT (Admit, Discharge, Transfer) Workflow",
+      "version": "1.0",
+      "category": "Processes",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-ARCH-017  # Database Design",
+        "DOC-GUIDE-015 # DTOs",
+        "DOC-GUIDE-014 # Database Access Strategy",
+        "DOC-ARCH-008  # Alarm System",
+        "DOC-ARCH-011  # Thread Model"
+      ],
+      "tags": [
+        "",
+        "workflow",
+        "patient",
+        "adt",
+        "repository",
+        "audit"
+      ],
+      "source": "",
+      "file_path": "processes/DOC-PROC-013_adt_workflow.md"
+    },
+    {
+      "doc_id": "DOC-PROC-010",
+      "title": "Data Migration Workflow",
+      "version": "1.0",
+      "category": "Processes",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-PROC-009  # Schema Management",
+        "DOC-ARCH-017  # Database Design",
+        "DOC-ARCH-018  # SQLCipher Integration"
+      ],
+      "tags": [
+        "",
+        "database",
+        "migration",
+        "schema",
+        "deployment",
+        "rollback"
+      ],
+      "source": "",
+      "file_path": "processes/DOC-PROC-010_data_migration_workflow.md"
+    },
+    {
+      "title": "\"Simulator Integration Guide\"",
+      "doc_id": "DOC-PROC-018",
+      "version": "1.0",
+      "category": "Process",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-001_system_architecture.md"
+      ],
+      "file_path": "processes/DOC-PROC-018_simulator_integration_guide.md"
+    },
+    {
+      "doc_id": "DOC-PROC-014",
+      "title": "Authentication Workflow",
+      "version": "1.0",
+      "category": "Processes",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-ARCH-010  # Security Architecture",
+        "DOC-GUIDE-015 # DTOs (LoginRequest)",
+        "DOC-PROC-015  # Login & Audit Logging",
+        "DOC-ARCH-018  # SQLCipher Integration"
+      ],
+      "tags": [
+        "",
+        "authentication",
+        "security",
+        "audit",
+        "mfa"
+      ],
+      "source": "",
+      "file_path": "processes/DOC-PROC-014_authentication_workflow.md"
+    },
+    {
+      "doc_id": "DOC-PROC-016",
+      "title": "Testing Workflow",
+      "version": "1.0",
+      "category": "Processes",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-ARCH-011  # Thread Model",
+        "DOC-GUIDE-011 # Error Handling",
+        "DOC-GUIDE-012 # Logging Strategy",
+        "DOC-COMP-026  # Data Caching Component"
+      ],
+      "tags": [
+        "",
+        "testing",
+        "unit-tests",
+        "integration-tests",
+        "ci"
+      ],
+      "source": "",
+      "file_path": "processes/DOC-PROC-016_testing_workflow.md"
+    },
+    {
+      "doc_id": "DOC-PROC-001",
+      "title": "Device Provisioning Workflow",
+      "version": "1.0",
+      "category": "Process",
+      "subcategory": "Device Management",
+      "status": "Approved",
+      "created": "2025-11-27",
+      "updated": "2025-11-27",
+      "tags": [
+        "process",
+        "workflow",
+        "provisioning",
+        "qr-code",
+        "configuration",
+        "deployment"
+      ],
+      "related_docs": [
+        "",
+        "DOC-API-005 # IProvisioningService",
+        "DOC-PROC-002 # Certificate Provisioning",
+        "DOC-COMP-022 # SettingsManager"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "file_path": "processes/DOC-PROC-001_device_provisioning_workflow.md"
+    },
+    {
+      "doc_id": "DOC-PROC-005",
+      "title": "Login Workflow and Action Logging",
+      "version": "1.0",
+      "category": "Process",
+      "subcategory": "Security",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "tags": [
+        "process",
+        "workflow",
+        "login",
+        "session",
+        "logging",
+        "audit"
+      ],
+      "related_docs": [
+        "",
+        "DOC-PROC-004 # Authentication Workflow",
+        "DESIGN-039   # Login workflow and action logging (source)"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Security Team"
+      ],
+      "file_path": "processes/DOC-PROC-005_login_workflow_and_action_logging.md"
+    },
+    {
+      "doc_id": "DOC-PROC-012",
+      "title": "Device Provisioning Workflow",
+      "version": "1.0",
+      "category": "Processes",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-PROC-011  # Certificate Provisioning",
+        "DOC-ARCH-012  # Configuration Management",
+        "DOC-GUIDE-001 # Code Organization"
+      ],
+      "tags": [
+        "",
+        "provisioning",
+        "onboarding",
+        "configuration",
+        "pairing"
+      ],
+      "source": "",
+      "file_path": "processes/DOC-PROC-012_device_provisioning.md"
+    },
+    {
+      "doc_id": "DOC-PROC-023",
+      "title": "Certificate Provisioning Workflow",
+      "version": "1.0",
+      "category": "Process",
+      "subcategory": "Security",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "tags": [
+        "process",
+        "workflow",
+        "certificates",
+        "mtls",
+        "security",
+        "ca",
+        "provisioning"
+      ],
+      "related_docs": [
+        "",
+        "DOC-PROC-001 # Device Provisioning Workflow",
+        "DOC-API-002  # ITelemetryServer",
+        "DOC-API-005  # IProvisioningService",
+        "DESIGN-015   # Certificate provisioning (source)"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Security Team"
+      ],
+      "file_path": "processes/DOC-PROC-002_certificate_provisioning_workflow.md"
+    },
+    {
+      "doc_id": "DOC-PROC-015",
+      "title": "Login Workflow and Action Logging",
+      "version": "1.0",
+      "category": "Processes",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-PROC-014  # Authentication Workflow",
+        "DOC-ARCH-010  # Security Architecture",
+        "DOC-ARCH-017  # Database Design",
+        "DOC-GUIDE-012 # Logging Strategy"
+      ],
+      "tags": [
+        "",
+        "login",
+        "audit",
+        "action-log",
+        "security"
+      ],
+      "source": "",
+      "file_path": "processes/DOC-PROC-015_login_and_action_logging.md"
+    },
+    {
+      "doc_id": "DOC-PROC-011",
+      "title": "Certificate Provisioning Workflow",
+      "version": "1.0",
+      "category": "Processes",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-ARCH-010  # Security Architecture",
+        "DOC-ARCH-018  # SQLCipher Integration",
+        "DOC-PROC-012  # Device Provisioning",
+        "DOC-GUIDE-020 # API Documentation Guide"
+      ],
+      "tags": [
+        "",
+        "security",
+        "certificates",
+        "provisioning",
+        "tls",
+        "pkix"
+      ],
+      "source": "",
+      "file_path": "processes/DOC-PROC-011_certificate_provisioning.md"
+    },
+    {
+      "doc_id": "DOC-PROC-002",
+      "title": "Certificate Provisioning Process",
+      "version": "1.0",
+      "category": "Process",
+      "subcategory": "Security",
+      "status": "Approved",
+      "created": "2025-11-27",
+      "updated": "2025-11-27",
+      "tags": [
+        "process",
+        "workflow",
+        "certificates",
+        "mtls",
+        "security",
+        "ca",
+        "provisioning"
+      ],
+      "related_docs": [
+        "",
+        "DOC-PROC-001 # Device Provisioning Workflow",
+        "DOC-API-002 # ITelemetryServer",
+        "DOC-API-005 # IProvisioningService"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Security Team"
+      ],
+      "file_path": "processes/DOC-PROC-002_certificate_provisioning.md"
+    },
+    {
+      "title": "\"Performance Benchmarking Workflow\"",
+      "doc_id": "DOC-PROC-020",
+      "version": "1.0",
+      "category": "Workflow",
+      "phase": "6D",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-017_database_design.md",
+        "DOC-ARCH-018_database_access_strategy.md",
+        "DOC-PROC-016_testing_workflow.md"
+      ],
+      "file_path": "workflows/DOC-PROC-017_performance_benchmarking.md"
+    },
+    {
+      "title": "\"Error Recovery Patterns Workflow\"",
+      "doc_id": "DOC-PROC-022",
+      "version": "1.0",
+      "category": "Workflow",
+      "phase": "6D",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-GUIDE-011_error_handling.md",
+        "DOC-PROC-017_performance_benchmarking.md"
+      ],
+      "file_path": "workflows/DOC-PROC-019_error_recovery_patterns.md"
+    },
+    {
+      "title": "\"Low-Latency Techniques Workflow\"",
+      "doc_id": "DOC-PROC-021",
+      "version": "1.0",
+      "category": "Workflow",
+      "phase": "6D",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-011_thread_model.md",
+        "DOC-PROC-017_performance_benchmarking.md"
+      ],
+      "file_path": "workflows/DOC-PROC-018_low_latency_techniques.md"
+    },
+    {
+      "doc_id": "DOC-REQ-005",
+      "title": "Data Requirements",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-003",
+        "DOC-ARCH-005",
+        "DOC-ARCH-006"
+      ],
+      "tags": [
+        "",
+        "data-requirements",
+        "database",
+        "schema",
+        "retention",
+        "requirements"
+      ],
+      "file_path": "requirements/DOC-REQ-005_data_requirements.md"
+    },
+    {
+      "doc_id": "DOC-REQ-007",
+      "title": "Regulatory Requirements",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-008",
+        "DOC-REQ-004",
+        "DOC-ARCH-001"
+      ],
+      "tags": [
+        "",
+        "regulatory-requirements",
+        "compliance",
+        "iec-62304",
+        "hipaa",
+        "fda",
+        "requirements"
+      ],
+      "file_path": "requirements/DOC-REQ-007_regulatory_requirements.md"
+    },
+    {
+      "doc_id": "DOC-REQ-008",
+      "title": "Security Requirements",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-007",
+        "DOC-REQ-004",
+        "DOC-ARCH-008"
+      ],
+      "tags": [
+        "",
+        "security-requirements",
+        "authentication",
+        "encryption",
+        "audit",
+        "requirements"
+      ],
+      "file_path": "requirements/DOC-REQ-008_security_requirements.md"
+    },
+    {
+      "doc_id": "DOC-REQ-010",
+      "title": "Requirements Traceability Matrix",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-003",
+        "DOC-REQ-004",
+        "DOC-ARCH-001"
+      ],
+      "tags": [
+        "",
+        "traceability",
+        "requirements",
+        "testing",
+        "validation"
+      ],
+      "file_path": "requirements/DOC-REQ-010_requirements_traceability.md"
+    },
+    {
+      "doc_id": "DOC-REQ-003",
+      "title": "Functional Requirements",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-002",
+        "DOC-REQ-004",
+        "DOC-ARCH-001"
+      ],
+      "tags": [
+        "",
+        "functional-requirements",
+        "features",
+        "capabilities",
+        "requirements"
+      ],
+      "file_path": "requirements/DOC-REQ-003_functional_requirements.md"
+    },
+    {
+      "doc_id": "DOC-REQ-002",
+      "title": "Use Cases",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-001",
+        "DOC-REQ-003",
+        "DOC-REQ-004"
+      ],
+      "tags": [
+        "",
+        "use-cases",
+        "scenarios",
+        "workflows",
+        "requirements"
+      ],
+      "file_path": "requirements/DOC-REQ-002_use_cases.md"
+    },
+    {
+      "doc_id": "DOC-REQ-004",
+      "title": "Non-Functional Requirements",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-003",
+        "DOC-REQ-002",
+        "DOC-ARCH-001"
+      ],
+      "tags": [
+        "",
+        "non-functional-requirements",
+        "performance",
+        "reliability",
+        "security",
+        "requirements"
+      ],
+      "file_path": "requirements/DOC-REQ-004_non_functional_requirements.md"
+    },
+    {
+      "doc_id": "DOC-REQ-001",
+      "title": "Stakeholders and Users",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-002",
+        "DOC-REQ-003",
+        "DOC-REQ-007"
+      ],
+      "tags": [
+        "",
+        "stakeholders",
+        "users",
+        "personas",
+        "requirements"
+      ],
+      "file_path": "requirements/DOC-REQ-001_stakeholders_and_users.md"
+    },
+    {
+      "doc_id": "DOC-REQ-006",
+      "title": "Interface Requirements",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-003",
+        "DOC-ARCH-001",
+        "DOC-ARCH-002"
+      ],
+      "tags": [
+        "",
+        "interface-requirements",
+        "api",
+        "protocols",
+        "integration",
+        "requirements"
+      ],
+      "file_path": "requirements/DOC-REQ-006_interface_requirements.md"
+    },
+    {
+      "doc_id": "DOC-REQ-009",
+      "title": "Constraints and Assumptions",
+      "category": "REQ",
+      "status": "approved",
+      "version": "1.0",
+      "last_updated": "2025-12-01",
+      "author": "Z Monitor Team",
+      "related_docs": [
+        "",
+        "DOC-REQ-004",
+        "DOC-ARCH-001",
+        "DOC-ARCH-004"
+      ],
+      "tags": [
+        "",
+        "constraints",
+        "assumptions",
+        "limitations",
+        "requirements"
+      ],
+      "file_path": "requirements/DOC-REQ-009_constraints_and_assumptions.md"
+    },
+    {
+      "doc_id": "DOC-COMP-001",
+      "title": "Test Component Component Specification",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Component",
+      "status": "Draft",
+      "owner": "Test Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "components/DOC-COMP-001_test_component.md"
+    },
+    {
+      "title": "\"System Components Architecture\"",
+      "doc_id": "DOC-ARCH-016",
+      "version": "1.0",
+      "category": "Architecture",
+      "phase": "6D",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-001_system_architecture.md"
+      ],
+      "file_path": "architecture/DOC-ARCH-016_system_components.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-012",
+      "title": "Configuration Management Architecture",
+      "version": "1.0",
+      "category": "Architecture",
+      "subcategory": "System Design",
+      "status": "Approved",
+      "owner": "Architecture Team",
+      "reviewers": [
+        "",
+        "Architecture Team",
+        "Infrastructure Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-03-01",
+      "related_docs": [
+        "",
+        "DOC-ARCH-001  # System Architecture",
+        "DOC-ARCH-017  # Database Design",
+        "DOC-COMP-022  # SettingsManager",
+        "DOC-REQ-003   # Functional Requirements"
+      ],
+      "tags": [
+        "",
+        "configuration",
+        "settings",
+        "validation",
+        "dependency-injection"
+      ],
+      "source": "24_CONFIGURATION_MANAGEMENT.md (z-monitor/architecture_and_design)",
+      "file_path": "architecture/DOC-ARCH-012_configuration_management.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-007",
+      "title": "UI/UX Design Guide - Visual Design and Interaction Principles",
+      "version": "v1.0",
+      "category": "Architecture",
+      "subcategory": "Interface Design",
+      "status": "Approved",
+      "owner": "UX Team",
+      "reviewers": [
+        "",
+        "UX Team",
+        "Clinical Team",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-08",
+      "next_review": "2026-03-08",
+      "related_docs": [
+        "",
+        "DOC-ARCH-006 # System Overview",
+        "DOC-ARCH-001 # Software Architecture",
+        "DOC-ARCH-008 # Alarm System",
+        "DOC-PROC-013 # ADT Workflow",
+        "DOC-REF-003 # Alarm Codes"
+      ],
+      "related_tasks": [
+        "",
+        "PHASE-6A # Architecture document migration"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-UI-001 # UI requirements",
+        "REQ-UX-001 # UX requirements",
+        "IEC-60601-1-8 # Alarm system standard"
+      ],
+      "tags": [
+        "",
+        "ui-ux",
+        "visual-design",
+        "interaction-design",
+        "color-palette",
+        "layout",
+        "components",
+        "medical-device-ui",
+        "touch-screen",
+        "accessibility"
+      ],
+      "source": "03_UI_UX_GUIDE.md (z-monitor/architecture_and_design)",
+      "file_path": "architecture/DOC-ARCH-007_ui_ux_guide.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-004",
+      "title": "Technology Stack",
+      "version": "v1.0",
+      "category": "Architecture",
+      "subcategory": "Architecture",
+      "status": "Draft",
+      "owner": "Architecture Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "architecture/DOC-ARCH-004_technology_stack.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-005",
+      "title": "Data Flow and Caching Strategy",
+      "version": "1.0",
+      "category": "Architecture",
+      "subcategory": "Data Management",
+      "status": "Draft",
+      "owner": "Architecture Team",
+      "reviewers": [
+        "Infrastructure",
+        "Application"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-03-01",
+      "related_docs": [
+        "",
+        "DOC-ARCH-001_software_architecture.md",
+        "DOC-ARCH-006_system_overview.md",
+        "DOC-ARCH-011_thread_model.md",
+        "DOC-COMP-026_data_caching_strategy.md"
+      ],
+      "tags": [
+        "data-flow",
+        "caching",
+        "sync",
+        "telemetry",
+        "persistence"
+      ],
+      "source": "",
+      "file_path": "architecture/DOC-ARCH-005_data_flow_and_caching.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-017",
+      "title": "Database Design and Schema",
+      "version": "1.0",
+      "category": "Architecture",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-ARCH-018  # SQLCipher Integration",
+        "DOC-GUIDE-014 # Database Access Strategy",
+        "DOC-GUIDE-015 # Data Transfer Objects",
+        "DOC-COMP-032  # Query Registry",
+        "DOC-PROC-009  # Schema Management",
+        "DOC-PROC-010  # Data Migration Workflow",
+        "DOC-ARCH-001  # Software Architecture",
+        "DOC-ARCH-010  # Security Architecture"
+      ],
+      "tags": [
+        "",
+        "database",
+        "schema",
+        "sqlite",
+        "data-model",
+        "persistence",
+        "hipaa"
+      ],
+      "source": "",
+      "file_path": "architecture/DOC-ARCH-017_database_design.md"
+    },
+    {
+      "title": "\"Dependency Injection Architecture\"",
+      "doc_id": "DOC-ARCH-013",
+      "version": "1.0",
+      "category": "Architecture",
+      "phase": "6D",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-001_system_architecture.md",
+        "DOC-ARCH-012_configuration_management.md"
+      ],
+      "file_path": "architecture/DOC-ARCH-013_dependency_injection.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-006",
+      "title": "System Overview - Z Monitor",
+      "version": "v1.0",
+      "category": "Architecture",
+      "subcategory": "System Design",
+      "status": "Approved",
+      "owner": "Architecture Team",
+      "reviewers": [
+        "",
+        "Architecture Team",
+        "Product Team"
+      ],
+      "last_reviewed": "2025-12-08",
+      "next_review": "2026-03-08",
+      "related_docs": [
+        "",
+        "DOC-ARCH-001 # System Architecture",
+        "DOC-ARCH-002 # System Architecture (duplicate check needed)",
+        "DOC-ARCH-004 # Technology Stack",
+        "DOC-ARCH-007 # UI/UX Guide",
+        "DOC-ARCH-008 # Alarm System",
+        "DOC-ARCH-010 # Security",
+        "DOC-GUIDE-001 # Code Organization",
+        "DOC-REF-001 # Glossary"
+      ],
+      "related_tasks": [
+        "",
+        "PHASE-6A # Architecture document migration"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-SYS-001 # System requirements",
+        "REQ-HW-001 # Hardware requirements"
+      ],
+      "tags": [
+        "",
+        "architecture",
+        "system-overview",
+        "embedded",
+        "medical-device",
+        "patient-monitoring",
+        "real-time"
+      ],
+      "source": "01_OVERVIEW.md (z-monitor/architecture_and_design)",
+      "file_path": "architecture/DOC-ARCH-006_system_overview.md"
+    },
+    {
+      "title": "\"Class Designs Overview\"",
+      "doc_id": "DOC-ARCH-019",
+      "version": "1.0",
+      "category": "Architecture",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-001_system_architecture.md"
+      ],
+      "file_path": "architecture/DOC-ARCH-019_class_designs_overview.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-003",
+      "title": "Design Decisions",
+      "version": "v1.0",
+      "category": "Architecture",
+      "subcategory": "Architecture",
+      "status": "Draft",
+      "owner": "Architecture Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "architecture/DOC-ARCH-003_design_decisions.md"
+    },
+    {
+      "title": "\"Project Structure Architecture\"",
+      "doc_id": "DOC-ARCH-015",
+      "version": "1.0",
+      "category": "Architecture",
+      "phase": "6D",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-001_system_architecture.md"
+      ],
+      "file_path": "architecture/DOC-ARCH-015_project_structure.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-002",
+      "title": "Software Architecture - DDD Layers and Components",
+      "version": "v1.0",
+      "category": "Architecture",
+      "subcategory": "System Design",
+      "status": "Approved",
+      "owner": "Architecture Team",
+      "reviewers": [
+        "",
+        "Architecture Team",
+        "Development Team"
+      ],
+      "last_reviewed": "2025-12-08",
+      "next_review": "2026-03-08",
+      "related_docs": [
+        "",
+        "DOC-ARCH-006 # System Overview",
+        "DOC-ARCH-004 # Technology Stack",
+        "DOC-ARCH-009 # State Machines",
+        "DOC-ARCH-011 # Thread Model",
+        "DOC-COMP-026 # Data Caching Strategy",
+        "DOC-COMP-027 # Sensor Integration",
+        "DOC-COMP-029 # Async Logging",
+        "DOC-GUIDE-001 # Code Organization",
+        "DOC-REF-001 # Glossary"
+      ],
+      "related_tasks": [
+        "",
+        "PHASE-6A # Architecture document migration"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-SYS-001 # System requirements",
+        "REQ-NFR-PERF-100 # Performance requirements"
+      ],
+      "tags": [
+        "",
+        "architecture",
+        "ddd",
+        "domain-driven-design",
+        "layered-architecture",
+        "components",
+        "data-flow"
+      ],
+      "diagram_files": [
+        "",
+        "02_ARCHITECTURE.mmd"
+      ],
+      "source": "02_ARCHITECTURE.md (z-monitor/architecture_and_design)",
+      "file_path": "architecture/DOC-ARCH-001_system_overview.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-001",
+      "title": "Software Architecture - DDD Layers and Components",
+      "version": "v1.0",
+      "category": "Architecture",
+      "subcategory": "System Design",
+      "status": "Approved",
+      "owner": "Architecture Team",
+      "reviewers": [
+        "",
+        "Architecture Team",
+        "Development Team"
+      ],
+      "last_reviewed": "2025-12-08",
+      "next_review": "2026-03-08",
+      "related_docs": [
+        "",
+        "DOC-ARCH-006 # System Overview",
+        "DOC-ARCH-004 # Technology Stack",
+        "DOC-ARCH-009 # State Machines",
+        "DOC-ARCH-011 # Thread Model",
+        "DOC-COMP-026 # Data Caching Strategy",
+        "DOC-COMP-027 # Sensor Integration",
+        "DOC-COMP-029 # Async Logging",
+        "DOC-GUIDE-001 # Code Organization",
+        "DOC-REF-001 # Glossary"
+      ],
+      "related_tasks": [
+        "",
+        "PHASE-6A # Architecture document migration"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-SYS-001 # System requirements",
+        "REQ-NFR-PERF-100 # Performance requirements (< 50ms critical path)"
+      ],
+      "tags": [
+        "",
+        "architecture",
+        "ddd",
+        "domain-driven-design",
+        "layered-architecture",
+        "components",
+        "data-flow",
+        "critical-path"
+      ],
+      "diagram_files": [
+        "",
+        "02_ARCHITECTURE.mmd"
+      ],
+      "source": "02_ARCHITECTURE.md (z-monitor/architecture_and_design)",
+      "file_path": "architecture/DOC-ARCH-001_software_architecture.md"
+    },
+    {
+      "doc_id": "DOC-ARCH-018",
+      "title": "SQLCipher Integration and Database Encryption",
+      "version": "1.0",
+      "category": "Architecture",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-ARCH-017  # Database Design",
+        "DOC-ARCH-010  # Security Architecture",
+        "DOC-GUIDE-014 # Database Access Strategy",
+        "DOC-PROC-009  # Schema Management"
+      ],
+      "tags": [
+        "",
+        "security",
+        "encryption",
+        "sqlcipher",
+        "hipaa",
+        "database",
+        "aes-256"
+      ],
+      "source": "",
+      "file_path": "architecture/DOC-ARCH-018_sqlcipher_integration.md"
+    },
+    {
+      "title": "\"Protocol Buffers Integration Architecture\"",
+      "doc_id": "DOC-ARCH-014",
+      "version": "1.0",
+      "category": "Architecture",
+      "phase": "6D",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-001_system_architecture.md",
+        "DOC-ARCH-013_dependency_injection.md"
+      ],
+      "file_path": "architecture/DOC-ARCH-014_protobuf_integration.md"
+    },
+    {
+      "doc_id": "DOC-COMP-050",
+      "title": "Device Simulator - Overview and Design",
+      "version": "1.0",
+      "status": "Draft",
+      "category": "Component",
+      "subcategory": "Infrastructure/Simulator",
+      "file_path": "simulator/DEVICE_SIMULATOR.md"
+    },
+    {
+      "doc_id": "DOC-API-004",
+      "title": "IUserManagementService Interface",
+      "version": "1.0",
+      "category": "API",
+      "subcategory": "Authentication",
+      "status": "Approved",
+      "created": "2025-11-27",
+      "updated": "2025-11-27",
+      "tags": [
+        "api",
+        "interface",
+        "authentication",
+        "authorization",
+        "rbac",
+        "hospital-server",
+        "user-management"
+      ],
+      "related_docs": [
+        "",
+        "DOC-COMP-011 # SecurityService",
+        "DOC-PROC-003 # Authentication Workflow",
+        "DOC-PROC-004 # Login Workflow",
+        "DOC-ARCH-002 # Architecture Patterns"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "file_path": "api/DOC-API-004_iusermanagementservice.md"
+    },
+    {
+      "doc_id": "DOC-API-005",
+      "title": "IProvisioningService Interface",
+      "version": "1.0",
+      "category": "API",
+      "subcategory": "Device Management",
+      "status": "Approved",
+      "created": "2025-11-27",
+      "updated": "2025-11-27",
+      "tags": [
+        "api",
+        "interface",
+        "provisioning",
+        "qr-code",
+        "configuration",
+        "certificates",
+        "device-pairing"
+      ],
+      "related_docs": [
+        "",
+        "DOC-PROC-001 # Device Provisioning Workflow",
+        "DOC-PROC-002 # Certificate Provisioning",
+        "DOC-COMP-022 # SettingsManager",
+        "DOC-ARCH-002 # Architecture Patterns"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "file_path": "api/DOC-API-005_iprovisioningservice.md"
+    },
+    {
+      "doc_id": "DOC-API-003",
+      "title": "ISensorDataSource Interface",
+      "version": "1.0",
+      "category": "API",
+      "subcategory": "Data Acquisition",
+      "status": "Approved",
+      "created": "2025-11-27",
+      "updated": "2025-11-27",
+      "tags": [
+        "api",
+        "interface",
+        "sensor",
+        "data-source",
+        "vitals",
+        "waveform",
+        "simulator"
+      ],
+      "related_docs": [
+        "",
+        "DOC-COMP-010 # MonitoringService",
+        "DOC-COMP-023 # VitalsCache",
+        "DOC-COMP-024 # WaveformCache",
+        "DOC-ARCH-004 # Thread Model",
+        "DOC-ARCH-005 # Data Flow and Caching"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "file_path": "api/DOC-API-003_isensordatasource.md"
+    },
+    {
+      "doc_id": "DOC-API-002",
+      "title": "ITelemetryServer Interface",
+      "version": "1.0",
+      "category": "API",
+      "subcategory": "Network Communication",
+      "status": "Approved",
+      "created": "2025-11-27",
+      "updated": "2025-11-27",
+      "tags": [
+        "api",
+        "interface",
+        "telemetry",
+        "server",
+        "mtls",
+        "network",
+        "transmission"
+      ],
+      "related_docs": [
+        "",
+        "DOC-COMP-010 # MonitoringService",
+        "DOC-COMP-003 # TelemetryBatch",
+        "DOC-COMP-016 # ITelemetryRepository",
+        "DOC-ARCH-002 # Architecture Patterns",
+        "DOC-ARCH-005 # Data Flow and Caching"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "file_path": "api/DOC-API-002_itelemetryserver.md"
+    },
+    {
+      "doc_id": "DOC-API-001",
+      "title": "IPatientLookupService Interface",
+      "version": "1.0",
+      "category": "API",
+      "subcategory": "External Integration",
+      "status": "Approved",
+      "created": "2025-11-27",
+      "updated": "2025-11-27",
+      "tags": [
+        "api",
+        "interface",
+        "his",
+        "ehr",
+        "patient-lookup",
+        "external-integration"
+      ],
+      "related_docs": [
+        "",
+        "DOC-COMP-010 # AdmissionService",
+        "DOC-COMP-001 # PatientAggregate",
+        "DOC-COMP-014 # IPatientRepository",
+        "DOC-ARCH-003 # DDD Patterns"
+      ],
+      "authors": [
+        "",
+        "Z Monitor Team"
+      ],
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "file_path": "api/DOC-API-001_ipatientlookupservice.md"
+    },
+    {
+      "doc_id": "DOC-PROC-XXX",
+      "title": "{Process Name} Workflow",
+      "version": "v1.0",
+      "category": "Process",
+      "subcategory": "{Development/Operations/Security/Deployment}",
+      "status": "Draft",
+      "owner": "{Team Name}",
+      "reviewers": [
+        "",
+        "Process stakeholders"
+      ],
+      "last_reviewed": "YYYY-MM-DD",
+      "next_review": "YYYY-MM-DD",
+      "related_docs": [
+        "",
+        "DOC-COMP-XXX # Related component",
+        "DOC-GUIDE-XXX # Related guideline"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "process",
+        "workflow",
+        "{keyword}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-PROC-XXX_workflow.mmd",
+        "DOC-PROC-XXX_workflow.svg"
+      ],
+      "file_path": "templates/process_template.md"
+    },
+    {
+      "doc_id": "DOC-COMP-XXX",
+      "title": "{Component Name} Component Specification",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "{Domain/Application/Infrastructure/Interface}/{Subsystem}",
+      "status": "Draft",
+      "owner": "{Team Name}",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "YYYY-MM-DD",
+      "next_review": "YYYY-MM-DD",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "templates/component_template.md"
+    },
+    {
+      "doc_id": "DOC-GUIDE-XXX",
+      "title": "{Guideline Topic} Guidelines",
+      "version": "v1.0",
+      "category": "Guideline",
+      "subcategory": "{Development/Security/Testing/Documentation}",
+      "status": "Draft",
+      "owner": "{Team Name}",
+      "reviewers": [
+        "",
+        "Tech Lead",
+        "Development Team"
+      ],
+      "last_reviewed": "YYYY-MM-DD",
+      "next_review": "YYYY-MM-DD",
+      "related_docs": [
+        "",
+        "DOC-COMP-XXX # Related component",
+        "DOC-PROC-XXX # Related process"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "guidelines",
+        "best-practices",
+        "{keyword}"
+      ],
+      "diagram_files": [],
+      "file_path": "templates/guideline_template.md"
+    },
+    {
+      "doc_id": "DOC-API-XXX",
+      "title": "{Interface Name} Interface Contract",
+      "version": "v1.0",
+      "category": "API",
+      "subcategory": "{Domain/Infrastructure/Application}",
+      "status": "Draft",
+      "owner": "{Team Name}",
+      "reviewers": [
+        "",
+        "Architecture Team",
+        "Client Teams"
+      ],
+      "last_reviewed": "YYYY-MM-DD",
+      "next_review": "YYYY-MM-DD",
+      "related_docs": [
+        "",
+        "DOC-COMP-XXX # Component that implements this",
+        "DOC-ARCH-XXX # Architecture context"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "interface",
+        "api",
+        "{keyword}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-API-XXX_class_diagram.mmd",
+        "DOC-API-XXX_class_diagram.svg"
+      ],
+      "file_path": "templates/api_template.md"
+    },
+    {
+      "doc_id": "DOC-GUIDE-012",
+      "title": "Logging Strategy and Best Practices",
+      "version": "1.0",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "category": "Guideline",
+      "tags": [
+        "logging",
+        "audit",
+        "action-log",
+        "structured-logging",
+        "async",
+        "thread-safety"
+      ],
+      "related": [
+        "",
+        "DOC-GUIDE-011",
+        "DOC-ARCH-009",
+        "DOC-PROC-003"
+      ],
+      "source": "21_LOGGING_STRATEGY.md",
+      "file_path": "guidelines/DOC-GUIDE-012_logging.md"
+    },
+    {
+      "title": "\"API Versioning Strategy\"",
+      "doc_id": "DOC-GUIDE-019",
+      "version": "1.0",
+      "category": "Guidelines",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-REF-004_documentation_improvements.md"
+      ],
+      "file_path": "guidelines/DOC-GUIDE-019_api_versioning.md"
+    },
+    {
+      "doc_id": "DOC-GUIDE-001",
+      "title": "Code Organization and Module Structure",
+      "version": "1.0",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "category": "Guideline",
+      "tags": [
+        "ddd",
+        "architecture",
+        "code-organization",
+        "layers",
+        "namespaces"
+      ],
+      "related": [
+        "",
+        "DOC-ARCH-002",
+        "DOC-COMP-010",
+        "DOC-COMP-011",
+        "DOC-COMP-012"
+      ],
+      "source": "22_CODE_ORGANIZATION.md",
+      "file_path": "guidelines/DOC-GUIDE-001_code_organization.md"
+    },
+    {
+      "doc_id": "DOC-GUIDE-011",
+      "title": "Error Handling Strategy",
+      "version": "1.0",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "category": "Guideline",
+      "tags": [
+        "error-handling",
+        "result-monad",
+        "exceptions",
+        "logging",
+        "patterns"
+      ],
+      "related": [
+        "",
+        "DOC-GUIDE-012",
+        "DOC-REF-002",
+        "DOC-COMP-010",
+        "DOC-COMP-011"
+      ],
+      "source": "20_ERROR_HANDLING_STRATEGY.md",
+      "file_path": "guidelines/DOC-GUIDE-011_error_handling.md"
+    },
+    {
+      "doc_id": "DOC-GUIDE-014",
+      "title": "Database Access Strategy and Repository Pattern",
+      "version": "1.0",
+      "category": "Guidelines",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-ARCH-017  # Database Design",
+        "DOC-ARCH-001  # Software Architecture",
+        "DOC-GUIDE-015 # Data Transfer Objects",
+        "DOC-COMP-032  # Query Registry",
+        "DOC-PROC-009  # Schema Management"
+      ],
+      "tags": [
+        "",
+        "database",
+        "repository-pattern",
+        "orm",
+        "ddd",
+        "qxorm",
+        "query-optimization"
+      ],
+      "source": "",
+      "file_path": "guidelines/DOC-GUIDE-014_database_access_strategy.md"
+    },
+    {
+      "doc_id": "DOC-GUIDE-013",
+      "title": "Memory and Resource Management",
+      "version": "1.0",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "category": "Guideline",
+      "tags": [
+        "memory",
+        "raii",
+        "smart-pointers",
+        "resource-management",
+        "performance",
+        "qt-ownership"
+      ],
+      "related": [
+        "",
+        "DOC-ARCH-003",
+        "DOC-GUIDE-001"
+      ],
+      "source": "23_MEMORY_RESOURCE_MANAGEMENT.md",
+      "file_path": "guidelines/DOC-GUIDE-013_memory.md"
+    },
+    {
+      "doc_id": "DOC-GUIDE-015",
+      "title": "Data Transfer Objects (DTOs) Design and Usage",
+      "version": "1.0",
+      "category": "Guidelines",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-ARCH-001  # Software Architecture",
+        "DOC-GUIDE-014 # Database Access Strategy",
+        "DOC-ARCH-011  # Thread Model"
+      ],
+      "tags": [
+        "",
+        "dto",
+        "data-transfer",
+        "immutability",
+        "validation",
+        "serialization"
+      ],
+      "source": "",
+      "file_path": "guidelines/DOC-GUIDE-015_data_transfer_objects.md"
+    },
+    {
+      "title": "\"API Documentation Guide\"",
+      "doc_id": "DOC-GUIDE-020",
+      "version": "1.0",
+      "category": "Guidelines",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-GUIDE-019_api_versioning.md"
+      ],
+      "file_path": "guidelines/DOC-GUIDE-020_api_documentation.md"
+    },
+    {
+      "doc_id": "DOC-REF-003",
+      "title": "Alarm Codes and Priorities Reference",
+      "version": "1.0",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "category": "Reference",
+      "tags": [
+        "alarms",
+        "priorities",
+        "vital-signs",
+        "safety",
+        "clinical"
+      ],
+      "related": [
+        "",
+        "DOC-COMP-006",
+        "DOC-COMP-008",
+        "DOC-REF-001"
+      ],
+      "source": "AlarmThreshold.h (domain/monitoring)",
+      "file_path": "reference/DOC-REF-003_alarm_codes.md"
+    },
+    {
+      "doc_id": "DOC-REF-002",
+      "title": "Error Codes Reference",
+      "version": "1.0",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "category": "Reference",
+      "tags": [
+        "error-codes",
+        "error-handling",
+        "reference",
+        "troubleshooting"
+      ],
+      "related": [
+        "",
+        "DOC-GUIDE-011",
+        "DOC-REF-001"
+      ],
+      "source": "Result.h (domain/common)",
+      "file_path": "reference/DOC-REF-002_error_codes.md"
+    },
+    {
+      "doc_id": "DOC-REF-001",
+      "title": "Project Glossary and Definitions",
+      "version": "1.0",
+      "status": "Approved",
+      "created": "2025-12-01",
+      "updated": "2025-12-01",
+      "category": "Reference",
+      "tags": [
+        "glossary",
+        "definitions",
+        "terminology",
+        "reference"
+      ],
+      "related": [
+        "",
+        "DOC-GUIDE-001",
+        "DOC-GUIDE-011",
+        "DOC-GUIDE-012"
+      ],
+      "source": "08_DEFINITIONS.md",
+      "file_path": "reference/DOC-REF-001_glossary.md"
+    },
+    {
+      "title": "\"Documentation Improvements Tracking\"",
+      "doc_id": "DOC-REF-004",
+      "version": "1.0",
+      "category": "Reference",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-001_system_architecture.md"
+      ],
+      "file_path": "reference/DOC-REF-004_documentation_improvements.md"
+    },
+    {
+      "doc_id": "DOC-COMP-051",
+      "title": "DeviceSimulator Adapter - WebSocket Adapter Spec",
+      "version": "1.0",
+      "status": "Draft",
+      "category": "Component",
+      "subcategory": "Infrastructure/Simulator",
+      "file_path": "interfaces/DeviceSimulatorAdapter.md"
+    },
+    {
+      "title": "\"Patient Lookup Service Interface\"",
+      "doc_id": "DOC-API-026",
+      "version": "1.0",
+      "category": "API",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-GUIDE-020_api_documentation.md"
+      ],
+      "file_path": "interfaces/DOC-API-026_patient_lookup_service.md"
+    },
+    {
+      "doc_id": "DOC-API-010",
+      "title": "IPatientLookupService Interface",
+      "version": "1.0",
+      "status": "Approved",
+      "category": "API",
+      "subcategory": "Domain Services",
+      "file_path": "interfaces/IPatientLookupService.md"
+    },
+    {
+      "title": "\"Sensor Data Source Interface\"",
+      "doc_id": "DOC-API-028",
+      "version": "1.0",
+      "category": "API",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-GUIDE-020_api_documentation.md"
+      ],
+      "file_path": "interfaces/DOC-API-028_sensor_data_source.md"
+    },
+    {
+      "title": "\"Telemetry Server Interface\"",
+      "doc_id": "DOC-API-029",
+      "version": "1.0",
+      "category": "API",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-GUIDE-020_api_documentation.md"
+      ],
+      "file_path": "interfaces/DOC-API-029_telemetry_server.md"
+    },
+    {
+      "title": "\"User Management Service Interface\"",
+      "doc_id": "DOC-API-030",
+      "version": "1.0",
+      "category": "API",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-GUIDE-020_api_documentation.md"
+      ],
+      "file_path": "interfaces/DOC-API-030_user_management_service.md"
+    },
+    {
+      "doc_id": "DOC-API-011",
+      "title": "IDeviceSimulator Interface Specification",
+      "version": "1.0",
+      "status": "Draft",
+      "category": "API",
+      "subcategory": "Infrastructure",
+      "file_path": "interfaces/IDeviceSimulator.md"
+    },
+    {
+      "title": "\"Provisioning Service Interface\"",
+      "doc_id": "DOC-API-027",
+      "version": "1.0",
+      "category": "API",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-GUIDE-020_api_documentation.md"
+      ],
+      "file_path": "interfaces/DOC-API-027_provisioning_service.md"
+    },
+    {
+      "doc_id": "DOC-COMP-028",
+      "title": "Waveform Display Implementation",
+      "version": "1.0",
+      "category": "Components",
+      "subcategory": "UI/Visualization",
+      "status": "Draft",
+      "owner": "UI/UX Team",
+      "reviewers": [
+        "Architecture",
+        "Performance"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-03-01",
+      "related_docs": [
+        "",
+        "DOC-ARCH-007_ui_ux_guide.md",
+        "DOC-ARCH-011_thread_model.md",
+        "DOC-COMP-026_data_caching_strategy.md",
+        "DOC-COMP-027_sensor_integration.md"
+      ],
+      "tags": [
+        "waveforms",
+        "canvas",
+        "qml",
+        "ecg",
+        "pleth",
+        "rendering"
+      ],
+      "source": "",
+      "file_path": "components/interface/DOC-COMP-028_waveform_display.md"
+    },
+    {
+      "title": "\"Interface Layer Module\"",
+      "doc_id": "DOC-COMP-033",
+      "version": "1.0",
+      "category": "Component",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-019_class_designs_overview.md"
+      ],
+      "file_path": "components/interface/DOC-COMP-033_interface_layer_module.md"
+    },
+    {
+      "doc_id": "DOC-COMP-011",
+      "title": "AdmissionService",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Application Layer / Use Case Orchestration",
+      "status": "Draft",
+      "owner": "Application Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team",
+        "Domain Layer Team"
+      ],
+      "last_reviewed": "2025-01-26",
+      "next_review": "2026-01-26",
+      "related_docs": [
+        "",
+        "DOC-ARCH-002  # System architecture",
+        "DOC-COMP-002  # PatientAggregate",
+        "DOC-COMP-005  # PatientIdentity",
+        "DOC-COMP-009  # BedLocation",
+        "DOC-COMP-014  # IPatientRepository"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-3B-001  # Phase 3B Migration"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-ADM-001  # Admission requirements",
+        "REQ-FUN-ADT-001  # ADT workflow"
+      ],
+      "tags": [
+        "",
+        "application-service",
+        "use-case-orchestration",
+        "admission",
+        "adt-workflow",
+        "patient-management"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-011_admissionservice_dependencies.mmd",
+        "DOC-COMP-011_admissionservice_dependencies.svg",
+        "DOC-COMP-011_adt_workflow.mmd",
+        "DOC-COMP-011_adt_workflow.svg"
+      ],
+      "file_path": "components/application/DOC-COMP-011_admissionservice.md"
+    },
+    {
+      "doc_id": "DOC-COMP-010",
+      "title": "MonitoringService",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Application Layer / Use Case Orchestration",
+      "status": "Draft",
+      "owner": "Application Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team",
+        "Domain Layer Team"
+      ],
+      "last_reviewed": "2025-01-26",
+      "next_review": "2026-01-26",
+      "related_docs": [
+        "",
+        "DOC-ARCH-002  # System architecture",
+        "DOC-COMP-002  # PatientAggregate",
+        "DOC-COMP-004  # TelemetryBatch",
+        "DOC-COMP-014  # IPatientRepository",
+        "DOC-COMP-015  # ITelemetryRepository",
+        "DOC-COMP-016  # IAlarmRepository"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-3B-001  # Phase 3B Migration"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-MON-001  # Monitoring requirements",
+        "REQ-VIT-001  # Vitals processing"
+      ],
+      "tags": [
+        "",
+        "application-service",
+        "use-case-orchestration",
+        "monitoring",
+        "vitals",
+        "telemetry",
+        "alarms"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-010_monitoringservice_dependencies.mmd",
+        "DOC-COMP-010_monitoringservice_dependencies.svg"
+      ],
+      "file_path": "components/application/DOC-COMP-010_monitoringservice.md"
+    },
+    {
+      "title": "\"Application Services Module\"",
+      "doc_id": "DOC-COMP-035",
+      "version": "1.0",
+      "category": "Component",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-019_class_designs_overview.md"
+      ],
+      "file_path": "components/application/DOC-COMP-035_application_services_module.md"
+    },
+    {
+      "doc_id": "DOC-COMP-013",
+      "title": "SecurityService",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Application Layer / Use Case Orchestration",
+      "status": "Draft",
+      "owner": "Application Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team",
+        "Security Team"
+      ],
+      "last_reviewed": "2025-01-26",
+      "next_review": "2026-01-26",
+      "related_docs": [
+        "",
+        "DOC-ARCH-002  # System architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-3B-001  # Phase 3B Migration"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-FUN-USER-001  # User authentication",
+        "REQ-FUN-USER-003  # Inactivity timeout"
+      ],
+      "tags": [
+        "",
+        "application-service",
+        "authentication",
+        "authorization",
+        "session-management",
+        "rbac",
+        "security"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-013_session_lifecycle.mmd",
+        "DOC-COMP-013_session_lifecycle.svg"
+      ],
+      "file_path": "components/application/DOC-COMP-013_securityservice.md"
+    },
+    {
+      "doc_id": "DOC-COMP-012",
+      "title": "ProvisioningService",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Application Layer / Use Case Orchestration",
+      "status": "Draft",
+      "owner": "Application Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-01-26",
+      "next_review": "2026-01-26",
+      "related_docs": [
+        "",
+        "DOC-ARCH-002  # System architecture",
+        "DOC-COMP-003  # DeviceAggregate",
+        "DOC-COMP-017  # IProvisioningRepository"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-3B-001  # Phase 3B Migration"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-FUN-DEV-001  # Device provisioning",
+        "REQ-INT-PROV-001  # Provisioning interface"
+      ],
+      "tags": [
+        "",
+        "application-service",
+        "provisioning",
+        "qr-code",
+        "device-configuration",
+        "certificate-management"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-012_provisioning_workflow.mmd",
+        "DOC-COMP-012_provisioning_workflow.svg"
+      ],
+      "file_path": "components/application/DOC-COMP-012_provisioningservice.md"
+    },
+    {
+      "title": "\"Background Processing Module\"",
+      "doc_id": "DOC-COMP-038",
+      "version": "1.0",
+      "category": "Component",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-019_class_designs_overview.md"
+      ],
+      "file_path": "components/infrastructure/DOC-COMP-038_background_processing_module.md"
+    },
+    {
+      "title": "\"Realtime Processing Module\"",
+      "doc_id": "DOC-COMP-034",
+      "version": "1.0",
+      "category": "Component",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-019_class_designs_overview.md"
+      ],
+      "file_path": "components/infrastructure/DOC-COMP-034_realtime_processing_module.md"
+    },
+    {
+      "doc_id": "DOC-COMP-006",
+      "title": "DeviceSnapshot",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Domain Layer / Provisioning (Value Object)",
+      "status": "Draft",
+      "owner": "Domain Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "components/domain/DOC-COMP-006_devicesnapshot.md"
+    },
+    {
+      "doc_id": "DOC-COMP-003",
+      "title": "DeviceAggregate",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Domain Layer / Provisioning",
+      "status": "Draft",
+      "owner": "Domain Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "components/domain/DOC-COMP-003_deviceaggregate.md"
+    },
+    {
+      "doc_id": "DOC-COMP-008",
+      "title": "AlarmThreshold",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Domain Layer / Monitoring (Value Object)",
+      "status": "Draft",
+      "owner": "Domain Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "components/domain/DOC-COMP-008_alarmthreshold.md"
+    },
+    {
+      "doc_id": "DOC-COMP-004",
+      "title": "TelemetryBatch",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Domain Layer / Monitoring",
+      "status": "Draft",
+      "owner": "Domain Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "components/domain/DOC-COMP-004_telemetrybatch.md"
+    },
+    {
+      "doc_id": "DOC-COMP-009",
+      "title": "BedLocation",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Domain Layer / Admission (Value Object)",
+      "status": "Draft",
+      "owner": "Domain Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "components/domain/DOC-COMP-009_bedlocation.md"
+    },
+    {
+      "doc_id": "DOC-COMP-005",
+      "title": "PatientIdentity",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Domain Layer / Admission (Value Object)",
+      "status": "Draft",
+      "owner": "Domain Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "components/domain/DOC-COMP-005_patientidentity.md"
+    },
+    {
+      "doc_id": "DOC-COMP-007",
+      "title": "MeasurementUnit",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Domain Layer / Monitoring (Value Object)",
+      "status": "Draft",
+      "owner": "Domain Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "components/domain/DOC-COMP-007_measurementunit.md"
+    },
+    {
+      "doc_id": "DOC-COMP-002",
+      "title": "PatientAggregate",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Domain Layer / Monitoring",
+      "status": "Draft",
+      "owner": "Domain Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2025-12-01",
+      "related_docs": [
+        "",
+        "DOC-API-XXX  # Interface specification",
+        "DOC-ARCH-XXX # Related architecture"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-XXX-XXX # Implementation task"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-XXX-XXX  # Related requirement"
+      ],
+      "tags": [
+        "",
+        "{keyword1}",
+        "{keyword2}"
+      ],
+      "diagram_files": [
+        "",
+        "DOC-COMP-XXX_{diagram_name}.mmd",
+        "DOC-COMP-XXX_{diagram_name}.svg"
+      ],
+      "file_path": "components/domain/DOC-COMP-002_patientaggregate.md"
+    },
+    {
+      "doc_id": "DOC-COMP-021",
+      "title": "SQLiteAlarmRepository",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Infrastructure Layer / Persistence",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-12-01",
+      "related_docs": [
+        "DOC-COMP-016",
+        "DOC-COMP-018",
+        "DOC-COMP-010"
+      ],
+      "related_tasks": [
+        "TASK-3C-001"
+      ],
+      "tags": [
+        "infrastructure",
+        "repository",
+        "alarm",
+        "sqlite",
+        "persistence"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/database/DOC-COMP-021_sqlitealarmrepository.md"
+    },
+    {
+      "doc_id": "DOC-COMP-020",
+      "title": "SQLiteTelemetryRepository",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Infrastructure Layer / Persistence",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-12-01",
+      "related_docs": [
+        "DOC-COMP-015",
+        "DOC-COMP-018",
+        "DOC-COMP-010"
+      ],
+      "related_tasks": [
+        "TASK-3C-001"
+      ],
+      "tags": [
+        "infrastructure",
+        "repository",
+        "telemetry",
+        "sqlite",
+        "persistence"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/database/DOC-COMP-020_sqlitetelemetryrepository.md"
+    },
+    {
+      "doc_id": "DOC-COMP-018",
+      "title": "DatabaseManager",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Infrastructure Layer / Persistence",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-12-01",
+      "related_docs": [
+        "",
+        "DOC-ARCH-002  # System architecture",
+        "DOC-COMP-014  # IPatientRepository",
+        "DOC-COMP-015  # ITelemetryRepository"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-3C-001  # Phase 3C Migration"
+      ],
+      "related_requirements": [
+        "",
+        "REQ-DATA-001  # Database persistence"
+      ],
+      "tags": [
+        "",
+        "infrastructure",
+        "database",
+        "sqlite",
+        "connection-management",
+        "transaction",
+        "orm"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/database/DOC-COMP-018_databasemanager.md"
+    },
+    {
+      "doc_id": "DOC-COMP-032",
+      "title": "Query Registry Pattern Implementation",
+      "version": "1.0",
+      "category": "Components",
+      "status": "Approved",
+      "related_docs": [
+        "",
+        "DOC-GUIDE-014 # Database Access Strategy",
+        "DOC-PROC-009  # Schema Management",
+        "DOC-ARCH-017  # Database Design"
+      ],
+      "tags": [
+        "",
+        "database",
+        "query",
+        "type-safety",
+        "constants",
+        "prepared-statements"
+      ],
+      "source": "",
+      "file_path": "components/infrastructure/database/DOC-COMP-032_query_registry.md"
+    },
+    {
+      "doc_id": "DOC-COMP-019",
+      "title": "SQLitePatientRepository",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Infrastructure Layer / Persistence",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture Team",
+        "Domain Layer Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-12-01",
+      "related_docs": [
+        "DOC-ARCH-002",
+        "DOC-COMP-001",
+        "DOC-COMP-014",
+        "DOC-COMP-018"
+      ],
+      "related_tasks": [
+        "TASK-3C-001"
+      ],
+      "tags": [
+        "infrastructure",
+        "repository",
+        "sqlite",
+        "orm",
+        "patient",
+        "persistence"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/database/DOC-COMP-019_sqlitepatientrepository.md"
+    },
+    {
+      "title": "\"Database Access Module\"",
+      "doc_id": "DOC-COMP-036",
+      "version": "1.0",
+      "category": "Component",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-019_class_designs_overview.md"
+      ],
+      "file_path": "components/infrastructure/database/DOC-COMP-036_database_access_module.md"
+    },
+    {
+      "title": "\"Telemetry Server Architecture\"",
+      "doc_id": "DOC-COMP-030",
+      "version": "1.0",
+      "category": "Component",
+      "phase": "6D",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-016_system_components.md"
+      ],
+      "file_path": "components/infrastructure/networking/DOC-COMP-030_telemetry_server.md"
+    },
+    {
+      "doc_id": "DOC-COMP-027",
+      "title": "Sensor Integration Architecture",
+      "version": "1.0",
+      "category": "Components",
+      "subcategory": "Infrastructure",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture",
+        "Real-Time"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-03-01",
+      "related_docs": [
+        "",
+        "DOC-ARCH-001_software_architecture.md",
+        "DOC-ARCH-011_thread_model.md",
+        "DOC-COMP-026_data_caching_strategy.md",
+        "DOC-COMP-028_waveform_display.md"
+      ],
+      "tags": [
+        "sensors",
+        "shared-memory",
+        "ipc",
+        "memfd",
+        "ring-buffer"
+      ],
+      "source": "",
+      "file_path": "components/infrastructure/networking/DOC-COMP-027_sensor_integration.md"
+    },
+    {
+      "title": "\"Network Communication Module\"",
+      "doc_id": "DOC-COMP-037",
+      "version": "1.0",
+      "category": "Component",
+      "phase": "6E",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-ARCH-019_class_designs_overview.md"
+      ],
+      "file_path": "components/infrastructure/networking/DOC-COMP-037_network_communication_module.md"
+    },
+    {
+      "title": "\"Telemetry Protocol Design\"",
+      "doc_id": "DOC-COMP-031",
+      "version": "1.0",
+      "category": "Component",
+      "phase": "6D",
+      "status": "Draft",
+      "created": "2025-12-01",
+      "author": "migration-bot",
+      "related": [
+        "",
+        "DOC-COMP-030_telemetry_server.md"
+      ],
+      "file_path": "components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md"
+    },
+    {
+      "doc_id": "DOC-COMP-014",
+      "title": "IPatientRepository",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Application Layer / Repository Interface",
+      "status": "Draft",
+      "owner": "Application Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team",
+        "Domain Layer Team"
+      ],
+      "last_reviewed": "2025-01-26",
+      "next_review": "2026-01-26",
+      "related_docs": [
+        "",
+        "DOC-ARCH-002  # System architecture",
+        "DOC-COMP-001  # PatientAggregate"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-3B-001  # Phase 3B Migration"
+      ],
+      "tags": [
+        "",
+        "repository",
+        "persistence",
+        "patient",
+        "ddd"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/persistence/DOC-COMP-014_ipatientrepository.md"
+    },
+    {
+      "doc_id": "DOC-COMP-015",
+      "title": "ITelemetryRepository",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Application Layer / Repository Interface",
+      "status": "Draft",
+      "owner": "Application Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-01-26",
+      "next_review": "2026-01-26",
+      "related_docs": [
+        "",
+        "DOC-ARCH-002  # System architecture",
+        "DOC-COMP-004  # TelemetryBatch value object",
+        "DOC-COMP-010  # MonitoringService"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-3B-001  # Phase 3B Migration"
+      ],
+      "tags": [
+        "",
+        "repository",
+        "persistence",
+        "telemetry",
+        "vitals"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/persistence/DOC-COMP-015_itelemetryrepository.md"
+    },
+    {
+      "doc_id": "DOC-COMP-022",
+      "title": "SettingsManager",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Infrastructure Layer / Adapters",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-12-01",
+      "related_docs": [
+        "DOC-COMP-018",
+        "DOC-COMP-012",
+        "DOC-COMP-013"
+      ],
+      "related_tasks": [
+        "TASK-3C-001"
+      ],
+      "tags": [
+        "infrastructure",
+        "settings",
+        "configuration",
+        "sqlite",
+        "singleton"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/persistence/DOC-COMP-022_settingsmanager.md"
+    },
+    {
+      "doc_id": "DOC-COMP-017",
+      "title": "IProvisioningRepository",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Application Layer / Repository Interface",
+      "status": "Draft",
+      "owner": "Application Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-01-26",
+      "next_review": "2026-01-26",
+      "related_docs": [
+        "",
+        "DOC-ARCH-002  # System architecture",
+        "DOC-COMP-003  # DeviceAggregate",
+        "DOC-COMP-012  # ProvisioningService"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-3B-001  # Phase 3B Migration"
+      ],
+      "tags": [
+        "",
+        "repository",
+        "persistence",
+        "provisioning",
+        "device"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/persistence/DOC-COMP-017_iprovisioningrepository.md"
+    },
+    {
+      "doc_id": "DOC-COMP-016",
+      "title": "IAlarmRepository",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Application Layer / Repository Interface",
+      "status": "Draft",
+      "owner": "Application Layer Team",
+      "reviewers": [
+        "",
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-01-26",
+      "next_review": "2026-01-26",
+      "related_docs": [
+        "",
+        "DOC-ARCH-002  # System architecture",
+        "DOC-COMP-005  # AlarmAggregate",
+        "DOC-COMP-010  # MonitoringService"
+      ],
+      "related_tasks": [
+        "",
+        "TASK-3B-001  # Phase 3B Migration"
+      ],
+      "tags": [
+        "",
+        "repository",
+        "persistence",
+        "alarm",
+        "safety"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/persistence/DOC-COMP-016_ialarmrepository.md"
+    },
+    {
+      "doc_id": "DOC-COMP-024",
+      "title": "WaveformCache",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Infrastructure Layer / Caching",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-12-01",
+      "related_docs": [
+        "DOC-COMP-010",
+        "DOC-ARCH-005"
+      ],
+      "related_tasks": [
+        "TASK-3C-001"
+      ],
+      "tags": [
+        "infrastructure",
+        "caching",
+        "waveform",
+        "memory",
+        "circular-buffer"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/caching/DOC-COMP-024_waveformcache.md"
+    },
+    {
+      "doc_id": "DOC-COMP-023",
+      "title": "VitalsCache",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Infrastructure Layer / Caching",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-12-01",
+      "related_docs": [
+        "DOC-COMP-010",
+        "DOC-ARCH-005"
+      ],
+      "related_tasks": [
+        "TASK-3C-001"
+      ],
+      "tags": [
+        "infrastructure",
+        "caching",
+        "vitals",
+        "memory",
+        "thread-safe"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/caching/DOC-COMP-023_vitalscache.md"
+    },
+    {
+      "doc_id": "DOC-COMP-026",
+      "title": "Data Caching Strategy",
+      "version": "1.0",
+      "category": "Components",
+      "subcategory": "Infrastructure",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture",
+        "Performance"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-03-01",
+      "related_docs": [
+        "",
+        "DOC-ARCH-001_software_architecture.md",
+        "DOC-ARCH-005_data_flow_and_caching.md",
+        "DOC-ARCH-011_thread_model.md",
+        "DOC-COMP-027_sensor_integration.md"
+      ],
+      "tags": [
+        "caching",
+        "vitals",
+        "waveforms",
+        "persistence",
+        "memory"
+      ],
+      "source": "",
+      "file_path": "components/infrastructure/caching/DOC-COMP-026_data_caching_strategy.md"
+    },
+    {
+      "doc_id": "DOC-COMP-029",
+      "title": "Async Logging Architecture",
+      "version": "1.0",
+      "category": "Components",
+      "subcategory": "Infrastructure",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture",
+        "Performance"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-03-01",
+      "related_docs": [
+        "",
+        "DOC-ARCH-001_software_architecture.md",
+        "DOC-ARCH-011_thread_model.md",
+        "DOC-GUIDE-012_logging_guidelines.md"
+      ],
+      "tags": [
+        "logging",
+        "async",
+        "lock-free",
+        "spdlog",
+        "thread-safety"
+      ],
+      "source": "",
+      "file_path": "components/infrastructure/logging/DOC-COMP-029_async_logging.md"
+    },
+    {
+      "doc_id": "DOC-COMP-025",
+      "title": "LogService",
+      "version": "v1.0",
+      "category": "Component",
+      "subcategory": "Infrastructure Layer / Logging",
+      "status": "Draft",
+      "owner": "Infrastructure Team",
+      "reviewers": [
+        "Architecture Team"
+      ],
+      "last_reviewed": "2025-12-01",
+      "next_review": "2026-12-01",
+      "related_docs": [
+        "DOC-COMP-018",
+        "DOC-ARCH-002"
+      ],
+      "related_tasks": [
+        "TASK-3C-001"
+      ],
+      "tags": [
+        "infrastructure",
+        "logging",
+        "asynchronous",
+        "non-blocking",
+        "queue"
+      ],
+      "diagram_files": [],
+      "file_path": "components/infrastructure/logging/DOC-COMP-025_logservice.md"
+    }
+  ]
+}
