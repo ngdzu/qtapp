@@ -577,6 +577,117 @@ add_dependencies(zmonitor_lib generate_schema)
 
 **Effect:** SchemaInfo.h regenerated automatically whenever `database.yaml` changes.
 
+## Qt SQL Plugin Deployment Configuration
+
+**Purpose:** Qt applications require SQL driver plugins to be available at runtime. On macOS, the QSQLITE driver must be deployed alongside the executable for database operations to work.
+
+### CMake Plugin Deployment
+
+The build system automatically copies the SQLite plugin from the Qt installation to the build directory:
+
+```cmake
+# z-monitor/src/CMakeLists.txt
+# Deploy SQLite plugin to build directory for runtime loading
+if(Qt6_FOUND)
+    get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+    execute_process(
+        COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_PLUGINS
+        OUTPUT_VARIABLE QT_PLUGINS_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    set(SQL_PLUGIN_SOURCE "${QT_PLUGINS_DIR}/sqldrivers/libqsqlite.dylib")
+    set(SQL_PLUGIN_DEST "${CMAKE_CURRENT_BINARY_DIR}/sqldrivers")
+
+    add_custom_command(TARGET z-monitor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${SQL_PLUGIN_DEST}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SQL_PLUGIN_SOURCE}"
+        "${SQL_PLUGIN_DEST}/libqsqlite.dylib"
+        COMMENT "Deploying SQLite plugin to ${SQL_PLUGIN_DEST}"
+    )
+endif()
+```
+
+**Key Points:**
+- Plugin deployed to `build/src/sqldrivers/libqsqlite.dylib`
+- Same directory as executable (`build/src/z-monitor`)
+- `POST_BUILD` command ensures plugin is copied after each build
+
+### Runtime Plugin Path Configuration
+
+The application must configure Qt's plugin search paths BEFORE any QSqlDatabase operations:
+
+```cpp
+// main.cpp
+int main(int argc, char *argv[])
+{
+    QGuiApplication app(argc, argv);
+
+    // Add executable directory to plugin search path
+    // Qt will automatically append "/sqldrivers" when searching for SQL plugins
+    // MUST be done before any QSqlDatabase operations
+    QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
+    // Also add explicit sqldrivers subdir to be safe
+    QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath() + "/sqldrivers");
+    
+    // Verify SQLite driver is available
+    if (!QSqlDatabase::isDriverAvailable("QSQLITE"))
+    {
+        qCritical() << "QSQLITE driver not available!";
+        qCritical() << "Available drivers:" << QSqlDatabase::drivers();
+        qCritical() << "Library paths:" << QCoreApplication::libraryPaths();
+        return 1;
+    }
+    
+    // Database operations can now proceed...
+}
+```
+
+**Critical Timing:**
+1. `QCoreApplication` must be constructed first
+2. `addLibraryPath()` called immediately after
+3. BEFORE any `QSqlDatabase` calls (including `QSqlDatabase::drivers()`)
+
+### Verification Script
+
+Use `scripts/verify_sql_plugin.sh` to diagnose plugin deployment issues:
+
+```bash
+#!/bin/bash
+# Run verification script
+./scripts/verify_sql_plugin.sh
+
+# Expected output:
+# ✅ Found executable: build/src/z-monitor
+# ✅ SQLite plugin found: build/src/sqldrivers/libqsqlite.dylib
+# ✅ Plugin deployment verified - should work correctly
+```
+
+**The script checks:**
+- Executable exists at `build/src/z-monitor`
+- Plugin exists at `build/src/sqldrivers/libqsqlite.dylib`
+- Plugin has correct architecture (arm64/x86_64)
+- Plugin dependencies are satisfied
+- Runtime driver loading works
+
+### Troubleshooting
+
+**Problem:** "Driver not loaded" error
+
+**Solutions:**
+1. Verify plugin was deployed: `ls -la build/src/sqldrivers/`
+2. Check CMake output: Should see "Deploying SQLite plugin to build/src/sqldrivers"
+3. Run diagnostic: `./scripts/verify_sql_plugin.sh`
+4. Enable debug output: `QT_DEBUG_PLUGINS=1 ./build/src/z-monitor`
+5. Verify library paths: Check `QCoreApplication::libraryPaths()` output
+
+**Problem:** Plugin exists but still not loaded
+
+**Cause:** `addLibraryPath()` called too late (after QSqlDatabase is first accessed)
+
+**Solution:** Ensure `addLibraryPath()` is called immediately after `QCoreApplication` construction, BEFORE any database operations.
+
 ## Schema Validation
 
 ### Validation Script
