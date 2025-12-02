@@ -69,12 +69,29 @@ namespace zmon
                 }
 
                 // Apply migrations by reading and executing SQL files directly
-                QString migrationsDir = QDir::currentPath() + "/schema/migrations";
+                // First try source directory (Z_MONITOR_ROOT is defined in CMake)
+                QString migrationsDir = QString("%1/schema/migrations").arg(Z_MONITOR_SOURCE_DIR);
                 QFileInfo migrationsDirInfo(migrationsDir);
+
+                if (!migrationsDirInfo.exists())
+                {
+                    // Fall back to current directory
+                    migrationsDir = QDir::currentPath() + "/schema/migrations";
+                    migrationsDirInfo.setFile(migrationsDir);
+                }
+
                 if (!migrationsDirInfo.exists())
                 {
                     // Try relative to project root
                     migrationsDir = QDir::currentPath() + "/../schema/migrations";
+                    migrationsDirInfo.setFile(migrationsDir);
+                }
+
+                if (!migrationsDirInfo.exists())
+                {
+                    // Try going up more levels (for tests in build/project-dashboard/z-monitor/tests)
+                    migrationsDir = QDir::currentPath() + "/../../../project-dashboard/z-monitor/schema/migrations";
+                    migrationsDirInfo.setFile(migrationsDir);
                 }
 
                 // Get list of migration files in order

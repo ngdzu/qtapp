@@ -13,8 +13,8 @@ target_link_libraries(PatientAggregateTest
 
 target_include_directories(PatientAggregateTest
     PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/tests/mocks
+    ${Z_MONITOR_SOURCE_DIR}
+    ${Z_MONITOR_ROOT}/tests/mocks
 )
 
 # Add to CTest

@@ -13,7 +13,7 @@ target_link_libraries(DomainEventDispatcherTest
 
 target_include_directories(DomainEventDispatcherTest
     PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
+    ${Z_MONITOR_SOURCE_DIR}
 )
 
 add_test(NAME DomainEventDispatcherTest COMMAND DomainEventDispatcherTest)

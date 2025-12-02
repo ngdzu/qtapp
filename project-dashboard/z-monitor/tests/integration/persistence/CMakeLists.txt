@@ -136,4 +136,9 @@ target_include_directories(integration_test_migrations
     ${Z_MONITOR_ROOT}
 )
 
+target_compile_definitions(integration_test_migrations
+    PRIVATE
+    Z_MONITOR_SOURCE_DIR="${Z_MONITOR_ROOT}"
+)
+
 add_test(NAME Integration_MigrationTest COMMAND integration_test_migrations)

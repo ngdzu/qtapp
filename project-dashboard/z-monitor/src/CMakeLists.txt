@@ -11,12 +11,12 @@ add_subdirectory(interface)
 
 # QML Resources
 set(QML_RESOURCES
-    ${CMAKE_SOURCE_DIR}/resources/qml/qml.qrc
+    ${Z_MONITOR_ROOT}/resources/qml/qml.qrc
 )
 
 # Schema Resources (SQL migrations)
 set(SCHEMA_RESOURCES
-    ${CMAKE_SOURCE_DIR}/schema/schema.qrc
+    ${Z_MONITOR_ROOT}/schema/schema.qrc
 )
 
 # Main executable sources
