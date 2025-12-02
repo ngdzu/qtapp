@@ -50,6 +50,8 @@ set(INFRASTRUCTURE_SOURCES
     # Network adapters
     network/MockNetworkManager.h
     network/MockNetworkManager.cpp
+    network/RetryPolicy.h
+    network/CircuitBreaker.h
 
     # Persistence adapters
     persistence/DatabaseManager.h

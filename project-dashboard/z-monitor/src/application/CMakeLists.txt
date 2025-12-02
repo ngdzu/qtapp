@@ -4,6 +4,9 @@
 set(APPLICATION_SOURCES
     services/MonitoringService.h
     services/MonitoringService.cpp
+    services/ITelemetryServer.h
+    services/TelemetryService.h
+    services/TelemetryService.cpp
     services/AdmissionService.h
     services/AdmissionService.cpp
     services/SecurityService.h

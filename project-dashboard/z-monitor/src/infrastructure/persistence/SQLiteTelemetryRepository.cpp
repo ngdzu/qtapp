@@ -42,7 +42,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQuery(persistence::QueryId::Telemetry::INSERT);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             return Result<void>::error(Error::create(ErrorCode::DatabaseError, "Failed to get prepared query for telemetry insert"));
         }
@@ -81,7 +81,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQuery(persistence::QueryId::Telemetry::GET_HISTORICAL);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             qWarning() << "Failed to get prepared query for telemetry historical retrieval";
             return batches;
@@ -121,7 +121,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQuery(persistence::QueryId::Telemetry::ARCHIVE);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             qWarning() << "Failed to get prepared query for telemetry archive";
             (void)m_dbManager->rollback();
@@ -161,7 +161,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQuery(persistence::QueryId::Telemetry::GET_UNSENT);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             qWarning() << "Failed to get prepared query for unsent telemetry retrieval";
             return batches;
@@ -189,7 +189,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQuery(persistence::QueryId::Telemetry::MARK_SENT);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             return Result<void>::error(Error::create(ErrorCode::DatabaseError, "Failed to get prepared query for mark sent"));
         }

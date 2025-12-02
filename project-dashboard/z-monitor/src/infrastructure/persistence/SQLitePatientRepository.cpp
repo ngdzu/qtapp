@@ -107,7 +107,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQueryForRead(persistence::QueryId::Patient::FIND_ALL);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             return Result<std::vector<std::shared_ptr<PatientAggregate>>>::error(
                 Error::create(ErrorCode::DatabaseError,
@@ -164,7 +164,7 @@ namespace zmon
         using namespace Schema::Columns::AdmissionEvents;
 
         QSqlQuery query = m_dbManager->getPreparedQueryForRead(persistence::QueryId::Patient::GET_ADMISSION_HISTORY);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             return Result<std::vector<std::string>>::error(
                 Error::create(ErrorCode::DatabaseError,
@@ -455,7 +455,7 @@ namespace zmon
     Result<std::shared_ptr<PatientAggregate>> SQLitePatientRepository::findByMrnSql(const std::string &mrn)
     {
         QSqlQuery query = m_dbManager->getPreparedQueryForRead(persistence::QueryId::Patient::FIND_BY_MRN);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             // Fallback to direct SQL for tests when registry not initialized
             query = QSqlQuery(m_dbManager->getReadConnection());
@@ -489,7 +489,7 @@ namespace zmon
 
         // Check if patient exists
         QSqlQuery checkQuery = m_dbManager->getPreparedQueryForRead(persistence::QueryId::Patient::CHECK_EXISTS);
-        if (!checkQuery.isValid())
+        if (checkQuery.lastQuery().isEmpty())
         {
             return Result<void>::error(
                 Error::create(ErrorCode::DatabaseError,

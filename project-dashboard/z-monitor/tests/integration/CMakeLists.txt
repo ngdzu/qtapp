@@ -29,6 +29,9 @@ add_subdirectory(logging)
 # Persistence integration tests (database repositories, migrations, queries)
 add_subdirectory(persistence)
 
+# Application integration tests
+add_subdirectory(application)
+
 # MonitoringService + SharedMemorySensorDataSource integration test
 add_executable(monitoring_service_sensor_integration_test
     monitoring_service_sensor_integration_test.cpp

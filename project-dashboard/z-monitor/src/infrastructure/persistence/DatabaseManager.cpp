@@ -564,6 +564,7 @@ namespace zmon
             // Query not registered - return invalid query
             // Error should be logged by caller
             qWarning() << "DatabaseManager::getPreparedQuery - query not registered:" << queryId;
+            qWarning() << "DatabaseManager::getPreparedQuery - Available queries:" << m_querySqlCache.keys();
             return QSqlQuery();
         }
 

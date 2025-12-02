@@ -37,7 +37,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Alarms::INSERT);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             qCritical() << "Failed to get prepared query for Alarms::INSERT";
             return Result<void>::error(Error::create(ErrorCode::DatabaseError, "Failed to prepare INSERT query"));
@@ -134,7 +134,7 @@ namespace zmon
         else
         {
             query = m_dbManager->getPreparedQuery(QueryId::Alarms::GET_HISTORY_BY_PATIENT);
-            if (!query.isValid())
+            if (query.lastQuery().isEmpty())
             {
                 qCritical() << "Failed to get prepared query for Alarms::GET_HISTORY_BY_PATIENT";
                 return result;
@@ -199,7 +199,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Alarms::UPDATE_STATUS);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             qCritical() << "Failed to get prepared query for Alarms::UPDATE_STATUS";
             return Result<void>::error(Error::create(ErrorCode::DatabaseError, "Failed to prepare UPDATE_STATUS query"));

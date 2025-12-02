@@ -419,10 +419,9 @@ tables:
     description: "Alarm events and lifecycle metadata"
     columns:
       alarm_id:
-        type: INTEGER
+        type: TEXT
         primary_key: true
-        autoincrement: true
-        description: "Primary key"
+        description: "Primary key (UUID)"
         
       patient_id:
         type: TEXT

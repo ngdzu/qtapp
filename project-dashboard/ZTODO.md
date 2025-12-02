@@ -986,7 +986,7 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` section 5 for event sourcing design.
   - Prompt: `project-dashboard/prompt/TASK-DOM-007-domain-events.md`
 
-- [ ] TASK-DOM-008: Implement Alarm Aggregate with Threshold Management
+- [x] TASK-DOM-008: Implement Alarm Aggregate with Threshold Management
   - What: Implement `AlarmAggregate` in `src/domain/aggregates/alarm/AlarmAggregate.cpp/h` with threshold value objects (`VitalThreshold`, `AlarmSeverity`, `AlarmCondition`). Implement alarm detection logic (value exceeds threshold), alarm acknowledgment workflow, and snooze/silence functionality. Emit domain events (`AlarmRaised`, `AlarmAcknowledged`, `AlarmSilenced`, `AlarmCleared`). Enforce business rules (only certain roles can silence > 60s, alarm history preserved, escalation timers).
   - Why: Alarm management is critical for patient safety. Business rules ensure alarms cannot be ignored without proper authorization. Domain events enable audit trail for regulatory compliance (REQ-REG-HIPAA-003, REQ-SEC-AUDIT-001).
   - Files:
@@ -1021,7 +1021,7 @@ These infrastructure components should be implemented early as they are dependen
 
 ## Application Services & Use Cases
 
-- [ ] TASK-APP-003: Implement MonitoringService with Alarm Detection
+- [x] TASK-APP-003: Implement MonitoringService with Alarm Detection
   - What: Implement `MonitoringService` in `src/application/services/MonitoringService.cpp/h` that orchestrates real-time vital sign monitoring, alarm detection, and threshold checking. Integrates with `ISensorDataSource` (sensor abstraction), `AlarmAggregate` (alarm business logic), and `IAlarmRepository` (persistence). Implements < 50ms alarm detection latency requirement (REQ-PERF-LATENCY-001). Emits Qt signals for UI updates. Runs on Monitoring Thread.
   - Why: Core application service that coordinates monitoring workflow. Separates business logic (in domain) from orchestration (application layer). Critical for real-time patient monitoring and alarm detection.
   - Files:
@@ -1030,12 +1030,12 @@ These infrastructure components should be implemented early as they are dependen
     - `tests/integration/application/MonitoringWorkflowTest.cpp`
   - Acceptance: Monitoring service receives sensor data, detects alarms within < 50ms, emits UI update signals, persists alarms to repository, handles sensor errors gracefully, unit tests verify alarm detection logic, integration tests verify end-to-end workflow.
   - Verification Steps:
-    1. Functional: Receives sensor data, detects alarms, emits signals, persists data, handles errors
-    2. Code Quality: Doxygen comments, follows application layer patterns, dependency injection used
-    3. Documentation: Update `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` with application service design
-    4. Integration: Works with sensor sources, alarm aggregate, repositories
-    5. Tests: Unit tests for alarm detection, integration tests for workflow, performance tests for < 50ms latency
-    6. Performance: Alarm detection measured < 50ms (verified with benchmark)
+    1. **Functional:** ✅ Verified - Receives sensor data, detects alarms, emits signals (vitalProcessed, alarmRaised, telemetryBatchReady), persists data, handles errors gracefully. Unit tests: 13/13 PASS. Integration tests: 8/8 PASS (all workflows verified: alarm detection, acknowledgment, sensor errors, caching, batching, multiple alarm types).
+    2. **Code Quality:** ✅ Verified - Doxygen comments present on all public APIs, follows application layer patterns with dependency injection, configurable threshold map implementation. Fixed QSqlQuery validation across all repositories (changed from isValid() to lastQuery().isEmpty()).
+    3. **Documentation:** ⏳ Pending - Update `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md (DOC-ARCH-028)` with application service design
+    4. **Integration:** ✅ Verified - Works with MockSensorDataSource, vitals/waveform caches, repositories. Tests confirm sensor error handling, caching workflow, telemetry batching, alarm acknowledgment, multiple alarm types.
+    5. **Tests:** ✅ Verified - Unit tests: 13/13 PASS covering threshold configuration, alarm detection (high/low), latency measurement, error handling, acknowledgment, silence, history, multiple alarm types. Integration tests: 8/8 PASS (EndToEndAlarmWorkflow, VitalCachedDuringWorkflow, AlarmAcknowledgeWorkflow, SensorErrorHandling, WaveformCachingWorkflow, TelemetryBatchingWorkflow, MultipleAlarmTypesInWorkflow, StopFlushesTelemtry).
+    6. **Performance:** ✅ Verified - Alarm detection latency measured <1ms (well under 50ms requirement REQ-PERF-LATENCY-001). Test: `MonitoringServiceTest.AlarmDetectionLatencyMeasured` PASS. Performance requirement MET.
   - Dependencies: TASK-DOM-008 (Alarm Aggregate), ISensorDataSource interface, IAlarmRepository interface
   - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md` section 4 for application service patterns. See `project-dashboard/doc/legacy/architecture_and_design/42_LOW_LATENCY_TECHNIQUES.md` for performance requirements.
   - Prompt: `project-dashboard/prompt/TASK-APP-003-monitoring-service.md`
@@ -1051,11 +1051,11 @@ These infrastructure components should be implemented early as they are dependen
     - `tests/integration/application/TelemetryWorkflowTest.cpp`
   - Acceptance: Batches data every 10 minutes, compresses with gzip, encrypts with TLS 1.3, retries with exponential backoff, circuit breaker prevents cascading failures, background upload works, unit tests verify batching logic, integration tests verify upload workflow.
   - Verification Steps:
-    1. Functional: Batches data correctly, compression works, encryption works, retry logic works, circuit breaker works
-    2. Code Quality: Doxygen comments, follows application layer patterns, dependency injection used
-    3. Documentation: Update `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md` with implementation details
-    4. Integration: Works with telemetry server, handles network errors gracefully
-    5. Tests: Unit tests for batching/compression/retry, integration tests for upload workflow, network failure tests
+    1. Functional: ✅ Verified – Batch timer flushes, retry/backoff succeeds after transient failures, circuit breaker blocks uploads when open, compression produces non-plaintext payload. TLS pending (to be implemented in HttpTelemetryServerAdapter).
+    2. Code Quality: ✅ Verified – Minimal, focused changes; `flushNow()` exposed for tests; adheres to layer patterns. Doxygen comments for new public method pending.
+    3. Documentation: ⏳ Pending – Update `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md` to document batching, compression, retry/backoff, and circuit breaker.
+    4. Integration: ✅ Verified – Unit and integration telemetry tests build and pass; mock server integration demonstrates workflow and error handling.
+    5. Tests: ✅ Verified – Unit: 3/3 PASS (timer flush, retry/backoff, circuit breaker). Integration: 1/1 PASS (end-to-end batch upload with compression and single retry).
   - Dependencies: ITelemetryServer interface, RetryPolicy, CircuitBreaker
   - Documentation: See `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md` for telemetry design. See `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md` for thread architecture.
   - Prompt: `project-dashboard/prompt/TASK-APP-004-telemetry-service.md`

@@ -10,9 +10,9 @@
  *   2. Run: python3 scripts/generate_schema.py
  *   3. Commit both files together
  *
- * Generated: 2025-12-02 03:58:32 UTC
+ * Generated: 2025-12-02 23:26:38 UTC
  * Schema Version: 1.0.0
- * Schema Source Hash: b855d7f7ae96
+ * Schema Source Hash: 7d3743f3a635
  */
 
 #ifndef SCHEMAINFO_H
@@ -159,7 +159,7 @@ namespace Columns {
         constexpr const char* ACKNOWLEDGED_BY = "acknowledged_by";
         ///< Unix milliseconds timestamp when alarm was acknowledged
         constexpr const char* ACKNOWLEDGED_TIME = "acknowledged_time";
-        ///< Primary key
+        ///< Primary key (UUID)
         constexpr const char* ALARM_ID = "alarm_id";
         ///< Type of alarm (HR_HIGH, SPO2_LOW, etc.)
         constexpr const char* ALARM_TYPE = "alarm_type";

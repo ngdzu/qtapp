@@ -20,3 +20,6 @@ add_subdirectory(infrastructure/network)
 
 # Interface controller tests
 add_subdirectory(interface/controllers)
+
+# Application service tests
+add_subdirectory(application/services)

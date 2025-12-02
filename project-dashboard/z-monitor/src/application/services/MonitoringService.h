@@ -13,10 +13,12 @@
 #pragma once
 
 #include <QObject>
+#include <QElapsedTimer>
 #include <memory>
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <map>
 
 namespace zmon
 {
@@ -26,6 +28,7 @@ namespace zmon
     class TelemetryBatch;
     class AlarmAggregate;
     struct AlarmSnapshot;
+    struct AlarmThreshold;
     class VitalRecord;
     class WaveformSample;
     struct SensorError;
@@ -164,6 +167,34 @@ namespace zmon
          */
         std::vector<AlarmSnapshot> getAlarmHistory(const QString &patientMrn, int64_t startTimeMs, int64_t endTimeMs) const;
 
+        /**
+         * @brief Set alarm threshold configuration.
+         *
+         * Configures alarm thresholds for a specific vital sign type.
+         * Replaces any existing threshold for the same vital type.
+         *
+         * @param threshold Alarm threshold configuration
+         */
+        void setAlarmThreshold(const AlarmThreshold &threshold);
+
+        /**
+         * @brief Get alarm threshold for a vital sign type.
+         *
+         * @param vitalType Vital sign type (e.g., "HR", "SPO2", "RR")
+         * @return Pointer to alarm threshold, or nullptr if not configured
+         */
+        const AlarmThreshold *getAlarmThreshold(const std::string &vitalType) const;
+
+        /**
+         * @brief Get last alarm detection latency.
+         *
+         * Returns the time elapsed between receiving a vital sign and
+         * completing alarm evaluation. Used for performance verification.
+         *
+         * @return Latency in milliseconds
+         */
+        int64_t getLastAlarmDetectionLatencyMs() const;
+
     signals:
         /**
          * @brief Signal emitted when a vital record is processed.
@@ -244,6 +275,13 @@ namespace zmon
         std::shared_ptr<PatientAggregate> m_currentPatient;
         std::shared_ptr<AlarmAggregate> m_alarmAggregate;
         std::shared_ptr<TelemetryBatch> m_currentBatch;
+
+        // Alarm threshold configuration (by vital type)
+        std::map<std::string, AlarmThreshold> m_alarmThresholds;
+
+        // Performance measurement
+        mutable QElapsedTimer m_alarmDetectionTimer;
+        mutable int64_t m_lastAlarmDetectionLatencyMs;
 
         /**
          * @brief Create a new telemetry batch.

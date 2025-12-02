@@ -11,6 +11,7 @@
 #include "domain/monitoring/PatientAggregate.h"
 #include "domain/monitoring/TelemetryBatch.h"
 #include "domain/monitoring/AlarmAggregate.h"
+#include "domain/monitoring/AlarmThreshold.h"
 #include "domain/monitoring/VitalRecord.h"
 #include "domain/monitoring/WaveformSample.h"
 #include "domain/repositories/ITelemetryRepository.h"
@@ -45,7 +46,8 @@ namespace zmon
           m_waveformCache(waveformCache),
           m_currentPatient(nullptr),
           m_alarmAggregate(std::make_shared<AlarmAggregate>()),
-          m_currentBatch(nullptr)
+          m_currentBatch(nullptr),
+          m_lastAlarmDetectionLatencyMs(0)
     {
         // Connect to sensor data source signals
         if (m_sensorDataSource)
@@ -57,6 +59,12 @@ namespace zmon
             connect(m_sensorDataSource.get(), &ISensorDataSource::sensorError,
                     this, &MonitoringService::onSensorError);
         }
+
+        // Initialize default alarm thresholds
+        // TODO: Load from configuration file/database
+        m_alarmThresholds.emplace("HR", AlarmThreshold("HR", 50.0, 120.0, 5.0, AlarmPriority::HIGH, true));
+        m_alarmThresholds.emplace("SPO2", AlarmThreshold("SPO2", 90.0, 100.0, 2.0, AlarmPriority::HIGH, true));
+        m_alarmThresholds.emplace("RR", AlarmThreshold("RR", 8.0, 30.0, 2.0, AlarmPriority::MEDIUM, true));
     }
 
     MonitoringService::~MonitoringService() = default;
@@ -241,52 +249,82 @@ namespace zmon
 
     void MonitoringService::evaluateAlarms(const VitalRecord &vital)
     {
-        // Business rule: Evaluate alarms based on vital type and thresholds
-        // For now, simplified alarm evaluation
-        // In real implementation, use AlarmThreshold configuration
+        // Start performance measurement
+        m_alarmDetectionTimer.start();
 
-        // Example: Heart rate alarm
-        if (vital.vitalType == "HR")
+        // Get threshold configuration for this vital type
+        auto it = m_alarmThresholds.find(vital.vitalType);
+        if (it == m_alarmThresholds.end())
         {
-            if (vital.value < 60.0 || vital.value > 100.0)
+            // No threshold configured for this vital type - skip evaluation
+            m_lastAlarmDetectionLatencyMs = m_alarmDetectionTimer.elapsed();
+            return;
+        }
+
+        const AlarmThreshold &threshold = it->second;
+
+        // Skip if threshold is disabled
+        if (!threshold.enabled)
+        {
+            m_lastAlarmDetectionLatencyMs = m_alarmDetectionTimer.elapsed();
+            return;
+        }
+
+        // Check if vital violates threshold (low or high)
+        bool violated = false;
+        std::string alarmType;
+        double thresholdValue = 0.0;
+
+        if (vital.value < threshold.lowLimit)
+        {
+            violated = true;
+            alarmType = vital.vitalType + "_LOW";
+            thresholdValue = threshold.lowLimit;
+        }
+        else if (vital.value > threshold.highLimit)
+        {
+            violated = true;
+            alarmType = vital.vitalType + "_HIGH";
+            thresholdValue = threshold.highLimit;
+        }
+
+        if (!violated)
+        {
+            m_lastAlarmDetectionLatencyMs = m_alarmDetectionTimer.elapsed();
+            return;
+        }
+
+        // Raise alarm using AlarmAggregate
+        auto alarm = m_alarmAggregate->raise(
+            alarmType, threshold.priority, vital.value, thresholdValue,
+            vital.patientMrn, vital.deviceId);
+
+        if (alarm.alarmId != "")
+        {
+            // Persist alarm (infrastructure call - log failures per guidelines)
+            if (m_alarmRepo)
             {
-                AlarmPriority priority =
-                    (vital.value < 50.0 || vital.value > 120.0)
-                        ? AlarmPriority::HIGH
-                        : AlarmPriority::MEDIUM;
-
-                std::string alarmType = (vital.value < 60.0) ? "HR_LOW" : "HR_HIGH";
-                double threshold = (vital.value < 60.0) ? 60.0 : 100.0;
-
-                auto alarm = m_alarmAggregate->raise(
-                    alarmType, priority, vital.value, threshold,
-                    vital.patientMrn, vital.deviceId);
-
-                if (alarm.alarmId != "")
+                auto saveResult = m_alarmRepo->save(alarm);
+                if (saveResult.isError())
                 {
-                    // Persist alarm (infrastructure call - log failures per guidelines)
-                    if (m_alarmRepo)
-                    {
-                        auto saveResult = m_alarmRepo->save(alarm);
-                        if (saveResult.isError())
-                        {
-                            // Application layer: Log infrastructure failures before continuing
-                            // TODO: Inject LogService and use proper logging
-                            qWarning() << "Failed to save alarm:"
-                                       << QString::fromStdString(saveResult.error().message)
-                                       << "Alarm ID:" << QString::fromStdString(alarm.alarmId);
-                            // Continue - emit signal anyway (alarm was raised, just not persisted)
-                        }
-                    }
-
-                    // Emit signal
-                    emit alarmRaised(
-                        QString::fromStdString(alarm.alarmId),
-                        QString::fromStdString(alarm.alarmType),
-                        static_cast<int>(alarm.priority));
+                    // Application layer: Log infrastructure failures before continuing
+                    // TODO: Inject LogService and use proper logging
+                    qWarning() << "Failed to save alarm:"
+                               << QString::fromStdString(saveResult.error().message)
+                               << "Alarm ID:" << QString::fromStdString(alarm.alarmId);
+                    // Continue - emit signal anyway (alarm was raised, just not persisted)
                 }
             }
+
+            // Emit signal
+            emit alarmRaised(
+                QString::fromStdString(alarm.alarmId),
+                QString::fromStdString(alarm.alarmType),
+                static_cast<int>(alarm.priority));
         }
+
+        // Record latency measurement
+        m_lastAlarmDetectionLatencyMs = m_alarmDetectionTimer.elapsed();
     }
 
     bool MonitoringService::acknowledgeAlarm(const QString &alarmId, const QString &userId)
@@ -376,6 +414,29 @@ namespace zmon
         }
 
         return m_alarmRepo->getHistory(patientMrn.toStdString(), startTimeMs, endTimeMs);
+    }
+
+    void MonitoringService::setAlarmThreshold(const AlarmThreshold &threshold)
+    {
+        // Erase existing threshold for this vital type (if any)
+        m_alarmThresholds.erase(threshold.vitalType);
+        // Insert new threshold
+        m_alarmThresholds.emplace(threshold.vitalType, threshold);
+    }
+
+    const AlarmThreshold *MonitoringService::getAlarmThreshold(const std::string &vitalType) const
+    {
+        auto it = m_alarmThresholds.find(vitalType);
+        if (it == m_alarmThresholds.end())
+        {
+            return nullptr;
+        }
+        return &(it->second);
+    }
+
+    int64_t MonitoringService::getLastAlarmDetectionLatencyMs() const
+    {
+        return m_lastAlarmDetectionLatencyMs;
     }
 
 } // namespace zmon

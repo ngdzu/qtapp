@@ -66,12 +66,61 @@ tags: [architecture, ddd, domain-driven-design, aggregates, events]
 - Application services wire dispatcher and register handlers at startup.
 - Avoid long-running work in sync handlers (> 5ms); move to async.
 
-## 5. Testing Strategy
+## 5. Application Services
+
+Application services orchestrate business workflows by coordinating between domain aggregates, repositories, and infrastructure services. They belong to the application layer and are responsible for use case implementation.
+
+### MonitoringService
+
+**Purpose:** Coordinates real-time vital sign monitoring, alarm detection, and telemetry transmission.
+
+**Responsibilities:**
+- Receives vital signs from sensor data source (ISensorDataSource)
+- Evaluates alarm conditions using configurable thresholds
+- Raises alarms via AlarmAggregate when thresholds violated
+- Persists vitals and alarms via repositories
+- Batches telemetry data for transmission
+- Emits Qt signals for UI updates
+
+**Key Features:**
+- **Configurable Alarm Thresholds:** Uses AlarmThreshold value objects for threshold management
+- **Performance Measurement:** Tracks alarm detection latency to verify < 50ms requirement (REQ-PERF-LATENCY-001)
+- **Error Handling:** Gracefully handles sensor errors, repository failures, and invalid data
+- **Dependency Injection:** All dependencies injected via constructor (repositories, caches, sensor source)
+
+**Alarm Detection Workflow:**
+1. Receive vital sign from sensor
+2. Start latency timer
+3. Look up threshold configuration for vital type
+4. Check if vital violates threshold (low or high)
+5. If violated, raise alarm via AlarmAggregate
+6. Persist alarm to IAlarmRepository
+7. Emit alarmRaised signal for UI
+8. Record latency measurement
+
+**Performance Characteristics:**
+- Alarm detection latency: < 50ms (measured and verified)
+- Normal load: 60 Hz vital signs
+- High load: 250 Hz waveforms + 60 Hz vitals
+- Burst traffic: Multiple simultaneous alarms handled within latency requirement
+
+**Testing:**
+- Unit tests: Threshold configuration, alarm detection logic, error handling
+- Integration tests: End-to-end workflow (sensor → alarm → repository)
+- Performance benchmarks: Latency verification under various load conditions
+
+**Dependencies:**
+- Domain: PatientAggregate, AlarmAggregate, TelemetryBatch, value objects
+- Repositories: IPatientRepository, IAlarmRepository, IVitalsRepository, ITelemetryRepository
+- Infrastructure: ISensorDataSource, VitalsCache, WaveformCache
+
+## 6. Testing Strategy
 - Unit tests for dispatcher (sync + async behavior).
 - Aggregate tests assert correct event emission (future: spy dispatcher/event collector).
 - Performance tests ensure async queue latency < 20ms under normal load.
+- Application service tests verify use case orchestration, error handling, and performance requirements.
 
-## 6. Future Enhancements
+## 7. Future Enhancements
 - Correlation IDs for cross-service tracing.
 - Persistent event store (append-only) for replay / audit.
 - Retry + backoff for failed async handlers.
