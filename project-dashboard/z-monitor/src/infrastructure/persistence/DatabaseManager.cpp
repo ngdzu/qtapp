@@ -257,6 +257,14 @@ namespace zmon
         return Result<void>::ok();
     }
 
+    /**
+     * @brief Executes all pending database migrations from the migrations directory in order.
+     *
+     * Each migration file is executed inside a programmatic transaction.
+     * Migration SQL files MUST NOT contain explicit BEGIN, COMMIT, or ROLLBACK statements.
+     * Transaction commands inside migration files are ignored.
+     * This ensures atomic migration execution and prevents partial schema updates.
+     */
     Result<void> DatabaseManager::executeMigrations()
     {
         if (!m_isOpen)

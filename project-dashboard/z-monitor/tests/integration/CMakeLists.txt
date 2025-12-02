@@ -26,6 +26,9 @@ add_test(NAME DatabaseManagerSmokeTest COMMAND db_smoke_test)
 # Logging integration tests
 add_subdirectory(logging)
 
+# Persistence integration tests (database repositories, migrations, queries)
+add_subdirectory(persistence)
+
 # MonitoringService + SharedMemorySensorDataSource integration test
 add_executable(monitoring_service_sensor_integration_test
     monitoring_service_sensor_integration_test.cpp

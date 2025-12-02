@@ -13,7 +13,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "infrastructure/persistence/SQLiteAlarmRepository.h"
-#include "MockDatabaseManager.h"
+#include "tests/mocks/infrastructure/MockDatabaseManager.h"
 #include "domain/monitoring/AlarmSnapshot.h"
 #include <chrono>
 

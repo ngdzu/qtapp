@@ -17,6 +17,7 @@
 #include <QCoreApplication>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QDateTime>
 #include <QSet>
 #include <memory>
 
