@@ -14,13 +14,11 @@
 
 #include <gtest/gtest.h>
 #include "infrastructure/persistence/SQLitePatientRepository.h"
-#include "infrastructure/persistence/DatabaseManager.h"
 #include "domain/monitoring/PatientAggregate.h"
 #include "domain/admission/PatientIdentity.h"
 #include "domain/admission/BedLocation.h"
 #include "domain/common/Result.h"
-#include <QTemporaryFile>
-#include <QCoreApplication>
+#include "tests/fixtures/RepositoryTestFixture.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDateTime>
@@ -35,103 +33,20 @@ namespace zmon
      * @class SQLitePatientRepositoryTest
      * @brief Test fixture for SQLitePatientRepository tests.
      */
-    class SQLitePatientRepositoryTest : public ::testing::Test
+    class SQLitePatientRepositoryTest : public test::RepositoryTestFixture
     {
     protected:
         void SetUp() override
         {
-            // Create temporary database file
-            m_tempFile = std::make_unique<QTemporaryFile>();
-            m_tempFile->setAutoRemove(false); // Keep file for debugging
-            if (!m_tempFile->open())
-            {
-                FAIL() << "Cannot create temporary database file";
-            }
-            m_dbPath = m_tempFile->fileName();
-            m_tempFile->close();
-
-            // Create QCoreApplication if it doesn't exist
-            if (!QCoreApplication::instance())
-            {
-                int argc = 1;
-                char *argv[] = {const_cast<char *>("test")};
-                m_app = std::make_unique<QCoreApplication>(argc, argv);
-            }
-
-            // Create DatabaseManager
-            m_dbManager = std::make_unique<DatabaseManager>();
-            auto result = m_dbManager->open(m_dbPath);
-            if (result.isError())
-            {
-                FAIL() << "Cannot open database: " << result.error().message;
-            }
-
-            // Create repository
-            m_repository = std::make_unique<SQLitePatientRepository>(m_dbManager.get());
-
-            // Create patients table (simplified schema for testing)
-            createTestSchema();
+            RepositoryTestFixture::SetUp();
+            // Create repository using fixture's DatabaseManager
+            m_repository = std::make_unique<SQLitePatientRepository>(databaseManager());
         }
 
         void TearDown() override
         {
             m_repository.reset();
-            m_dbManager.reset();
-            m_app.reset();
-            m_tempFile.reset();
-        }
-
-        /**
-         * @brief Create test database schema.
-         */
-        void createTestSchema()
-        {
-            QSqlQuery query(m_dbManager->getWriteConnection());
-
-            // Create patients table
-            QString createTableSql = R"(
-            CREATE TABLE IF NOT EXISTS patients (
-                mrn TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                dob TEXT,
-                sex TEXT,
-                allergies TEXT,
-                bed_location TEXT,
-                admission_status TEXT,
-                admitted_at INTEGER,
-                discharged_at INTEGER,
-                admission_source TEXT,
-                device_label TEXT,
-                created_at INTEGER,
-                last_lookup_at INTEGER,
-                lookup_source TEXT,
-                room TEXT
-            )
-        )";
-
-            if (!query.exec(createTableSql))
-            {
-                FAIL() << "Cannot create patients table: "
-                       << query.lastError().text().toStdString();
-            }
-
-            // Create admission_events table for getAdmissionHistory test
-            QString createEventsTableSql = R"(
-            CREATE TABLE IF NOT EXISTS admission_events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                patient_mrn TEXT NOT NULL,
-                event_type TEXT NOT NULL,
-                details TEXT,
-                timestamp INTEGER NOT NULL,
-                FOREIGN KEY (patient_mrn) REFERENCES patients(mrn)
-            )
-        )";
-
-            if (!query.exec(createEventsTableSql))
-            {
-                FAIL() << "Cannot create admission_events table: "
-                       << query.lastError().text().toStdString();
-            }
+            RepositoryTestFixture::TearDown();
         }
 
         /**
@@ -158,10 +73,6 @@ namespace zmon
             return patient;
         }
 
-        std::unique_ptr<QTemporaryFile> m_tempFile;
-        QString m_dbPath;
-        std::unique_ptr<QCoreApplication> m_app;
-        std::unique_ptr<DatabaseManager> m_dbManager;
         std::unique_ptr<SQLitePatientRepository> m_repository;
     };
 
@@ -319,7 +230,7 @@ namespace zmon
         m_repository->save(*patient);
 
         // Insert admission events directly (simulating admission workflow)
-        QSqlQuery query(m_dbManager->getWriteConnection());
+        QSqlQuery query(databaseManager()->getWriteConnection());
         QString insertEventSql = R"(
         INSERT INTO admission_events (patient_mrn, event_type, details, timestamp)
         VALUES (:mrn, :eventType, :details, :timestamp)

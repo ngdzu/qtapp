@@ -16,6 +16,9 @@ FetchContent_MakeAvailable(googletest)
 # Mocks library (must be added before unit tests that depend on it)
 add_subdirectory(mocks)
 
+# Shared test fixtures (database, repository setup helpers)
+add_subdirectory(fixtures)
+
 # Unit tests
 add_subdirectory(unit)
 

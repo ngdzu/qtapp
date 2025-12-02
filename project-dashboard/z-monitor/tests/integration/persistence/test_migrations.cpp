@@ -18,6 +18,8 @@
 #include <QFileInfo>
 #include <memory>
 #include <QDir>
+#include <QDateTime>
+#include <algorithm>
 
 namespace zmon
 {
@@ -68,8 +70,15 @@ namespace zmon
                     FAIL() << "Cannot open test database: " << m_db.lastError().text().toStdString();
                 }
 
+                // Enable foreign key enforcement
+                QSqlQuery pragmaFk(m_db);
+                if (!pragmaFk.exec("PRAGMA foreign_keys = ON"))
+                {
+                    FAIL() << "Cannot enable foreign keys: " << pragmaFk.lastError().text().toStdString();
+                }
+
                 // Apply migrations by reading and executing SQL files directly
-                // First try source directory (Z_MONITOR_ROOT is defined in CMake)
+                // First try source directory (Z_MONITOR_SOURCE_DIR is defined in CMake)
                 QString migrationsDir = QString("%1/schema/migrations").arg(Z_MONITOR_SOURCE_DIR);
                 QFileInfo migrationsDirInfo(migrationsDir);
 
@@ -100,6 +109,30 @@ namespace zmon
                 filters << "*.sql";
                 QFileInfoList migrationFiles = dir.entryInfoList(filters, QDir::Files, QDir::Name);
 
+                // Ensure numeric sort by version prefix (0001, 0002, ...)
+                std::sort(migrationFiles.begin(), migrationFiles.end(), [](const QFileInfo &a, const QFileInfo &b)
+                          {
+                    const QString aBase = a.baseName();
+                    const QString bBase = b.baseName();
+                    bool okA = false, okB = false;
+                    int va = aBase.section('_', 0, 0).toInt(&okA);
+                    int vb = bBase.section('_', 0, 0).toInt(&okB);
+                    if (okA && okB) return va < vb;
+                    return aBase < bBase; });
+
+                if (migrationFiles.isEmpty())
+                {
+                    FAIL() << "No migration files found in: " << dir.absolutePath().toStdString();
+                }
+
+                // Debug: print migration file order
+                qDebug() << "=== Migration Files (sorted order) ===";
+                for (const QFileInfo &fi : migrationFiles)
+                {
+                    qDebug() << "  " << fi.fileName();
+                }
+                qDebug() << "=======================================";
+
                 // Create schema_version table if it doesn't exist
                 QSqlQuery createVersionTable(m_db);
                 createVersionTable.exec(R"(
@@ -122,6 +155,8 @@ namespace zmon
                     if (!ok)
                         continue;
 
+                    qDebug() << "Processing migration:" << fileInfo.fileName() << "(version" << version << ")";
+
                     // Check if migration already applied
                     QSqlQuery checkQuery(m_db);
                     checkQuery.prepare("SELECT COUNT(*) FROM schema_version WHERE version = ?");
@@ -141,26 +176,86 @@ namespace zmon
                     QString sql = file.readAll();
                     file.close();
 
-                    // Execute SQL (split by semicolons for multiple statements)
-                    QStringList statements = sql.split(';', Qt::SkipEmptyParts);
+                    // Execute SQL: Remove comment lines and empty lines for cleaner execution
+                    // But execute multi-statement blocks properly by NOT splitting naively
+                    QStringList lines = sql.split('\n');
+                    QStringList cleanedLines;
+                    for (const QString &line : lines)
+                    {
+                        QString trimmed = line.trimmed();
+                        // Skip pure comment lines (lines that start with --)
+                        if (trimmed.startsWith("--") || trimmed.isEmpty())
+                        {
+                            continue;
+                        }
+                        cleanedLines.append(line);
+                    }
+                    QString cleanedSql = cleanedLines.join('\n');
+
+                    // Split by semicolon OUTSIDE of parentheses (simple heuristic)
+                    // Better: Execute entire file if Qt driver supports it
+                    QStringList statements;
+                    QString current;
+                    int parenDepth = 0;
+                    bool inString = false;
+                    for (int i = 0; i < cleanedSql.length(); ++i)
+                    {
+                        QChar c = cleanedSql[i];
+                        if (c == '\'' && (i == 0 || cleanedSql[i - 1] != '\\'))
+                        {
+                            inString = !inString;
+                        }
+                        if (!inString)
+                        {
+                            if (c == '(')
+                                parenDepth++;
+                            if (c == ')')
+                                parenDepth--;
+                        }
+                        current += c;
+                        if (c == ';' && parenDepth == 0 && !inString)
+                        {
+                            statements.append(current.trimmed());
+                            current.clear();
+                        }
+                    }
+                    if (!current.trimmed().isEmpty())
+                    {
+                        statements.append(current.trimmed());
+                    }
+
+                    qDebug() << "  Total statements after smart split:" << statements.size();
                     m_db.transaction();
                     bool success = true;
+                    int executed = 0;
                     for (const QString &statement : statements)
                     {
                         QString trimmed = statement.trimmed();
-                        if (trimmed.isEmpty() || trimmed.startsWith("--"))
+                        if (trimmed.isEmpty())
                         {
-                            continue; // Skip empty lines and comments
+                            continue;
                         }
+
+                        // Skip transaction control statements (we manage transactions programmatically)
+                        if (trimmed.toUpper().startsWith("BEGIN") ||
+                            trimmed.toUpper().startsWith("COMMIT") ||
+                            trimmed.toUpper().startsWith("ROLLBACK"))
+                        {
+                            continue;
+                        }
+
+                        executed++;
                         QSqlQuery query(m_db);
                         if (!query.exec(trimmed))
                         {
-                            qDebug() << "Migration statement failed:" << trimmed;
+                            qDebug() << "Migration statement failed:" << trimmed.left(100);
                             qDebug() << "Error:" << query.lastError().text();
                             success = false;
                             break;
                         }
                     }
+
+                    qDebug() << "  Executed" << executed << "statements successfully:" << success;
 
                     if (success)
                     {
@@ -353,9 +448,9 @@ namespace zmon
         {
             applyMigrations();
 
-            // Insert test settings
+            // Insert or replace test settings (some keys may already exist from migrations)
             QSqlQuery insertQuery(m_db);
-            insertQuery.prepare("INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)");
+            insertQuery.prepare("INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)");
 
             QStringList requiredKeys = {"deviceId", "deviceLabel", "measurementUnit", "serverUrl", "useMockServer"};
 
@@ -364,7 +459,7 @@ namespace zmon
                 insertQuery.addBindValue(key);
                 insertQuery.addBindValue("test_value");
                 insertQuery.addBindValue(QDateTime::currentMSecsSinceEpoch());
-                ASSERT_TRUE(insertQuery.exec()) << "Failed to insert setting: " << key.toStdString();
+                ASSERT_TRUE(insertQuery.exec()) << "Failed to insert/replace setting: " << key.toStdString();
                 insertQuery.finish();
             }
 

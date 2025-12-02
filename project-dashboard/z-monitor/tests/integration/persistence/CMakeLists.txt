@@ -9,6 +9,7 @@ add_executable(integration_test_sqlite_patient_repository
 target_link_libraries(integration_test_sqlite_patient_repository
     PRIVATE
     GTest::gtest_main
+    test_fixtures
     z_monitor_infrastructure
     Qt6::Core
     Qt6::Sql
@@ -42,6 +43,7 @@ add_executable(integration_test_sqlite_vitals_repository
 target_link_libraries(integration_test_sqlite_vitals_repository
     PRIVATE
     Qt6::Test
+    test_fixtures
     z_monitor_infrastructure
     z_monitor_domain
     Qt6::Core
@@ -64,6 +66,7 @@ add_executable(integration_test_sqlite_telemetry_repository
 target_link_libraries(integration_test_sqlite_telemetry_repository
     PRIVATE
     Qt6::Test
+    test_fixtures
     z_monitor_infrastructure
     z_monitor_domain
     Qt6::Core
@@ -107,6 +110,7 @@ add_executable(integration_test_query_registry
 target_link_libraries(integration_test_query_registry
     PRIVATE
     GTest::gtest_main
+    test_fixtures
     z_monitor_infrastructure
     Qt6::Core
     Qt6::Sql
@@ -129,6 +133,7 @@ target_link_libraries(integration_test_migrations
     GTest::gtest_main
     Qt6::Core
     Qt6::Sql
+    test_fixtures
 )
 
 target_include_directories(integration_test_migrations
