@@ -30,36 +30,43 @@
 
 // Temporary lock-free queue wrapper using QQueue + mutex
 // TODO: Replace with moodycamel::ConcurrentQueue when available
-template<typename T>
-class TemporaryQueue {
+template <typename T>
+class TemporaryQueue
+{
 public:
     TemporaryQueue(size_t capacity) : m_capacity(capacity) {}
-    
-    bool enqueue(const T& item) {
+
+    bool enqueue(const T &item)
+    {
         QMutexLocker locker(&m_mutex);
-        if (m_queue.size() >= static_cast<int>(m_capacity)) {
+        if (m_queue.size() >= static_cast<int>(m_capacity))
+        {
             // Queue full - drop oldest entry
             m_queue.dequeue();
         }
         m_queue.enqueue(item);
         return true;
     }
-    
-    bool try_dequeue(T& item) {
+
+    bool try_dequeue(T &item)
+    {
         QMutexLocker locker(&m_mutex);
-        if (m_queue.isEmpty()) {
+        if (m_queue.isEmpty())
+        {
             return false;
         }
         item = m_queue.dequeue();
         return true;
     }
-    
-    bool empty_approx() const {
+
+    bool empty_approx() const
+    {
         QMutexLocker locker(&m_mutex);
         return m_queue.isEmpty();
     }
-    
-    size_t size_approx() const {
+
+    size_t size_approx() const
+    {
         QMutexLocker locker(&m_mutex);
         return static_cast<size_t>(m_queue.size());
     }
@@ -70,229 +77,240 @@ private:
     size_t m_capacity;
 };
 
-namespace zmon {
-
-/**
- * @class LogService
- * @brief Provides asynchronous, non-blocking logging for application events.
- *
- * All logging methods return immediately (< 1μs) by enqueueing log entries
- * to a lock-free queue. The Database I/O Thread processes the queue
- * and writes to the configured logging backend (shared with database operations).
- *
- * @note Thread-safe: Can be called from any thread without synchronization.
- * @note Non-blocking: All methods return immediately.
- * @note Thread: Runs on Database I/O Thread (shared with database operations).
- *
- * @ingroup Infrastructure
- */
-class LogService : public QObject {
-    Q_OBJECT
-
-public:
-    /**
-     * @brief Constructs a LogService with the specified backend.
-     *
-     * @param backend Logging backend implementation (ownership transferred to LogService)
-     * @param parent Parent QObject
-     */
-    explicit LogService(ILogBackend* backend, QObject* parent = nullptr);
+namespace zmon
+{
 
     /**
-     * @brief Destructor.
+     * @class LogService
+     * @brief Provides asynchronous, non-blocking logging for application events.
      *
-     * Flushes all pending log entries before destruction.
+     * All logging methods return immediately (< 1μs) by enqueueing log entries
+     * to a lock-free queue. The Database I/O Thread processes the queue
+     * and writes to the configured logging backend (shared with database operations).
+     *
+     * @note Thread-safe: Can be called from any thread without synchronization.
+     * @note Non-blocking: All methods return immediately.
+     * @note Thread: Runs on Database I/O Thread (shared with database operations).
+     *
+     * @ingroup Infrastructure
      */
-    ~LogService() override;
+    class LogService : public QObject
+    {
+        Q_OBJECT
 
-    /**
-     * @brief Initializes the LogService.
-     *
-     * Must be called after moving LogService to the Database I/O Thread.
-     * Initializes the backend and starts queue processing.
-     *
-     * @param logDir Directory for log files
-     * @param logFileName Base name for log files (e.g., "z-monitor")
-     * @return Result<void> - Success if initialization succeeded, Error with details if failed
-     */
-    Result<void> initialize(const QString& logDir, const QString& logFileName);
+    public:
+        /**
+         * @brief Constructs a LogService with the specified backend.
+         *
+         * @param backend Logging backend implementation (ownership transferred to LogService)
+         * @param parent Parent QObject
+         */
+        explicit LogService(ILogBackend *backend, QObject *parent = nullptr);
 
-    // Public logging methods - all return immediately (< 1μs)
+        /**
+         * @brief Destructor.
+         *
+         * Flushes all pending log entries before destruction.
+         */
+        ~LogService() override;
 
-    /**
-     * @brief Logs a trace-level message.
-     *
-     * @param message Log message text
-     * @param context Structured context data (key-value pairs)
-     */
-    void trace(const QString& message, const QVariantMap& context = {});
+        /**
+         * @brief Initializes the LogService.
+         *
+         * Must be called after moving LogService to the Database I/O Thread.
+         * Initializes the backend and starts queue processing.
+         *
+         * @param logDir Directory for log files
+         * @param logFileName Base name for log files (e.g., "z-monitor")
+         * @return Result<void> - Success if initialization succeeded, Error with details if failed
+         */
+        Result<void> initialize(const QString &logDir, const QString &logFileName);
 
-    /**
-     * @brief Logs a debug-level message.
-     *
-     * @param message Log message text
-     * @param context Structured context data (key-value pairs)
-     */
-    void debug(const QString& message, const QVariantMap& context = {});
+        // Public logging methods - all return immediately (< 1μs)
 
-    /**
-     * @brief Logs an info-level message.
-     *
-     * @param message Log message text
-     * @param context Structured context data (key-value pairs)
-     */
-    void info(const QString& message, const QVariantMap& context = {});
+        /**
+         * @brief Logs a trace-level message.
+         *
+         * @param message Log message text
+         * @param context Structured context data (key-value pairs)
+         */
+        void trace(const QString &message, const QVariantMap &context = {});
 
-    /**
-     * @brief Logs a warning-level message.
-     *
-     * @param message Log message text
-     * @param context Structured context data (key-value pairs)
-     */
-    void warning(const QString& message, const QVariantMap& context = {});
+        /**
+         * @brief Logs a debug-level message.
+         *
+         * @param message Log message text
+         * @param context Structured context data (key-value pairs)
+         */
+        void debug(const QString &message, const QVariantMap &context = {});
 
-    /**
-     * @brief Logs an error-level message.
-     *
-     * @param message Log message text
-     * @param context Structured context data (key-value pairs)
-     */
-    void error(const QString& message, const QVariantMap& context = {});
+        /**
+         * @brief Logs an info-level message.
+         *
+         * @param message Log message text
+         * @param context Structured context data (key-value pairs)
+         */
+        void info(const QString &message, const QVariantMap &context = {});
 
-    /**
-     * @brief Logs a critical-level message.
-     *
-     * @param message Log message text
-     * @param context Structured context data (key-value pairs)
-     */
-    void critical(const QString& message, const QVariantMap& context = {});
+        /**
+         * @brief Logs a warning-level message.
+         *
+         * @param message Log message text
+         * @param context Structured context data (key-value pairs)
+         */
+        void warning(const QString &message, const QVariantMap &context = {});
 
-    /**
-     * @brief Logs a fatal-level message.
-     *
-     * @param message Log message text
-     * @param context Structured context data (key-value pairs)
-     */
-    void fatal(const QString& message, const QVariantMap& context = {});
+        /**
+         * @brief Logs an error-level message.
+         *
+         * @param message Log message text
+         * @param context Structured context data (key-value pairs)
+         */
+        void error(const QString &message, const QVariantMap &context = {});
 
-    // Configuration
+        /**
+         * @brief Logs a critical-level message.
+         *
+         * @param message Log message text
+         * @param context Structured context data (key-value pairs)
+         */
+        void critical(const QString &message, const QVariantMap &context = {});
 
-    /**
-     * @brief Sets the minimum log level.
-     *
-     * Log entries below this level are discarded.
-     *
-     * @param level Minimum log level (from LogEntry.h)
-     */
-    void setLogLevel(LogLevel level);
+        /**
+         * @brief Logs a fatal-level message.
+         *
+         * @param message Log message text
+         * @param context Structured context data (key-value pairs)
+         */
+        void fatal(const QString &message, const QVariantMap &context = {});
 
-    /**
-     * @brief Gets the current minimum log level.
-     *
-     * @return Current minimum log level (from LogEntry.h)
-     */
-    LogLevel logLevel() const;
+        // Configuration
 
-    /**
-     * @brief Enables or disables a log category.
-     *
-     * @param category Category name (e.g., "network", "database")
-     * @param enabled true to enable, false to disable
-     */
-    void setCategoryEnabled(const QString& category, bool enabled);
+        /**
+         * @brief Sets the minimum log level.
+         *
+         * Log entries below this level are discarded.
+         *
+         * @param level Minimum log level (from LogEntry.h)
+         */
+        void setLogLevel(LogLevel level);
 
-    /**
-     * @brief Checks if a category is enabled.
-     *
-     * @param category Category name
-     * @return true if enabled, false otherwise
-     */
-    bool isCategoryEnabled(const QString& category) const;
+        /**
+         * @brief Gets the current minimum log level.
+         *
+         * @return Current minimum log level (from LogEntry.h)
+         */
+        LogLevel logLevel() const;
 
-    /**
-     * @brief Gets recent log entries for Diagnostics View.
-     *
-     * Returns the last MAX_RECENT_LOGS entries (up to 1000).
-     * Thread-safe: Can be called from any thread.
-     *
-     * @return List of recent log entries
-     */
-    QList<LogEntry> recentLogs() const;
+        /**
+         * @brief Enables or disables a log category.
+         *
+         * @param category Category name (e.g., "network", "database")
+         * @param enabled true to enable, false to disable
+         */
+        void setCategoryEnabled(const QString &category, bool enabled);
 
-    /**
-     * @brief Flushes all pending log entries.
-     *
-     * Blocks until all queued entries are written. Should be called
-     * during shutdown or when explicitly requested.
-     */
-    void flush();
+        /**
+         * @brief Checks if a category is enabled.
+         *
+         * @param category Category name
+         * @return true if enabled, false otherwise
+         */
+        bool isCategoryEnabled(const QString &category) const;
 
-signals:
-    /**
-     * @brief Emitted when a log entry is added to the in-memory buffer.
-     *
-     * This signal is emitted from the Database I/O Thread when a log entry
-     * is processed and added to the recent logs buffer. Can be used by
-     * Diagnostics View to update in real-time.
-     *
-     * @param entry The log entry that was added
-     */
-    void logEntryAdded(const LogEntry& entry);
+        /**
+         * @brief Gets recent log entries for Diagnostics View.
+         *
+         * Returns the last MAX_RECENT_LOGS entries (up to 1000).
+         * Thread-safe: Can be called from any thread.
+         *
+         * @return List of recent log entries
+         */
+        QList<LogEntry> recentLogs() const;
 
-private slots:
-    /**
-     * @brief Processes log entries from the queue.
-     *
-     * Called periodically by the Database I/O Thread event loop.
-     * Processes up to MAX_BATCH entries per call to avoid blocking
-     * database operations.
-     */
-    void processLogQueue();
+        /**
+         * @brief Flushes all pending log entries.
+         *
+         * Blocks until all queued entries are written. Should be called
+         * during shutdown or when explicitly requested.
+         */
+        void flush();
 
-private:
-    /**
-     * @brief Enqueues a log entry to the lock-free queue.
-     *
-     * Creates a LogEntry with current timestamp, thread ID, and source
-     * location, then enqueues it to the lock-free queue. Returns immediately.
-     *
-     * @param level Log severity level (from LogEntry.h)
-     * @param message Log message text
-     * @param context Structured context data
-     * @param category Optional category name (defaults to empty)
-     */
-    void enqueueLog(LogLevel level, const QString& message,
-                    const QVariantMap& context = {},
-                    const QString& category = QString());
+        /**
+         * @brief Stops internal processing and flushes pending logs.
+         *
+         * Should be called on the object's thread before destruction when
+         * LogService lives on a worker thread, to avoid cross-thread timer
+         * warnings during teardown.
+         */
+        Q_SLOT void shutdown();
 
-    /**
-     * @brief Gets the current thread ID as a string.
-     *
-     * @return Thread ID string
-     */
-    static QString getCurrentThreadId();
+    signals:
+        /**
+         * @brief Emitted when a log entry is added to the in-memory buffer.
+         *
+         * This signal is emitted from the Database I/O Thread when a log entry
+         * is processed and added to the recent logs buffer. Can be used by
+         * Diagnostics View to update in real-time.
+         *
+         * @param entry The log entry that was added
+         */
+        void logEntryAdded(const LogEntry &entry);
 
-    // Configuration
-    LogLevel m_minLevel{LogLevel::Info};
-    QMap<QString, bool> m_categoryEnabled;
+    private slots:
+        /**
+         * @brief Processes log entries from the queue.
+         *
+         * Called periodically by the Database I/O Thread event loop.
+         * Processes up to MAX_BATCH entries per call to avoid blocking
+         * database operations.
+         */
+        void processLogQueue();
 
-    // Lock-free queue for async logging (MPSC - Multiple Producer Single Consumer)
-    std::unique_ptr<TemporaryQueue<LogEntry>> m_logQueue;
+    private:
+        /**
+         * @brief Enqueues a log entry to the lock-free queue.
+         *
+         * Creates a LogEntry with current timestamp, thread ID, and source
+         * location, then enqueues it to the lock-free queue. Returns immediately.
+         *
+         * @param level Log severity level (from LogEntry.h)
+         * @param message Log message text
+         * @param context Structured context data
+         * @param category Optional category name (defaults to empty)
+         */
+        void enqueueLog(LogLevel level, const QString &message,
+                        const QVariantMap &context = {},
+                        const QString &category = QString());
 
-    // Backend abstraction
-    std::unique_ptr<ILogBackend> m_backend;
+        /**
+         * @brief Gets the current thread ID as a string.
+         *
+         * @return Thread ID string
+         */
+        static QString getCurrentThreadId();
 
-    // In-memory buffer for Diagnostics View (last 1000 entries)
-    mutable QMutex m_recentLogsMutex;  // Protects m_recentLogs
-    QList<LogEntry> m_recentLogs;
-    static constexpr int MAX_RECENT_LOGS = 1000;
+        // Configuration
+        LogLevel m_minLevel{LogLevel::Info};
+        QMap<QString, bool> m_categoryEnabled;
 
-    // Queue processing configuration
-    static constexpr int MAX_BATCH = 100;  // Process up to 100 entries per batch
-    QTimer* m_processTimer;  // Timer for periodic queue processing
+        // Lock-free queue for async logging (MPSC - Multiple Producer Single Consumer)
+        std::unique_ptr<TemporaryQueue<LogEntry>> m_logQueue;
 
-    // Initialization state
-    bool m_initialized{false};
-};
+        // Backend abstraction
+        std::unique_ptr<ILogBackend> m_backend;
+
+        // In-memory buffer for Diagnostics View (last 1000 entries)
+        mutable QMutex m_recentLogsMutex; // Protects m_recentLogs
+        QList<LogEntry> m_recentLogs;
+        static constexpr int MAX_RECENT_LOGS = 1000;
+
+        // Queue processing configuration
+        static constexpr int MAX_BATCH = 100; // Process up to 100 entries per batch
+        QTimer *m_processTimer;               // Timer for periodic queue processing
+
+        // Initialization state
+        bool m_initialized{false};
+    };
 
 } // namespace zmon

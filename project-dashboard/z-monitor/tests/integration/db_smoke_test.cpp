@@ -104,8 +104,8 @@ TEST_F(DatabaseManagerSmokeTest, TransactionSupport)
     auto openResult = m_dbManager->open(":memory:");
     ASSERT_TRUE(openResult.isOk());
 
-    // Create test table
-    QSqlQuery createQuery(m_dbManager->getConnection());
+    // Create test table on write connection (same connection we'll use for inserts)
+    QSqlQuery createQuery(m_dbManager->getWriteConnection());
     ASSERT_TRUE(createQuery.exec("CREATE TABLE test_table (id INTEGER PRIMARY KEY, value INTEGER)"));
 
     // Begin transaction
@@ -114,7 +114,9 @@ TEST_F(DatabaseManagerSmokeTest, TransactionSupport)
 
     // Insert data
     QSqlQuery insertQuery(m_dbManager->getWriteConnection());
-    insertQuery.prepare("INSERT INTO test_table (value) VALUES (?)");
+    ASSERT_TRUE(insertQuery.prepare("INSERT INTO test_table (id, value) VALUES (?, ?)"))
+        << "Failed to prepare: " << insertQuery.lastError().text().toStdString();
+    insertQuery.addBindValue(1);
     insertQuery.addBindValue(42);
     ASSERT_TRUE(insertQuery.exec()) << "Failed to insert in transaction: " << insertQuery.lastError().text().toStdString();
 
@@ -122,8 +124,8 @@ TEST_F(DatabaseManagerSmokeTest, TransactionSupport)
     auto commitResult = m_dbManager->commit();
     ASSERT_TRUE(commitResult.isOk()) << "Failed to commit transaction: " << commitResult.error().message;
 
-    // Verify data persisted
-    QSqlQuery selectQuery(m_dbManager->getReadConnection());
+    // Verify data persisted (use write connection since read connection can't see table in :memory:)
+    QSqlQuery selectQuery(m_dbManager->getWriteConnection());
     selectQuery.prepare("SELECT value FROM test_table WHERE id = ?");
     selectQuery.addBindValue(1);
     ASSERT_TRUE(selectQuery.exec()) << "Failed to query after commit: " << selectQuery.lastError().text().toStdString();
@@ -137,8 +139,8 @@ TEST_F(DatabaseManagerSmokeTest, TransactionRollback)
     auto openResult = m_dbManager->open(":memory:");
     ASSERT_TRUE(openResult.isOk());
 
-    // Create test table
-    QSqlQuery createQuery(m_dbManager->getConnection());
+    // Create test table on write connection (same connection we'll use for inserts)
+    QSqlQuery createQuery(m_dbManager->getWriteConnection());
     ASSERT_TRUE(createQuery.exec("CREATE TABLE test_table (id INTEGER PRIMARY KEY, value INTEGER)"));
 
     // Begin transaction
@@ -147,7 +149,9 @@ TEST_F(DatabaseManagerSmokeTest, TransactionRollback)
 
     // Insert data
     QSqlQuery insertQuery(m_dbManager->getWriteConnection());
-    insertQuery.prepare("INSERT INTO test_table (value) VALUES (?)");
+    ASSERT_TRUE(insertQuery.prepare("INSERT INTO test_table (id, value) VALUES (?, ?)"))
+        << "Failed to prepare: " << insertQuery.lastError().text().toStdString();
+    insertQuery.addBindValue(1);
     insertQuery.addBindValue(99);
     ASSERT_TRUE(insertQuery.exec());
 
@@ -155,8 +159,8 @@ TEST_F(DatabaseManagerSmokeTest, TransactionRollback)
     auto rollbackResult = m_dbManager->rollback();
     ASSERT_TRUE(rollbackResult.isOk()) << "Failed to rollback transaction: " << rollbackResult.error().message;
 
-    // Verify data was not persisted
-    QSqlQuery selectQuery(m_dbManager->getReadConnection());
+    // Verify data was not persisted (use write connection since read connection can't see table in :memory:)
+    QSqlQuery selectQuery(m_dbManager->getWriteConnection());
     selectQuery.prepare("SELECT COUNT(*) FROM test_table");
     ASSERT_TRUE(selectQuery.exec());
     ASSERT_TRUE(selectQuery.next());

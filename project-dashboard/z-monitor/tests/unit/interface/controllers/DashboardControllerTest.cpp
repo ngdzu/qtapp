@@ -54,7 +54,7 @@ public:
         m_testPatient = patient;
     }
 
-    std::shared_ptr<PatientAggregate> getCurrentPatient() const
+    std::shared_ptr<PatientAggregate> getCurrentPatient() const override
     {
         return m_testPatient;
     }
@@ -187,7 +187,8 @@ TEST_F(DashboardControllerTest, UpdatesPatientInfo)
     BedLocation bedLocation{"ICU-101", "ICU"};
 
     auto patient = std::make_shared<PatientAggregate>();
-    patient->admit(identity, bedLocation, "manual");
+    auto admitResult = patient->admit(identity, bedLocation, "manual");
+    ASSERT_TRUE(admitResult.isOk()) << "Failed to admit patient: " << admitResult.error().message;
 
     // Set test patient in mock service
     m_monitoringService->setTestPatient(patient);
@@ -198,6 +199,9 @@ TEST_F(DashboardControllerTest, UpdatesPatientInfo)
 
     // Trigger patient changed manually (in real app, MonitoringService would emit patientChanged signal)
     m_controller->onPatientChanged();
+
+    // Give Qt event loop time to process property updates
+    QCoreApplication::processEvents();
 
     // Verify signals emitted
     EXPECT_EQ(nameSpy.count(), 1);
@@ -223,7 +227,9 @@ TEST_F(DashboardControllerTest, ClearsPatientInfoOnDischarge)
     BedLocation bedLocation{"ICU-101", "ICU"};
 
     auto patient = std::make_shared<PatientAggregate>();
-    patient->admit(identity, bedLocation, "manual");
+    auto admitResult = patient->admit(identity, bedLocation, "manual");
+    ASSERT_TRUE(admitResult.isOk()) << "Failed to admit patient: " << admitResult.error().message;
+
     m_monitoringService->setTestPatient(patient);
     m_controller->onPatientChanged(); // Trigger initial patient load
 

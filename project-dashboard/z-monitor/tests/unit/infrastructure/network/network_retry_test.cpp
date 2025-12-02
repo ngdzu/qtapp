@@ -20,23 +20,27 @@
 
 using namespace zmon;
 
-class NetworkRetryTest : public ::testing::Test {
+class NetworkRetryTest : public ::testing::Test
+{
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         // Create QCoreApplication if it doesn't exist
-        if (!QCoreApplication::instance()) {
+        if (!QCoreApplication::instance())
+        {
             int argc = 1;
-            char* argv[] = {const_cast<char*>("test")};
+            char *argv[] = {const_cast<char *>("test")};
             app = std::make_unique<QCoreApplication>(argc, argv);
         }
 
         manager = std::make_unique<MockNetworkManager>();
         manager->setServerUrl("https://test.server.com");
-        manager->setSimulatedDelay(10);  // Fast delay for tests
-        manager->connect();
+        manager->setSimulatedDelay(10); // Fast delay for tests
+        // Note: Not auto-connecting here - tests that need connection call connect() explicitly
     }
 
-    void TearDown() override {
+    void TearDown() override
+    {
         manager->disconnect();
         manager.reset();
         app.reset();
@@ -47,7 +51,9 @@ protected:
 };
 
 // Test: Successful request on first attempt
-TEST_F(NetworkRetryTest, SuccessOnFirstAttempt) {
+TEST_F(NetworkRetryTest, SuccessOnFirstAttempt)
+{
+    manager->connect();
     manager->setSimulatedResponseCode(200);
     manager->clearRecordedRequests();
 
@@ -70,9 +76,11 @@ TEST_F(NetworkRetryTest, SuccessOnFirstAttempt) {
 }
 
 // Test: Retry on 500 server error
-TEST_F(NetworkRetryTest, RetryOnServerError) {
+TEST_F(NetworkRetryTest, RetryOnServerError)
+{
+    manager->connect();
     manager->setSimulatedResponseCode(500);
-    manager->setRetryConfig(3, 50, 1000);  // 3 retries, 50ms initial, 1000ms max
+    manager->setRetryConfig(3, 50, 1000); // 3 retries, 50ms initial, 1000ms max
     manager->clearRecordedRequests();
 
     TelemetryData data;
@@ -85,14 +93,14 @@ TEST_F(NetworkRetryTest, RetryOnServerError) {
     // Send async request
     bool callbackCalled = false;
     ServerResponse receivedResponse;
-    manager->sendTelemetryAsync(data, [&callbackCalled, &receivedResponse](const ServerResponse& resp) {
+    manager->sendTelemetryAsync(data, [&callbackCalled, &receivedResponse](const ServerResponse &resp)
+                                {
         callbackCalled = true;
-        receivedResponse = resp;
-    });
+        receivedResponse = resp; });
 
     // Process events to allow async operations
     QCoreApplication::processEvents();
-    QThread::msleep(200);  // Wait for retries
+    QThread::msleep(200); // Wait for retries
     QCoreApplication::processEvents();
 
     // Should have failed after retries
@@ -102,12 +110,14 @@ TEST_F(NetworkRetryTest, RetryOnServerError) {
 
     // Verify retry statistics
     auto stats = manager->getRetryStatistics();
-    EXPECT_GT(stats.size(), 0);  // Should have retry attempts
+    EXPECT_GT(stats.size(), 0); // Should have retry attempts
 }
 
 // Test: Exponential backoff calculation
-TEST_F(NetworkRetryTest, ExponentialBackoff) {
-    manager->setRetryConfig(5, 100, 10000);  // 100ms initial, 10s max
+TEST_F(NetworkRetryTest, ExponentialBackoff)
+{
+    manager->connect();
+    manager->setRetryConfig(5, 100, 10000); // 100ms initial, 10s max
 
     // Test backoff delays (using reflection via public method)
     // Note: We can't directly test calculateBackoffDelay as it's private,
@@ -121,10 +131,10 @@ TEST_F(NetworkRetryTest, ExponentialBackoff) {
     manager->clearRecordedRequests();
 
     auto start = std::chrono::steady_clock::now();
-    manager->sendTelemetryAsync(data, [](const ServerResponse&) {});
-    
+    manager->sendTelemetryAsync(data, [](const ServerResponse &) {});
+
     QCoreApplication::processEvents();
-    QThread::msleep(500);  // Wait for some retries
+    QThread::msleep(500); // Wait for some retries
     QCoreApplication::processEvents();
 
     auto end = std::chrono::steady_clock::now();
@@ -135,7 +145,9 @@ TEST_F(NetworkRetryTest, ExponentialBackoff) {
 }
 
 // Test: Timeout simulation
-TEST_F(NetworkRetryTest, TimeoutHandling) {
+TEST_F(NetworkRetryTest, TimeoutHandling)
+{
+    manager->connect();
     manager->setSimulateTimeout(true);
     manager->clearRecordedRequests();
 
@@ -146,7 +158,7 @@ TEST_F(NetworkRetryTest, TimeoutHandling) {
     ServerResponse response = manager->sendTelemetry(data);
 
     EXPECT_FALSE(response.success);
-    EXPECT_EQ(response.statusCode, 408);  // Request Timeout
+    EXPECT_EQ(response.statusCode, 408); // Request Timeout
     EXPECT_EQ(response.message, "Request timeout");
 
     // Verify request was recorded
@@ -155,8 +167,10 @@ TEST_F(NetworkRetryTest, TimeoutHandling) {
 }
 
 // Test: Non-retryable error (4xx client error)
-TEST_F(NetworkRetryTest, NonRetryableError) {
-    manager->setSimulatedResponseCode(400);  // Bad Request - not retryable
+TEST_F(NetworkRetryTest, NonRetryableError)
+{
+    manager->connect();
+    manager->setSimulatedResponseCode(400); // Bad Request - not retryable
     manager->setRetryConfig(3, 50, 1000);
     manager->clearRecordedRequests();
 
@@ -167,9 +181,8 @@ TEST_F(NetworkRetryTest, NonRetryableError) {
     QSignalSpy failedSpy(manager.get(), &MockNetworkManager::telemetrySendFailed);
 
     bool callbackCalled = false;
-    manager->sendTelemetryAsync(data, [&callbackCalled](const ServerResponse&) {
-        callbackCalled = true;
-    });
+    manager->sendTelemetryAsync(data, [&callbackCalled](const ServerResponse &)
+                                { callbackCalled = true; });
 
     QCoreApplication::processEvents();
     QThread::msleep(100);
@@ -180,11 +193,13 @@ TEST_F(NetworkRetryTest, NonRetryableError) {
 
     // Should not have retried (400 is not retryable)
     auto stats = manager->getRetryStatistics();
-    EXPECT_EQ(stats.size(), 0);  // No retries for non-retryable errors
+    EXPECT_EQ(stats.size(), 0); // No retries for non-retryable errors
 }
 
 // Test: Retryable error codes
-TEST_F(NetworkRetryTest, RetryableErrorCodes) {
+TEST_F(NetworkRetryTest, RetryableErrorCodes)
+{
+    manager->connect();
     manager->setRetryConfig(2, 10, 1000);
     manager->clearRecordedRequests();
 
@@ -195,9 +210,8 @@ TEST_F(NetworkRetryTest, RetryableErrorCodes) {
     data.timestamp = QDateTime::currentDateTime();
 
     bool callbackCalled = false;
-    manager->sendTelemetryAsync(data, [&callbackCalled](const ServerResponse&) {
-        callbackCalled = true;
-    });
+    manager->sendTelemetryAsync(data, [&callbackCalled](const ServerResponse &)
+                                { callbackCalled = true; });
 
     QCoreApplication::processEvents();
     QThread::msleep(200);
@@ -210,7 +224,9 @@ TEST_F(NetworkRetryTest, RetryableErrorCodes) {
 }
 
 // Test: Request recording
-TEST_F(NetworkRetryTest, RequestRecording) {
+TEST_F(NetworkRetryTest, RequestRecording)
+{
+    manager->connect();
     manager->setSimulatedResponseCode(200);
     manager->clearRecordedRequests();
 
@@ -234,7 +250,9 @@ TEST_F(NetworkRetryTest, RequestRecording) {
 }
 
 // Test: Clear recorded requests
-TEST_F(NetworkRetryTest, ClearRecordedRequests) {
+TEST_F(NetworkRetryTest, ClearRecordedRequests)
+{
+    manager->connect();
     manager->setSimulatedResponseCode(200);
     manager->clearRecordedRequests();
 
@@ -253,7 +271,8 @@ TEST_F(NetworkRetryTest, ClearRecordedRequests) {
 }
 
 // Test: Connection status
-TEST_F(NetworkRetryTest, ConnectionStatus) {
+TEST_F(NetworkRetryTest, ConnectionStatus)
+{
     EXPECT_FALSE(manager->isConnected());
 
     manager->connect();
@@ -266,7 +285,8 @@ TEST_F(NetworkRetryTest, ConnectionStatus) {
 }
 
 // Test: Error when not connected
-TEST_F(NetworkRetryTest, ErrorWhenNotConnected) {
+TEST_F(NetworkRetryTest, ErrorWhenNotConnected)
+{
     manager->disconnect();
 
     TelemetryData data;
@@ -282,9 +302,11 @@ TEST_F(NetworkRetryTest, ErrorWhenNotConnected) {
 }
 
 // Test: Max retries exhaustion
-TEST_F(NetworkRetryTest, MaxRetriesExhaustion) {
+TEST_F(NetworkRetryTest, MaxRetriesExhaustion)
+{
+    manager->connect();
     manager->setSimulatedResponseCode(500);
-    manager->setRetryConfig(2, 10, 1000);  // Only 2 retries
+    manager->setRetryConfig(2, 10, 1000); // Only 2 retries
     manager->clearRecordedRequests();
 
     TelemetryData data;
@@ -293,10 +315,10 @@ TEST_F(NetworkRetryTest, MaxRetriesExhaustion) {
 
     bool callbackCalled = false;
     ServerResponse finalResponse;
-    manager->sendTelemetryAsync(data, [&callbackCalled, &finalResponse](const ServerResponse& resp) {
+    manager->sendTelemetryAsync(data, [&callbackCalled, &finalResponse](const ServerResponse &resp)
+                                {
         callbackCalled = true;
-        finalResponse = resp;
-    });
+        finalResponse = resp; });
 
     // Wait for all retries to complete
     QCoreApplication::processEvents();
@@ -307,4 +329,3 @@ TEST_F(NetworkRetryTest, MaxRetriesExhaustion) {
     EXPECT_FALSE(finalResponse.success);
     EXPECT_EQ(finalResponse.statusCode, 500);
 }
-

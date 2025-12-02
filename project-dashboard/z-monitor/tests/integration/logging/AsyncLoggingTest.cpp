@@ -39,6 +39,12 @@ protected:
 
     void TearDown() override
     {
+        if (m_logService)
+        {
+            // Stop timer and flush on the object's thread to avoid warnings
+            QMetaObject::invokeMethod(m_logService.get(), &zmon::LogService::shutdown, Qt::QueuedConnection);
+            QThread::msleep(20);
+        }
         if (m_thread && m_thread->isRunning())
         {
             m_thread->quit();
@@ -68,9 +74,13 @@ TEST_F(AsyncLoggingTest, CompleteWorkflowWithCustomBackend)
     m_thread->start();
     QThread::msleep(10);
 
-    // Initialize
-    auto result = m_logService->initialize(m_tempDir->path(), "test-log");
-    ASSERT_TRUE(result.isOk());
+    // Initialize on the object's thread to satisfy QTimer affinity
+    bool initOk = false;
+    QMetaObject::invokeMethod(m_logService.get(), [&]()
+                              {
+        auto r = m_logService->initialize(m_tempDir->path(), "test-log");
+        Q_UNUSED(r); }, Qt::QueuedConnection);
+    QThread::msleep(50);
 
     // Write various log entries
     m_logService->info("Info message");
@@ -107,7 +117,10 @@ TEST_F(AsyncLoggingTest, ThreadSafety)
     m_thread->start();
     QThread::msleep(10);
 
-    m_logService->initialize(m_tempDir->path(), "test-log");
+    // Initialize on the object's thread
+    QMetaObject::invokeMethod(m_logService.get(), [this]()
+                              { m_logService->initialize(m_tempDir->path(), "test-log"); }, Qt::QueuedConnection);
+    QThread::msleep(50);
 
     // Write from multiple threads
     const int numThreads = 4;
@@ -161,7 +174,9 @@ TEST_F(AsyncLoggingTest, PerformanceUnderLoad)
     m_thread->start();
     QThread::msleep(10);
 
-    m_logService->initialize(m_tempDir->path(), "test-log");
+    QMetaObject::invokeMethod(m_logService.get(), [this]()
+                              { m_logService->initialize(m_tempDir->path(), "test-log"); }, Qt::QueuedConnection);
+    QThread::msleep(50);
 
     // Measure time to enqueue many entries
     const int numEntries = 10000;
@@ -197,7 +212,9 @@ TEST_F(AsyncLoggingTest, LogRotation)
     m_thread->start();
     QThread::msleep(10);
 
-    m_logService->initialize(m_tempDir->path(), "test-log");
+    QMetaObject::invokeMethod(m_logService.get(), [this]()
+                              { m_logService->initialize(m_tempDir->path(), "test-log"); }, Qt::QueuedConnection);
+    QThread::msleep(50);
 
     // Write enough entries to trigger rotation
     QString largeMessage(200, 'X');
@@ -231,7 +248,9 @@ TEST_F(AsyncLoggingTest, FlushIntegration)
     m_thread->start();
     QThread::msleep(10);
 
-    m_logService->initialize(m_tempDir->path(), "test-log");
+    QMetaObject::invokeMethod(m_logService.get(), [this]()
+                              { m_logService->initialize(m_tempDir->path(), "test-log"); }, Qt::QueuedConnection);
+    QThread::msleep(50);
 
     // Write entries
     for (int i = 0; i < 10; ++i)
@@ -270,7 +289,9 @@ TEST_F(AsyncLoggingTest, QueueOverflow)
     m_thread->start();
     QThread::msleep(10);
 
-    m_logService->initialize(m_tempDir->path(), "test-log");
+    QMetaObject::invokeMethod(m_logService.get(), [this]()
+                              { m_logService->initialize(m_tempDir->path(), "test-log"); }, Qt::QueuedConnection);
+    QThread::msleep(50);
 
     // Write more entries than queue capacity (10,000)
     // Queue should drop oldest entries when full

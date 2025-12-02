@@ -119,7 +119,7 @@ namespace zmon
          *
          * @return Shared pointer to patient aggregate, or nullptr if no patient admitted
          */
-        std::shared_ptr<PatientAggregate> getCurrentPatient() const;
+        virtual std::shared_ptr<PatientAggregate> getCurrentPatient() const;
 
         /**
          * @brief Acknowledge an alarm.
