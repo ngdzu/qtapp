@@ -21,6 +21,19 @@ tags: [architecture, ddd, domain-driven-design, aggregates, events]
 - Emits domain events: `PatientAdmitted`, `PatientTransferred`, `PatientDischarged`.
 - Uses immutable value objects (`PatientIdentity`, `BedLocation`, `VitalRecord`).
 
+### AlarmAggregate
+- Enforces alarm lifecycle: raise → acknowledge/silence/escalate → resolve.
+- Protects invariants:
+  - Duplicate suppression window prevents rapid re-raise of same alarm type for same patient (10s default).
+  - Only active alarms can be acknowledged, silenced, or escalated.
+  - Resolved alarms are moved to history and removed from active set.
+- Emits domain events: `AlarmRaised`, `AlarmAcknowledged`, `AlarmSilenced`, `AlarmCleared`.
+- Uses immutable value objects (`AlarmSnapshot`, `AlarmThreshold`).
+- Business rules:
+  - Escalation raises priority (LOW → MEDIUM → HIGH).
+  - Role-based silence duration limits enforced at application layer (>60s requires supervisor).
+  - History preserved for audit trail and regulatory compliance (HIPAA).
+
 ## 2. Value Objects
 - Immutable (const members, deleted assignment).
 - Provide validation and semantic clarity (MRN, bed location, vital sign samples).

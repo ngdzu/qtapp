@@ -1010,6 +1010,13 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md` section 3 for aggregate design. See `project-dashboard/doc/processes/DOC-PROC-014_authentication_workflow.md` for permission requirements.
   - Prompt: `project-dashboard/prompt/TASK-DOM-008-alarm-aggregate.md`
 
+  - Verification:
+    1. Functional: ✅ Verified — Implemented `AlarmAggregate` lifecycle (raise/acknowledge/silence/escalate/resolve) in `project-dashboard/z-monitor/src/domain/monitoring/AlarmAggregate.cpp/h`. Value objects `AlarmThreshold` and `AlarmSnapshot` in place. Domain events added: `AlarmAcknowledged`, `AlarmSilenced`, `AlarmCleared` (existing `AlarmRaised` retained). Duplicate suppression window implemented.
+    2. Code Quality: ✅ Verified — Doxygen comments present on public APIs/events; domain remains Qt-free; minimal constants used internally only.
+    3. Documentation: ✅ Verified — Updated `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md` section 1 with AlarmAggregate lifecycle, invariants, events, value objects, and business rules.
+    4. Integration: ✅ Verified — Built `z_monitor_domain` and ran alarm unit tests via CTest; no compiler warnings in changed files; domain wires cleanly in build graph.
+    5. Tests: ✅ Verified — Extended `project-dashboard/z-monitor/tests/unit/domain/monitoring/AlarmAggregateTest.cpp` with history range filtering, MEDIUM→HIGH escalation, and acknowledgment idempotency; `ctest -R AlarmAggregateTest` passes all cases.
+
 ---
 
 ## Application Services & Use Cases

@@ -24,6 +24,9 @@ set(DOMAIN_SOURCES
     monitoring/events/PatientTransferred.h
     monitoring/events/TelemetryQueued.h
     monitoring/events/AlarmRaised.h
+    monitoring/events/AlarmAcknowledged.h
+    monitoring/events/AlarmSilenced.h
+    monitoring/events/AlarmCleared.h
 
     # Domain events infrastructure
     events/IDomainEvent.h
