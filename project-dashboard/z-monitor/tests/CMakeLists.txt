@@ -31,5 +31,5 @@ add_subdirectory(qml)
 # End-to-end tests (to be implemented)
 # add_subdirectory(e2e)
 
-# Benchmarks (to be implemented)
-# add_subdirectory(benchmarks)
+# Benchmarks
+add_subdirectory(benchmarks)
