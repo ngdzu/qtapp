@@ -22,8 +22,11 @@
 #include "infrastructure/persistence/SQLiteTelemetryRepository.h"
 #include "infrastructure/persistence/SQLiteAlarmRepository.h"
 
-// Application service
+// Application services
 #include "application/services/MonitoringService.h"
+#include "application/services/TelemetryService.h"
+// Network adapter
+#include "infrastructure/network/HttpTelemetryServerAdapter.h"
 
 namespace zmon
 {
@@ -91,6 +94,11 @@ namespace zmon
             m_waveformCache,
             m_app);
 
+        // Telemetry service with HTTP adapter
+        auto *httpServer = new HttpTelemetryServerAdapter(m_app);
+        m_telemetryService = new TelemetryService(httpServer, m_app);
+        m_telemetryService->start();
+
         return true;
     }
 
@@ -103,5 +111,6 @@ namespace zmon
     std::shared_ptr<ITelemetryRepository> DIContainer::telemetryRepository() const { return m_telemetryRepo; }
     std::shared_ptr<IAlarmRepository> DIContainer::alarmRepository() const { return m_alarmRepo; }
     MonitoringService *DIContainer::monitoringService() const { return m_monitoringService; }
+    TelemetryService *DIContainer::telemetryService() const { return m_telemetryService; }
 
 } // namespace zmon

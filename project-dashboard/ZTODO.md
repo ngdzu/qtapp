@@ -1040,7 +1040,7 @@ These infrastructure components should be implemented early as they are dependen
   - Documentation: See `project-dashboard/doc/architecture/DOC-ARCH-028_domain_driven_design.md` section 4 for application service patterns. See `project-dashboard/doc/legacy/architecture_and_design/42_LOW_LATENCY_TECHNIQUES.md` for performance requirements.
   - Prompt: `project-dashboard/prompt/TASK-APP-003-monitoring-service.md`
 
-- [ ] TASK-APP-004: Implement TelemetryService with Batch Upload
+- [x] TASK-APP-004: Implement TelemetryService with Batch Upload
   - What: Implement `TelemetryService` in `src/application/services/TelemetryService.cpp/h` that batches vital signs and alarm events for upload to central server. Implements 10-minute batch interval, compression (gzip), encryption (TLS 1.3), and retry logic (exponential backoff with circuit breaker). Integrates with `ITelemetryServer` interface. Runs on Network Thread. Implements background upload without blocking UI.
   - Why: Telemetry enables central monitoring dashboard and hospital analytics. Batch upload reduces network overhead. Encryption ensures HIPAA compliance (REQ-REG-HIPAA-002). Circuit breaker prevents cascading failures.
   - Files:

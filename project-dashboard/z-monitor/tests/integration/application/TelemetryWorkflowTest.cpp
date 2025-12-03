@@ -1,4 +1,41 @@
 #include <gtest/gtest.h>
+#include <QtTest/QtTest>
+#include "src/application/services/TelemetryService.h"
+#include "src/application/services/ITelemetryServer.h"
+#include <memory>
+
+using namespace zmon;
+
+class MockTelemetryServer : public ITelemetryServer
+{
+public:
+    bool uploadTelemetry(const QByteArray &payload) override
+    {
+        lastPayload = payload;
+        calls++;
+        return true;
+    }
+    int calls{0};
+    QByteArray lastPayload;
+};
+
+TEST(TelemetryWorkflowTest, FlushUploadsBatch)
+{
+    auto server = std::make_shared<MockTelemetryServer>();
+    TelemetryConfig cfg;
+    cfg.batchIntervalMinutes = 10; // default
+    TelemetryService svc(server, cfg);
+
+    svc.enqueueVitals(QByteArray("{\"hr\":72}"));
+    svc.enqueueAlarm(QByteArray("{\"type\":\"HIGH_HR\"}"));
+
+    QObject::connect(&svc, &TelemetryService::batchUploaded, []() {});
+    svc.flushNow();
+
+    EXPECT_EQ(server->calls, 1);
+    EXPECT_FALSE(server->lastPayload.isEmpty());
+}
+#include <gtest/gtest.h>
 #include <QCoreApplication>
 #include <QTest>
 #include "src/application/services/TelemetryService.h"
