@@ -21,7 +21,7 @@
 #include "infrastructure/persistence/DatabaseManager.h"
 #include "infrastructure/caching/VitalsCache.h"
 #include "infrastructure/caching/WaveformCache.h"
-#include "project-dashboard/z-monitor/tests/mocks/infrastructure/MockSensorDataSource.h"
+#include "tests/mocks/infrastructure/MockSensorDataSource.h"
 #include <QSignalSpy>
 #include <QTest>
 #include <QTemporaryFile>

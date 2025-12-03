@@ -1,7 +1,7 @@
 -- Auto-generated DDL for table creation
--- Generated: 2025-12-02 03:58:32 UTC
+-- Generated: 2025-12-03 00:53:01 UTC
 -- Schema Version: 1.0.0
--- Schema Source Hash: b855d7f7ae96
+-- Schema Source Hash: 7d3743f3a635
 -- ⚠️ DO NOT EDIT MANUALLY - Edit schema/database.yaml and regenerate
 
 
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS admission_events (
 
 -- Alarm events and lifecycle metadata
 CREATE TABLE IF NOT EXISTS alarms (
-    alarm_id INTEGER PRIMARY KEY AUTOINCREMENT  -- Primary key,
+    alarm_id TEXT PRIMARY KEY  -- Primary key (UUID),
     patient_id TEXT  -- Patient identifier (deprecated, use patient_mrn),
     patient_mrn TEXT NOT NULL  -- Medical Record Number (REQUIRED for patient association),
     start_time INTEGER NOT NULL  -- Unix milliseconds timestamp when alarm started,

@@ -161,6 +161,84 @@ void AlarmService::getActiveAlarms() {
 - ✅ Self-documenting (`Patient::FIND_BY_MRN` is clear)
 
 ## Query Catalog
+## Alarm Queries (SQLite)
+
+This project defines structured Alarm query IDs under `QueryId::Alarms` and registers SQL via the `QueryRegistry`. These cover insert, retrieval, active filtering, history-by-patient, and status updates.
+
+### Query IDs
+
+```cpp
+namespace QueryId {
+namespace Alarms {
+        constexpr const char* INSERT = "alarms.insert";
+        constexpr const char* FIND_BY_ID = "alarms.find_by_id";
+        constexpr const char* GET_ACTIVE = "alarms.get_active";
+        constexpr const char* GET_HISTORY_BY_PATIENT = "alarms.get_history_by_patient";
+        constexpr const char* UPDATE_STATUS = "alarms.update_status";
+}
+}
+```
+
+### Registered SQL Shapes
+
+```sql
+-- INSERT
+INSERT INTO alarms (
+    alarm_id,
+    alarm_type,
+    priority,
+    status,
+    raw_value,
+    threshold_value,
+    start_time,
+    patient_mrn,
+    acknowledged_by,
+    acknowledged_time
+) VALUES (
+    :alarm_id,
+    :alarm_type,
+    :priority,
+    :status,
+    :raw_value,
+    :threshold_value,
+    :start_time,
+    :patient_mrn,
+    :acknowledged_by,
+    :acknowledged_time
+);
+
+-- FIND_BY_ID
+SELECT * FROM alarms WHERE alarm_id = :alarm_id;
+
+-- GET_ACTIVE
+SELECT * FROM alarms WHERE status = 'ACTIVE' ORDER BY start_time DESC;
+
+-- GET_HISTORY_BY_PATIENT
+SELECT * FROM alarms
+WHERE patient_mrn = :patient_mrn
+    AND start_time BETWEEN :start_time AND :end_time
+ORDER BY start_time DESC;
+
+-- UPDATE_STATUS
+UPDATE alarms
+SET status = :status,
+        acknowledged_by = :acknowledged_by,
+        acknowledged_time = :acknowledged_time
+WHERE alarm_id = :alarm_id;
+```
+
+### Prepared Query Retrieval Guidance
+
+- Use `QSqlQuery q = db->getPreparedQuery(QueryId::Alarms::INSERT);` and validate with `if (q.lastQuery().isEmpty())` before binding.
+- `QSqlQuery::isValid()` indicates cursor state after execution; for prepared statements, prefer `lastQuery().isEmpty()` to detect missing registrations.
+- Register only the queries needed for a given test/scope to avoid dependencies on unrelated tables.
+
+### Test Fixture Notes
+
+- For integration tests, ensure `alarms` table exists (manual DDL is acceptable when global DDL loaders skip tables).
+- Clear `alarms` in `SetUp()`/`TearDown()` to avoid `UNIQUE` collisions on `alarm_id` between tests.
+- Keep query registration scoped to the fixture; avoid global initialization that can fail if some tables are absent.
+
 
 The **QueryCatalog** maps query IDs to actual SQL definitions and manages prepared statements:
 

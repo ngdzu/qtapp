@@ -81,24 +81,27 @@ target_include_directories(integration_test_sqlite_telemetry_repository
 add_test(NAME Integration_SQLiteTelemetryRepositoryTest COMMAND integration_test_sqlite_telemetry_repository)
 
 # SQLiteAlarmRepository integration tests
-# TODO: Fix this test - it's trying to mock MockDatabaseManager which is already a fake
-# See TASK-TEST-002 for proper fixture implementation
-# add_executable(integration_test_sqlite_alarm_repository
-# SQLiteAlarmRepositoryTest.cpp
-# )
-#
-# target_link_libraries(integration_test_sqlite_alarm_repository
-# PRIVATE
-# GTest::gmock_main
-# z_monitor_infrastructure
-# Qt6::Core
-# Qt6::Sql
-# )
-#
-# target_include_directories(integration_test_sqlite_alarm_repository
-# PRIVATE
-# ${Z_MONITOR_ROOT}
-# )
+add_executable(integration_test_sqlite_alarm_repository
+    test_sqlite_alarm_repository.cpp
+)
+
+target_link_libraries(integration_test_sqlite_alarm_repository
+    PRIVATE
+    test_fixtures
+    z_monitor_infrastructure
+    z_monitor_domain
+    Qt6::Core
+    Qt6::Sql
+    GTest::gtest_main
+)
+
+target_include_directories(integration_test_sqlite_alarm_repository
+    PRIVATE
+    ${Z_MONITOR_ROOT}
+)
+
+add_test(NAME Integration_SQLiteAlarmRepositoryTest COMMAND integration_test_sqlite_alarm_repository)
+
 #
 # add_test(NAME Integration_SQLiteAlarmRepositoryTest COMMAND integration_test_sqlite_alarm_repository)
 

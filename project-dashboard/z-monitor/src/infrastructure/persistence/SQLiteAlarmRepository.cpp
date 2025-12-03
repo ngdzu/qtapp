@@ -86,7 +86,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Alarms::GET_ACTIVE);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             qCritical() << "Failed to get prepared query for Alarms::GET_ACTIVE";
             return result;
@@ -167,7 +167,7 @@ namespace zmon
         }
 
         QSqlQuery query = m_dbManager->getPreparedQuery(QueryId::Alarms::FIND_BY_ID);
-        if (!query.isValid())
+        if (query.lastQuery().isEmpty())
         {
             qCritical() << "Failed to get prepared query for Alarms::FIND_BY_ID";
             return AlarmSnapshot();
