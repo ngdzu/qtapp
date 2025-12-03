@@ -31,12 +31,6 @@ TestCase {
         property bool hasWarningAlarms: false
         property var alarmHistory: []
 
-        signal activeAlarmsChanged()
-        signal activeAlarmCountChanged()
-        signal hasCriticalAlarmsChanged()
-        signal hasWarningAlarmsChanged()
-        signal alarmHistoryChanged()
-
         property var acknowledgedAlarms: []
         property var silencedAlarms: []
 

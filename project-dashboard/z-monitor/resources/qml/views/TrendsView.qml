@@ -118,8 +118,10 @@ Item {
                                 // Adjust controller start/end
                                 var end = new Date();
                                 var start = new Date(end.getTime() - modelData * 60 * 60 * 1000);
-                                trendsController.setStartTime(start);
-                                trendsController.setEndTime(end);
+                                if (typeof trendsController !== 'undefined' && trendsController) {
+                                    trendsController.setStartTime(start);
+                                    trendsController.setEndTime(end);
+                                }
                             }
                         }
                     }
