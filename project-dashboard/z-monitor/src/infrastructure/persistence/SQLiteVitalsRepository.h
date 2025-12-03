@@ -136,6 +136,32 @@ namespace zmon
          */
         size_t markAsSent(const std::vector<std::string> &vitalIds) override;
 
+        /**
+         * @brief Delete vitals older than specified timestamp (retention policy).
+         *
+         * Implements 7-day retention policy by deleting vitals older than the
+         * specified timestamp. Typically called daily with timestamp = now - 7 days.
+         *
+         * @param timestampMs Unix milliseconds threshold
+         * @return Number of records deleted
+         *
+         * @note Uses QueryId::Vitals::DELETE_OLDER_THAN
+         */
+        size_t deleteOlderThan(int64_t timestampMs);
+
+        /**
+         * @brief Count vitals for a patient.
+         *
+         * Returns total count of vital records for the specified patient.
+         * Useful for monitoring database growth and cache statistics.
+         *
+         * @param patientMrn Patient MRN
+         * @return Total count of vitals
+         *
+         * @note Uses QueryId::Vitals::COUNT_BY_PATIENT
+         */
+        size_t countByPatient(const std::string &patientMrn);
+
     private:
         /**
          * @brief Database manager for connection access.

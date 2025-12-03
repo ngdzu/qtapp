@@ -1051,11 +1051,11 @@ These infrastructure components should be implemented early as they are dependen
     - `tests/integration/application/TelemetryWorkflowTest.cpp`
   - Acceptance: Batches data every 10 minutes, compresses with gzip, encrypts with TLS 1.3, retries with exponential backoff, circuit breaker prevents cascading failures, background upload works, unit tests verify batching logic, integration tests verify upload workflow.
   - Verification Steps:
-    1. Functional: ✅ Verified – Batch timer flushes, retry/backoff succeeds after transient failures, circuit breaker blocks uploads when open, compression produces non-plaintext payload. TLS pending (to be implemented in HttpTelemetryServerAdapter).
-    2. Code Quality: ✅ Verified – Minimal, focused changes; `flushNow()` exposed for tests; adheres to layer patterns. Doxygen comments for new public method pending.
-    3. Documentation: ⏳ Pending – Update `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md` to document batching, compression, retry/backoff, and circuit breaker.
-    4. Integration: ✅ Verified – Unit and integration telemetry tests build and pass; mock server integration demonstrates workflow and error handling.
-    5. Tests: ✅ Verified – Unit: 3/3 PASS (timer flush, retry/backoff, circuit breaker). Integration: 1/1 PASS (end-to-end batch upload with compression and single retry).
+    1. Functional: ✅ Verified – TelemetryService batching, retry/backoff, circuit breaker, and compression working. Adapter configures TLS 1.3 and sets gzip header (unit test verified). End-to-end TLS handshake test pending (requires certs/mTLS harness).
+    2. Code Quality: ✅ Verified – Minimal, focused changes. Added Doxygen comments on `HttpTelemetryServerAdapter` public APIs and maintained DDD boundaries. `flushNow()` exposed for tests.
+    3. Documentation: ✅ Verified – Updated `DOC-COMP-031_telemetry_protocol_design.md` with complete protocol documentation: batching strategy, compression, retry/backoff, circuit breaker, TLS 1.3, timeout handling, message format, and testing strategy.
+    4. Integration: ✅ Verified – Telemetry workflow integration tests pass; HTTP adapter workflow test added (500→200 sequence). Service remains decoupled via `ITelemetryServer`.
+    5. Tests: ✅ Verified – Unit: 3/3 PASS (TelemetryService). Adapter unit test: PASS (TLS1.3 + gzip header). Integration: PASS (TelemetryWorkflow), PASS (HttpAdapterWorkflow 500→200).
   - Dependencies: ITelemetryServer interface, RetryPolicy, CircuitBreaker
   - Documentation: See `project-dashboard/doc/components/infrastructure/networking/DOC-COMP-031_telemetry_protocol_design.md` for telemetry design. See `project-dashboard/doc/legacy/architecture_and_design/12_THREAD_MODEL.md` for thread architecture.
   - Prompt: `project-dashboard/prompt/TASK-APP-004-telemetry-service.md`

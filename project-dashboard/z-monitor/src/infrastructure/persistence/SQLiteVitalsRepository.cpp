@@ -248,13 +248,62 @@ namespace zmon
         // Commit transaction
         auto commitResult = m_dbManager->commit();
         if (commitResult.isError())
-            (void)m_dbManager->rollback(); // Ignore rollback errors
         {
+            (void)m_dbManager->rollback(); // Ignore rollback errors
             qWarning() << "SQLiteVitalsRepository::markAsSent - Failed to commit transaction";
             return 0;
         }
 
         return markedCount;
+    }
+
+    size_t SQLiteVitalsRepository::deleteOlderThan(int64_t timestampMs)
+    {
+        if (!m_dbManager)
+        {
+            qWarning() << "SQLiteVitalsRepository::deleteOlderThan - DatabaseManager is null";
+            return 0;
+        }
+
+        using namespace persistence::QueryId;
+
+        QSqlQuery query = m_dbManager->getPreparedQuery(persistence::QueryId::Vitals::DELETE_OLDER_THAN);
+        query.bindValue(":timestamp", static_cast<qint64>(timestampMs));
+
+        if (!query.exec())
+        {
+            qWarning() << "SQLiteVitalsRepository::deleteOlderThan - Query failed:" << query.lastError().text();
+            return 0;
+        }
+
+        return static_cast<size_t>(query.numRowsAffected());
+    }
+
+    size_t SQLiteVitalsRepository::countByPatient(const std::string &patientMrn)
+    {
+        if (!m_dbManager)
+        {
+            qWarning() << "SQLiteVitalsRepository::countByPatient - DatabaseManager is null";
+            return 0;
+        }
+
+        using namespace persistence::QueryId;
+
+        QSqlQuery query = m_dbManager->getPreparedQuery(persistence::QueryId::Vitals::COUNT_BY_PATIENT);
+        query.bindValue(":patient_mrn", QString::fromStdString(patientMrn));
+
+        if (!query.exec())
+        {
+            qWarning() << "SQLiteVitalsRepository::countByPatient - Query failed:" << query.lastError().text();
+            return 0;
+        }
+
+        if (query.next())
+        {
+            return static_cast<size_t>(query.value(0).toLongLong());
+        }
+
+        return 0;
     }
 
     VitalRecord SQLiteVitalsRepository::rowToVitalRecord(const QSqlQuery &query) const

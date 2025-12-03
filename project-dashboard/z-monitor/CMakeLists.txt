@@ -44,6 +44,7 @@ endif()
 
 # Find Qt6 packages
 find_package(Qt6 COMPONENTS Core Gui Qml Quick QuickControls2 Test REQUIRED)
+find_package(Qt6 COMPONENTS Network REQUIRED)
 
 # Optional: spdlog library for high-performance logging
 # Can be enabled with: cmake -DZ_MONITOR_USE_SPDLOG=ON ..
@@ -281,6 +282,14 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/infrastructure/persistence/g
 
 # Add source code subdirectory (handles all DDD layers)
 add_subdirectory(src)
+
+# Build infrastructure HTTP adapter as separate library for reuse in tests
+add_library(zmon_infra_http_adapter
+    src/infrastructure/network/HttpTelemetryServerAdapter.cpp
+    src/infrastructure/network/HttpTelemetryServerAdapter.h
+)
+target_link_libraries(zmon_infra_http_adapter PRIVATE Qt6::Core Qt6::Network)
+target_include_directories(zmon_infra_http_adapter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Generate query reference documentation (after src is added so we can link to libraries)
 add_executable(generate_query_reference

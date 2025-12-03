@@ -16,3 +16,25 @@ target_include_directories(test_schema_generation
 )
 
 add_test(NAME SchemaGenerationTest COMMAND test_schema_generation)
+
+# SQLiteVitalsRepository unit tests (integration tests with in-memory SQLite)
+add_executable(test_sqlite_vitals_repository
+    SQLiteVitalsRepositoryTest.cpp
+)
+
+target_link_libraries(test_sqlite_vitals_repository
+    PRIVATE
+    test_fixtures
+    z_monitor_infrastructure
+    Qt6::Core
+    Qt6::Sql
+    GTest::gtest_main
+)
+
+target_include_directories(test_sqlite_vitals_repository
+    PRIVATE
+    ${Z_MONITOR_ROOT}/src
+    ${Z_MONITOR_ROOT}/tests # For DatabaseTestFixture.h
+)
+
+add_test(NAME SQLiteVitalsRepositoryTest COMMAND test_sqlite_vitals_repository)

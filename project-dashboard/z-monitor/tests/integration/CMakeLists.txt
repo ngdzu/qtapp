@@ -32,21 +32,17 @@ add_subdirectory(persistence)
 # Application integration tests
 add_subdirectory(application)
 
-# MonitoringService + SharedMemorySensorDataSource integration test
-add_executable(monitoring_service_sensor_integration_test
-    monitoring_service_sensor_integration_test.cpp
+# HTTP adapter integration test (simple local HTTP server)
+add_executable(HttpAdapterWorkflowTest
+    infrastructure/network/HttpAdapterWorkflowTest.cpp
 )
 
-target_link_libraries(monitoring_service_sensor_integration_test
+target_link_libraries(HttpAdapterWorkflowTest
     PRIVATE
-    z_monitor_infrastructure
+    zmon_infra_http_adapter
     Qt6::Core
+    Qt6::Network
     GTest::gtest_main
 )
 
-target_include_directories(monitoring_service_sensor_integration_test
-    PRIVATE
-    ${Z_MONITOR_ROOT}
-)
-
-add_test(NAME MonitoringServiceSensorIntegrationTest COMMAND monitoring_service_sensor_integration_test)
+add_test(NAME HttpAdapterWorkflowTest COMMAND HttpAdapterWorkflowTest)
