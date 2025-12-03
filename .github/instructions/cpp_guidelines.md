@@ -628,7 +628,7 @@ void MonitoringService::lookupPatient(const QString& mrn) {
 ### API Documentation (CRITICAL)
 
 - **ALL public classes, methods, properties, and enums MUST have Doxygen-style comments (`/** */`)**
-- **See `.cursor/rules/api_documentation.mdc`** for complete API documentation requirements
+- **See `.github/instructions/api_documentation.mdc`** for complete API documentation requirements
 - **Documentation is required from the beginning** - not optional
 - **Code reviews will reject code without proper API documentation**
 
@@ -726,8 +726,7 @@ When reviewing code, verify:
 
 ## Related Guidelines
 
-- **API Documentation**: See `.cursor/rules/api_documentation.mdc` for complete API documentation requirements
-- **No Hardcoded Values**: See `.cursor/rules/no_hardcoded_values.mdc` for detailed hardcoded values guidelines
+- **API Documentation**: See `.github/instructions/api_documentation.mdc` for complete API documentation requirements
 - **Domain-Driven Design**: See `doc/architecture/DOC-ARCH-028_domain_driven_design.md` for DDD principles
 - **Error Handling**: See `doc/20_ERROR_HANDLING_STRATEGY.md` for error handling strategy
 - **Code Organization**: See `doc/22_CODE_ORGANIZATION.md` for code organization guidelines

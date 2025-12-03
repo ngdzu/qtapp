@@ -626,10 +626,10 @@ docker build -t qtapp-app:local -f Dockerfile .
 
 ### Base Images
 
-| Image | Purpose | Size | Contains |
-|-------|---------|------|-----------|
+| Image                     | Purpose | Size    | Contains                   |
+| ------------------------- | ------- | ------- | -------------------------- |
 | `qtapp-qt-dev-env:latest` | Builder | ~2-3 GB | Qt SDK, CMake, build tools |
-| `qtapp-qt-runtime:latest` | Runtime | ~611 MB | Qt runtime libraries |
+| `qtapp-qt-runtime:latest` | Runtime | ~611 MB | Qt runtime libraries       |
 
 ### Build Pattern
 
@@ -647,10 +647,10 @@ CMD ["./executable"]
 
 ### Run Commands
 
-| Platform | Command |
-|----------|---------|
+| Platform  | Command                                                                               |
+| --------- | ------------------------------------------------------------------------------------- |
 | **macOS** | `DISPLAY=host.docker.internal:0 docker run -e DISPLAY=host.docker.internal:0 <image>` |
-| **Linux** | `docker run -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$DISPLAY <image>` |
+| **Linux** | `docker run -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$DISPLAY <image>`             |
 
 ---
 
@@ -702,9 +702,9 @@ COPY --from=builder /opt/app/executable .
 
 ## 15. Related Guidelines
 
-- **Lesson Guidelines**: See `.cursor/rules/lesson_guidelines.mdc` for lesson-specific Dockerfile requirements
-- **Common Patterns**: See `.cursor/rules/common_patterns.mdc` for application-specific patterns
-- **C++ Guidelines**: See `.cursor/rules/cpp_guidelines.mdc` for code that goes into containers
+- **Lesson Guidelines**: See `.github/instructions/lesson_guidelines.mdc` for lesson-specific Dockerfile requirements
+- **Common Patterns**: See `.github/instructions/common_patterns.mdc` for application-specific patterns
+- **C++ Guidelines**: See `.github/instructions/cpp_guidelines.mdc` for code that goes into containers
 
 ---
 

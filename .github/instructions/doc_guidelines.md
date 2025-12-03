@@ -10,8 +10,8 @@ This document provides comprehensive guidelines for creating, maintaining, and o
 
 **Related Documents:**
 - `DOC_REORGANIZATION_PLAN.md` - Complete documentation reorganization strategy
-- `.github/ztodo_task_guidelines.md` - Task creation guidelines
-- `.github/ztodo_verification.md` - Verification workflow
+- `.github/instructions/ztodo_task_guidelines.md` - Task creation guidelines
+- `.github/instructions/ztodo_verification.md` - Verification workflow
 
 ---
 
