@@ -59,6 +59,8 @@
         <file>components/VitalValue.qml</file>
         <file>components/WaveformPanel.qml</file>
         <file>components/WaveformDisplay.qml</file>
+    <file>components/AlarmPanel.qml</file>
+    <file>demos/AlarmPanelDemo.qml</file>
         <file>components/ConnectionStatus.qml</file>
         <file>components/TrendPanel.qml</file>
         

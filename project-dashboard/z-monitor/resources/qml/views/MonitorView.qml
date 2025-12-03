@@ -2,9 +2,9 @@
  * @file MonitorView.qml
  * @brief Main patient monitoring dashboard view
  *
- * Displays waveforms (left 8 cols) and vital signs (right 4 cols)
+ * Displays waveforms (left) and vital signs (right)
  * Binds to dashboardController and waveformController for live data
- * Converted from Node.js MonitorView.tsx - exact grid structure match
+ * Alarms accessed via bell icon in header
  */
 
 import QtQuick
@@ -15,12 +15,12 @@ import "qrc:/qml/components"
 Item {
     id: root
 
-    // Grid layout matching React grid-cols-12 gap-1
+    // Grid layout: waveforms (66.67%), vitals (33.33%)
     RowLayout {
         anchors.fill: parent
         spacing: 4 // gap-1 in Tailwind (4px)
 
-        // Left Column: Waveforms (col-span-8 = 8/12 = 66.67%)
+        // Left Column: Waveforms (66.67%)
         ColumnLayout {
             Layout.fillHeight: true
             Layout.preferredWidth: parent.width * 0.6667
@@ -154,7 +154,7 @@ Item {
             }
         }
 
-        // Right Column: Vital Signs (col-span-4 = 4/12 = 33.33%)
+        // Right Column: Vitals (33.33%)
         ColumnLayout {
             Layout.fillHeight: true
             Layout.preferredWidth: parent.width * 0.3333
