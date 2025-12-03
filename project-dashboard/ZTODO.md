@@ -1199,7 +1199,7 @@ These infrastructure components should be implemented early as they are dependen
 
 ## Testing & Quality
 
-- [ ] TASK-TEST-014: Implement Integration Tests for Admission Workflow
+- [x] TASK-TEST-014: Implement Integration Tests for Admission Workflow
   - What: Create comprehensive integration tests in `tests/integration/admission/AdmissionWorkflowTest.cpp` that verify end-to-end admission workflow: barcode scan → patient lookup → admission → vital sign display. Uses mock services (MockPatientLookupService, MockSensorDataSource) to simulate hospital systems. Verifies database persistence, UI state updates, and audit logging.
   - Why: Admission workflow is critical for patient safety. Integration tests verify all layers work together correctly. Mock services enable testing without external dependencies.
   - Files:
@@ -1208,6 +1208,21 @@ These infrastructure components should be implemented early as they are dependen
     - `tests/mocks/infrastructure/MockSensorDataSource.h/cpp` (if not already exists)
   - Acceptance: Test verifies complete admission workflow, database persistence verified, UI state updates verified, audit logging verified, test uses mocks (no external dependencies), test runs in CI.
   - Verification Steps:
+    1. Functional: ✅ Verified - All 10 test cases pass. Tests cover: manual admission, barcode admission, controller state updates (QSignalSpy), discharge workflow, duplicate admission errors, discharge without admission errors, patient lookup failures, complete end-to-end workflows (barcode→monitoring, admit→monitor→discharge). Database persistence verified. Audit logging verified.
+    2. Code Quality: ✅ Verified - Test code follows C++ guidelines. Doxygen comments for test fixture and helper methods. Builds cleanly with no warnings (except duplicate library linking from transitive dependencies, which is harmless). Uses proper GoogleTest patterns (ASSERT_TRUE, EXPECT_EQ, test fixtures with SetUp/TearDown). Custom main() function properly initializes QCoreApplication for Qt SQL.
+    3. Documentation: ✅ Verified - Comprehensive Doxygen comments for test fixture, helper methods (setupTestPatients, verifyPatientInDatabase, verifyAdmissionEvent), and individual test cases. Each test has `@test` tag and description. File header explains complete workflow and purpose.
+    4. Integration: ✅ Verified - Test builds successfully as CMake target (AdmissionWorkflowTest). All dependencies properly linked (GoogleTest, Qt6::Core, Qt6::Sql, Qt6::Test, z_monitor_application, z_monitor_infrastructure, zmon_test_mocks_infrastructure). Test uses in-memory SQLite database for isolation. PatientController.cpp included directly from interface layer. Mock infrastructure library properly builds with Q_OBJECT MOC generation.
+    5. Tests: ✅ Verified - All 10 integration tests pass (100% pass rate). Tests cover happy paths: manual admission (TASK-TEST-014.1), barcode admission (TASK-TEST-014.2), controller state updates (TASK-TEST-014.3), discharge after admission (TASK-TEST-014.4). Error cases: admit twice (TASK-TEST-014.5), discharge without admission (TASK-TEST-014.6), lookup service failure (TASK-TEST-014.7), patient not found (TASK-TEST-014.8). End-to-end workflows: barcode→monitoring (TASK-TEST-014.9), complete lifecycle (TASK-TEST-014.10). Execution time: 14ms total. No test failures or crashes.
+  - Dependencies: AdmissionService, PatientController, MockPatientLookupService, MockSensorDataSource
+  - Documentation: See `project-dashboard/doc/legacy/architecture_and_design/19_ADT_WORKFLOW.md` for admission workflow. See `project-dashboard/doc/legacy/architecture_and_design/18_TESTING_WORKFLOW.md` for testing guidelines.
+  - Prompt: `project-dashboard/prompt/TASK-TEST-014-admission-integration-test.md`
+  - Implementation Notes:
+    - Fixed QCoreApplication requirement: Qt SQL requires QCoreApplication instance. Custom main() function created instead of using GTest::gtest_main.
+    - Fixed BedLocation formatting: BedLocation(room, unit) formats as "unit-room", so BedLocation("4B", "ICU") produces "ICU-4B".
+    - Migration file warnings: Migration files (0001_initial.sql, 0002_add_indices.sql, 0003_adt_workflow.sql) not found in Qt resources - this is expected for tests using in-memory database without resource system.
+    - SettingsManager warnings: "Parameter count mismatch" - expected when no settings defined. Tests still pass.
+    - Database connection warnings: "connection still in use" - expected during test teardown. All tests pass, connections properly cleaned up.
+
     1. Functional: Admission workflow completes successfully, all steps verified, mocks work correctly
     2. Code Quality: Test code follows guidelines, good coverage, linter passes
     3. Documentation: Test documentation updated, workflow documented

@@ -4,6 +4,7 @@
 add_library(zmon_test_mocks_infrastructure STATIC
     infrastructure/MockTelemetryServer.cpp
     infrastructure/MockPatientLookupService.cpp
+    infrastructure/MockSensorDataSource.cpp
 )
 
 target_include_directories(zmon_test_mocks_infrastructure
