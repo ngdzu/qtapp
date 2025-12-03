@@ -40,9 +40,12 @@ target_link_libraries(z-monitor
     z_monitor_infrastructure # Infrastructure layer (provides domain + application transitively)
     Qt6::Core
     Qt6::Gui
+    Qt6::Widgets
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickControls2
+    Qt6::Charts
+    Qt6::ChartsQml
 )
 
 # Deploy SQLite plugin to build directory for runtime loading
@@ -53,9 +56,16 @@ if(Qt6_FOUND)
         OUTPUT_VARIABLE QT_PLUGINS_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
+    execute_process(
+        COMMAND ${QT_QMAKE_EXECUTABLE} -query QT_INSTALL_QML
+        OUTPUT_VARIABLE QT_QML_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 
     set(SQL_PLUGIN_SOURCE "${QT_PLUGINS_DIR}/sqldrivers/libqsqlite.dylib")
     set(SQL_PLUGIN_DEST "${CMAKE_CURRENT_BINARY_DIR}/sqldrivers")
+    set(CHARTS_QML_SOURCE "${QT_QML_DIR}/QtCharts")
+    set(CHARTS_QML_DEST "${CMAKE_CURRENT_BINARY_DIR}/../qml/QtCharts")
 
     add_custom_command(TARGET z-monitor POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${SQL_PLUGIN_DEST}
@@ -63,6 +73,14 @@ if(Qt6_FOUND)
         "${SQL_PLUGIN_SOURCE}"
         "${SQL_PLUGIN_DEST}/libqsqlite.dylib"
         COMMENT "Deploying SQLite plugin to ${SQL_PLUGIN_DEST}"
+    )
+
+    add_custom_command(TARGET z-monitor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CHARTS_QML_DEST}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CHARTS_QML_SOURCE}"
+        "${CHARTS_QML_DEST}"
+        COMMENT "Deploying QtCharts QML plugin to ${CHARTS_QML_DEST}"
     )
 endif()
 

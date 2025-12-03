@@ -7,7 +7,7 @@
  * for live sensor data display.
  */
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QStandardPaths>
@@ -56,7 +56,7 @@
  */
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
 
     // Add executable directory to plugin search path
     // Qt will automatically append "/sqldrivers" when searching for SQL plugins
@@ -156,6 +156,11 @@ int main(int argc, char *argv[])
 
     // Ensure QML engine can import resources under qrc:/qml
     engine.addImportPath("qrc:/qml");
+
+    // Add build/qml directory for deployed QML plugins (e.g., QtCharts)
+    QString buildQmlPath = QCoreApplication::applicationDirPath() + "/../qml";
+    engine.addImportPath(buildQmlPath);
+    qInfo() << "Added QML import path:" << buildQmlPath;
 
     // Register controllers as QML singletons (accessible globally in QML)
     engine.rootContext()->setContextProperty("dashboardController", dashboardController);

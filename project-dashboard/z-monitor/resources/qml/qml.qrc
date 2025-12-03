@@ -21,6 +21,7 @@
         <file>icons/settings-white.svg</file>
         <file>icons/settings-muted.svg</file>
         <file>icons/log-out-gray.svg</file>
+        <file>icons/log-out-muted.svg</file>
         
         <!-- Icons - Battery (level variants) -->
         <file>icons/battery.svg</file>

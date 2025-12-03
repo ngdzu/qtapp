@@ -43,8 +43,9 @@ elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../vcpkg/scripts/buildsystems/vcpkg.c
 endif()
 
 # Find Qt6 packages
-find_package(Qt6 COMPONENTS Core Gui Qml Quick QuickControls2 Test REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Widgets Qml Quick QuickControls2 Test REQUIRED)
 find_package(Qt6 COMPONENTS Network REQUIRED)
+find_package(Qt6 COMPONENTS Charts ChartsQml REQUIRED)
 
 # Optional: spdlog library for high-performance logging
 # Can be enabled with: cmake -DZ_MONITOR_USE_SPDLOG=ON ..

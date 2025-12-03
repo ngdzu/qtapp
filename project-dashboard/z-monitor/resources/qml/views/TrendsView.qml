@@ -14,16 +14,18 @@
  * @date 2025-11-30
  */
 
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import QtCharts 2.3
-import "qrc:/qml/components"
-import QtQuick.Window 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtCharts
+import "../components"
 
 Item {
     id: root
     anchors.fill: parent
+    
+    property bool debugInit: { console.info("TrendsView ROOT CREATED"); return true; }
+    
     property color panelBorder: "#27272a" // zinc-800
     property color panelBg: "#18181b"    // zinc-900 (medical-panel)
     property color gridColor: "#333333"
@@ -31,52 +33,25 @@ Item {
     // Time range selector state
     property int hours: 24
 
+    Component.onCompleted: {
+        console.info("TrendsView Component.onCompleted");
+        // Initialize controller time range
+        if (typeof trendsController !== 'undefined' && trendsController) {
+            console.info("TrendsView: trendsController exists, initializing time range");
+            var end = new Date();
+            var start = new Date(end.getTime() - hours * 60 * 60 * 1000);
+            trendsController.setStartTime(start);
+            trendsController.setEndTime(end);
+            console.info("TrendsView: time range set");
+        } else {
+            console.info("TrendsView: trendsController not available");
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 16
         anchors.margins: 16
-
-        // Patient banner (simple replica)
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 56
-            color: panelBg
-            border.color: panelBorder
-            border.width: 1
-            radius: 4
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 12
-                spacing: 16
-
-                // Avatar placeholder
-                Rectangle {
-                    width: 32
-                    height: 32
-                    radius: 16
-                    color: "#27272a"
-                    border.color: "#3f3f46"
-                    border.width: 1
-                }
-
-                Column {
-                    spacing: 2
-                    Text {
-                        text: "DOE, JOHN"
-                        color: "#fafafa" // zinc-50
-                        font.bold: true
-                        font.pixelSize: 13
-                    }
-                    Text {
-                        text: "BED-04"
-                        color: "#10b981" // emerald-500
-                        font.pixelSize: 11
-                        font.family: "monospace"
-                    }
-                }
-            }
-        }
 
         // Header with filter chip, clock, and range selector
         RowLayout {
@@ -157,6 +132,10 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 12
+            
+            Component.onCompleted: {
+                console.info("TrendsView: About to create TrendPanels");
+            }
 
             // HEART RATE panel
             TrendPanel {

@@ -313,15 +313,30 @@ ApplicationWindow {
                 source: {
                     switch (root.currentView) {
                     case root.viewState.Monitor:
+                        console.info("Main: Loading MonitorView");
                         return "views/MonitorView.qml";
                     case root.viewState.Trends:
+                        console.info("Main: Loading TrendsView");
                         return "views/TrendsView.qml";
                     case root.viewState.Analysis:
+                        console.info("Main: Loading AnalysisView");
                         return "views/AnalysisView.qml";
                     case root.viewState.Settings:
+                        console.info("Main: Loading SettingsView");
                         return "views/SettingsView.qml";
                     default:
+                        console.info("Main: Loading default MonitorView");
                         return "views/MonitorView.qml";
+                    }
+                }
+                
+                onStatusChanged: {
+                    if (status === Loader.Loading) {
+                        console.info("Loader: Loading", source);
+                    } else if (status === Loader.Ready) {
+                        console.info("Loader: Ready", source);
+                    } else if (status === Loader.Error) {
+                        console.error("Loader: Error loading", source);
                     }
                 }
             }
