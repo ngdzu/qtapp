@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/qml">
+            <file>components/PatientBanner.qml</file>
+            <file>views/PatientProfileView.qml</file>
         <file>Main.qml</file>
         <file>Theme.qml</file>
         <file>qmldir</file>

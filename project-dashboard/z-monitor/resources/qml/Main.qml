@@ -16,6 +16,7 @@ import QtQuick.Layouts
 import "components"
 import "views"
 import qml 1.0
+import "components"
 
 ApplicationWindow {
     id: root
@@ -49,7 +50,8 @@ ApplicationWindow {
             Monitor: 0,
             Trends: 1,
             Analysis: 2,
-            Settings: 3
+            Settings: 3,
+            PatientProfile: 4
         })
 
     property int currentView: root.viewState.Monitor
@@ -99,47 +101,16 @@ ApplicationWindow {
                 spacing: 16
 
                 // Patient Banner (Left)
-                Rectangle {
+                PatientBanner {
                     Layout.preferredWidth: 220
                     Layout.fillHeight: true
-                    color: Theme.colors.banner
-                    border.color: Theme.colors.bannerBorder
-                    border.width: 1
-                    radius: 6
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 12
-
-                        // Avatar (User icon)
-                        Image {
-                            Layout.preferredWidth: 32
-                            Layout.preferredHeight: 32
-                            source: "qrc:/qml/icons/user.svg"
-                            fillMode: Image.PreserveAspectFit
-                        }
-
-                        // Patient Info
-                        Column {
-                            Layout.fillWidth: true
-                            spacing: 2
-
-                            Text {
-                                text: "DOE, JOHN"
-                                font.pixelSize: 13
-                                font.bold: true
-                                color: root.colorText
-                            }
-
-                            Text {
-                                text: "BED-04"
-                                font.pixelSize: 10
-                                font.family: Theme.fonts.mono
-                                color: root.colorECG
-                            }
-                        }
-                    }
+                    name: patientController.displayName
+                    bedLabel: patientController.bed
+                    bannerColor: Theme.colors.banner
+                    bannerBorderColor: Theme.colors.bannerBorder
+                    colorText: root.colorText
+                    accentColor: root.colorECG
+                    onBannerClicked: root.currentView = root.viewState.PatientProfile
                 }
 
                 // Spacer
@@ -149,64 +120,30 @@ ApplicationWindow {
 
                 // Clinician Info
                 Column {
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: 2
-
+                    spacing: 6
                     Text {
-                        text: "SARAH JOHNSON"
-                        font.pixelSize: 11
-                        font.bold: true
+                        id: clockText
+                        text: Qt.formatTime(new Date(), "HH:mm:ss")
+                        font.pixelSize: 12
+                        font.family: Theme.fonts.mono
                         color: root.colorTextMuted
-                        horizontalAlignment: Text.AlignRight
                     }
-
+                    Timer {
+                        interval: 1000
+                        running: true
+                        repeat: true
+                        onTriggered: clockText.text = Qt.formatTime(new Date(), "HH:mm:ss")
+                    }
+                    Rectangle {
+                        width: 1
+                        height: 14
+                        color: "#3f3f46" // Zinc-700
+                    }
                     Text {
-                        text: "CLINICIAN"
-                        font.pixelSize: 9
-                        font.bold: true
-                        font.letterSpacing: 1.5
-                        color: Theme.colors.clinicianSubtle
-                        horizontalAlignment: Text.AlignRight
-                    }
-                }
-
-                // Clock & Date
-                Rectangle {
-                    Layout.preferredWidth: 160
-                    Layout.fillHeight: true
-                    color: "transparent"
-
-                    RowLayout {
-                        anchors.centerIn: parent
-                        spacing: 8
-
-                        Text {
-                            id: clockText
-                            text: Qt.formatTime(new Date(), "HH:mm:ss")
-                            font.pixelSize: 12
-                            font.family: Theme.fonts.mono
-                            color: root.colorTextMuted
-
-                            Timer {
-                                interval: 1000
-                                running: true
-                                repeat: true
-                                onTriggered: clockText.text = Qt.formatTime(new Date(), "HH:mm:ss")
-                            }
-                        }
-
-                        Rectangle {
-                            width: 1
-                            height: 14
-                            color: "#3f3f46" // Zinc-700
-                        }
-
-                        Text {
-                            text: Qt.formatDate(new Date(), "dd MMM yyyy").toUpperCase()
-                            font.pixelSize: 12
-                            font.family: Theme.fonts.mono
-                            color: "#52525b" // Zinc-600
-                        }
+                        text: Qt.formatDate(new Date(), "dd MMM yyyy").toUpperCase()
+                        font.pixelSize: 12
+                        font.family: Theme.fonts.mono
+                        color: "#52525b" // Zinc-600
                     }
                 }
 
@@ -306,6 +243,16 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
+            Component {
+                id: patientProfileComponent
+                PatientProfileView {
+                    panelColor: root.colorPanel
+                    borderColor: root.colorBorder
+                    textColor: root.colorText
+                    accentColor: root.colorECG
+                }
+            }
+
             Loader {
                 id: contentLoader
                 anchors.fill: parent
@@ -324,6 +271,9 @@ ApplicationWindow {
                     case root.viewState.Settings:
                         console.info("Main: Loading SettingsView");
                         return "views/SettingsView.qml";
+                    case root.viewState.PatientProfile:
+                        console.info("Main: Loading PatientProfileView");
+                        return "";
                     default:
                         console.info("Main: Loading default MonitorView");
                         return "views/MonitorView.qml";
@@ -339,7 +289,10 @@ ApplicationWindow {
                         console.error("Loader: Error loading", source);
                     }
                 }
+                sourceComponent: currentView === viewState.PatientProfile ? patientProfileComponent : undefined
             }
+
+            // ADT view is loaded via Loader above
         }
 
         // Bottom Navigation Bar - 64px

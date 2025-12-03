@@ -58,6 +58,22 @@ namespace zmon
         // onPatientAdmitted will update properties via signal
     }
 
+    void PatientController::admitFromUi(const QString &mrn, const QString &unit, const QString &loc)
+    {
+        if (!m_admissionService)
+            return;
+        const std::string smrn = mrn.toStdString();
+        PatientIdentity identity(smrn, m_patientName.toStdString(), 0, std::string("Unknown"));
+        BedLocation bed(loc.toStdString(), unit.toStdString());
+        auto result = m_admissionService->admitPatient(identity, bed, AdmissionService::AdmissionSource::Manual);
+        if (result.isError())
+        {
+            // TODO: emit error signal for UI
+            return;
+        }
+        // Properties updated via onPatientAdmitted()
+    }
+
     void PatientController::dischargePatient()
     {
         if (!m_admissionService)

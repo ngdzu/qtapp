@@ -46,3 +46,6 @@ target_link_libraries(HttpAdapterWorkflowTest
 )
 
 add_test(NAME HttpAdapterWorkflowTest COMMAND HttpAdapterWorkflowTest)
+
+# Admission workflow integration tests
+add_subdirectory(admission)

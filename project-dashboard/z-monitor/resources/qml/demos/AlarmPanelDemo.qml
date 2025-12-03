@@ -14,6 +14,7 @@ ApplicationWindow {
 
     // Note: run with a non-native style if you want custom Button visuals
     // Example: QT_QUICK_CONTROLS_STYLE=Basic
+    import ZMonitor 1.0
 
     // Mock AlarmController implementing expected API surface
     QtObject {
@@ -76,5 +77,24 @@ ApplicationWindow {
         anchors.fill: parent
         audioEnabled: false // disable audio for demo unless assets added
         alarmController: mockAlarmController
+        // Minimal Admission UI
+        GroupBox {
+            title: "Admission"
+            Layout.fillWidth: true
+            ColumnLayout {
+                spacing: 6
+                RowLayout {
+                    Layout.fillWidth: true
+                    TextField { id: mrnField; placeholderText: "MRN"; Layout.fillWidth: true }
+                    TextField { id: unitField; placeholderText: "Unit (e.g., ICU)"; Layout.preferredWidth: 120 }
+                    TextField { id: locField; placeholderText: "Location (e.g., 04B)"; Layout.preferredWidth: 100 }
+                    Button {
+                        text: "Admit"
+                        onClicked: patientController.admitFromUi(mrnField.text, unitField.text, locField.text)
+                    }
+                }
+                Label { text: `Admitted: ${patientController.isAdmitted ? patientController.patientMrn : "No"}`; color: "white" }
+            }
+        }
     }
 }

@@ -118,6 +118,15 @@ namespace zmon
         void onPatientAdmitted();
 
         /**
+         * @brief Admit a patient from UI.
+         *
+         * Convenience entry-point for QML to admit a patient by MRN and a simple
+         * location string (unit-location). Internally constructs domain value
+         * objects and calls AdmissionService.
+         */
+        Q_INVOKABLE void admitFromUi(const QString &mrn, const QString &unit, const QString &loc);
+
+        /**
          * @brief Handle patient discharged from AdmissionService.
          *
          * @note Called when AdmissionService emits patientDischarged signal
