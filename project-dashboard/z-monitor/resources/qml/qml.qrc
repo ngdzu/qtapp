@@ -58,6 +58,7 @@
         <file>components/VitalTile.qml</file>
         <file>components/VitalValue.qml</file>
         <file>components/WaveformPanel.qml</file>
+        <file>components/WaveformDisplay.qml</file>
         <file>components/ConnectionStatus.qml</file>
         <file>components/TrendPanel.qml</file>
         

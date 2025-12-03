@@ -65,13 +65,13 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
 
-                        WaveformPanel {
+                        WaveformDisplay {
                             anchors.fill: parent
-                            label: ""
-                            labelColor: "#10b981"
+                            label: "II ECG"
                             waveformColor: "#10b981"
-                            showFilter: false
+                            gridColor: "#27272a40"
                             waveformData: waveformController.ecgData
+                            showQuality: true
                         }
                     }
                 }
@@ -103,13 +103,13 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
 
-                        WaveformPanel {
+                        WaveformDisplay {
                             anchors.fill: parent
-                            label: ""
-                            labelColor: "#3b82f6"
+                            label: "PLETH"
                             waveformColor: "#3b82f6"
-                            showFilter: false
+                            gridColor: "#27272a40"
                             waveformData: waveformController.plethData
+                            showQuality: true
                         }
                     }
                 }
@@ -141,13 +141,13 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
 
-                        WaveformPanel {
+                        WaveformDisplay {
                             anchors.fill: parent
-                            label: ""
-                            labelColor: "#eab308"
+                            label: "RESP"
                             waveformColor: "#eab308"
-                            showFilter: false
+                            gridColor: "#27272a40"
                             waveformData: waveformController.respData
+                            showQuality: true
                         }
                     }
                 }

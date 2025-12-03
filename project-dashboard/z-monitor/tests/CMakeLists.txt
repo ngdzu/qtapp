@@ -25,6 +25,9 @@ add_subdirectory(unit)
 # Integration tests
 add_subdirectory(integration)
 
+# QML component tests
+add_subdirectory(qml)
+
 # End-to-end tests (to be implemented)
 # add_subdirectory(e2e)
 

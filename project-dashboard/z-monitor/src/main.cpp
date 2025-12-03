@@ -64,8 +64,6 @@ int main(int argc, char *argv[])
     QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
     // Also add explicit sqldrivers subdir to be safe
     QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath() + "/sqldrivers");
-    qInfo() << "Qt library paths:" << QCoreApplication::libraryPaths();
-    qInfo() << "Available SQL drivers:" << QSqlDatabase::drivers();
 
     // Verify SQLite driver is available
     if (!QSqlDatabase::isDriverAvailable("QSQLITE"))
@@ -76,47 +74,29 @@ int main(int argc, char *argv[])
     }
     else
     {
-        qInfo() << "QSQLITE driver is available";
     }
 
     // Load configuration and build DI container
     const zmon::AppConfig cfg = zmon::ConfigLoader::load();
     zmon::DIContainer container(cfg, &app);
 
-    // Initialize container (DB + migrations + queries + repositories)
-    auto openResult = container.databaseManager()->open(cfg.databasePath);
-    if (openResult.isError())
+    // Initialize container (DB + migrations + queries + repositories + services)
+    if (!container.initialize())
     {
-        qCritical() << "Failed to open database:" << QString::fromStdString(openResult.error().message);
-        // Continue anyway - repositories will handle closed database gracefully
-    }
-    else
-    {
-        qInfo() << "Database opened successfully at:" << cfg.databasePath;
+        qCritical() << "Failed to initialize DI container";
+        return 1;
     }
 
-    // Run migrations to create schema (if not already created)
-    auto migrateResult = container.databaseManager()->executeMigrations();
-    if (migrateResult.isError())
-    {
-        qCritical() << "Failed to run migrations:" << QString::fromStdString(migrateResult.error().message);
-    }
-    else
-    {
-        qInfo() << "Database migrations executed successfully";
-    }
-
-    // Initialize all prepared queries (REQUIRED before using any repository)
-    zmon::persistence::QueryCatalog::initializeQueries(container.databaseManager().get());
-    qInfo() << "Database queries initialized";
-
-    // Create repositories
+    // Create repositories (now they're already created by container.initialize())
     std::shared_ptr<zmon::IPatientRepository> patientRepo = container.patientRepository();
+
     std::shared_ptr<zmon::IVitalsRepository> vitalsRepo = container.vitalsRepository();
+
     std::shared_ptr<zmon::ITelemetryRepository> telemetryRepo = container.telemetryRepository();
+
     std::shared_ptr<zmon::IAlarmRepository> alarmRepo = container.alarmRepository();
 
-    // Create application service layer
+    // Create application service layer (already created by container.initialize())
     auto monitoringService = container.monitoringService();
 
     // Create interface controllers
@@ -132,6 +112,7 @@ int main(int argc, char *argv[])
     // Instantiate AdmissionService (placeholder: retrieve from DI if available)
     // For now, construct with nullptr for action log repo
     auto admissionService = new zmon::AdmissionService(nullptr, &app);
+
     auto patientController = new zmon::PatientController(
         admissionService,
         &app);
@@ -156,11 +137,15 @@ int main(int argc, char *argv[])
         &app);
 
     // Start monitoring service
+
     bool started = monitoringService->start();
     if (!started)
     {
         qWarning() << "Failed to start monitoring service";
         // Continue anyway - UI will show disconnected state
+    }
+    else
+    {
     }
 
     // Start waveform rendering at 60 FPS

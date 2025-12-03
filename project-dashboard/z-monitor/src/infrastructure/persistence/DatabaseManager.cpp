@@ -276,8 +276,9 @@ namespace zmon
         // Simple migration: Execute schema files in order
         // For production: Use a schema_version table to track which migrations have been applied
         QStringList migrations = {
-            ":/schema/migrations/0001_schema.sql",
-            ":/schema/migrations/0002_add_indices.sql"};
+            ":/schema/migrations/0001_initial.sql",
+            ":/schema/migrations/0002_add_indices.sql",
+            ":/schema/migrations/0003_adt_workflow.sql"};
 
         for (const QString &migrationPath : migrations)
         {
@@ -300,8 +301,8 @@ namespace zmon
             QSqlQuery query(m_writeDb);
             bool migrationSuccess = true;
 
-            // Ensure foreign keys enforcement
-            query.exec("PRAGMA foreign_keys = ON");
+            // Temporarily disable foreign keys for schema migration (tables may reference each other)
+            query.exec("PRAGMA foreign_keys = OFF");
 
             // Begin transaction programmatically for this migration
             if (!m_writeDb.transaction())

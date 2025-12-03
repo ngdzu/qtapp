@@ -71,16 +71,21 @@ namespace zmon
 
     bool MonitoringService::start()
     {
+
         // Start sensor data source
         if (m_sensorDataSource)
         {
             auto startResult = m_sensorDataSource->start();
+
             if (startResult.isError())
             {
                 qWarning() << "Failed to start sensor data source:"
                            << QString::fromStdString(startResult.error().message);
                 return false;
             }
+        }
+        else
+        {
         }
 
         // Create initial telemetry batch
