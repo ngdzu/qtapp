@@ -1,6 +1,6 @@
 -- Auto-generated DDL for index creation
--- Generated: 2025-12-03 00:53:01 UTC
--- Schema Source Hash: 7d3743f3a635
+-- Generated: 2025-12-04 14:02:56 UTC
+-- Schema Source Hash: ddec5888b3d6
 -- ⚠️ DO NOT EDIT MANUALLY - Edit schema/database.yaml and regenerate
 
 CREATE INDEX IF NOT EXISTS idx_action_log_timestamp ON action_log (timestamp_ms);
@@ -20,6 +20,9 @@ CREATE INDEX IF NOT EXISTS idx_alarms_start_time ON alarms (start_time);
 CREATE INDEX IF NOT EXISTS idx_annotations_snapshot ON annotations (snapshot_id);
 
 CREATE INDEX IF NOT EXISTS idx_archival_jobs_status ON archival_jobs (status);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_certificate_store_name ON certificate_store (name);
+CREATE INDEX IF NOT EXISTS idx_certificate_store_expiry ON certificate_store (not_after) WHERE active = 1;
 
 CREATE INDEX IF NOT EXISTS idx_certificates_device_status ON certificates (device_id, status);
 CREATE INDEX IF NOT EXISTS idx_certificates_expires ON certificates (expires_at) WHERE status = 'active';

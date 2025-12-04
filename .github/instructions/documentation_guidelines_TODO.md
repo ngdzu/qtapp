@@ -183,7 +183,7 @@ Before marking documentation updates complete:
 5. **Update ZTODO.md proactively** - Add tasks before implementation
 6. **Verify diagram syntax** - Always regenerate SVG to catch errors
 7. **Review cross-references** - Ensure links still work after changes
-8. **Centralize documentation location** - All project documentation MUST reside under `project-dashboard/doc/`. Do NOT create or keep documentation files under `project-dashboard/z-monitor/doc/` or any nested module `doc` folders. If a new doc is added in a submodule, MOVE it to `project-dashboard/doc/` and adjust references. This prevents fragmentation and ensures single-source discoverability.
+8. **⚠️ Use centralized documentation location** - All documentation MUST be in `project-dashboard/doc/`, never in submodule `doc/` folders
 
 ## Related Guidelines
 

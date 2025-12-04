@@ -10,9 +10,9 @@
  *   2. Run: python3 scripts/generate_schema.py
  *   3. Commit both files together
  *
- * Generated: 2025-12-02 23:26:38 UTC
+ * Generated: 2025-12-04 14:02:56 UTC
  * Schema Version: 1.0.0
- * Schema Source Hash: 7d3743f3a635
+ * Schema Source Hash: ddec5888b3d6
  */
 
 #ifndef SCHEMAINFO_H
@@ -44,6 +44,8 @@ namespace Tables {
     constexpr const char* ANNOTATIONS = "annotations";
     ///< Tracks archival/export jobs and their status
     constexpr const char* ARCHIVAL_JOBS = "archival_jobs";
+    ///< Certificate storage for TLS/SSL certificates with full PEM data and lifecycle management
+    constexpr const char* CERTIFICATE_STORE = "certificate_store";
     ///< Certificate metadata for installed device/server certs (no private keys stored)
     constexpr const char* CERTIFICATES = "certificates";
     ///< Metadata about DB encryption key and algorithm (not the key itself)
@@ -227,6 +229,35 @@ namespace Columns {
         constexpr const char* STATUS = "status";
         ///< table_name
         constexpr const char* TABLE_NAME = "table_name";
+    }
+
+    /**
+     * @namespace CertificateStore
+     * @brief Column names for certificate_store table.
+     *
+     * Certificate storage for TLS/SSL certificates with full PEM data and lifecycle management
+     */
+    namespace CertificateStore {
+        ///< Whether certificate is active (1) or deactivated (0)
+        constexpr const char* ACTIVE = "active";
+        ///< Primary key
+        constexpr const char* ID = "id";
+        ///< Installation timestamp (ISO 8601)
+        constexpr const char* INSTALLED_AT = "installed_at";
+        ///< Certificate issuer DN
+        constexpr const char* ISSUER = "issuer";
+        ///< Unique certificate identifier/name
+        constexpr const char* NAME = "name";
+        ///< Certificate validity end (ISO 8601)
+        constexpr const char* NOT_AFTER = "not_after";
+        ///< Certificate validity start (ISO 8601)
+        constexpr const char* NOT_BEFORE = "not_before";
+        ///< PEM-encoded certificate data
+        constexpr const char* PEM = "pem";
+        ///< Certificate subject DN
+        constexpr const char* SUBJECT = "subject";
+        ///< Certificate type (0=TlsServer, 1=TlsClient, 2=CA)
+        constexpr const char* TYPE = "type";
     }
 
     /**

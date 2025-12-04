@@ -150,6 +150,7 @@ User: "Do the next task"
 - **Document as you code** - Doxygen comments are required
 - **No hardcoded values** - Use constants or configuration
 - **Error handling** - Use `Result<T, Error>` for operations that can fail
+- **DRY Principle** - Eliminate code duplication (see `instructions/DRY.md`)
 - **Never stop working on the task until it is done** - Complete all subtasks and verification steps before moving on
 - **⚠️ NEVER commit code** - Do not execute git commit commands or suggest git commit commands. The user must be the one who commits. Never run `git add` and `git commit`.
 - **⚠️ Loop Detection and Safety Stop:** If you detect that you are repeatedly doing the same action or making the same attempt without progress, **stop after 10 repetitions** and provide a summary:
@@ -168,6 +169,7 @@ The detailed rules are split into topic-specific files in `./` to reduce token u
 - `./qml_guidelines.md` - QML coding standards and best practices
 - `./md_guidelines.md` - Markdown documentation standards and formatting
 - `./naming_conventions.md` - Naming conventions for classes, mocks, and components
+- `./DRY.md` - DRY (Don't Repeat Yourself) principle and code duplication elimination
 
 ### Workflow and Process
 - `./ztodo_verification.md` - Complete verification workflow (CRITICAL) - Required for all ZTODO tasks
@@ -189,6 +191,7 @@ The detailed rules are split into topic-specific files in `./` to reduce token u
    - Working with Docker → Attach `./docker_guidelines.md`
    - Writing documentation → Attach `./md_guidelines.md` and `./mermaid_guidelines.md`
    - Doing ZTODO tasks → Attach `./ztodo_verification.md`
+   - Refactoring or code cleanup → Attach `./DRY.md`
 
 2. **Use @workspace or @file mentions** to bring in specific guidelines:
    - `@file ./cpp_guidelines.md` when asking C++ questions
@@ -198,16 +201,17 @@ The detailed rules are split into topic-specific files in `./` to reduce token u
 
 ### Quick Reference: When to Use Which Rules
 
-- **C++ Implementation**: `cpp_guidelines.md` + `api_documentation.md` + `naming_conventions.md`
+- **C++ Implementation**: `cpp_guidelines.md` + `api_documentation.md` + `naming_conventions.md` + `DRY.md`
 - **QML UI Work**: `qml_guidelines.md`
 - **Documentation**: `md_guidelines.md` + `mermaid_guidelines.md` + `documentation_guidelines.md`
 - **ZTODO Tasks**: `ztodo_verification.md` + task-specific guidelines
 - **Lesson Creation**: `lesson_guidelines.md`
 - **Docker/Deployment**: `docker_guidelines.md`
+- **Code Refactoring/Cleanup**: `DRY.md` + `cpp_guidelines.md`
 
 ### Note on Constants and Hardcoded Values
 The "No Hardcoded Values" rule is covered in `./cpp_guidelines.md` (Section 4: Constants and Magic Numbers). Always use constants, configuration, or constants files instead of hardcoded strings, numbers, or paths in production code.
 
-### Note on Constants and Hardcoded Values
-The "No Hardcoded Values" rule is covered in `cpp_guidelines.mdc` (Section 4: Constants and Magic Numbers). Always use constants, configuration, or constants files instead of hardcoded strings, numbers, or paths in production code.
+### Note on Code Duplication
+The DRY (Don't Repeat Yourself) principle is covered in `./DRY.md`. Always identify and eliminate duplicated code by extracting it into reusable functions, classes, or modules.
 

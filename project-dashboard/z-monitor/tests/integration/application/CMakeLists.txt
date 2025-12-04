@@ -3,6 +3,7 @@
 add_executable(MonitoringWorkflowTest
     MonitoringWorkflowTest.cpp
     ${Z_MONITOR_ROOT}/tests/mocks/infrastructure/MockSensorDataSource.h
+    ${Z_MONITOR_ROOT}/tests/mocks/infrastructure/MockSensorDataSource.cpp
 )
 
 target_link_libraries(MonitoringWorkflowTest

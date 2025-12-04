@@ -1,5 +1,6 @@
 #include "tests/fixtures/DatabaseTestFixture.h"
 #include "infrastructure/persistence/QueryRegistry.h"
+#include "infrastructure/persistence/SqlUtils.h"
 #include <filesystem>
 
 namespace zmon::test
@@ -12,9 +13,14 @@ namespace zmon::test
             char *argv[] = {const_cast<char *>("test")};
             m_app = std::make_unique<QCoreApplication>(argc, argv);
         }
+        // CRITICAL FIX: Use unique database name for each test instance
+        // Problem: file::memory:?cache=shared creates a SHARED cache that persists across tests
+        // Solution: Generate unique URI for each test to ensure complete isolation
+        const QString uniqueDbUri = QString("file:test_%1?mode=memory&cache=shared")
+                                        .arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
 
         m_dbManager = std::make_unique<DatabaseManager>();
-        auto result = m_dbManager->open("file::memory:?cache=shared");
+        auto result = m_dbManager->open(uniqueDbUri);
         if (result.isError())
         {
             FAIL() << "Failed to open in-memory database: " << result.error().message;
@@ -33,6 +39,17 @@ namespace zmon::test
     {
         if (m_dbManager)
         {
+            // Force finish any pending queries by clearing result sets
+            // This prevents "connection is still in use" warnings
+            {
+                QSqlQuery q(m_dbManager->getWriteConnection());
+                q.finish();
+            }
+            {
+                QSqlQuery q(m_dbManager->getReadConnection());
+                q.finish();
+            }
+
             m_dbManager->close();
             m_dbManager.reset();
         }
@@ -47,37 +64,6 @@ namespace zmon::test
     DatabaseManager *DatabaseTestFixture::databaseManager()
     {
         return m_dbManager.get();
-    }
-
-    // Simple SQL splitter: splits on semicolons not inside strings.
-    // Good enough for generated DDL which avoids complex constructs.
-    QStringList DatabaseTestFixture::splitSqlStatements(const QString &sql) const
-    {
-        QStringList out;
-        QString current;
-        bool inString = false;
-        const QChar quote('"');
-        for (int i = 0; i < sql.size(); ++i)
-        {
-            QChar c = sql.at(i);
-            if (c == quote)
-            {
-                inString = !inString;
-                current.append(c);
-            }
-            else if (c == ';' && !inString)
-            {
-                out << current;
-                current.clear();
-            }
-            else
-            {
-                current.append(c);
-            }
-        }
-        if (!current.trimmed().isEmpty())
-            out << current;
-        return out;
     }
 
     void DatabaseTestFixture::applyMigrations()
@@ -97,16 +83,17 @@ namespace zmon::test
             const QString sql = QString::fromUtf8(f.readAll());
             f.close();
 
-            const QStringList statements = splitSqlStatements(sql);
+            // Use centralized SQL utility to parse statements
+            const QStringList statements = zmon::sql::splitSqlStatements(sql);
             ASSERT_FALSE(statements.isEmpty()) << "No statements in DDL file " << filePath.toStdString();
 
             bool success = true;
             for (const QString &stmt : statements)
             {
                 const QString trimmed = stmt.trimmed();
-                if (trimmed.isEmpty())
-                    continue;
-                if (trimmed.startsWith("--"))
+
+                // Skip empty statements, comments, and transaction control
+                if (zmon::sql::isSqlComment(trimmed))
                     continue;
                 if (trimmed.startsWith("BEGIN", Qt::CaseInsensitive) ||
                     trimmed.startsWith("COMMIT", Qt::CaseInsensitive) ||

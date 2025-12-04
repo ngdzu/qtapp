@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 #include <QSignalSpy>
 #include <QCoreApplication>
+#include <QUuid>
 
 #include "application/services/AdmissionService.h"
 #include "infrastructure/persistence/DatabaseManager.h"
@@ -48,7 +49,10 @@ namespace
         {
             // Initialize in-memory database and run migrations
             db = std::make_unique<DatabaseManager>();
-            auto opened = db->open(":memory:");
+            // Use unique URI for each test to avoid shared cache contamination
+            const QString uniqueDbUri = QString("file:test_%1?mode=memory&cache=shared")
+                                            .arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
+            auto opened = db->open(uniqueDbUri);
             ASSERT_TRUE(opened.isOk()) << "Failed to open in-memory database";
 
             auto migrated = db->executeMigrations();

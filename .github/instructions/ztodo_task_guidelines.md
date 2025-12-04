@@ -16,6 +16,7 @@ This document provides guidelines for creating well-structured, actionable tasks
 4. **Every task MUST have acceptance criteria** - Clear definition of "done"
 5. **Every task MUST list affected files** - What will be created/modified
 6. **Every task MUST explain WHY** - Business/technical rationale
+7. **Every task MUST avoid code duplication** - Follow DRY principle (see [DRY.md](./DRY.md))
 
 ## Task ID Format
 

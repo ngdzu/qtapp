@@ -12,6 +12,7 @@ This document defines the C++ coding standards and best practices for the Z Moni
 - **RAII First** - Always prefer automatic resource management
 - **Documentation Required** - All public APIs must have Doxygen comments
 - **No Hardcoded Values** - Never hardcode runtime data in production code
+- **DRY Principle** - Eliminate code duplication (see [DRY.md](./DRY.md))
 
 ---
 

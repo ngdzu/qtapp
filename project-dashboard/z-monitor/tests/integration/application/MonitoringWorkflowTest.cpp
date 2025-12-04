@@ -28,6 +28,7 @@
 #include <QCoreApplication>
 #include <QLibraryInfo>
 #include <QFile>
+#include <QUuid>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDateTime>
@@ -35,38 +36,9 @@
 #include <thread>
 #include <filesystem>
 #include "infrastructure/persistence/QueryRegistry.h"
+#include "infrastructure/persistence/SqlUtils.h"
 
 using namespace zmon;
-
-// Helper: Split SQL statements on semicolons, handling quoted strings correctly
-static QStringList splitSqlStatements(const QString &sql)
-{
-    QStringList out;
-    QString current;
-    bool inString = false;
-    const QChar quote('"');
-    for (int i = 0; i < sql.size(); ++i)
-    {
-        QChar c = sql.at(i);
-        if (c == quote)
-        {
-            inString = !inString;
-            current.append(c);
-        }
-        else if (c == ';' && !inString)
-        {
-            out << current;
-            current.clear();
-        }
-        else
-        {
-            current.append(c);
-        }
-    }
-    if (!current.trimmed().isEmpty())
-        out << current;
-    return out;
-}
 
 /**
  * @class MonitoringWorkflowTest
@@ -103,8 +75,11 @@ protected:
 
         // Create in-memory database
         dbManager = std::make_shared<DatabaseManager>();
-        qInfo() << "Opening database with URI: file::memory:?cache=shared";
-        auto openResult = dbManager->open("file::memory:?cache=shared");
+        // Use unique URI to avoid creating files on disk
+        const QString uniqueDbUri = QString("file:test_%1?mode=memory&cache=shared")
+                                        .arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
+        qInfo() << "Opening database with URI:" << uniqueDbUri;
+        auto openResult = dbManager->open(uniqueDbUri);
         ASSERT_TRUE(openResult.isOk()) << "Failed to open database: "
                                        << (openResult.isError() ? openResult.error().message : "Unknown error");
         qInfo() << "Database opened successfully";
@@ -126,8 +101,8 @@ protected:
         ddlFile.close();
         qInfo() << "DDL loaded, size:" << ddl.size() << "bytes";
 
-        // Split SQL statements by semicolon (using helper that handles quotes)
-        QStringList statements = splitSqlStatements(ddl);
+        // Split SQL statements by semicolon (using SqlUtils helper that handles quotes)
+        QStringList statements = zmon::sql::splitSqlStatements(ddl);
         qInfo() << "Split into" << statements.size() << "SQL statements";
 
         // Execute each statement on write connection
@@ -145,38 +120,8 @@ protected:
         int executedCount = 0;
         for (const QString &stmt : statements)
         {
-            // Remove all SQL comments (both line comments and inline comments)
-            // BUT: The generated DDL has commas AFTER the -- comment marker, which is wrong SQL.
-            // Workaround: Extract commas from comments and move them before the comment.
-            QStringList lines = stmt.split('\n');
-            QString cleanedStmt;
-            for (const QString &line : lines)
-            {
-                // Find comment position
-                int commentPos = line.indexOf("--");
-                if (commentPos >= 0)
-                {
-                    QString beforeComment = line.left(commentPos);
-                    QString comment = line.mid(commentPos);
-
-                    // Check if comment starts with a comma (e.g., "-- Primary key,")
-                    // If so, move the comma before the comment
-                    if (comment.trimmed().length() > 2)
-                    {
-                        QString commentContent = comment.mid(2).trimmed(); // Skip "--"
-                        if (commentContent.endsWith(','))
-                        {
-                            beforeComment = beforeComment.trimmed() + ",";
-                        }
-                    }
-
-                    cleanedStmt += beforeComment.trimmed() + "\n";
-                }
-                else
-                {
-                    cleanedStmt += line.trimmed() + "\n";
-                }
-            }
+            // Strip SQL comments using SqlUtils (handles DDL generator bug with commas in comments)
+            QString cleanedStmt = zmon::sql::stripSqlComments(stmt);
 
             QString trimmed = cleanedStmt.trimmed();
             if (trimmed.isEmpty())

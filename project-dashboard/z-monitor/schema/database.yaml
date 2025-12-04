@@ -759,6 +759,74 @@ tables:
         columns: [role]
 
   # ═══════════════════════════════════════════════════════════
+  # CERTIFICATE STORE TABLE
+  # ═══════════════════════════════════════════════════════════
+  certificate_store:
+    description: "Certificate storage for TLS/SSL certificates with full PEM data and lifecycle management"
+    columns:
+      id:
+        type: INTEGER
+        primary_key: true
+        autoincrement: true
+        description: "Primary key"
+        
+      name:
+        type: TEXT
+        not_null: true
+        unique: true
+        description: "Unique certificate identifier/name"
+        
+      type:
+        type: INTEGER
+        not_null: true
+        description: "Certificate type (0=TlsServer, 1=TlsClient, 2=CA)"
+        
+      pem:
+        type: TEXT
+        not_null: true
+        description: "PEM-encoded certificate data"
+        
+      issuer:
+        type: TEXT
+        nullable: true
+        description: "Certificate issuer DN"
+        
+      subject:
+        type: TEXT
+        nullable: true
+        description: "Certificate subject DN"
+        
+      not_before:
+        type: TEXT
+        not_null: true
+        description: "Certificate validity start (ISO 8601)"
+        
+      not_after:
+        type: TEXT
+        not_null: true
+        description: "Certificate validity end (ISO 8601)"
+        
+      installed_at:
+        type: TEXT
+        not_null: true
+        description: "Installation timestamp (ISO 8601)"
+        
+      active:
+        type: INTEGER
+        not_null: true
+        default: 1
+        description: "Whether certificate is active (1) or deactivated (0)"
+    
+    indices:
+      - name: idx_certificate_store_name
+        columns: [name]
+        unique: true
+        
+      - name: idx_certificate_store_expiry
+        columns: [not_after]
+        where: "active = 1"
+
+  # ═══════════════════════════════════════════════════════════
   # CERTIFICATES TABLE
   # ═══════════════════════════════════════════════════════════
   certificates:

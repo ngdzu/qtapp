@@ -1,7 +1,7 @@
 -- Auto-generated DDL for table creation
--- Generated: 2025-12-03 00:53:01 UTC
+-- Generated: 2025-12-04 14:02:56 UTC
 -- Schema Version: 1.0.0
--- Schema Source Hash: 7d3743f3a635
+-- Schema Source Hash: ddec5888b3d6
 -- ⚠️ DO NOT EDIT MANUALLY - Edit schema/database.yaml and regenerate
 
 
@@ -76,6 +76,20 @@ CREATE TABLE IF NOT EXISTS archival_jobs (
     archive_location TEXT,
     archived_at INTEGER NOT NULL,
     status TEXT NOT NULL
+);
+
+-- Certificate storage for TLS/SSL certificates with full PEM data and lifecycle management
+CREATE TABLE IF NOT EXISTS certificate_store (
+    id INTEGER PRIMARY KEY AUTOINCREMENT  -- Primary key,
+    name TEXT NOT NULL UNIQUE  -- Unique certificate identifier/name,
+    type INTEGER NOT NULL  -- Certificate type (0=TlsServer, 1=TlsClient, 2=CA),
+    pem TEXT NOT NULL  -- PEM-encoded certificate data,
+    issuer TEXT  -- Certificate issuer DN,
+    subject TEXT  -- Certificate subject DN,
+    not_before TEXT NOT NULL  -- Certificate validity start (ISO 8601),
+    not_after TEXT NOT NULL  -- Certificate validity end (ISO 8601),
+    installed_at TEXT NOT NULL  -- Installation timestamp (ISO 8601),
+    active INTEGER NOT NULL DEFAULT 1  -- Whether certificate is active (1) or deactivated (0)
 );
 
 -- Certificate metadata for installed device/server certs (no private keys stored)

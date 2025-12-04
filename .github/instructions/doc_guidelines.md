@@ -15,16 +15,51 @@ This document provides comprehensive guidelines for creating, maintaining, and o
 
 ---
 
+## ⚠️ CRITICAL: Centralized Documentation Location
+
+**All project documentation MUST be placed at:**
+```
+project-dashboard/doc/
+```
+
+**DO NOT** create documentation in submodule-specific `doc/` directories such as:
+- ❌ `project-dashboard/z-monitor/doc/`
+- ❌ Any nested module `doc/` folders
+
+**If a document is accidentally created in a submodule, immediately move it to `project-dashboard/doc/` in the appropriate category subdirectory (e.g., `components/`, `architecture/`, `processes/`).**
+
+**Why:** Centralized documentation ensures:
+- Single source of truth
+- Easy discoverability
+- Consistent organization
+- Proper metadata tracking
+- Unified review workflow
+
+---
+
 ## Critical Rules
 
 1. **Every document MUST have a DOC-ID** - Use format: `DOC-{CATEGORY}-{NUMBER}`
-2. **Every document MUST have metadata** - Complete YAML frontmatter required
-3. **Every document MUST follow template** - Use category-specific template
-4. **Every document MUST have owner** - Designated maintainer identified
-5. **Every document MUST link diagrams** - Co-locate diagrams in `diagrams/` subdirectory
-6. **Every document MUST cross-reference** - Link to related docs, tasks, requirements
-7. **Every document MUST be versioned** - Semantic versioning (vMAJOR.MINOR)
-8. **Every document MUST be reviewed** - Follow approval workflow
+   - **⚠️ CRITICAL: DOC-IDs MUST be UNIQUE** within each category (e.g., DOC-COMP-020 can only exist once)
+   - **BEFORE assigning a DOC-ID, check the `_index.md` file** in the document's category subdirectory (e.g., `project-dashboard/doc/components/_index.md`)
+   - The `_index.md` serves as the DOC-ID registry for that category
+   - Use the next sequential number after the highest number currently listed in `_index.md`
+   - Example: If highest COMP is DOC-COMP-032, assign DOC-COMP-033 for the new document
+
+2. **⚠️ AFTER CREATING A DOCUMENT, UPDATE `_index.md`** - Registry MUST stay in sync
+   - **MANDATORY:** Add an entry to the category's `_index.md` file immediately after creating the document
+   - Entry format: `#### [DOC-ID: Document Title](file_name.md)` with metadata (Version, Status, Owner, Tags, Related)
+   - Without this, the document won't be discoverable and DOC-ID collisions will occur
+   - Index must reflect all active documents in that category
+   - This is not optional - missing index entries defeat the purpose of the registry
+
+3. **Every document MUST have metadata** - Complete YAML frontmatter required
+4. **Every document MUST follow template** - Use category-specific template
+5. **Every document MUST have owner** - Designated maintainer identified
+6. **Every document MUST link diagrams** - Co-locate diagrams in `diagrams/` subdirectory
+7. **Every document MUST cross-reference** - Link to related docs, tasks, requirements
+8. **Every document MUST be versioned** - Semantic versioning (vMAJOR.MINOR)
+9. **Every document MUST be reviewed** - Follow approval workflow
 
 ---
 

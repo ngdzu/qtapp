@@ -56,7 +56,6 @@ namespace zmon::test
     private:
         void applyMigrations();
         QStringList discoverMigrationFiles(const QString &dirPath) const;
-        QStringList splitSqlStatements(const QString &sql) const;
 
         std::unique_ptr<DatabaseManager> m_dbManager;
         std::unique_ptr<QCoreApplication> m_app; // Only created if none exists

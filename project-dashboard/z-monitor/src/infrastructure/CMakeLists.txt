@@ -58,6 +58,10 @@ set(INFRASTRUCTURE_SOURCES
     persistence/DatabaseManager.cpp
     persistence/QueryRegistry.h
     persistence/QueryCatalog.cpp
+    persistence/SqlUtils.h
+    persistence/SqlUtils.cpp
+    persistence/SQLiteCertificateRepository.h
+    persistence/SQLiteCertificateRepository.cpp
     persistence/SQLiteActionLogRepository.h
     persistence/SQLiteActionLogRepository.cpp
     persistence/SQLitePatientRepository.h
@@ -74,6 +78,10 @@ set(INFRASTRUCTURE_SOURCES
     persistence/orm/OrmRegistry.h
     persistence/orm/OrmRegistry.cpp
     persistence/orm/PatientEntity.h
+
+    # Security
+    security/CertificateManager.h
+    security/CertificateManager.cpp
 )
 
 # Create infrastructure layer static library

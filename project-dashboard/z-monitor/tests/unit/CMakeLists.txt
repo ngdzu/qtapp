@@ -18,6 +18,9 @@ add_subdirectory(infrastructure/persistence)
 # Infrastructure network tests
 add_subdirectory(infrastructure/network)
 
+# Infrastructure security tests
+add_subdirectory(infrastructure/security)
+
 # Interface controller tests
 add_subdirectory(interface/controllers)
 

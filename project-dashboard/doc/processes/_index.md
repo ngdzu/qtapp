@@ -1,8 +1,8 @@
 # Process Documentation
 
 **Category:** PROC
-**Total Documents:** 16
-**Generated:** 2025-12-01 16:39:41
+**Total Documents:** 17
+**Generated:** 2025-12-04 14:35:00
 
 ## Documents
 
@@ -91,6 +91,14 @@
 - **Owner:** N/A
 - **Tags:** testing, unit-tests, integration-tests, ci
 - **Related:** DOC-ARCH-011, DOC-GUIDE-011, DOC-GUIDE-012, DOC-COMP-026
+
+#### [DOC-PROC-018: Database Test Isolation and Cleanup Pattern](DOC-PROC-018_database_test_isolation.md)
+
+- **Version:** 1.0
+- **Status:** Published
+- **Owner:** Testing Team
+- **Tags:** testing, database, sqlite, isolation, fixtures, in-memory, googletest
+- **Related:** DOC-COMP-020, DOC-COMP-021, DOC-GUIDE-004
 
 ### Patient Management
 
