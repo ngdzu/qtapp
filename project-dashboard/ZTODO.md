@@ -33,6 +33,11 @@
 - **Categories:** Functional, Code Quality, Documentation, Integration, Tests, Performance, QML (if applicable)
 - **Enforcement:** Tasks cannot be marked complete without passing all verification steps
 - **Build Verification:** ALL tasks that create/modify files MUST run `./scripts/verify-build.sh <files...>` to verify affected targets build
+- **Code Quality Verification:** ALL tasks MUST run `./scripts/verify_code_quality.sh` to check lint and documentation compliance
+  - The script automatically detects uncommitted files and performs language-specific lint checks (C++, QML, CMake, Markdown, Shell)
+  - Validates Doxygen documentation completeness for all classes, functions, and properties
+  - Checks spacing, indentation, trailing whitespace, and formatting consistency
+  - Usage: `./scripts/verify_code_quality.sh` (auto-detects changes) or `./scripts/verify_code_quality.sh <file1> <file2>...` (specific files)
 - **Status Tracking:** Update verification status in task using ✅ markers (e.g., "1. Functional: ✅ Verified - details")
 
 **Verification is not optional - it is a required part of every task completion.**
