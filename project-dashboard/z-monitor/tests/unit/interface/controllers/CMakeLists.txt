@@ -47,6 +47,29 @@ target_include_directories(test_system_controller
 # Add test to CTest
 add_test(NAME test_system_controller COMMAND test_system_controller)
 
+# NotificationController test executable
+add_executable(test_notification_controller
+    NotificationControllerTest.cpp
+    ${Z_MONITOR_SOURCE_DIR}/interface/controllers/NotificationController.cpp
+)
+
+target_link_libraries(test_notification_controller
+    PRIVATE
+    GTest::gtest
+    GTest::gtest_main
+    Qt6::Core
+    Qt6::Test
+)
+
+target_include_directories(test_notification_controller
+    PRIVATE
+    ${Z_MONITOR_SOURCE_DIR}
+    ${Z_MONITOR_ROOT}/tests/mocks
+)
+
+# Add test to CTest
+add_test(NAME test_notification_controller COMMAND test_notification_controller)
+
 # SettingsController test executable - TODO: Create SettingsControllerTest.cpp
 # add_executable(SettingsControllerTest
 # ${CMAKE_SOURCE_DIR}/tests/unit/interface/SettingsControllerTest.cpp

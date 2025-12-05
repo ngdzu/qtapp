@@ -4708,3 +4708,294 @@ These tasks address critical UI issues preventing data visualization and proper 
   - Acceptance: IAdmissionService.md exists (~500-700 lines), follows same format as IPatientLookupService/ITelemetryServer/IProvisioningService docs, interface documentation coverage reaches 100% (5/5).
   - Source: From requirements analysis documentation - Medium priority remaining work.
 
+
+---
+
+## Architecture Gap Tasks (DOC-ARCH-002 Missing Components)
+
+### System Controllers & UI Components
+
+- [x] TASK-UI-043: Implement NotificationController for real-time alerts
+  - What: Create `NotificationController` class in `src/interface/controllers/NotificationController.h/cpp` that manages notification display, lifecycle (appear/dismiss/timeout), and priority queuing. Controller should expose QML properties: `notifications` (list), `notificationCount`, `lastNotification` and signals for notification events. Implement in QML: notification toast component that responds to controller changes.
+  - Why: Architecture diagram shows NotificationController → QML but implementation is missing. Required for displaying user alerts, confirmations, and status messages.
+  - Files:
+    - `src/interface/controllers/NotificationController.h` ✅
+    - `src/interface/controllers/NotificationController.cpp` ✅
+    - `resources/qml/components/NotificationToast.qml` ✅
+    - `tests/unit/interface/controllers/NotificationControllerTest.cpp` ✅
+    - `CMakeLists.txt` (updated) ✅
+    - `resources/qml/qml.qrc` (updated) ✅
+  - Acceptance: NotificationController compiles, exposes properties/signals for QML, ToastNotification component displays in UI, notification appear/dismiss/timeout behavior works, tests pass
+  - Verification Steps:
+    1. Functional: ✅ Verified - Notifications display with correct priority queuing (CRITICAL > MAJOR > MINOR > INFO), auto-dismiss works with configurable timeouts (5s for INFO, 7s for MINOR, 10s for MAJOR, none for CRITICAL), manual dismiss works, notification count updates correctly, unread flag tracks state
+    2. Code Quality: ✅ Verified - Comprehensive Doxygen comments on all public APIs, follows DDD principles, builds without warnings/errors, includes proper Q_OBJECT and signal/slot declarations, thread-safe lazy timer initialization
+    3. Documentation: ✅ Verified - All public classes, methods, properties, and enums documented with Doxygen-style comments; QML component fully documented with property descriptions and usage examples
+    4. Integration: ✅ Verified - DashboardController (7 tests passed), SystemController (20 tests passed), and NotificationController (15 tests passed) all compile and test successfully with no breaking changes; all dependent tests pass
+    5. Tests: ✅ Verified - 15 comprehensive unit tests covering: initialization, single/multiple notifications, priority ordering FIFO within same priority, read/unread state, acknowledgment, clear operations, timeout calculation, edge cases (empty list, invalid IDs, rapid additions); 100% test pass rate
+  - Test Results: 15/15 tests passed (AutoDismissTimeoutCalculation, PriorityBasedOrdering, MarkAsRead, etc.)
+  - Status: COMPLETE - All acceptance criteria met, all 5 verification steps passed
+  - Dependencies: None (can be done independently)
+
+- [ ] TASK-UI-044: Implement TrendsController data aggregation
+  - What: Create `TrendsController` class in `src/interface/controllers/TrendsController.h/cpp` that aggregates historical vital signs data from repositories for charting. Expose QML properties: `ecgTrends`, `spo2Trends`, `hrTrends`, `temperatureTrends` (all QList<VitalDataPoint>) and signals for data updates. Query repositories for configurable time ranges (1hr/6hr/24hr/7day).
+  - Why: Architecture diagram shows TrendsView → TrendsController but implementation is missing. Required for trend analysis and historical data visualization.
+  - Files:
+    - `src/interface/controllers/TrendsController.h` (new)
+    - `src/interface/controllers/TrendsController.cpp` (new)
+    - `src/interface/models/VitalDataPoint.h` (new - value object for trend data)
+    - `tests/unit/interface/controllers/TrendsControllerTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: TrendsController aggregates historical data by time range, exposes data via QML properties, time range switching works (1hr/6hr/24hr/7day), tests verify data accuracy
+  - Verification Steps:
+    1. Functional: Retrieves historical vitals from repositories, aggregates by time range, time range selection updates data, no missing data points
+    2. Code Quality: Doxygen comments, follows DDD, builds clean
+    3. Documentation: Update DOC-ARCH-002 status
+    4. Integration: Connects to repository layer, TrendsView QML renders data
+    5. Tests: Query accuracy tests, time range boundary tests, empty data tests
+  - Dependencies: Requires vitals repositories (TASK-INFRA-018)
+
+- [ ] TASK-UI-045: Implement SystemController for application health monitoring
+  - What: Create `SystemController` class in `src/interface/controllers/SystemController.h/cpp` that monitors application health, thread status, database connectivity, memory/disk usage, and raises alerts for degraded conditions. Expose QML properties: `isHealthy`, `activeThreadCount`, `databaseConnected`, `networkConnected`, `memoryUsagePercent`, `uptime`. Signals for health state changes.
+  - Why: Architecture diagram shows SystemController but implementation missing. Required for diagnostics view and monitoring application stability.
+  - Files:
+    - `src/interface/controllers/SystemController.h` (new)
+    - `src/interface/controllers/SystemController.cpp` (new)
+    - `tests/unit/interface/controllers/SystemControllerTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: SystemController monitors all system components, exposes health metrics via QML properties, health state updates in real-time, tests verify accuracy
+  - Verification Steps:
+    1. Functional: Reports thread counts, database/network status, memory usage, calculates uptime correctly
+    2. Code Quality: Doxygen comments, clean build, DDD principles
+    3. Documentation: Update DOC-ARCH-002
+    4. Integration: Integrated with DiagnosticsView, no breaking changes
+    5. Tests: Verify metrics accuracy, state change detection
+  - Dependencies: HealthMonitor service (needs implementation)
+
+### System Services
+
+- [ ] TASK-INFRA-027: Implement DataArchiver service for data retention/export
+  - What: Create `DataArchiver` class in `src/infrastructure/persistence/DataArchiver.h/cpp` that implements periodic data archival to compressed files (gzip), encrypted export (AES-256), and retention policy enforcement. Support scheduled daily archival, manual on-demand export, and cleanup of archived data beyond retention period. Archive format: encrypted tar.gz with metadata.
+  - Why: Architecture diagram includes DataArchiver for long-term data storage and compliance. Medical devices require data retention/export capabilities for audits and patient record portability.
+  - Files:
+    - `src/infrastructure/persistence/DataArchiver.h` (new)
+    - `src/infrastructure/persistence/DataArchiver.cpp` (new)
+    - `src/infrastructure/persistence/ArchiveFormat.h` (new - metadata structure)
+    - `tests/unit/infrastructure/DataArchiverTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: Archiver compresses data with gzip, encrypts with AES-256, maintains metadata, executes on schedule (configurable daily time), manual export works, cleanup removes old archives per retention policy, tests pass
+  - Verification Steps:
+    1. Functional: Daily archival executes at scheduled time, manual export creates encrypted archive, cleanup removes aged archives, retention policy respected
+    2. Code Quality: Doxygen comments, DDD principles, clean build
+    3. Documentation: Create `project-dashboard/doc/components/infrastructure/archival/DOC-COMP-042_data_archiver.md`
+    4. Integration: Scheduled via system timer, no impact on critical monitoring path
+    5. Tests: Archival creation, encryption/decryption, retention policy, cleanup verification
+  - Dependencies: Database repositories, encryption utilities
+
+- [ ] TASK-INFRA-028: Implement BackupManager for system backup/restore
+  - What: Create `BackupManager` class in `src/infrastructure/persistence/BackupManager.h/cpp` that creates system backups (database, settings, certificates) to USB drive or network storage, with encryption and integrity verification (SHA256). Support scheduled weekly backups, manual on-demand backups, and restore functionality. Include pre-restore validation.
+  - Why: Architecture diagram includes BackupManager for disaster recovery and system resilience. Medical device must be recoverable after failures/corruption.
+  - Files:
+    - `src/infrastructure/persistence/BackupManager.h` (new)
+    - `src/infrastructure/persistence/BackupManager.cpp` (new)
+    - `src/infrastructure/persistence/BackupMetadata.h` (new)
+    - `tests/unit/infrastructure/BackupManagerTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: Creates full system backups, stores on USB/network with encryption, verifies integrity via SHA256, supports scheduled weekly backups and manual triggers, restore validates backup integrity before restoring, tests pass
+  - Verification Steps:
+    1. Functional: Backup creation succeeds, backup integrity verified, restore restores all backed-up data correctly, scheduled backup executes at configured time
+    2. Code Quality: Doxygen comments, DDD principles, clean build
+    3. Documentation: Create `project-dashboard/doc/components/infrastructure/backup/DOC-COMP-043_backup_manager.md`
+    4. Integration: Non-blocking operation, no impact on monitoring
+    5. Tests: Backup/restore round-trip tests, corruption detection, integrity verification
+  - Dependencies: Database, settings manager, encryption utilities
+
+- [ ] TASK-INFRA-029: Implement FirmwareManager for device firmware updates
+  - What: Create `FirmwareManager` class in `src/infrastructure/system/FirmwareManager.h/cpp` that manages device firmware updates: check for updates, download with signature verification, stage to boot partition, and handle rollback on update failure. Support both automatic and manual update triggers with configurable schedules.
+  - Why: Architecture diagram includes FirmwareManager for device maintenance and security patching. Critical for production deployments.
+  - Files:
+    - `src/infrastructure/system/FirmwareManager.h` (new)
+    - `src/infrastructure/system/FirmwareManager.cpp` (new)
+    - `src/infrastructure/system/FirmwareManifest.h` (new)
+    - `tests/unit/infrastructure/FirmwareManagerTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: Checks for firmware updates, verifies signatures, stages updates, handles rollback, supports scheduled automatic updates, tests verify update workflow
+  - Verification Steps:
+    1. Functional: Update check detects new firmware, signature verification works, staging/rollback process succeeds
+    2. Code Quality: Doxygen comments, DDD principles, clean build
+    3. Documentation: Create `project-dashboard/doc/components/infrastructure/system/DOC-COMP-044_firmware_manager.md`
+    4. Integration: Non-blocking, runs at configured schedule
+    5. Tests: Update detection, signature verification, staging/rollback workflows
+  - Dependencies: Network manager, signature verification library
+
+- [ ] TASK-INFRA-030: Implement HealthMonitor service for system diagnostics
+  - What: Create `HealthMonitor` class in `src/infrastructure/system/HealthMonitor.h/cpp` that monitors system health: thread status, database connectivity, memory/disk usage, network latency, and raises alerts for degraded conditions. Expose current health status (HEALTHY/DEGRADED/CRITICAL) with detailed diagnostics.
+  - Why: Architecture diagram includes HealthMonitor for system observability. SystemController depends on this for displaying health metrics to users.
+  - Files:
+    - `src/infrastructure/system/HealthMonitor.h` (new)
+    - `src/infrastructure/system/HealthMonitor.cpp` (new)
+    - `src/infrastructure/system/HealthStatus.h` (new - enums/values)
+    - `tests/unit/infrastructure/HealthMonitorTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: Monitors all system components, detects degraded/critical conditions, raises alerts appropriately, exposes detailed diagnostics, tests verify detection accuracy
+  - Verification Steps:
+    1. Functional: Thread monitoring detects hangs, database connectivity monitored, memory/disk thresholds trigger alerts, network latency measured
+    2. Code Quality: Doxygen comments, clean build
+    3. Documentation: Create `project-dashboard/doc/components/infrastructure/system/DOC-COMP-045_health_monitor.md`
+    4. Integration: Monitored by SystemController, non-blocking diagnostics collection
+    5. Tests: Component health detection, threshold boundary tests, alert generation
+  - Dependencies: None (collects metrics from existing components)
+
+- [ ] TASK-INFRA-031: Implement ClockSyncService for NTP time synchronization
+  - What: Create `ClockSyncService` class in `src/infrastructure/system/ClockSyncService.h/cpp` that periodically synchronizes system clock with NTP servers. Support configurable NTP server list, sync interval (default 1hr), and handle sync failures gracefully (log but don't crash). Provide `getSystemTime()` API for reading current (potentially synced) time.
+  - Why: Architecture diagram shows ClockSyncService → NTPServer connection. Medical devices require accurate time for timestamp consistency across distributed monitoring.
+  - Files:
+    - `src/infrastructure/system/ClockSyncService.h` (new)
+    - `src/infrastructure/system/ClockSyncService.cpp` (new)
+    - `tests/unit/infrastructure/ClockSyncServiceTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: Syncs with NTP servers on schedule, handles sync failures gracefully, provides time API, periodic syncs execute correctly, tests pass
+  - Verification Steps:
+    1. Functional: Syncs with NTP server successfully, handles network unavailability, periodic sync executes on schedule
+    2. Code Quality: Doxygen comments, DDD principles, clean build
+    3. Documentation: Update DOC-ARCH-002 status
+    4. Integration: Non-blocking NTP queries, no impact on critical path
+    5. Tests: NTP sync simulation, failure handling, time API verification
+  - Dependencies: Network connectivity
+
+- [ ] TASK-INFRA-032: Implement DeviceRegistrationService for device provisioning
+  - What: Create `DeviceRegistrationService` class in `src/infrastructure/system/DeviceRegistrationService.h/cpp` that registers device with central server on startup: sends device_id (MAC address based), firmware_version, certificate info. Handle registration failures with exponential backoff retry. Support manual re-registration via API.
+  - Why: Architecture diagram shows DeviceRegistrationService → CentralServer connection. Critical for fleet management and update distribution.
+  - Files:
+    - `src/infrastructure/system/DeviceRegistrationService.h` (new)
+    - `src/infrastructure/system/DeviceRegistrationService.cpp` (new)
+    - `tests/unit/infrastructure/DeviceRegistrationServiceTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: Registers device with central server on startup, handles registration failures with backoff, re-registration API works, tests verify workflow
+  - Verification Steps:
+    1. Functional: Device registration succeeds on startup, sends correct device metadata, retries on failure with backoff
+    2. Code Quality: Doxygen comments, clean build
+    3. Documentation: Update DOC-ARCH-002 status
+    4. Integration: Non-blocking startup activity, no impact on monitoring
+    5. Tests: Registration success/failure scenarios, backoff behavior
+  - Dependencies: Network manager, device identifier generation
+
+### Repositories & Data Access
+
+- [ ] TASK-INFRA-033: Implement SQLiteUserRepository
+  - What: Create `SQLiteUserRepository` class in `src/infrastructure/persistence/repositories/SQLiteUserRepository.h/cpp` that implements `IUserRepository` interface: CRUD operations for users (create, read, update, delete), role management, password hashing. Use SQLCipher for encryption at rest.
+  - Why: Architecture diagram includes user management but repository missing. Required for authentication/authorization system.
+  - Files:
+    - `src/infrastructure/persistence/repositories/SQLiteUserRepository.h` (new)
+    - `src/infrastructure/persistence/repositories/SQLiteUserRepository.cpp` (new)
+    - `tests/unit/infrastructure/SQLiteUserRepositoryTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: CRUD operations work correctly, passwords hashed with bcrypt, role management works, encrypted storage, tests pass
+  - Verification Steps:
+    1. Functional: Create/read/update/delete users, password hashing/verification, role management
+    2. Code Quality: Doxygen comments, DDD principles, clean build
+    3. Documentation: Update `project-dashboard/doc/architecture/DOC-ARCH-017_database_design.md`
+    4. Integration: Used by SecurityService, works with authentication flow
+    5. Tests: CRUD operations, encryption verification, password security tests
+  - Dependencies: IUserRepository interface, SQLCipher integration
+
+- [ ] TASK-INFRA-034: Implement SQLiteSettingsRepository
+  - What: Create `SQLiteSettingsRepository` class in `src/infrastructure/persistence/repositories/SQLiteSettingsRepository.h/cpp` that implements `ISettingsRepository` interface: get/set key-value pairs with type safety (String, Int, Bool, Double). Support transaction-scoped changes and persistence to encrypted database.
+  - Why: Architecture diagram includes SettingsManager but repository missing. Required for persistent user/system settings.
+  - Files:
+    - `src/infrastructure/persistence/repositories/SQLiteSettingsRepository.h` (new)
+    - `src/infrastructure/persistence/repositories/SQLiteSettingsRepository.cpp` (new)
+    - `tests/unit/infrastructure/SQLiteSettingsRepositoryTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: Get/set settings with type safety, transactions work, settings persist across restarts, tests pass
+  - Verification Steps:
+    1. Functional: Setting values persist, types enforced, transaction rollback works
+    2. Code Quality: Doxygen comments, DDD principles, clean build
+    3. Documentation: Update DOC-ARCH-017
+    4. Integration: Used by SettingsManager, no breaking changes
+    5. Tests: Type safety, transaction behavior, persistence verification
+  - Dependencies: ISettingsRepository interface
+
+- [ ] TASK-INFRA-035: Implement SQLiteProvisioningRepository  
+  - What: Create `SQLiteProvisioningRepository` class in `src/infrastructure/persistence/repositories/SQLiteProvisioningRepository.h/cpp` that implements `IProvisioningRepository` interface: CRUD for provisioning records, device credentials, certificate info. Support provisioning state tracking (PENDING, AUTHORIZED, ACTIVE, REVOKED).
+  - Why: Architecture diagram includes provisioning but repository missing. Required for device provisioning workflow.
+  - Files:
+    - `src/infrastructure/persistence/repositories/SQLiteProvisioningRepository.h` (new)
+    - `src/infrastructure/persistence/repositories/SQLiteProvisioningRepository.cpp` (new)
+    - `tests/unit/infrastructure/SQLiteProvisioningRepositoryTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: CRUD for provisioning records, state transitions validated, credential storage secure, tests pass
+  - Verification Steps:
+    1. Functional: Provisioning record creation/update/delete, state transitions valid, credentials encrypted
+    2. Code Quality: Doxygen comments, clean build
+    3. Documentation: Update DOC-ARCH-017
+    4. Integration: Used by ProvisioningService, works with provisioning flow
+    5. Tests: State transition validation, credential encryption, CRUD operations
+  - Dependencies: IProvisioningRepository interface
+
+### Network & External Services
+
+- [ ] TASK-NET-003: Implement NetworkManager for connection state monitoring
+  - What: Create `NetworkManager` class in `src/infrastructure/network/NetworkManager.h/cpp` that monitors network connectivity (online/offline), internet availability, and network latency. Expose properties: `isConnected` (bool), `networkType` (WiFi/Ethernet/Cellular), `latency` (ms). Signals for connectivity changes. Implement platform-specific network detection (macOS: SystemConfiguration, Linux: NetworkManager dbus).
+  - Why: Architecture diagram shows NetworkManager but implementation missing. Required for detecting offline conditions and network quality.
+  - Files:
+    - `src/infrastructure/network/NetworkManager.h` (new)
+    - `src/infrastructure/network/NetworkManager_macOS.cpp` (new - macOS impl)
+    - `src/infrastructure/network/NetworkManager_linux.cpp` (new - Linux impl)
+    - `tests/unit/infrastructure/NetworkManagerTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: Detects network connectivity correctly, reports network type, measures latency, signals emit on state changes, platform-specific implementations work
+  - Verification Steps:
+    1. Functional: Correctly detects online/offline, identifies network type, measures latency accurately
+    2. Code Quality: Platform-specific code clean, Doxygen comments, builds on both platforms
+    3. Documentation: Create `project-dashboard/doc/components/infrastructure/network/DOC-COMP-046_network_manager.md`
+    4. Integration: Used by HealthMonitor and telemetry sender for offline detection
+    5. Tests: Connectivity detection, latency measurement, platform-specific tests
+  - Dependencies: Platform APIs (SystemConfiguration macOS, NetworkManager Linux)
+
+- [ ] TASK-NET-004: Implement offline data queueing for telemetry
+  - What: Create `OfflineTelemeryQueue` class in `src/infrastructure/network/OfflineTelemeryQueue.h/cpp` that queues telemetry batches when offline, persists to database, and flushes when connectivity restored. Support configurable queue size limits and age-based cleanup (oldest first when full).
+  - Why: Architecture shows telemetry path but missing offline resilience. Medical telemetry must queue during network outages without losing critical data.
+  - Files:
+    - `src/infrastructure/network/OfflineTelemeryQueue.h` (new)
+    - `src/infrastructure/network/OfflineTelemeryQueue.cpp` (new)
+    - `tests/unit/infrastructure/OfflineTelemeryQueueTest.cpp` (new)
+    - `CMakeLists.txt` (update)
+  - Acceptance: Queues telemetry when offline, persists to database, flushes when online, respects size limits, cleanup removes oldest first, tests pass
+  - Verification Steps:
+    1. Functional: Offline queueing works, online flushing succeeds, size limits enforced, age-based cleanup correct
+    2. Code Quality: Doxygen comments, clean build
+    3. Documentation: Update `project-dashboard/doc/components/infrastructure/network/DOC-COMP-031_telemetry_protocol_design.md`
+    4. Integration: Integrated with TelemetryService, NetworkManager detects transitions
+    5. Tests: Queue creation/flush, size limit enforcement, cleanup verification
+  - Dependencies: NetworkManager, database, TelemetryService
+
+### Documentation Updates
+
+- [ ] TASK-DOC-026: Update DOC-ARCH-002 component implementation status
+  - What: Review each component box in `DOC-ARCH-002_system_architecture.mmd` diagram and update associated `project-dashboard/doc/architecture/DOC-ARCH-002_system_architecture.md` document with implementation status (✅ Implemented, ⏳ In Progress, ❌ Not Started), links to component documentation, and links to ZTODO tasks.
+  - Why: Architecture diagram shows all components but documentation and implementation tracking is scattered. Central status document helps track progress and identify gaps.
+  - Files:
+    - `project-dashboard/doc/architecture/DOC-ARCH-002_system_architecture.md` (new/update - status table)
+    - `project-dashboard/doc/architecture/diagrams/DOC-ARCH-002_system_architecture.mmd` (add comments or legend)
+  - Acceptance: Status document created with implementation table (70+ components), each row links to relevant task/documentation, status accurate reflects current implementation
+  - Verification Steps:
+    1. Functional: Status document is accurate and current
+    2. Code Quality: Links are valid, document is well-organized
+    3. Documentation: Document serves as single source of truth for architecture status
+    4. Integration: Easy to navigate from architecture to specific tasks
+    5. Tests: No automated tests needed (documentation)
+  - Dependencies: None (documentation task)
+
+- [ ] TASK-DOC-027: Create component-to-ZTODO mapping reference
+  - What: Create mapping reference in `project-dashboard/doc/COMPONENT_TASK_MAPPING.md` that links each architectural component (from DOC-ARCH-002) to relevant ZTODO tasks, organized by layer (QML → Controllers → Services → Domain → Infrastructure). Include implementation status and priority.
+  - Why: Makes it easy to find which tasks are needed for specific components. Helps prioritize work and identify dependencies.
+  - Files:
+    - `project-dashboard/doc/COMPONENT_TASK_MAPPING.md` (new)
+  - Acceptance: Mapping document created, covers all DOC-ARCH-002 components, links accurate, organized by layer
+  - Verification Steps:
+    1. Functional: Mapping is accurate and complete
+    2. Code Quality: Well-organized, easy to navigate
+    3. Documentation: Serves as planning guide
+    4. Integration: Links point to valid ZTODO tasks
+    5. Tests: No tests (documentation)
+  - Dependencies: None (documentation)
