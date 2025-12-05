@@ -215,3 +215,5 @@ The "No Hardcoded Values" rule is covered in `./cpp_guidelines.md` (Section 4: C
 ### Note on Code Duplication
 The DRY (Don't Repeat Yourself) principle is covered in `./DRY.md`. Always identify and eliminate duplicated code by extracting it into reusable functions, classes, or modules.
 
+### Note on Database Issues
+For common database issues during development and testing, refer to `.github/instructions/database_fix.md` for troubleshooting steps, schema fixes, and migration solutions.
