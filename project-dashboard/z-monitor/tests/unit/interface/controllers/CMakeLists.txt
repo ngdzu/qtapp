@@ -24,6 +24,29 @@ target_include_directories(test_dashboard_controller
 # Add test to CTest
 add_test(NAME test_dashboard_controller COMMAND test_dashboard_controller)
 
+# SystemController test executable
+add_executable(test_system_controller
+    SystemControllerTest.cpp
+    ${Z_MONITOR_SOURCE_DIR}/interface/controllers/SystemController.cpp
+)
+
+target_link_libraries(test_system_controller
+    PRIVATE
+    GTest::gtest
+    GTest::gtest_main
+    Qt6::Core
+    Qt6::Test
+)
+
+target_include_directories(test_system_controller
+    PRIVATE
+    ${Z_MONITOR_SOURCE_DIR}
+    ${Z_MONITOR_ROOT}/tests/mocks
+)
+
+# Add test to CTest
+add_test(NAME test_system_controller COMMAND test_system_controller)
+
 # SettingsController test executable - TODO: Create SettingsControllerTest.cpp
 # add_executable(SettingsControllerTest
 # ${CMAKE_SOURCE_DIR}/tests/unit/interface/SettingsControllerTest.cpp
