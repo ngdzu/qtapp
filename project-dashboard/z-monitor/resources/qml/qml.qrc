@@ -57,6 +57,7 @@
         <file>icons/antenna.svg</file>
         
         <!-- Components -->
+        <file>components/AdmissionDialog.qml</file>
         <file>components/NavButton.qml</file>
         <file>components/VitalTile.qml</file>
         <file>components/VitalValue.qml</file>

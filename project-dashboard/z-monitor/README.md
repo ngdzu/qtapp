@@ -76,7 +76,7 @@ z-monitor/
    
    Set the Qt installation path as an environment variable. Replace with your Qt6 path:
    ```bash
-   export DEFAULT_QT_PATH="/Users/username/Qt/6.9.2/macos"
+   export DEFAULT_QT_PATH="/Users/<username>/Qt/6.9.2/macos"
    ```
    
    Replace `username` with your actual username and adjust the Qt version if needed.
