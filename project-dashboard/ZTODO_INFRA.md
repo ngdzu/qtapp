@@ -48,6 +48,32 @@
   - Dependencies: TASK-INFRA-016 (Query Registry), DatabaseManager, Schema Management
   - Documentation: See `project-dashboard/doc/components/infrastructure/database/DOC-COMP-032_query_registry.md` for alarm queries and registry usage. See `project-dashboard/doc/architecture/DOC-ARCH-017_database_design.md` for snapshot schema.
   - Prompt: `project-dashboard/prompt/TASK-INFRA-019-alarm-repository.md`
+
+- [ ] TASK-INFRA-023: Implement SQLiteAuditRepository
+  - What: Implement `SQLiteAuditRepository` in `src/infrastructure/persistence/SQLiteAuditRepository.cpp/h` that persists audit logs. Uses Query Registry for all queries. Implements `IAuditRepository` interface.
+  - Why: **COMPLIANCE & SECURITY:** All critical actions (login, data modification, configuration changes) must be audited for regulatory compliance (HIPAA, FDA). The repository provides the persistence mechanism for these logs.
+  - Files:
+    - `z-monitor/src/infrastructure/persistence/SQLiteAuditRepository.h` (new)
+    - `z-monitor/src/infrastructure/persistence/SQLiteAuditRepository.cpp` (new)
+    - `z-monitor/tests/unit/infrastructure/persistence/SQLiteAuditRepositoryTest.cpp` (new)
+    - Update `z-monitor/src/infrastructure/persistence/QueryCatalog.cpp` (add audit queries)
+    - Update `z-monitor/src/infrastructure/persistence/CMakeLists.txt` (add new files)
+  - Acceptance:
+    - Repository persists audit entries (User ID, Action, Timestamp, Resource, Details).
+    - Supports querying by time range, user, and action type.
+    - Uses Query Registry (no magic strings).
+    - Unit tests verify CRUD operations and query filters.
+  - Verification Steps:
+    1. Functional: Audit logs are saved and retrieved correctly; filters work. **Status:** ⏳ Pending implementation
+    2. Code Quality: Uses Query Registry, Doxygen comments, follows repository pattern. **Status:** ⏳ Pending implementation
+    3. Documentation: Audit schema and query patterns documented. **Status:** ⏳ Pending implementation
+    4. Integration: Compiles and links; integrates with `DatabaseManager`. **Status:** ⏳ Pending implementation
+    5. Tests: Unit tests for saving logs and querying history pass. **Status:** ⏳ Pending implementation
+  - Dependencies: 
+    - `IAuditRepository` interface (TASK-DOM-006 or similar - ensure interface exists)
+    - `DatabaseManager`
+    - Query Registry
+  - Prompt: `project-dashboard/prompt/TASK-INFRA-023-audit-repository.md`
   - Completion Notes: Resolved prior blocker by aligning repository prepared-query validation and tightening test fixture setup. Manual query registration limited to alarm scope; table cleared in SetUp/TearDown to avoid UNIQUE collisions. Full alarm integration suite now green.
 
 - [x] TASK-INFRA-020: Implement HttpTelemetryServerAdapter with TLS Support

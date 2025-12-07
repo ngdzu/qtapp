@@ -25,6 +25,35 @@ source:
 Defines data lifecycle from generation through caching, persistence, and synchronization with central server. Covers in-memory buffering, batch writes, network sync protocol, and patient association requirements.
 
 # Data Flow Path
+
+```mermaid
+sequenceDiagram
+    participant Sim as DeviceSimulator
+    participant Buffer as In-Memory Buffer
+    participant DB as Local SQLite DB
+    participant Net as NetworkManager
+    participant Server as Central Server
+
+    Note over Sim, Buffer: High Frequency (250Hz)
+    Sim->>Buffer: 1. Generate PatientData
+    
+    Note over Buffer, DB: Periodic (1-2s)
+    Buffer->>DB: 2. Batch Write (is_synced=false)
+    
+    Note over DB, Server: Sync Interval (e.g. 10s)
+    Net->>DB: 3. Get Unsynced Data
+    DB-->>Net: Return Records
+    Net->>Server: 4. POST /api/telemetry (JSON)
+    
+    alt Success
+        Server-->>Net: 200 OK (processed_ids)
+        Net->>DB: 5. Mark as Synced (is_synced=true)
+    else Failure
+        Server-->>Net: 500 Error / Timeout
+        Note right of Net: Retry next cycle
+    end
+```
+
 1. **Generation**: DeviceSimulator produces PatientData at high frequency.
 2. **In-Memory Buffering**: Short-term (1-2s) buffer before batch persistence.
 3. **Batch Cache**: Periodic writes to `vitals` table (local SQLite/SQLCipher).

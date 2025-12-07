@@ -61,14 +61,11 @@ The architecture diagram `02_ARCHITECTURE.mmd` provides a comprehensive overview
 
 The system follows a strict layered architecture with dependency rules enforced at compile time:
 
-```
-Interface Layer (QML + QObject controllers)
-        ↓
-Application Layer (use-case orchestration)
-        ↓
-Domain Layer (aggregates, value objects, domain events)
-        ↓
-Infrastructure Layer (Qt/SQL/network adapters)
+```mermaid
+graph TD
+    Interface["Interface Layer<br/>(QML + QObject controllers)"] --> Application["Application Layer<br/>(use-case orchestration)"]
+    Application --> Domain["Domain Layer<br/>(aggregates, value objects, domain events)"]
+    Infrastructure["Infrastructure Layer<br/>(Qt/SQL/network adapters)"] -->|Implements Interfaces| Domain
 ```
 
 ### 2.2. Layer Dependency Rules
