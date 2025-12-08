@@ -157,7 +157,12 @@ User: "Do the next task"
   - **What has been done:** List all completed steps, files created/modified, and progress made
   - **What is getting stuck:** Identify the specific issue, error, or blocker preventing progress
   - **Why it's stuck:** Explain the root cause (e.g., missing dependency, configuration issue, unclear requirement)
-  - **Next steps needed:** Suggest what needs to happen to unblock progress (user input, clarification, dependency resolution, etc.) 
+  - **Next steps needed:** Suggest what needs to happen to unblock progress (user input, clarification, dependency resolution, etc.)
+- **Build Performance:** Always parallelize CMake builds using all available CPU cores to maximize build speed:
+  - **Linux:** `cmake --build <build-dir> -j $(nproc)`
+  - **macOS:** `cmake --build <build-dir> -j $(sysctl -n hw.physicalcpu)`
+  - **Windows:** `cmake --build <build-dir> -j %NUMBER_OF_PROCESSORS%`
+  - Replace `<build-dir>` with the actual build directory (typically `build` or `.` for current directory) 
 
 ## Related Rules
 
