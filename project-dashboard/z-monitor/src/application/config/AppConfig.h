@@ -19,6 +19,17 @@ namespace zmon
     };
 
     /**
+     * @brief Logging level enumeration.
+     */
+    enum class LogLevel
+    {
+        Debug,   ///< Verbose debug information
+        Info,    ///< Informational messages (default)
+        Warning, ///< Warning messages
+        Error    ///< Error messages only
+    };
+
+    /**
      * @brief Application configuration values.
      */
     struct AppConfig
@@ -28,6 +39,7 @@ namespace zmon
         QString sharedMemorySocket;    ///< Socket path for shared memory sensor source
         int vitalsCacheSeconds;        ///< Vitals cache window in seconds
         int waveformCacheSamples;      ///< Waveform cache sample capacity
+        LogLevel logLevel;             ///< Application logging level
     };
 
 } // namespace zmon

@@ -52,24 +52,30 @@
 
 ## Configuration Tasks
 
-- [ ] TASK-CONFIG-001: Implement Configuration Management
+- [x] TASK-CONFIG-001: Implement Configuration Management
   - What: Implement a robust `ConfigManager` to handle application bootstrap configuration. This component should replace or enhance the existing `ConfigLoader`. It must support loading configuration from multiple sources with the following priority: Environment Variables > Configuration File (JSON/INI) > Default Values. Key configuration items include Database Path, Sensor Source Mode, Logging Level, and Shared Memory settings.
   - Why: **DEPLOYMENT FLEXIBILITY:** Hardcoded paths and settings prevent easy deployment in different environments (e.g., Docker, CI/CD, Production). Environment variable support is critical for containerized deployments.
   - Files:
-    - [z-monitor/src/infrastructure/config/ConfigManager.h](z-monitor/src/infrastructure/config/ConfigManager.h) (Create new or refactor ConfigLoader)
-    - [z-monitor/src/infrastructure/config/ConfigManager.cpp](z-monitor/src/infrastructure/config/ConfigManager.cpp) (Implementation)
-    - [z-monitor/src/application/config/AppConfig.h](z-monitor/src/application/config/AppConfig.h) (Update configuration model if needed)
+    - `z-monitor/src/application/config/ConfigConstants.h` (Created - Constants for all config keys and env var names)
+    - `z-monitor/src/application/config/ConfigLoader.h` (Enhanced with env var support documentation)
+    - `z-monitor/src/application/config/ConfigLoader.cpp` (Enhanced with Env > File > Default precedence)
+    - `z-monitor/src/application/config/AppConfig.h` (Added LogLevel enum)
+    - `z-monitor/tests/unit/application/config/ConfigLoaderTest.cpp` (Created comprehensive tests)
+    - `z-monitor/tests/unit/application/config/CMakeLists.txt` (Created test executable)
+    - `z-monitor/tests/unit/application/CMakeLists.txt` (Created application test subdirectory)
   - Acceptance:
-    - `ConfigManager` loads configuration from a file (e.g., `config.ini` or `config.json`)
-    - Environment variables (e.g., `ZMON_DB_PATH`, `ZMON_LOG_LEVEL`) override file settings
-    - Default values are used if no configuration is provided
-    - Returns a populated `AppConfig` struct for dependency injection
-    - Unit tests verify priority logic (Env > File > Default)
+    - ✅ `ConfigLoader` loads configuration from a file (`config.ini`)
+    - ✅ Environment variables (e.g., `ZMON_DB_PATH`, `ZMON_LOG_LEVEL`) override file settings
+    - ✅ Default values are used if no configuration is provided
+    - ✅ Returns a populated `AppConfig` struct for dependency injection
+    - ✅ Unit tests verify priority logic (Env > File > Default)
   - Verification Steps:
-    1. Functional: Verify app starts with defaults, respects config file, and respects env var overrides. **Status:** ⏳ Pending implementation
-    2. Code Quality: Verify Doxygen comments, no hardcoded strings in logic (use constants). **Status:** ⏳ Pending implementation
-    3. Documentation: Document all supported config keys and env vars in `doc/architecture/DOC-ARCH-012_configuration_management.md`. **Status:** ⏳ Pending implementation
-    4. Integration: Verify `DIContainer` uses `ConfigManager` to initialize services. **Status:** ⏳ Pending implementation
-    5. Tests: Unit tests cover all loading scenarios and precedence rules. **Status:** ⏳ Pending implementation
+    1. Functional: ✅ Verified - App starts with defaults, respects config file, and respects env var overrides. All 8 unit tests pass (defaults, file loading, env override, partial override, log level parsing, sensor mode parsing, invalid int handling, precedence order).
+    2. Code Quality: ✅ Verified - All code has Doxygen comments, no hardcoded strings (using ConfigConstants), follows coding guidelines. Build succeeds with no warnings for affected targets.
+    3. Documentation: ✅ Verified - Updated `doc/architecture/DOC-ARCH-012_configuration_management.md` with complete bootstrap configuration section, environment variables, examples, and usage patterns.
+    4. Integration: ✅ Verified - `DIContainer` already uses `ConfigLoader::load()` in main.cpp. Integration maintained. Build system updated to include new tests.
+    5. Tests: ✅ Verified - Created comprehensive unit tests covering all loading scenarios, precedence rules, parsing, and error handling. All 8 tests pass.
   - Prompt: `project-dashboard/prompt/59-implement-configuration-management.md`
   - Documentation: See [doc/architecture/DOC-ARCH-012_configuration_management.md](doc/architecture/DOC-ARCH-012_configuration_management.md)
+  - **Completed:** 2025-12-08
+  - **Notes:** Enhanced existing ConfigLoader rather than creating new ConfigManager. Added environment variable support, LogLevel configuration, comprehensive tests, and complete documentation. All verification steps passed.

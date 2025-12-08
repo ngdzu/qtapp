@@ -24,5 +24,5 @@ add_subdirectory(infrastructure/security)
 # Interface controller tests
 add_subdirectory(interface/controllers)
 
-# Application service tests
-add_subdirectory(application/services)
+# Application tests (services + config)
+add_subdirectory(application)
