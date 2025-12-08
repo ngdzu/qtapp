@@ -45,7 +45,6 @@ target_link_libraries(integration_test_sqlite_vitals_repository
     Qt6::Test
     test_fixtures
     z_monitor_infrastructure
-    z_monitor_domain
     Qt6::Core
     Qt6::Sql
 )
@@ -68,7 +67,6 @@ target_link_libraries(integration_test_sqlite_telemetry_repository
     Qt6::Test
     test_fixtures
     z_monitor_infrastructure
-    z_monitor_domain
     Qt6::Core
     Qt6::Sql
 )
@@ -89,7 +87,6 @@ target_link_libraries(integration_test_sqlite_alarm_repository
     PRIVATE
     test_fixtures
     z_monitor_infrastructure
-    z_monitor_domain
     Qt6::Core
     Qt6::Sql
     GTest::gtest_main

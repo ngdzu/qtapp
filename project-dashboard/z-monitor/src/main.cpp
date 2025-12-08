@@ -44,6 +44,8 @@
 #include "interface/controllers/SettingsController.h"
 #include "interface/controllers/TrendsController.h"
 
+using namespace zmon;
+
 /**
  * @brief Application entry point.
  *
@@ -77,8 +79,8 @@ int main(int argc, char *argv[])
     }
 
     // Load configuration and build DI container
-    const zmon::AppConfig cfg = zmon::ConfigLoader::load();
-    zmon::DIContainer container(cfg, &app);
+    const AppConfig cfg = ConfigLoader::load();
+    DIContainer container(cfg, &app);
 
     // Initialize container (DB + migrations + queries + repositories + services)
     if (!container.initialize())
@@ -88,50 +90,49 @@ int main(int argc, char *argv[])
     }
 
     // Create repositories (now they're already created by container.initialize())
-    std::shared_ptr<zmon::IPatientRepository> patientRepo = container.patientRepository();
+    std::shared_ptr<IPatientRepository> patientRepo = container.patientRepository();
 
-    std::shared_ptr<zmon::IVitalsRepository> vitalsRepo = container.vitalsRepository();
+    std::shared_ptr<IVitalsRepository> vitalsRepo = container.vitalsRepository();
 
-    std::shared_ptr<zmon::ITelemetryRepository> telemetryRepo = container.telemetryRepository();
+    std::shared_ptr<ITelemetryRepository> telemetryRepo = container.telemetryRepository();
 
-    std::shared_ptr<zmon::IAlarmRepository> alarmRepo = container.alarmRepository();
+    std::shared_ptr<IAlarmRepository> alarmRepo = container.alarmRepository();
 
     // Create application service layer (already created by container.initialize())
     auto monitoringService = container.monitoringService();
 
     // Create interface controllers
-    auto dashboardController = new zmon::DashboardController(
+    auto dashboardController = new DashboardController(
         monitoringService,
         container.vitalsCache().get(),
         &app);
 
-    auto waveformController = new zmon::WaveformController(
+    auto waveformController = new WaveformController(
         container.waveformCache().get(),
         &app);
 
-    // Instantiate AdmissionService (placeholder: retrieve from DI if available)
-    // For now, construct with nullptr for action log repo
-    auto admissionService = new zmon::AdmissionService(nullptr, container.domainEventDispatcher(), &app);
+    // Instantiate AdmissionService (retrieve from DI)
+    auto admissionService = container.admissionService();
 
-    auto patientController = new zmon::PatientController(
-        admissionService,
+    auto patientController = new PatientController(
+        admissionService.get(),
         &app);
 
-    auto alarmController = new zmon::AlarmController(
+    auto alarmController = new AlarmController(
         monitoringService,
         &app);
 
     // TrendsController: provides historical trend data via IVitalsRepository
-    auto trendsController = new zmon::TrendsController(
+    auto trendsController = new TrendsController(
         vitalsRepo.get(),
         &app);
 
     // Action log repository for audit trail
-    auto actionLogRepoConcrete = std::make_shared<zmon::SQLiteActionLogRepository>(cfg.databasePath);
-    std::shared_ptr<zmon::IActionLogRepository> actionLogRepo = std::static_pointer_cast<zmon::IActionLogRepository>(actionLogRepoConcrete);
+    auto actionLogRepoConcrete = std::make_shared<SQLiteActionLogRepository>(cfg.databasePath);
+    std::shared_ptr<IActionLogRepository> actionLogRepo = std::static_pointer_cast<IActionLogRepository>(actionLogRepoConcrete);
 
     // SettingsController with logging and permissions
-    auto settingsController = new zmon::SettingsController(
+    auto settingsController = new SettingsController(
         actionLogRepo.get(),
         nullptr,
         &app);

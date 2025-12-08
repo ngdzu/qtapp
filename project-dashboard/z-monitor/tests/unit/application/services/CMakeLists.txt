@@ -8,7 +8,6 @@ add_executable(MonitoringServiceTest
 target_link_libraries(MonitoringServiceTest
     PRIVATE
     z_monitor_application
-    z_monitor_domain
     z_monitor_infrastructure
     zmon_test_mocks_domain
     zmon_test_mocks_infrastructure
@@ -33,7 +32,6 @@ add_executable(TelemetryServiceTest
 target_link_libraries(TelemetryServiceTest
     PRIVATE
     z_monitor_application
-    z_monitor_domain
     z_monitor_infrastructure
     GTest::gtest
     GTest::gtest_main

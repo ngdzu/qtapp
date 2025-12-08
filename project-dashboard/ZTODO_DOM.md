@@ -10,7 +10,7 @@
 
 ## Domain Tasks
 
-- [ ] TASK-DOM-001: Implement PatientAggregate.cpp
+- [x] TASK-DOM-001: Implement PatientAggregate.cpp
   - What: Implement the `PatientAggregate` class methods in `z-monitor/src/domain/aggregates/PatientAggregate.cpp`. The header file `PatientAggregate.h` already exists. This implementation should cover:
     - Constructor logic (initializing with ID, MRN, Name).
     - Business logic for admitting, discharging, and transferring patients.
@@ -37,11 +37,11 @@
     - Business rules are enforced (e.g., state transitions).
     - Unit tests verify all public methods and edge cases.
   - Verification Steps:
-    1. Functional: Can create patient, admit, discharge, and update details. **Status:** ⏳ Pending implementation
-    2. Code Quality: Follows DDD principles, Doxygen comments, no magic strings. **Status:** ⏳ Pending implementation
-    3. Documentation: Class behavior documented. **Status:** ⏳ Pending implementation
-    4. Integration: Compiles and links with domain library. **Status:** ⏳ Pending implementation
-    5. Tests: Unit tests cover lifecycle and validation logic. **Status:** ⏳ Pending implementation
+    1. Functional: Can create patient, admit, discharge, and update details. **Status:** ✅ Verified - Implemented and verified via unit tests.
+    2. Code Quality: Follows DDD principles, Doxygen comments, no magic strings. **Status:** ✅ Verified - Code follows DDD, uses Result<T>, and has Doxygen comments. Fixed placement new issue.
+    3. Documentation: Class behavior documented. **Status:** ✅ Verified - Header and implementation documented.
+    4. Integration: Compiles and links with domain library. **Status:** ✅ Verified - Built successfully.
+    5. Tests: Unit tests cover lifecycle and validation logic. **Status:** ✅ Verified - 14/14 tests passed in PatientAggregateTest.
   - Dependencies: 
     - `PatientAggregate.h` (existing)
     - Domain Event definitions (if emitting events)

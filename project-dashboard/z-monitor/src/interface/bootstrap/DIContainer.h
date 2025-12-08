@@ -42,6 +42,7 @@ namespace zmon
         std::shared_ptr<ITelemetryRepository> telemetryRepository() const;
         std::shared_ptr<IAlarmRepository> alarmRepository() const;
         std::shared_ptr<DomainEventDispatcher> domainEventDispatcher() const;
+        std::shared_ptr<AdmissionService> admissionService() const;
         std::shared_ptr<IPatientManager> patientManager() const;
         MonitoringService *monitoringService() const;
 

@@ -16,7 +16,7 @@ target_include_directories(zmon_test_mocks_infrastructure
 # Link to infrastructure library to get interface definitions
 target_link_libraries(zmon_test_mocks_infrastructure
     PUBLIC
-    z_monitor_infrastructure # Provides ITelemetryServer, IPatientLookupService interfaces
+    z_monitor_infrastructure
     Qt6::Core
     Qt6::Network
 )

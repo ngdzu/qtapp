@@ -113,6 +113,7 @@ namespace zmon
     std::shared_ptr<ITelemetryRepository> DIContainer::telemetryRepository() const { return m_telemetryRepo; }
     std::shared_ptr<IAlarmRepository> DIContainer::alarmRepository() const { return m_alarmRepo; }
     std::shared_ptr<DomainEventDispatcher> DIContainer::domainEventDispatcher() const { return m_eventDispatcher; }
+    std::shared_ptr<AdmissionService> DIContainer::admissionService() const { return m_admissionService; }
     std::shared_ptr<IPatientManager> DIContainer::patientManager() const { return m_patientManager; }
     MonitoringService *DIContainer::monitoringService() const { return m_monitoringService; }
 

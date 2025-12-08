@@ -9,7 +9,6 @@ add_executable(MonitoringWorkflowTest
 target_link_libraries(MonitoringWorkflowTest
     PRIVATE
     z_monitor_application
-    z_monitor_domain
     z_monitor_infrastructure
     Qt6::Core
     Qt6::Test

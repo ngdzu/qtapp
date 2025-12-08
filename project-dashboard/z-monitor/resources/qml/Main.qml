@@ -64,17 +64,17 @@ ApplicationWindow {
     // Compute battery icon source based on level and charging state
     function getBatteryIconSource() {
         if (root.isCharging) {
-            return "qrc:/qml/icons/battery-charging.svg"
+            return "qrc:/qml/icons/battery-charging.svg";
         } else if (root.batteryLevel <= 10) {
-            return "qrc:/qml/icons/battery-10.svg"
+            return "qrc:/qml/icons/battery-10.svg";
         } else if (root.batteryLevel <= 20) {
-            return "qrc:/qml/icons/battery-20.svg"
+            return "qrc:/qml/icons/battery-20.svg";
         } else if (root.batteryLevel <= 50) {
-            return "qrc:/qml/icons/battery-50.svg"
+            return "qrc:/qml/icons/battery-50.svg";
         } else if (root.batteryLevel <= 75) {
-            return "qrc:/qml/icons/battery-75.svg"
+            return "qrc:/qml/icons/battery-75.svg";
         } else {
-            return "qrc:/qml/icons/battery-100.svg"
+            return "qrc:/qml/icons/battery-100.svg";
         }
     }
 
@@ -104,8 +104,8 @@ ApplicationWindow {
                 PatientBanner {
                     Layout.preferredWidth: 220
                     Layout.fillHeight: true
-                    name: patientController.displayName
-                    bedLabel: patientController.bed
+                    name: patientController.patientName
+                    bedLabel: patientController.bedLocation
                     bannerColor: Theme.colors.banner
                     bannerBorderColor: Theme.colors.bannerBorder
                     colorText: root.colorText
@@ -279,7 +279,7 @@ ApplicationWindow {
                         return "views/MonitorView.qml";
                     }
                 }
-                
+
                 onStatusChanged: {
                     if (status === Loader.Loading) {
                         console.info("Loader: Loading", source);

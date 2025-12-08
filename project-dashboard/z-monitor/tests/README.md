@@ -168,7 +168,6 @@ Example:
 ```cmake
 target_link_libraries(test_alarm_manager
     PRIVATE
-        z_monitor_domain
         z_monitor_application
         z_monitor_infrastructure
         zmon_test_mocks

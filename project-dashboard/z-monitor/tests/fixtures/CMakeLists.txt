@@ -11,7 +11,6 @@ add_library(test_fixtures STATIC
 target_link_libraries(test_fixtures
     PUBLIC
     z_monitor_infrastructure
-    z_monitor_domain
     Qt6::Core
     Qt6::Sql
     GTest::gtest
