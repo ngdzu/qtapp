@@ -49,7 +49,7 @@
   - Documentation: See `project-dashboard/doc/components/infrastructure/database/DOC-COMP-032_query_registry.md` for alarm queries and registry usage. See `project-dashboard/doc/architecture/DOC-ARCH-017_database_design.md` for snapshot schema.
   - Prompt: `project-dashboard/prompt/TASK-INFRA-019-alarm-repository.md`
 
-- [ ] TASK-INFRA-023: Implement SQLiteAuditRepository
+- [x] TASK-INFRA-023: Implement SQLiteAuditRepository
   - What: Implement `SQLiteAuditRepository` in `src/infrastructure/persistence/SQLiteAuditRepository.cpp/h` that persists audit logs. Uses Query Registry for all queries. Implements `IAuditRepository` interface.
   - Why: **COMPLIANCE & SECURITY:** All critical actions (login, data modification, configuration changes) must be audited for regulatory compliance (HIPAA, FDA). The repository provides the persistence mechanism for these logs.
   - Files:
@@ -64,17 +64,17 @@
     - Uses Query Registry (no magic strings).
     - Unit tests verify CRUD operations and query filters.
   - Verification Steps:
-    1. Functional: Audit logs are saved and retrieved correctly; filters work. **Status:** ⏳ Pending implementation
-    2. Code Quality: Uses Query Registry, Doxygen comments, follows repository pattern. **Status:** ⏳ Pending implementation
-    3. Documentation: Audit schema and query patterns documented. **Status:** ⏳ Pending implementation
-    4. Integration: Compiles and links; integrates with `DatabaseManager`. **Status:** ⏳ Pending implementation
-    5. Tests: Unit tests for saving logs and querying history pass. **Status:** ⏳ Pending implementation
+    1. Functional: ✅ Verified - Audit logs are saved and retrieved correctly; filters work. Unit tests confirm CRUD operations and query filtering.
+    2. Code Quality: ✅ Verified - Uses Query Registry (`QueryCatalog`), Doxygen comments present, follows repository pattern.
+    3. Documentation: ✅ Verified - Audit schema and query patterns documented in `QueryRegistry.h`.
+    4. Integration: ✅ Verified - Compiles and links; integrates with `DatabaseManager` and `QueryCatalog`.
+    5. Tests: ✅ Verified - `SQLiteAuditRepositoryTest` passes (5/5 tests).
   - Dependencies: 
     - `IAuditRepository` interface (TASK-DOM-006 or similar - ensure interface exists)
     - `DatabaseManager`
     - Query Registry
   - Prompt: `project-dashboard/prompt/TASK-INFRA-023-audit-repository.md`
-  - Completion Notes: Resolved prior blocker by aligning repository prepared-query validation and tightening test fixture setup. Manual query registration limited to alarm scope; table cleared in SetUp/TearDown to avoid UNIQUE collisions. Full alarm integration suite now green.
+  - Completion Notes: Implemented `SQLiteAuditRepository` with full test coverage. Fixed initial compilation issues in tests related to namespace and smart pointer usage. Verified against `RepositoryTestFixture`.
 
 - [x] TASK-INFRA-020: Implement HttpTelemetryServerAdapter with TLS Support
   - What: Implement `HttpTelemetryServerAdapter` in `src/infrastructure/network/HttpTelemetryServerAdapter.cpp/h` that implements `ITelemetryServer` interface using Qt Network (QNetworkAccessManager, QNetworkReply). Supports HTTPS with TLS 1.3, certificate validation, compression (gzip), and timeout handling. Integrates with RetryPolicy and CircuitBreaker.

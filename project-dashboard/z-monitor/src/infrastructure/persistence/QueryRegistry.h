@@ -92,6 +92,21 @@ namespace zmon
             }
 
             /**
+             * @namespace Audit
+             * @brief Query IDs for audit log operations.
+             */
+            namespace Audit
+            {
+                constexpr const char *INSERT = "audit.insert";                     ///< Insert audit log entry
+                constexpr const char *GET_RANGE = "audit.get_range";               ///< Get audit logs by time range
+                constexpr const char *GET_BY_USER = "audit.get_by_user";           ///< Get audit logs by user
+                constexpr const char *GET_BY_TARGET = "audit.get_by_target";       ///< Get audit logs by target
+                constexpr const char *GET_LAST_ENTRY = "audit.get_last_entry";     ///< Get last audit log entry
+                constexpr const char *ARCHIVE = "audit.archive";                   ///< Archive old audit logs
+                constexpr const char *VERIFY_INTEGRITY = "audit.verify_integrity"; ///< Verify audit log integrity (get all hashes)
+            }
+
+            /**
              * @namespace Telemetry
              * @brief Query IDs for telemetry batch operations.
              */

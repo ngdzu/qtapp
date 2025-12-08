@@ -369,6 +369,111 @@ namespace zmon
                     .isReadOnly = true};
 
                 // ===========================================================================
+                // AUDIT LOG QUERIES
+                // ===========================================================================
+
+                namespace SecurityAuditLogCols = Schema::Columns::SecurityAuditLog;
+                const QString SECURITY_AUDIT_LOG = Schema::Tables::SECURITY_AUDIT_LOG;
+
+                queries[Audit::INSERT] = {
+                    .id = Audit::INSERT,
+                    .sql = QString(
+                               "INSERT INTO %1 (%2, %3, %4, %5, %6, %7, %8, %9, %10, %11, %12) "
+                               "VALUES (:timestamp, :user_id, :event_type, :event_category, "
+                               ":device_id, :source_ip, :success, :severity, :details, "
+                               ":previous_hash, :error_code)")
+                               .arg(SECURITY_AUDIT_LOG)
+                               .arg(SecurityAuditLogCols::TIMESTAMP)
+                               .arg(SecurityAuditLogCols::USER_ID)
+                               .arg(SecurityAuditLogCols::EVENT_TYPE)
+                               .arg(SecurityAuditLogCols::EVENT_CATEGORY)
+                               .arg(SecurityAuditLogCols::DEVICE_ID)
+                               .arg(SecurityAuditLogCols::SOURCE_IP)
+                               .arg(SecurityAuditLogCols::SUCCESS)
+                               .arg(SecurityAuditLogCols::SEVERITY)
+                               .arg(SecurityAuditLogCols::DETAILS)
+                               .arg(SecurityAuditLogCols::PREVIOUS_HASH)
+                               .arg(SecurityAuditLogCols::ERROR_CODE),
+                    .description = "Insert audit log entry",
+                    .parameters = {":timestamp", ":user_id", ":event_type", ":event_category",
+                                   ":device_id", ":source_ip", ":success", ":severity", ":details",
+                                   ":previous_hash", ":error_code"},
+                    .isReadOnly = false};
+
+                queries[Audit::GET_RANGE] = {
+                    .id = Audit::GET_RANGE,
+                    .sql = QString(
+                               "SELECT * FROM %1 "
+                               "WHERE %2 >= :start_time AND %2 <= :end_time "
+                               "ORDER BY %2 DESC")
+                               .arg(SECURITY_AUDIT_LOG)
+                               .arg(SecurityAuditLogCols::TIMESTAMP),
+                    .description = "Get audit logs by time range",
+                    .parameters = {":start_time", ":end_time"},
+                    .isReadOnly = true};
+
+                queries[Audit::GET_BY_USER] = {
+                    .id = Audit::GET_BY_USER,
+                    .sql = QString(
+                               "SELECT * FROM %1 "
+                               "WHERE %2 = :user_id "
+                               "AND %3 >= :start_time AND %3 <= :end_time "
+                               "ORDER BY %3 DESC")
+                               .arg(SECURITY_AUDIT_LOG)
+                               .arg(SecurityAuditLogCols::USER_ID)
+                               .arg(SecurityAuditLogCols::TIMESTAMP),
+                    .description = "Get audit logs by user",
+                    .parameters = {":user_id", ":start_time", ":end_time"},
+                    .isReadOnly = true};
+
+                queries[Audit::GET_BY_TARGET] = {
+                    .id = Audit::GET_BY_TARGET,
+                    .sql = QString(
+                               "SELECT * FROM %1 "
+                               "WHERE %2 = :target_type "
+                               "AND %3 >= :start_time AND %3 <= :end_time "
+                               "ORDER BY %3 DESC")
+                               .arg(SECURITY_AUDIT_LOG)
+                               .arg(SecurityAuditLogCols::EVENT_CATEGORY)
+                               .arg(SecurityAuditLogCols::TIMESTAMP),
+                    .description = "Get audit logs by target type (Event Category)",
+                    .parameters = {":target_type", ":start_time", ":end_time"},
+                    .isReadOnly = true};
+
+                queries[Audit::GET_LAST_ENTRY] = {
+                    .id = Audit::GET_LAST_ENTRY,
+                    .sql = QString(
+                               "SELECT * FROM %1 "
+                               "ORDER BY %2 DESC LIMIT 1")
+                               .arg(SECURITY_AUDIT_LOG)
+                               .arg(SecurityAuditLogCols::ID),
+                    .description = "Get last audit log entry",
+                    .parameters = {},
+                    .isReadOnly = true};
+
+                queries[Audit::ARCHIVE] = {
+                    .id = Audit::ARCHIVE,
+                    .sql = QString(
+                               "DELETE FROM %1 WHERE %2 < :cutoff_time")
+                               .arg(SECURITY_AUDIT_LOG)
+                               .arg(SecurityAuditLogCols::TIMESTAMP),
+                    .description = "Archive (delete) old audit logs",
+                    .parameters = {":cutoff_time"},
+                    .isReadOnly = false};
+
+                queries[Audit::VERIFY_INTEGRITY] = {
+                    .id = Audit::VERIFY_INTEGRITY,
+                    .sql = QString(
+                               "SELECT %2, %3 FROM %1 ORDER BY %4 ASC")
+                               .arg(SECURITY_AUDIT_LOG)
+                               .arg(SecurityAuditLogCols::ID)
+                               .arg(SecurityAuditLogCols::PREVIOUS_HASH)
+                               .arg(SecurityAuditLogCols::ID),
+                    .description = "Get all hashes for integrity verification",
+                    .parameters = {},
+                    .isReadOnly = true};
+
+                // ===========================================================================
                 // TELEMETRY BATCH QUERIES
                 // ===========================================================================
 

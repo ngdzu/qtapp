@@ -72,7 +72,8 @@ set(INFRASTRUCTURE_SOURCES
     persistence/SQLiteTelemetryRepository.cpp
     persistence/SQLiteAlarmRepository.h
     persistence/SQLiteAlarmRepository.cpp
-    persistence/generated/SchemaInfo.h # Generated from schema/database.yaml
+    persistence/SQLiteAuditRepository.h
+    persistence/SQLiteAuditRepository.cpp
 
     # ORM mappings (optional, only if USE_QXORM is enabled)
     persistence/orm/OrmRegistry.h

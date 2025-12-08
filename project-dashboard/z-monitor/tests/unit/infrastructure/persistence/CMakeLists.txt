@@ -38,3 +38,26 @@ target_include_directories(test_sqlite_vitals_repository
 )
 
 add_test(NAME SQLiteVitalsRepositoryTest COMMAND test_sqlite_vitals_repository)
+
+# SQLiteAuditRepository unit tests
+add_executable(test_sqlite_audit_repository
+    SQLiteAuditRepositoryTest.cpp
+)
+
+target_link_libraries(test_sqlite_audit_repository
+    PRIVATE
+    test_fixtures
+    z_monitor_infrastructure
+    Qt6::Core
+    Qt6::Sql
+    GTest::gtest_main
+    GTest::gmock
+)
+
+target_include_directories(test_sqlite_audit_repository
+    PRIVATE
+    ${Z_MONITOR_ROOT}/src
+    ${Z_MONITOR_ROOT}/tests
+)
+
+add_test(NAME SQLiteAuditRepositoryTest COMMAND test_sqlite_audit_repository)
