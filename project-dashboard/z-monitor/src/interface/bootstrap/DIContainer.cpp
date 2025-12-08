@@ -18,8 +18,13 @@
 #include "infrastructure/persistence/SQLiteTelemetryRepository.h"
 #include "infrastructure/persistence/SQLiteAlarmRepository.h"
 
+// Domain
+#include "domain/events/DomainEventDispatcher.h"
+
 // Application service
 #include "application/services/MonitoringService.h"
+#include "application/services/AdmissionService.h"
+#include "application/managers/PatientManager.h"
 
 namespace zmon
 {
@@ -27,6 +32,9 @@ namespace zmon
     DIContainer::DIContainer(const AppConfig &cfg, QObject *app)
         : m_cfg(cfg), m_app(app)
     {
+        // Domain Event Dispatcher
+        m_eventDispatcher = std::make_shared<DomainEventDispatcher>();
+
         // Sensor source
         if (m_cfg.sensorSource == SensorSourceMode::SharedMemory)
         {
@@ -73,6 +81,15 @@ namespace zmon
         auto alarmConcrete = std::make_shared<SQLiteAlarmRepository>(m_db);
         m_alarmRepo = std::static_pointer_cast<IAlarmRepository>(alarmConcrete);
 
+        // Services
+        m_admissionService = std::make_shared<AdmissionService>(
+            nullptr, // ActionLogRepo (TODO)
+            m_eventDispatcher,
+            m_app);
+
+        // Managers
+        m_patientManager = std::make_shared<PatientManager>(m_admissionService, m_app);
+
         m_monitoringService = new MonitoringService(
             m_patientRepo,
             m_telemetryRepo,
@@ -81,6 +98,7 @@ namespace zmon
             m_sensor,
             m_vitalsCache,
             m_waveformCache,
+            m_eventDispatcher,
             m_app);
 
         return true;
@@ -94,6 +112,8 @@ namespace zmon
     std::shared_ptr<IVitalsRepository> DIContainer::vitalsRepository() const { return m_vitalsRepo; }
     std::shared_ptr<ITelemetryRepository> DIContainer::telemetryRepository() const { return m_telemetryRepo; }
     std::shared_ptr<IAlarmRepository> DIContainer::alarmRepository() const { return m_alarmRepo; }
+    std::shared_ptr<DomainEventDispatcher> DIContainer::domainEventDispatcher() const { return m_eventDispatcher; }
+    std::shared_ptr<IPatientManager> DIContainer::patientManager() const { return m_patientManager; }
     MonitoringService *DIContainer::monitoringService() const { return m_monitoringService; }
 
 } // namespace zmon

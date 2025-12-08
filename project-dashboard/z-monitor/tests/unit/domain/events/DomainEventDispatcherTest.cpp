@@ -5,7 +5,7 @@
 #include <chrono>
 #include <thread>
 
-using namespace zmon::DomainEvents;
+using namespace zmon;
 
 // Test event implementing IDomainEvent
 class TestEvent : public IDomainEvent

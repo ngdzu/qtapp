@@ -13,6 +13,8 @@ class QObject;
 namespace zmon
 {
 
+    class DomainEventDispatcher;
+
     class ISensorDataSource;
     class VitalsCache;
     class WaveformCache;
@@ -74,6 +76,8 @@ namespace zmon
         std::shared_ptr<ITelemetryRepository> telemetryRepository() const;
         /** @brief Alarm repository (SQLite with snapshots). */
         std::shared_ptr<IAlarmRepository> alarmRepository() const;
+        /** @brief Domain event dispatcher. */
+        std::shared_ptr<DomainEventDispatcher> domainEventDispatcher() const;
         /** @brief Real-time monitoring service. */
         MonitoringService *monitoringService() const;
         /** @brief Telemetry batching/upload service. */
@@ -84,16 +88,17 @@ namespace zmon
         AppConfig m_cfg;        ///< Configuration source for construction
         QGuiApplication *m_app; ///< Application object for QObject parenting
 
-        std::shared_ptr<ISensorDataSource> m_sensor;           ///< Sensor source
-        std::shared_ptr<VitalsCache> m_vitalsCache;            ///< Vitals cache
-        std::shared_ptr<WaveformCache> m_waveformCache;        ///< Waveform cache
-        std::shared_ptr<DatabaseManager> m_db;                 ///< DB manager
-        std::shared_ptr<IPatientRepository> m_patientRepo;     ///< Patient repo
-        std::shared_ptr<IVitalsRepository> m_vitalsRepo;       ///< Vitals repo
-        std::shared_ptr<ITelemetryRepository> m_telemetryRepo; ///< Telemetry repo
-        std::shared_ptr<IAlarmRepository> m_alarmRepo;         ///< Alarm repo
-        MonitoringService *m_monitoringService{nullptr};       ///< Monitoring service
-        TelemetryService *m_telemetryService{nullptr};         ///< Telemetry service
+        std::shared_ptr<ISensorDataSource> m_sensor;              ///< Sensor source
+        std::shared_ptr<VitalsCache> m_vitalsCache;               ///< Vitals cache
+        std::shared_ptr<WaveformCache> m_waveformCache;           ///< Waveform cache
+        std::shared_ptr<DatabaseManager> m_db;                    ///< DB manager
+        std::shared_ptr<ITelemetryRepository> m_telemetryRepo;    ///< Telemetry repo
+        std::shared_ptr<IAlarmRepository> m_alarmRepo;            ///< Alarm repo
+        std::shared_ptr<DomainEventDispatcher> m_eventDispatcher; ///< Domain event dispatcher
+        MonitoringService *m_monitoringService{nullptr};          ///< Monitoring service
+        TelemetryService *m_telemetryService{nullptr};            ///< Telemetry service
+        MonitoringService *m_monitoringService{nullptr};          ///< Monitoring service
+        TelemetryService *m_telemetryService{nullptr};            ///< Telemetry service
     };
 
 } // namespace zmon

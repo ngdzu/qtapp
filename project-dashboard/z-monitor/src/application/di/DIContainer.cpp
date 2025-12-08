@@ -22,6 +22,9 @@
 #include "infrastructure/persistence/SQLiteTelemetryRepository.h"
 #include "infrastructure/persistence/SQLiteAlarmRepository.h"
 
+// Domain includes
+#include "domain/events/DomainEventDispatcher.h"
+
 // Application services
 #include "application/services/MonitoringService.h"
 #include "application/services/TelemetryService.h"
@@ -50,6 +53,9 @@ namespace zmon
 
         // Database manager
         m_db = std::make_shared<DatabaseManager>(nullptr);
+
+        // Domain Event Dispatcher
+        m_eventDispatcher = std::make_shared<DomainEventDispatcher>();
     }
 
     bool DIContainer::initialize()
@@ -92,6 +98,7 @@ namespace zmon
             m_sensor,
             m_vitalsCache,
             m_waveformCache,
+            m_eventDispatcher,
             m_app);
 
         // Telemetry service with HTTP adapter
@@ -105,12 +112,15 @@ namespace zmon
     std::shared_ptr<ISensorDataSource> DIContainer::sensorDataSource() const { return m_sensor; }
     std::shared_ptr<VitalsCache> DIContainer::vitalsCache() const { return m_vitalsCache; }
     std::shared_ptr<WaveformCache> DIContainer::waveformCache() const { return m_waveformCache; }
-    std::shared_ptr<DatabaseManager> DIContainer::databaseManager() const { return m_db; }
-    std::shared_ptr<IPatientRepository> DIContainer::patientRepository() const { return m_patientRepo; }
-    std::shared_ptr<IVitalsRepository> DIContainer::vitalsRepository() const { return m_vitalsRepo; }
     std::shared_ptr<ITelemetryRepository> DIContainer::telemetryRepository() const { return m_telemetryRepo; }
     std::shared_ptr<IAlarmRepository> DIContainer::alarmRepository() const { return m_alarmRepo; }
+    std::shared_ptr<DomainEventDispatcher> DIContainer::domainEventDispatcher() const { return m_eventDispatcher; }
     MonitoringService *DIContainer::monitoringService() const { return m_monitoringService; }
     TelemetryService *DIContainer::telemetryService() const { return m_telemetryService; }
+    n m_telemetryRepo;
+}
+std::shared_ptr<IAlarmRepository> DIContainer::alarmRepository() const { return m_alarmRepo; }
+MonitoringService *DIContainer::monitoringService() const { return m_monitoringService; }
+TelemetryService *DIContainer::telemetryService() const { return m_telemetryService; }
 
 } // namespace zmon

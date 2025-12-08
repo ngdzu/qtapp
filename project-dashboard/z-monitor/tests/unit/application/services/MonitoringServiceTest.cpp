@@ -14,6 +14,7 @@
 #include "domain/monitoring/VitalRecord.h"
 #include "domain/monitoring/AlarmThreshold.h"
 #include "domain/monitoring/AlarmSnapshot.h"
+#include "domain/events/DomainEventDispatcher.h"
 #include "tests/mocks/domain/MockPatientRepository.h"
 #include "tests/mocks/infrastructure/MockSensorDataSource.h"
 #include "infrastructure/caching/VitalsCache.h"
@@ -43,6 +44,7 @@ protected:
         sensorDataSource = std::make_shared<MockSensorDataSource>();
         vitalsCache = std::make_shared<VitalsCache>();
         waveformCache = std::make_shared<WaveformCache>();
+        eventDispatcher = std::make_shared<DomainEventDispatcher>();
 
         // Register metatypes for Qt signals
         qRegisterMetaType<VitalRecord>("VitalRecord");
@@ -51,7 +53,7 @@ protected:
         // Create service under test
         service = std::make_unique<MonitoringService>(
             patientRepo, telemetryRepo, alarmRepo, vitalsRepo,
-            sensorDataSource, vitalsCache, waveformCache);
+            sensorDataSource, vitalsCache, waveformCache, eventDispatcher);
     }
 
     void TearDown() override
@@ -80,6 +82,7 @@ protected:
     std::shared_ptr<MockSensorDataSource> sensorDataSource;
     std::shared_ptr<VitalsCache> vitalsCache;
     std::shared_ptr<WaveformCache> waveformCache;
+    std::shared_ptr<DomainEventDispatcher> eventDispatcher;
 
     // Service under test
     std::unique_ptr<MonitoringService> service;

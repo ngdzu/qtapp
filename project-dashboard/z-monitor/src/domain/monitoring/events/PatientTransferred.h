@@ -32,7 +32,7 @@ namespace zmon
          *
          * @note Domain events are plain structs (POD) with no business logic.
          */
-        struct PatientTransferred : public zmon::DomainEvents::IDomainEvent
+        struct PatientTransferred : public zmon::IDomainEvent
         {
             /**
              * @brief Patient MRN.
@@ -82,7 +82,7 @@ namespace zmon
             const std::string &aggregateId() const override { return patientMrn; }
             int64_t occurredAtMs() const override { return timestampMs; }
             const char *eventType() const override { return "PatientTransferred"; }
-            std::unique_ptr<zmon::DomainEvents::IDomainEvent> clone() const override { return std::make_unique<PatientTransferred>(*this); }
+            std::unique_ptr<zmon::IDomainEvent> clone() const override { return std::make_unique<PatientTransferred>(*this); }
         };
 
     } // namespace Events

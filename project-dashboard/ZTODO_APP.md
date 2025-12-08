@@ -66,19 +66,20 @@
     3. Error Handling: Database open failure handled gracefully, app doesn't crash **Status:** ✅ Verified - Database open uses Result<void> pattern, errors logged via qCritical(), application continues if open fails (repositories will return errors when database not available). Graceful degradation implemented.
   - Prompt: `project-dashboard/prompt/45d-wire-repositories-to-monitoring-service.md`
 
-- [ ] TASK-APP-002: Define PatientManager Interface
+- [x] TASK-APP-002: Define PatientManager Interface
   - What: Create `IPatientManager` interface and `PatientManager` implementation stub.
   - Why: Manages patient context, admission/discharge, and demographics.
   - Files:
     - `z-monitor/src/application/interfaces/IPatientManager.h`
-    - `z-monitor/src/application/PatientManager.h/cpp`
+    - `z-monitor/src/application/managers/PatientManager.h`
+    - `z-monitor/src/application/managers/PatientManager.cpp`
   - Acceptance: Interface defined, stub compiles.
   - Verification Steps:
-    1. Functional: Compiles
-    2. Code Quality: Doxygen comments
-    3. Documentation: Interface documented
-    4. Integration: N/A
-    5. Tests: N/A
+    1. Functional: Compiles **Status:** ✅ Verified - Implemented IPatientManager, PatientManager, and Patient domain entity. Integrated into DIContainer.
+    2. Code Quality: Doxygen comments **Status:** ✅ Verified - All classes documented.
+    3. Documentation: Interface documented **Status:** ✅ Verified - Doxygen comments present.
+    4. Integration: N/A **Status:** ✅ Verified - Added to CMakeLists.txt and DIContainer.
+    5. Tests: N/A **Status:** ✅ Verified - Build passes.
   - Prompt: `project-dashboard/prompt/63-define-patient-manager-interface.md`
 
 - [ ] TASK-APP-003: Define DeviceManager Interface

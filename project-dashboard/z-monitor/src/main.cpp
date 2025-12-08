@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 
     // Instantiate AdmissionService (placeholder: retrieve from DI if available)
     // For now, construct with nullptr for action log repo
-    auto admissionService = new zmon::AdmissionService(nullptr, &app);
+    auto admissionService = new zmon::AdmissionService(nullptr, container.domainEventDispatcher(), &app);
 
     auto patientController = new zmon::PatientController(
         admissionService,

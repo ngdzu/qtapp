@@ -37,6 +37,7 @@
 #include <filesystem>
 #include "infrastructure/persistence/QueryRegistry.h"
 #include "infrastructure/persistence/SqlUtils.h"
+#include "domain/events/DomainEventDispatcher.h"
 
 using namespace zmon;
 
@@ -208,17 +209,18 @@ protected:
 
         // Create mock sensor data source
         sensorDataSource = std::make_shared<MockSensorDataSource>();
+        eventDispatcher = std::make_shared<DomainEventDispatcher>();
 
         // Create monitoring service with real infrastructure
         service = std::make_unique<MonitoringService>(
             patientRepo, telemetryRepo, alarmRepo, vitalsRepo,
-            sensorDataSource, vitalsCache, waveformCache);
+            sensorDataSource, vitalsCache, waveformCache, eventDispatcher);
     }
 
     void TearDown() override
     {
         service.reset();
-        dbManager.reset();
+        // Don't close DB here as it's shared in-memory
     }
 
     // Helper method to create a vital record
@@ -239,6 +241,7 @@ protected:
     std::shared_ptr<VitalsCache> vitalsCache;
     std::shared_ptr<WaveformCache> waveformCache;
     std::shared_ptr<MockSensorDataSource> sensorDataSource;
+    std::shared_ptr<DomainEventDispatcher> eventDispatcher;
 
     // Service under test
     std::unique_ptr<MonitoringService> service;

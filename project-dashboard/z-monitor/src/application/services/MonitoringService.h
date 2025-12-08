@@ -20,15 +20,18 @@
 #include <cstdint>
 #include <map>
 
+#include "domain/monitoring/AlarmThreshold.h"
+
 namespace zmon
 {
+
+    class DomainEventDispatcher;
 
     // Forward declarations
     class PatientAggregate;
     class TelemetryBatch;
     class AlarmAggregate;
     struct AlarmSnapshot;
-    struct AlarmThreshold;
     class VitalRecord;
     class WaveformSample;
     struct SensorError;
@@ -84,6 +87,7 @@ namespace zmon
             std::shared_ptr<ISensorDataSource> sensorDataSource,
             std::shared_ptr<VitalsCache> vitalsCache,
             std::shared_ptr<WaveformCache> waveformCache,
+            std::shared_ptr<DomainEventDispatcher> eventDispatcher,
             QObject *parent = nullptr);
 
         /**
@@ -271,6 +275,7 @@ namespace zmon
         std::shared_ptr<ISensorDataSource> m_sensorDataSource;
         std::shared_ptr<VitalsCache> m_vitalsCache;
         std::shared_ptr<WaveformCache> m_waveformCache;
+        std::shared_ptr<DomainEventDispatcher> m_eventDispatcher;
 
         std::shared_ptr<PatientAggregate> m_currentPatient;
         std::shared_ptr<AlarmAggregate> m_alarmAggregate;

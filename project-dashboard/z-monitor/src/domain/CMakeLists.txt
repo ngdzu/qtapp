@@ -36,6 +36,7 @@ set(DOMAIN_SOURCES
     # Admission bounded context
     admission/PatientIdentity.h
     admission/BedLocation.h
+    admission/Patient.h
 
     # Provisioning bounded context
     provisioning/DeviceAggregate.h

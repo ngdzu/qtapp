@@ -18,6 +18,8 @@
 #include "domain/repositories/IPatientRepository.h"
 #include "domain/repositories/IAlarmRepository.h"
 #include "domain/repositories/IVitalsRepository.h"
+#include "domain/events/DomainEventDispatcher.h"
+#include "domain/monitoring/events/AlarmRaised.h"
 #include "infrastructure/interfaces/ISensorDataSource.h"
 #include "infrastructure/caching/VitalsCache.h"
 #include "infrastructure/caching/WaveformCache.h"
@@ -35,6 +37,7 @@ namespace zmon
         std::shared_ptr<ISensorDataSource> sensorDataSource,
         std::shared_ptr<VitalsCache> vitalsCache,
         std::shared_ptr<WaveformCache> waveformCache,
+        std::shared_ptr<DomainEventDispatcher> eventDispatcher,
         QObject *parent)
         : QObject(parent),
           m_patientRepo(patientRepo),
@@ -44,6 +47,7 @@ namespace zmon
           m_sensorDataSource(sensorDataSource),
           m_vitalsCache(vitalsCache),
           m_waveformCache(waveformCache),
+          m_eventDispatcher(eventDispatcher),
           m_currentPatient(nullptr),
           m_alarmAggregate(std::make_shared<AlarmAggregate>()),
           m_currentBatch(nullptr),
@@ -326,6 +330,12 @@ namespace zmon
                 QString::fromStdString(alarm.alarmId),
                 QString::fromStdString(alarm.alarmType),
                 static_cast<int>(alarm.priority));
+
+            // Dispatch domain event
+            if (m_eventDispatcher)
+            {
+                m_eventDispatcher->dispatch(zmon::Events::AlarmRaised(alarm, alarm.timestampMs));
+            }
         }
 
         // Record latency measurement

@@ -11,6 +11,9 @@ set(APPLICATION_SOURCES
     services/AdmissionService.cpp
     services/SecurityService.h
     services/SecurityService.cpp
+    interfaces/IPatientManager.h
+    managers/PatientManager.h
+    managers/PatientManager.cpp
     config/AppConfig.h
     config/ConfigLoader.h
     config/ConfigLoader.cpp

@@ -22,6 +22,10 @@ namespace zmon
     class ITelemetryRepository;
     class IAlarmRepository;
     class MonitoringService;
+    class AdmissionService;
+    class IPatientManager;
+
+    class DomainEventDispatcher;
 
     class DIContainer
     {
@@ -37,6 +41,8 @@ namespace zmon
         std::shared_ptr<IVitalsRepository> vitalsRepository() const;
         std::shared_ptr<ITelemetryRepository> telemetryRepository() const;
         std::shared_ptr<IAlarmRepository> alarmRepository() const;
+        std::shared_ptr<DomainEventDispatcher> domainEventDispatcher() const;
+        std::shared_ptr<IPatientManager> patientManager() const;
         MonitoringService *monitoringService() const;
 
     private:
@@ -51,6 +57,9 @@ namespace zmon
         std::shared_ptr<IVitalsRepository> m_vitalsRepo;
         std::shared_ptr<ITelemetryRepository> m_telemetryRepo;
         std::shared_ptr<IAlarmRepository> m_alarmRepo;
+        std::shared_ptr<DomainEventDispatcher> m_eventDispatcher;
+        std::shared_ptr<AdmissionService> m_admissionService;
+        std::shared_ptr<IPatientManager> m_patientManager;
         MonitoringService *m_monitoringService{nullptr};
     };
 
