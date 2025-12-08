@@ -11,6 +11,7 @@ target_link_libraries(MonitoringServiceTest
     z_monitor_domain
     z_monitor_infrastructure
     zmon_test_mocks_domain
+    zmon_test_mocks_infrastructure
     GTest::gtest
     GTest::gtest_main
     GTest::gmock

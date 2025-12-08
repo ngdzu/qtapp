@@ -18,6 +18,8 @@ Makefile
 *.exe
 *.out
 
+.cache/
+
 # Ignore Qt specific files
 *.pro.user
 *.qmake.stash
