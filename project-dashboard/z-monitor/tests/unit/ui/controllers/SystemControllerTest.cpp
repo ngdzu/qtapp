@@ -31,7 +31,7 @@
 #include <chrono>
 #include <fstream>
 
-#include "interface/controllers/SystemController.h"
+#include "ui/controllers/SystemController.h"
 
 using namespace zmon;
 

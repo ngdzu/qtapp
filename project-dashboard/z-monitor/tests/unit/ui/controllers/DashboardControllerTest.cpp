@@ -14,7 +14,7 @@
 #include <QSignalSpy>
 #include <memory>
 
-#include "interface/controllers/DashboardController.h"
+#include "ui/controllers/DashboardController.h"
 #include "application/services/MonitoringService.h"
 #include "infrastructure/caching/VitalsCache.h"
 #include "infrastructure/caching/WaveformCache.h"

@@ -20,7 +20,7 @@
 #include <QEventLoop>
 #include <memory>
 
-#include "interface/controllers/NotificationController.h"
+#include "ui/controllers/NotificationController.h"
 
 using namespace zmon;
 

@@ -16,7 +16,7 @@
 
 // Application configuration & DI
 #include "application/config/ConfigLoader.h"
-#include "interface/bootstrap/DIContainer.h"
+#include "ui/bootstrap/DIContainer.h"
 
 // Infrastructure
 #include "infrastructure/sensors/SharedMemorySensorDataSource.h"
@@ -36,13 +36,13 @@
 #include "application/services/AdmissionService.h"
 #include "application/services/SecurityService.h"
 
-// Interface
-#include "interface/controllers/DashboardController.h"
-#include "interface/controllers/WaveformController.h"
-#include "interface/controllers/PatientController.h"
-#include "interface/controllers/AlarmController.h"
-#include "interface/controllers/SettingsController.h"
-#include "interface/controllers/TrendsController.h"
+// UI Layer
+#include "ui/controllers/DashboardController.h"
+#include "ui/controllers/WaveformController.h"
+#include "ui/controllers/PatientController.h"
+#include "ui/controllers/AlarmController.h"
+#include "ui/controllers/SettingsController.h"
+#include "ui/controllers/TrendsController.h"
 
 using namespace zmon;
 

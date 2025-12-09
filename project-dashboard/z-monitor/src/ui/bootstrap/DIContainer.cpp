@@ -2,7 +2,7 @@
  * @file DIContainer.cpp
  */
 
-#include "interface/bootstrap/DIContainer.h"
+#include "ui/bootstrap/DIContainer.h"
 
 #include <QObject>
 

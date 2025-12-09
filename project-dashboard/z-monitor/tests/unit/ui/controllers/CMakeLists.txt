@@ -1,9 +1,9 @@
-# CMakeLists.txt for interface/controllers unit tests
+# CMakeLists.txt for ui/controllers unit tests
 
 # DashboardController test executable
 add_executable(test_dashboard_controller
     DashboardControllerTest.cpp
-    ${Z_MONITOR_SOURCE_DIR}/interface/controllers/DashboardController.cpp
+    ${Z_MONITOR_SOURCE_DIR}/ui/controllers/DashboardController.cpp
 )
 
 target_link_libraries(test_dashboard_controller
@@ -27,7 +27,7 @@ add_test(NAME test_dashboard_controller COMMAND test_dashboard_controller)
 # SystemController test executable
 add_executable(test_system_controller
     SystemControllerTest.cpp
-    ${Z_MONITOR_SOURCE_DIR}/interface/controllers/SystemController.cpp
+    ${Z_MONITOR_SOURCE_DIR}/ui/controllers/SystemController.cpp
 )
 
 target_link_libraries(test_system_controller
@@ -50,7 +50,7 @@ add_test(NAME test_system_controller COMMAND test_system_controller)
 # NotificationController test executable
 add_executable(test_notification_controller
     NotificationControllerTest.cpp
-    ${Z_MONITOR_SOURCE_DIR}/interface/controllers/NotificationController.cpp
+    ${Z_MONITOR_SOURCE_DIR}/ui/controllers/NotificationController.cpp
 )
 
 target_link_libraries(test_notification_controller
@@ -72,8 +72,8 @@ add_test(NAME test_notification_controller COMMAND test_notification_controller)
 
 # SettingsController test executable - TODO: Create SettingsControllerTest.cpp
 # add_executable(SettingsControllerTest
-# ${CMAKE_SOURCE_DIR}/tests/unit/interface/SettingsControllerTest.cpp
-# ${CMAKE_SOURCE_DIR}/src/interface/controllers/SettingsController.cpp
+# ${CMAKE_SOURCE_DIR}/tests/unit/ui/SettingsControllerTest.cpp
+# ${CMAKE_SOURCE_DIR}/src/ui/controllers/SettingsController.cpp
 # )
 #
 # target_link_libraries(SettingsControllerTest
@@ -95,8 +95,8 @@ add_test(NAME test_notification_controller COMMAND test_notification_controller)
 
 # TrendsController test executable - TODO: Create TrendsControllerTest.cpp
 # add_executable(TrendsControllerTest
-# ${CMAKE_SOURCE_DIR}/tests/unit/interface/TrendsControllerTest.cpp
-# ${CMAKE_SOURCE_DIR}/src/interface/controllers/TrendsController.cpp
+# ${CMAKE_SOURCE_DIR}/tests/unit/ui/TrendsControllerTest.cpp
+# ${CMAKE_SOURCE_DIR}/src/ui/controllers/TrendsController.cpp
 # )
 #
 # target_link_libraries(TrendsControllerTest

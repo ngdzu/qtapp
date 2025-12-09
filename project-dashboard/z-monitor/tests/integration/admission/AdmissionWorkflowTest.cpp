@@ -20,7 +20,7 @@
 
 #include "application/services/AdmissionService.h"
 #include "infrastructure/persistence/DatabaseManager.h"
-#include "interface/controllers/PatientController.h"
+#include "ui/controllers/PatientController.h"
 #include "domain/admission/PatientIdentity.h"
 #include "domain/admission/BedLocation.h"
 #include "tests/mocks/infrastructure/MockPatientLookupService.h"

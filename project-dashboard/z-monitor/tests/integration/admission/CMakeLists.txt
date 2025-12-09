@@ -1,6 +1,6 @@
 add_executable(AdmissionWorkflowTest
     AdmissionWorkflowTest.cpp
-    ${Z_MONITOR_ROOT}/src/interface/controllers/PatientController.cpp
+    ${Z_MONITOR_ROOT}/src/ui/controllers/PatientController.cpp
 )
 
 target_link_libraries(AdmissionWorkflowTest

@@ -3,7 +3,7 @@
 #include <QSignalSpy>
 #include <QSqlDatabase>
 
-#include "interface/controllers/SettingsController.h"
+#include "ui/controllers/SettingsController.h"
 #include "infrastructure/adapters/SettingsManager.h"
 
 using namespace zmon;

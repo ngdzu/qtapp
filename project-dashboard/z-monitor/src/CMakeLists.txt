@@ -4,10 +4,10 @@
 add_subdirectory(domain)
 add_subdirectory(application)
 add_subdirectory(infrastructure)
-add_subdirectory(interface)
+add_subdirectory(ui)
 
-# Interface layer sources are set by interface/CMakeLists.txt via PARENT_SCOPE
-# INTERFACE_SOURCES variable is now available after add_subdirectory(interface)
+# UI layer sources are set by ui/CMakeLists.txt via PARENT_SCOPE
+# INTERFACE_SOURCES variable is now available after add_subdirectory(ui)
 
 # QML Resources
 set(QML_RESOURCES

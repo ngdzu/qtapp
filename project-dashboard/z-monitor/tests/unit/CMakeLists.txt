@@ -22,7 +22,7 @@ add_subdirectory(infrastructure/network)
 add_subdirectory(infrastructure/security)
 
 # Interface controller tests
-add_subdirectory(interface/controllers)
+add_subdirectory(ui/controllers)
 
 # Application tests (services + config)
 add_subdirectory(application)

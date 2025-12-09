@@ -2,7 +2,7 @@
 #include <QtTest/QSignalSpy>
 #include <QtCore/QVariantList>
 #include <QtCore/QDateTime>
-#include "interface/controllers/TrendsController.h"
+#include "ui/controllers/TrendsController.h"
 #include "domain/repositories/IVitalsRepository.h"
 #include "domain/monitoring/VitalRecord.h"
 
