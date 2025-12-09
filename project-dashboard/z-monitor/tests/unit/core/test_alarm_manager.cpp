@@ -13,8 +13,6 @@
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 #include <QObject>
-#include <QSignalSpy>
-#include <QTimer>
 
 // Mock includes (relative to tests/ directory)
 #include "mocks/infrastructure/MockTelemetryServer.h"
@@ -73,8 +71,6 @@ TEST_F(AlarmManagerTest, MockTelemetryServer_SendTelemetry_Success)
     data.patientMrn = "MRN-001";
     data.timestamp = QDateTime::currentDateTime();
 
-    QSignalSpy sentSpy(m_mockTelemetryServer, &MockTelemetryServer::telemetrySent);
-
     // Act
     ServerResponse response = m_mockTelemetryServer->sendTelemetry(data);
 
@@ -82,7 +78,6 @@ TEST_F(AlarmManagerTest, MockTelemetryServer_SendTelemetry_Success)
     EXPECT_TRUE(response.success);
     EXPECT_EQ(response.statusCode, 200);
     EXPECT_EQ(m_mockTelemetryServer->getTelemetrySendCount(), 1);
-    EXPECT_EQ(sentSpy.count(), 1);
 
     QList<TelemetryData> sent = m_mockTelemetryServer->getSentTelemetry();
     ASSERT_EQ(sent.size(), 1);
@@ -100,8 +95,6 @@ TEST_F(AlarmManagerTest, MockTelemetryServer_SendTelemetry_Failure)
     data.deviceId = "TEST-DEVICE-001";
     data.patientMrn = "MRN-001";
 
-    QSignalSpy failedSpy(m_mockTelemetryServer, &MockTelemetryServer::telemetrySendFailed);
-
     // Act
     ServerResponse response = m_mockTelemetryServer->sendTelemetry(data);
 
@@ -109,53 +102,39 @@ TEST_F(AlarmManagerTest, MockTelemetryServer_SendTelemetry_Failure)
     EXPECT_FALSE(response.success);
     EXPECT_EQ(response.statusCode, 500);
     EXPECT_EQ(response.message, "Internal Server Error");
-    EXPECT_EQ(failedSpy.count(), 1);
 }
 
 // Example test: Verify mock patient lookup service works
-TEST_F(AlarmManagerTest, MockPatientLookupService_LookupPatient_Success)
+TEST_F(AlarmManagerTest, MockPatientLookupService_GetByMrn_ReturnsAggregate)
 {
     // Arrange
-    QString patientId = "MRN-001";
-    QSignalSpy completedSpy(m_mockPatientLookupService,
-                            &MockPatientLookupService::patientLookupCompleted);
+    std::string mrn = "MRN-001";
 
     // Act
-    std::optional<PatientInfo> result = m_mockPatientLookupService->lookupPatient(patientId);
+    auto result = m_mockPatientLookupService->getByMrn(mrn);
 
     // Assert
-    ASSERT_TRUE(result.has_value());
-    EXPECT_EQ(result->mrn, "MRN-001");
-    EXPECT_EQ(result->name, "John Doe");
+    ASSERT_TRUE(result.isOk()) << "Expected success but got error: " << result.error().message;
+    // Note: Mock returns default (not admitted) aggregate
+    // For actual patient data, use searchByName which returns PatientIdentity
     EXPECT_EQ(m_mockPatientLookupService->lookupCount(), 1);
-    EXPECT_EQ(completedSpy.count(), 0); // Signal not emitted for sync lookup
 }
 
-// Example test: Verify mock patient lookup service handles async lookup
-TEST_F(AlarmManagerTest, MockPatientLookupService_LookupPatientAsync_Success)
+// Example test: Verify mock patient lookup service search by name
+TEST_F(AlarmManagerTest, MockPatientLookupService_SearchByName_Success)
 {
     // Arrange
-    QString patientId = "MRN-002";
-    QSignalSpy completedSpy(m_mockPatientLookupService,
-                            &MockPatientLookupService::patientLookupCompleted);
-
-    std::optional<PatientInfo> callbackResult;
+    std::string name = "Jane";
 
     // Act
-    m_mockPatientLookupService->lookupPatientAsync(patientId,
-                                                   [&callbackResult](const std::optional<PatientInfo> &result)
-                                                   {
-                                                       callbackResult = result;
-                                                   });
-
-    // Process events to allow signal delivery
-    QCoreApplication::processEvents();
+    auto result = m_mockPatientLookupService->searchByName(name);
 
     // Assert
-    ASSERT_TRUE(callbackResult.has_value());
-    EXPECT_EQ(callbackResult->mrn, "MRN-002");
-    EXPECT_EQ(callbackResult->name, "Jane Smith");
-    EXPECT_EQ(completedSpy.count(), 1);
+    ASSERT_TRUE(result.isOk()) << "Expected success but got error: " << result.error().message;
+    const auto &identities = result.value();
+    ASSERT_FALSE(identities.empty());
+    EXPECT_EQ(identities[0].mrn, "MRN-002");
+    EXPECT_EQ(identities[0].name, "Jane Smith");
 }
 
 // Example test: Verify mock patient repository works

@@ -11,123 +11,110 @@
 
 #pragma once
 
-#include "infrastructure/interfaces/IPatientLookupService.h"
-#include <QMutex>
-#include <QMap>
-#include <QString>
+#include "domain/interfaces/IPatientLookupService.h"
+#include <map>
+#include <mutex>
+#include <string>
+#include <vector>
 
-namespace zmon {
-
-/**
- * @class MockPatientLookupService
- * @brief Mock implementation of IPatientLookupService for testing.
- *
- * This mock implementation:
- * - Returns hardcoded patient data for testing
- * - Supports simulated failures
- * - Tracks all lookup requests for verification
- *
- * @note Thread-safe: All methods are protected by mutex.
- */
-class MockPatientLookupService : public IPatientLookupService {
-    Q_OBJECT
-
-public:
-    /**
-     * @brief Constructor.
-     */
-    explicit MockPatientLookupService(QObject* parent = nullptr);
+namespace zmon
+{
 
     /**
-     * @brief Destructor.
-     */
-    ~MockPatientLookupService() override = default;
-
-    // IPatientLookupService interface implementation
-    std::optional<PatientInfo> lookupPatient(const QString& patientId) override;
-    void lookupPatientAsync(
-        const QString& patientId,
-        std::function<void(const std::optional<PatientInfo>&)> callback = nullptr) override;
-    bool isAvailable() const override;
-    QString getLastError() const override;
-
-    // Test helper methods
-
-    /**
-     * @brief Add a patient to the mock database.
+     * @class MockPatientLookupService
+     * @brief Mock implementation of IPatientLookupService for testing.
      *
-     * @param patientId Patient identifier (MRN or patient ID)
-     * @param info Patient information
-     */
-    void addPatient(const QString& patientId, const PatientInfo& info);
-
-    /**
-     * @brief Remove a patient from the mock database.
+     * This mock implementation:
+     * - Returns hardcoded patient data for testing
+     * - Supports simulated failures
+     * - Tracks all lookup requests for verification
      *
-     * @param patientId Patient identifier
+     * @note Thread-safe: All methods are protected by mutex.
      */
-    void removePatient(const QString& patientId);
+    class MockPatientLookupService : public IPatientLookupService
+    {
+    public:
+        /**
+         * @brief Constructor.
+         */
+        MockPatientLookupService();
 
-    /**
-     * @brief Clear all patients from the mock database.
-     */
-    void clear();
+        /**
+         * @brief Destructor.
+         */
+        ~MockPatientLookupService() override = default;
 
-    /**
-     * @brief Get all patient IDs that were looked up.
-     *
-     * @return List of patient IDs
-     */
-    QList<QString> lookupHistory() const;
+        // IPatientLookupService interface implementation
+        Result<PatientAggregate> getByMrn(const std::string &mrn) const override;
+        Result<std::vector<PatientIdentity>> searchByName(const std::string &name) const override;
 
-    /**
-     * @brief Get the number of lookups performed.
-     *
-     * @return Number of lookups
-     */
-    int lookupCount() const;
+        // Test helper methods
 
-    /**
-     * @brief Enable simulated failures.
-     *
-     * When enabled, all lookup operations will fail.
-     *
-     * @param enabled true to enable failures, false to disable
-     */
-    void setSimulateFailures(bool enabled);
+        /**
+         * @brief Add a patient to the mock database.
+         *
+         * @param mrn Medical Record Number
+         * @param identity Patient identity (stores PatientIdentity, not full aggregate)
+         */
+        void addPatient(const std::string &mrn, const PatientIdentity &identity);
 
-    /**
-     * @brief Check if failures are being simulated.
-     *
-     * @return true if failures are enabled, false otherwise
-     */
-    bool isSimulatingFailures() const;
+        /**
+         * @brief Remove a patient from the mock database.
+         *
+         * @param mrn Medical Record Number
+         */
+        void removePatient(const std::string &mrn);
 
-    /**
-     * @brief Set the error message for simulated failures.
-     *
-     * @param error Error message to return on failures
-     */
-    void setFailureError(const QString& error);
+        /**
+         * @brief Clear all patients from the mock database.
+         */
+        void clear();
 
-    /**
-     * @brief Set service availability.
-     *
-     * @param available true to simulate available service, false for unavailable
-     */
-    void setAvailable(bool available);
+        /**
+         * @brief Get all MRNs that were looked up.
+         *
+         * @return List of MRNs
+         */
+        std::vector<std::string> lookupHistory() const;
 
-private:
-    mutable QMutex m_mutex;
-    QMap<QString, PatientInfo> m_patients;
-    QList<QString> m_lookupHistory;
-    bool m_available{true};
-    bool m_simulateFailures{false};
-    QString m_failureError{"Simulated lookup failure"};
-    QString m_lastError;
-    
-    void initializeDefaultPatients();
-};
+        /**
+         * @brief Get the number of lookups performed.
+         *
+         * @return Number of lookups
+         */
+        int lookupCount() const;
+
+        /**
+         * @brief Enable simulated failures.
+         *
+         * When enabled, all lookup operations will fail.
+         *
+         * @param enabled true to enable failures, false to disable
+         */
+        void setSimulateFailures(bool enabled);
+
+        /**
+         * @brief Check if failures are being simulated.
+         *
+         * @return true if failures are enabled, false otherwise
+         */
+        bool isSimulatingFailures() const;
+
+        /**
+         * @brief Set the error message for simulated failures.
+         *
+         * @param error Error message to return on failures
+         */
+        void setFailureError(const std::string &error);
+
+    private:
+        mutable std::mutex m_mutex;
+        std::map<std::string, PatientIdentity> m_patients; // Store PatientIdentity, not PatientAggregate
+        mutable std::vector<std::string> m_lookupHistory;
+        bool m_simulateFailures{false};
+        std::string m_failureError{"Simulated lookup failure"};
+
+        void initializeDefaultPatients();
+    };
 
 } // namespace zmon
-

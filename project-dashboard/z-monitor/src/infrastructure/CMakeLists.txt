@@ -20,7 +20,6 @@ set(INFRASTRUCTURE_SOURCES
     adapters/SettingsManager.cpp
 
     # Infrastructure interfaces
-    interfaces/IPatientLookupService.h
     interfaces/ITelemetryServer.h
     interfaces/ISensorDataSource.h
     interfaces/IArchiver.h

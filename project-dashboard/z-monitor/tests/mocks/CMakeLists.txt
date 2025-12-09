@@ -3,8 +3,8 @@
 # Infrastructure mocks
 add_library(zmon_test_mocks_infrastructure STATIC
     infrastructure/MockTelemetryServer.cpp
-    infrastructure/MockPatientLookupService.cpp
     infrastructure/MockSensorDataSource.cpp
+    infrastructure/MockPatientLookupService.cpp
 )
 
 target_include_directories(zmon_test_mocks_infrastructure
@@ -13,10 +13,10 @@ target_include_directories(zmon_test_mocks_infrastructure
     ${CMAKE_CURRENT_SOURCE_DIR}/.. # tests root (for mocks/ includes)
 )
 
-# Link to infrastructure library to get interface definitions
 target_link_libraries(zmon_test_mocks_infrastructure
     PUBLIC
     z_monitor_infrastructure
+    z_monitor_domain # MockPatientLookupService needs domain interface
     Qt6::Core
     Qt6::Network
 )

@@ -7,190 +7,125 @@
  */
 
 #include "MockPatientLookupService.h"
-#include <QMutexLocker>
-#include <QTimer>
+#include <algorithm>
 
 namespace zmon
 {
 
-    MockPatientLookupService::MockPatientLookupService(QObject *parent)
+    MockPatientLookupService::MockPatientLookupService()
     {
-        setParent(parent);
         initializeDefaultPatients();
     }
 
     void MockPatientLookupService::initializeDefaultPatients()
     {
-        // Add some default test patients
-        PatientInfo patient1;
-        patient1.patientId = "P001";
-        patient1.mrn = "MRN-001";
-        patient1.name = "John Doe";
-        patient1.dateOfBirth = QDate(1980, 1, 15);
-        patient1.sex = "M";
-        patient1.allergies = QStringList() << "Penicillin" << "Latex";
-        patient1.room = "ICU-101";
-        patient1.lastUpdated = QDateTime::currentDateTime();
-        m_patients["MRN-001"] = patient1;
-        m_patients["P001"] = patient1;
-
-        PatientInfo patient2;
-        patient2.patientId = "P002";
-        patient2.mrn = "MRN-002";
-        patient2.name = "Jane Smith";
-        patient2.dateOfBirth = QDate(1975, 5, 20);
-        patient2.sex = "F";
-        patient2.allergies = QStringList() << "Aspirin";
-        patient2.room = "ICU-102";
-        patient2.lastUpdated = QDateTime::currentDateTime();
-        m_patients["MRN-002"] = patient2;
-        m_patients["P002"] = patient2;
+        // Add some default test patients with realistic data
+        // Note: dateOfBirthMs is Unix timestamp in milliseconds
+        m_patients.emplace("MRN-001", PatientIdentity("MRN-001", "John Doe", 315532800000, "M", {"Penicillin", "Latex"}));
+        m_patients.emplace("MRN-002", PatientIdentity("MRN-002", "Jane Smith", 631152000000, "F", {}));
+        m_patients.emplace("MRN-003", PatientIdentity("MRN-003", "Bob Johnson", 473385600000, "M", {"Peanuts"}));
     }
 
-    std::optional<PatientInfo> MockPatientLookupService::lookupPatient(const QString &patientId)
+    Result<PatientAggregate> MockPatientLookupService::getByMrn(const std::string &mrn) const
     {
-        QMutexLocker locker(&m_mutex);
-        m_lookupHistory.append(patientId);
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        m_lookupHistory.push_back(mrn);
 
         if (m_simulateFailures)
         {
-            m_lastError = m_failureError;
-            return std::nullopt;
+            return Result<PatientAggregate>::error(Error::create(ErrorCode::NotFound, "Simulated failure: " + m_failureError));
         }
 
-        if (!m_available)
+        auto it = m_patients.find(mrn);
+        if (it != m_patients.end())
         {
-            m_lastError = "Service unavailable";
-            return std::nullopt;
+            // For mock purposes, return a default (not admitted) PatientAggregate
+            // In a real lookup service, this would query external systems and construct
+            // an aggregate from the retrieved data
+            PatientAggregate aggregate;
+            return Result<PatientAggregate>::ok(std::move(aggregate));
         }
 
-        if (m_patients.contains(patientId))
-        {
-            m_lastError.clear();
-            return m_patients[patientId];
-        }
-
-        m_lastError = "Patient not found";
-        return std::nullopt;
+        return Result<PatientAggregate>::error(Error::create(ErrorCode::NotFound, "Patient not found for MRN: " + mrn));
     }
 
-    void MockPatientLookupService::lookupPatientAsync(
-        const QString &patientId,
-        std::function<void(const std::optional<PatientInfo> &)> callback)
+    Result<std::vector<PatientIdentity>> MockPatientLookupService::searchByName(const std::string &name) const
     {
-        std::optional<PatientInfo> result;
-        QString error;
+        std::lock_guard<std::mutex> lock(m_mutex);
 
+        if (m_simulateFailures)
         {
-            QMutexLocker locker(&m_mutex);
-            m_lookupHistory.append(patientId);
+            return Result<std::vector<PatientIdentity>>::error(Error::create(ErrorCode::NotFound, "Simulated failure: " + m_failureError));
+        }
 
-            if (m_simulateFailures)
+        std::vector<PatientIdentity> results;
+        std::string lowerName = name;
+        std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+
+        for (const auto &[mrn, identity] : m_patients)
+        {
+            std::string patientName = identity.name;
+            std::string lowerPatientName = patientName;
+            std::transform(lowerPatientName.begin(), lowerPatientName.end(), lowerPatientName.begin(), ::tolower);
+
+            if (lowerPatientName.find(lowerName) != std::string::npos)
             {
-                m_lastError = m_failureError;
-                error = m_failureError;
-            }
-            else if (!m_available)
-            {
-                m_lastError = "Service unavailable";
-                error = "Service unavailable";
-            }
-            else if (m_patients.contains(patientId))
-            {
-                m_lastError.clear();
-                result = m_patients[patientId];
-            }
-            else
-            {
-                m_lastError = "Patient not found";
-                error = "Patient not found";
+                results.push_back(identity);
             }
         }
 
-        // Emit signal
-        if (result.has_value())
-        {
-            emit patientLookupCompleted(patientId, result.value());
-        }
-        else
-        {
-            emit patientLookupFailed(patientId, error);
-        }
-
-        // Call callback if provided
-        if (callback)
-        {
-            callback(result);
-        }
+        return Result<std::vector<PatientIdentity>>::ok(std::move(results));
     }
 
-    bool MockPatientLookupService::isAvailable() const
+    void MockPatientLookupService::addPatient(const std::string &mrn, const PatientIdentity &identity)
     {
-        QMutexLocker locker(&m_mutex);
-        return m_available;
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_patients.erase(mrn);             // Remove if exists
+        m_patients.emplace(mrn, identity); // Copy-construct in-place
     }
 
-    QString MockPatientLookupService::getLastError() const
+    void MockPatientLookupService::removePatient(const std::string &mrn)
     {
-        QMutexLocker locker(&m_mutex);
-        return m_lastError;
-    }
-
-    void MockPatientLookupService::addPatient(const QString &patientId, const PatientInfo &info)
-    {
-        QMutexLocker locker(&m_mutex);
-        m_patients[patientId] = info;
-    }
-
-    void MockPatientLookupService::removePatient(const QString &patientId)
-    {
-        QMutexLocker locker(&m_mutex);
-        m_patients.remove(patientId);
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_patients.erase(mrn);
     }
 
     void MockPatientLookupService::clear()
     {
-        QMutexLocker locker(&m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_patients.clear();
         m_lookupHistory.clear();
-        m_lastError.clear();
-        initializeDefaultPatients();
     }
 
-    QList<QString> MockPatientLookupService::lookupHistory() const
+    std::vector<std::string> MockPatientLookupService::lookupHistory() const
     {
-        QMutexLocker locker(&m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         return m_lookupHistory;
     }
 
     int MockPatientLookupService::lookupCount() const
     {
-        QMutexLocker locker(&m_mutex);
-        return m_lookupHistory.size();
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return static_cast<int>(m_lookupHistory.size());
     }
 
     void MockPatientLookupService::setSimulateFailures(bool enabled)
     {
-        QMutexLocker locker(&m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_simulateFailures = enabled;
     }
 
     bool MockPatientLookupService::isSimulatingFailures() const
     {
-        QMutexLocker locker(&m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         return m_simulateFailures;
     }
 
-    void MockPatientLookupService::setFailureError(const QString &error)
+    void MockPatientLookupService::setFailureError(const std::string &error)
     {
-        QMutexLocker locker(&m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_failureError = error;
-    }
-
-    void MockPatientLookupService::setAvailable(bool available)
-    {
-        QMutexLocker locker(&m_mutex);
-        m_available = available;
     }
 
 } // namespace zmon

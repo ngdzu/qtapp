@@ -98,25 +98,19 @@ namespace zmon
         /// Creates a successful result with the given value (copy).
         static Result<T> ok(const T &value)
         {
-            Result<T> r;
-            r.m_value = value;
-            return r;
+            return Result<T>{std::nullopt, value};
         }
 
         /// Creates a successful result with the given value (move).
         static Result<T> ok(T &&value)
         {
-            Result<T> r;
-            r.m_value = std::move(value);
-            return r;
+            return Result<T>{std::nullopt, std::move(value)};
         }
 
         /// Creates an error result with the given Error.
         static Result<T> error(const Error &error)
         {
-            Result<T> r;
-            r.m_error = error;
-            return r;
+            return Result<T>{error, std::nullopt};
         }
 
         /// Returns true if the result represents success.
@@ -147,6 +141,10 @@ namespace zmon
         }
 
     private:
+        Result() = default;
+        Result(std::optional<Error> err, std::optional<T> val)
+            : m_value(std::move(val)), m_error(std::move(err)) {}
+
         std::optional<T> m_value;
         std::optional<Error> m_error;
     };

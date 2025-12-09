@@ -66,6 +66,27 @@ Do NOT use "Mock" prefix when:
 
 ## Domain Names and DDD Naming Conventions
 
+### Important: "Interface" Terminology Clarification
+
+**The word "interface" has two different meanings in this project:**
+
+1. **Interface (Abstraction)** - C++ abstract classes/pure virtual interfaces
+   - Location: `domain/` directory
+   - Namespace: `zmon::dom`
+   - Examples: `IPatientRepository`, `IPatientLookupService`
+   - Purpose: Define contracts that infrastructure implements
+
+2. **Interface (UI Layer)** - User interface components
+   - Location: `ui/` directory
+   - Namespace: `zmon::ui`
+   - Examples: `PatientController`, `DashboardPresenter`
+   - Purpose: Handle user interactions and presentation
+
+**Critical Rule: Domain Interfaces Stay in Domain**
+- ✅ `src/domain/IPatientRepository.h` - Correct
+- ❌ `src/infrastructure/interfaces/IPatientRepository.h` - Wrong!
+- ✅ `src/infrastructure/PostgreSqlPatientRepository.h` - Correct (implements domain interface)
+
 ### Rule: Domain Names Must Reflect Ubiquitous Language
 
 **All domain classes, entities, value objects, and aggregates MUST use names from the domain's ubiquitous language.**
@@ -128,14 +149,24 @@ Service names should clearly indicate the domain operation or capability:
 #### Repositories
 Repository names follow pattern: `{EntityName}Repository`
 
+**Interface (abstraction) in domain layer:**
+
 ✅ **Correct:**
-- `PatientRepository` - Repository for Patient entities
-- `VitalSignReadingRepository` - Repository for readings
-- `MonitoringSessionRepository` - Repository for sessions
+- `IPatientRepository` - Repository interface in domain layer
+- `IVitalSignReadingRepository` - Repository interface for readings
+- `IMonitoringSessionRepository` - Repository interface for sessions
+
+**Implementation in infrastructure layer:**
+
+✅ **Correct:**
+- `PostgreSqlPatientRepository` - PostgreSQL implementation
+- `InMemoryPatientRepository` - In-memory implementation
+- `FileSystemReportStorage` - File storage implementation
 
 ❌ **Incorrect:**
 - `PatientRepo` - Use full "Repository" suffix
 - `PatientDataRepository` - Don't add redundant "Data"
+- Placing `IPatientRepository` in infrastructure - Interfaces belong in domain!
 
 ### Application Layer Components
 
@@ -228,36 +259,42 @@ View model names follow pattern: `{Feature}ViewModel`
 Domain names should align with namespace structure:
 
 ```cpp
-// Domain layer
-namespace ZMonitor::Domain {
-    class Patient;                    // Entity
-    class VitalSignReading;          // Entity
-    class BloodPressure;             // Value Object
+// Domain layer - owns abstractions/interfaces
+namespace zmon::dom {
+    class Patient;                        // Entity
+    class VitalSignReading;              // Entity
+    class BloodPressure;                 // Value Object
+    class VitalSignAnalyzer;             // Domain Service
+    class IPatientRepository;            // Repository Interface (abstraction)
+    class IPatientLookupService;         // Service Interface (abstraction)
 }
 
-namespace ZMonitor::Domain::Services {
-    class VitalSignAnalyzer;         // Domain Service
+// Application layer - use cases
+namespace zmon::app {
+    class PatientRegistrationService;    // Application Service
+    class RegisterPatientRequest;        // Request DTO
+    class PatientDetailsResponse;        // Response DTO
 }
 
-namespace ZMonitor::Domain::Repositories {
-    class IPatientRepository;        // Repository Interface
+// Infrastructure layer - implements domain interfaces
+namespace zmon::infra {
+    class PostgreSqlPatientRepository;   // Implements IPatientRepository
+    class InMemoryPatientRepository;     // Implements IPatientRepository
+    class FileSystemReportStorage;       // Infrastructure service
 }
 
-// Application layer
-namespace ZMonitor::Application {
-    class PatientRegistrationService; // Application Service
-}
-
-namespace ZMonitor::Application::Dtos {
-    class RegisterPatientRequest;     // Request DTO
-    class PatientDetailsResponse;     // Response DTO
-}
-
-// Infrastructure layer
-namespace ZMonitor::Infrastructure::Persistence {
-    class PostgreSqlPatientRepository; // Repository Implementation
+// UI layer - user interface components
+namespace zmon::ui {
+    class PatientRegistrationController; // UI Controller
+    class MonitoringDashboardPresenter;  // UI Presenter
 }
 ```
+
+**Key Principle: Dependency Inversion**
+- Domain layer defines interfaces (e.g., `IPatientRepository`)
+- Infrastructure layer implements those interfaces (e.g., `PostgreSqlPatientRepository`)
+- Domain never depends on infrastructure
+- Infrastructure depends on domain (implements its interfaces)
 
 ### Consistency with Ubiquitous Language
 
