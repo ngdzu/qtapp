@@ -61,7 +61,7 @@ Window {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: topBar.height + divider.height
+            height: 100
 
             TopBar {
                 id: topBar

@@ -1,10 +1,13 @@
 <RCC>
     <qresource prefix="/qml">
             <file>components/PatientBanner.qml</file>
+            <file>components/BottomNav.qml</file>
             <file>views/PatientProfileView.qml</file>
         <file>Main.qml</file>
         <file>Theme.qml</file>
         <file>qmldir</file>
+        <file>theme/TopBarConstants.qml</file>
+        <file>theme/qmldir</file>
         <!-- Icons - Navigation (base) -->
         <file>icons/layout-dashboard.svg</file>
         <file>icons/brain-circuit.svg</file>
@@ -59,6 +62,7 @@
         <!-- Components -->
         <file>components/AdmissionDialog.qml</file>
         <file>components/NavButton.qml</file>
+        <file>components/TopBar.qml</file>
         <file>components/VitalTile.qml</file>
         <file>components/VitalValue.qml</file>
         <file>components/WaveformPanel.qml</file>

@@ -32,29 +32,7 @@ Rectangle {
             radius: 5
             color: root.connected ? "#10b981" : "#ef4444"
             anchors.verticalCenter: parent.verticalCenter
-
-            // Pulse animation when connected
-            SequentialAnimation {
-                running: root.connected
-                loops: Animation.Infinite
-
-                PropertyAnimation {
-                    target: parent
-                    property: "opacity"
-                    from: 1.0
-                    to: 0.3
-                    duration: 1000
-                    easing.type: Easing.InOutQuad
-                }
-                PropertyAnimation {
-                    target: parent
-                    property: "opacity"
-                    from: 0.3
-                    to: 1.0
-                    duration: 1000
-                    easing.type: Easing.InOutQuad
-                }
-            }
+            opacity: 1.0
         }
 
         Text {

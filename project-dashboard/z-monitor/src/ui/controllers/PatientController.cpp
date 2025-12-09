@@ -146,36 +146,93 @@ namespace zmon
         if (!m_admissionService)
             return;
         const auto info = m_admissionService->getCurrentAdmission();
-        m_isAdmitted = true;
-        m_patientMrn = info.mrn;
-        m_patientName = info.name;
-        m_bedLocation = info.bedLocation;
-        m_admittedAt = info.admittedAt;
-        m_admissionState = QStringLiteral("ADMITTED");
 
-        emit isAdmittedChanged();
-        emit patientNameChanged();
-        emit patientMrnChanged();
-        emit bedLocationChanged();
-        emit admittedAtChanged();
-        emit admissionStateChanged();
+        // Only emit signals if values actually changed
+        bool changed = false;
+
+        if (!m_isAdmitted)
+        {
+            m_isAdmitted = true;
+            emit isAdmittedChanged();
+            changed = true;
+        }
+
+        if (m_patientMrn != info.mrn)
+        {
+            m_patientMrn = info.mrn;
+            emit patientMrnChanged();
+            changed = true;
+        }
+
+        if (m_patientName != info.name)
+        {
+            m_patientName = info.name;
+            emit patientNameChanged();
+            changed = true;
+        }
+
+        if (m_bedLocation != info.bedLocation)
+        {
+            m_bedLocation = info.bedLocation;
+            emit bedLocationChanged();
+            changed = true;
+        }
+
+        if (m_admittedAt != info.admittedAt)
+        {
+            m_admittedAt = info.admittedAt;
+            emit admittedAtChanged();
+            changed = true;
+        }
+
+        QString newState = QStringLiteral("ADMITTED");
+        if (m_admissionState != newState)
+        {
+            m_admissionState = newState;
+            emit admissionStateChanged();
+            changed = true;
+        }
     }
 
     void PatientController::onPatientDischarged()
     {
-        m_isAdmitted = false;
-        m_admissionState = QStringLiteral("NOT_ADMITTED");
-        m_patientName.clear();
-        m_patientMrn.clear();
-        m_bedLocation.clear();
-        m_admittedAt = QDateTime();
+        // Only emit signals if values actually changed
+        if (m_isAdmitted)
+        {
+            m_isAdmitted = false;
+            emit isAdmittedChanged();
+        }
 
-        emit isAdmittedChanged();
-        emit patientNameChanged();
-        emit patientMrnChanged();
-        emit bedLocationChanged();
-        emit admittedAtChanged();
-        emit admissionStateChanged();
+        QString newState = QStringLiteral("NOT_ADMITTED");
+        if (m_admissionState != newState)
+        {
+            m_admissionState = newState;
+            emit admissionStateChanged();
+        }
+
+        if (!m_patientName.isEmpty())
+        {
+            m_patientName.clear();
+            emit patientNameChanged();
+        }
+
+        if (!m_patientMrn.isEmpty())
+        {
+            m_patientMrn.clear();
+            emit patientMrnChanged();
+        }
+
+        if (!m_bedLocation.isEmpty())
+        {
+            m_bedLocation.clear();
+            emit bedLocationChanged();
+        }
+
+        if (m_admittedAt.isValid())
+        {
+            m_admittedAt = QDateTime();
+            emit admittedAtChanged();
+        }
     }
 
 } // namespace zmon

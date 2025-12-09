@@ -17,6 +17,7 @@ import "components"
 import "views"
 import qml 1.0
 import "components"
+import "theme"
 
 ApplicationWindow {
     id: root
@@ -61,181 +62,40 @@ ApplicationWindow {
     property bool hasActiveAlarms: false  // Whether there are active alarms
     property bool isConnected: true  // Connection status
 
-    // Compute battery icon source based on level and charging state
-    function getBatteryIconSource() {
-        if (root.isCharging) {
-            return "qrc:/qml/icons/battery-charging.svg";
-        } else if (root.batteryLevel <= 10) {
-            return "qrc:/qml/icons/battery-10.svg";
-        } else if (root.batteryLevel <= 20) {
-            return "qrc:/qml/icons/battery-20.svg";
-        } else if (root.batteryLevel <= 50) {
-            return "qrc:/qml/icons/battery-50.svg";
-        } else if (root.batteryLevel <= 75) {
-            return "qrc:/qml/icons/battery-75.svg";
-        } else {
-            return "qrc:/qml/icons/battery-100.svg";
-        }
-    }
-
     // Main Layout
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
-        // Header (Top Bar) - 60px
-        Rectangle {
+        // Header (Top Bar) - 48px
+        TopBar {
             id: header
             Layout.fillWidth: true
-            Layout.preferredHeight: 60
-            color: root.colorPanel
-            border.color: root.colorBorder
-            border.width: 1
+            Layout.preferredHeight: TopBarConstants.height
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                anchors.topMargin: 8
-                anchors.bottomMargin: 8
-                spacing: 16
+            // Bind properties
+            patientName: patientController.patientName
+            bedLocation: patientController.bedLocation
+            isMonitoring: dashboardController.isMonitoring
+            isConnected: root.isConnected
+            batteryLevel: root.batteryLevel
+            isCharging: root.isCharging
+            hasActiveAlarms: root.hasActiveAlarms
+            showNotifications: root.showNotifications
 
-                // Patient Banner (Left)
-                PatientBanner {
-                    Layout.preferredWidth: 220
-                    Layout.fillHeight: true
-                    name: patientController.patientName
-                    bedLabel: patientController.bedLocation
-                    bannerColor: Theme.colors.banner
-                    bannerBorderColor: Theme.colors.bannerBorder
-                    colorText: root.colorText
-                    accentColor: root.colorECG
-                    onBannerClicked: root.currentView = root.viewState.PatientProfile
-                }
+            // Theme colors
+            colorPanel: root.colorPanel
+            colorBorder: root.colorBorder
+            colorText: root.colorText
+            colorTextMuted: root.colorTextMuted
+            colorECG: root.colorECG
+            colorCritical: root.colorCritical
+            bannerColor: Theme.colors.banner
+            bannerBorderColor: Theme.colors.bannerBorder
 
-                // Spacer
-                Item {
-                    Layout.fillWidth: true
-                }
-
-                // Clinician Info
-                Column {
-                    spacing: 6
-                    Text {
-                        id: clockText
-                        text: Qt.formatTime(new Date(), "HH:mm:ss")
-                        font.pixelSize: 12
-                        font.family: Theme.fonts.mono
-                        color: root.colorTextMuted
-                    }
-                    Timer {
-                        interval: 1000
-                        running: true
-                        repeat: true
-                        onTriggered: clockText.text = Qt.formatTime(new Date(), "HH:mm:ss")
-                    }
-                    Rectangle {
-                        width: 1
-                        height: 14
-                        color: "#3f3f46" // Zinc-700
-                    }
-                    Text {
-                        text: Qt.formatDate(new Date(), "dd MMM yyyy").toUpperCase()
-                        font.pixelSize: 12
-                        font.family: Theme.fonts.mono
-                        color: "#52525b" // Zinc-600
-                    }
-                }
-
-                // Connection Status
-                ConnectionStatus {
-                    Layout.preferredWidth: 220
-                    Layout.preferredHeight: 36
-                    connected: dashboardController.isMonitoring
-                    sensorType: "Shared Memory"
-                }
-
-                // Divider
-                Rectangle {
-                    width: 1
-                    Layout.fillHeight: true
-                    color: root.colorBorder
-                }
-
-                // Connection Status
-                Row {
-                    spacing: 8
-
-                    Image {
-                        source: root.isConnected ? "qrc:/qml/icons/wifi-emerald.svg" : "qrc:/qml/icons/wifi-off-red.svg"
-                        width: 18
-                        height: 18
-                        anchors.verticalCenter: parent.verticalCenter
-                        fillMode: Image.PreserveAspectFit
-                    }
-
-                    Column {
-                        spacing: 2
-
-                        Text {
-                            text: "CMS ONLINE"
-                            font.pixelSize: 10
-                            font.bold: true
-                            color: root.colorTextMuted
-                        }
-
-                        Text {
-                            text: "mTLS"
-                            font.pixelSize: 8
-                            color: "#52525b" // Zinc-600
-                        }
-                    }
-                }
-
-                // Battery
-                Row {
-                    spacing: 6
-
-                    Image {
-                        source: root.getBatteryIconSource()
-                        width: 18
-                        height: 18
-                        anchors.verticalCenter: parent.verticalCenter
-                        fillMode: Image.PreserveAspectFit
-                    }
-
-                    Text {
-                        text: root.batteryLevel + "%"
-                        font.pixelSize: 11
-                        font.family: Theme.fonts.mono
-                        font.bold: true
-                        color: root.batteryLevel <= 20 ? root.colorCritical : root.colorTextMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-
-                // Notification Bell
-                Rectangle {
-                    Layout.preferredWidth: 40
-                    Layout.preferredHeight: 40
-                    color: root.showNotifications ? root.colorBorder : "transparent"
-                    radius: 20
-
-                    Image {
-                        anchors.centerIn: parent
-                        source: root.hasActiveAlarms ? "qrc:/qml/icons/bell-red.svg" : "qrc:/qml/icons/bell-muted.svg"
-                        width: 20
-                        height: 20
-                        fillMode: Image.PreserveAspectFit
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.showNotifications = !root.showNotifications
-                    }
-                }
-            }
+            // Handle signals
+            onPatientBannerClicked: root.currentView = root.viewState.PatientProfile
+            onNotificationClicked: root.showNotifications = !root.showNotifications
         }
 
         // Main Content Area
@@ -256,7 +116,9 @@ ApplicationWindow {
             Loader {
                 id: contentLoader
                 anchors.fill: parent
-                anchors.margins: 4
+                anchors.margins: 8
+                anchors.topMargin: 4
+                anchors.bottomMargin: 4
                 source: {
                     switch (root.currentView) {
                     case root.viewState.Monitor:
@@ -296,122 +158,30 @@ ApplicationWindow {
         }
 
         // Bottom Navigation Bar - 64px
-        Rectangle {
+        BottomNav {
             Layout.fillWidth: true
             Layout.preferredHeight: 64
-            color: root.colorPanel
-            border.color: root.colorBorder
-            border.width: 1
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 4
+            currentView: root.currentView
+            viewState: root.viewState
 
-                // Left Navigation Buttons
-                Row {
-                    spacing: 4
+            // Theme colors
+            colorPanel: root.colorPanel
+            colorBorder: root.colorBorder
+            colorECG: root.colorECG
+            colorSPO2: root.colorSPO2
+            colorCritical: root.colorCritical
 
-                    NavButton {
-                        text: "MONITOR"
-                        iconBase: "layout-dashboard"
-                        iconColorSuffix: "emerald"
-                        active: root.currentView === root.viewState.Monitor
-                        activeColor: root.colorECG
-                        onClicked: root.currentView = root.viewState.Monitor
-                    }
+            onViewChanged: function (newView) {
+                root.currentView = newView;
+            }
 
-                    NavButton {
-                        text: "AI ANALYSIS"
-                        iconBase: "brain-circuit"
-                        iconColorSuffix: "purple"
-                        active: root.currentView === root.viewState.Analysis
-                        activeColor: "#a855f7" // Purple-500
-                        onClicked: root.currentView = root.viewState.Analysis
-                    }
+            onCodeBlueClicked: {
+                console.log("Code Blue activated!");
+            }
 
-                    NavButton {
-                        text: "TRENDS"
-                        iconBase: "activity"
-                        iconColorSuffix: "blue"
-                        active: root.currentView === root.viewState.Trends
-                        activeColor: root.colorSPO2
-                        onClicked: root.currentView = root.viewState.Trends
-                    }
-
-                    Rectangle {
-                        width: 1
-                        height: 48
-                        color: root.colorBorder
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    // Code Blue Button
-                    Rectangle {
-                        width: 120
-                        height: 48
-                        color: "#450a0a" // Red-950
-                        border.color: "#7f1d1d" // Red-900
-                        border.width: 1
-                        radius: 4
-
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: 4
-
-                            Image {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                source: "qrc:/qml/icons/siren.svg"
-                                width: 20
-                                height: 20
-                                sourceSize.width: 20
-                                sourceSize.height: 20
-                                fillMode: Image.PreserveAspectFit
-                            }
-
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: "CODE BLUE"
-                                font.pixelSize: 9
-                                font.bold: true
-                                font.letterSpacing: 1
-                                color: root.colorCritical
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: console.log("Code Blue activated!")
-                        }
-                    }
-                }
-
-                // Spacer
-                Item {
-                    Layout.fillWidth: true
-                }
-
-                // Right Navigation Buttons
-                Row {
-                    spacing: 4
-
-                    NavButton {
-                        text: "MENU"
-                        iconBase: "settings"
-                        iconColorSuffix: "white"
-                        active: root.currentView === root.viewState.Settings
-                        onClicked: root.currentView = root.viewState.Settings
-                    }
-
-                    NavButton {
-                        text: "LOGOUT"
-                        iconBase: "log-out"
-                        iconColorSuffix: "gray"
-                        active: false
-                        onClicked: console.log("Logout clicked")
-                    }
-                }
+            onLogoutClicked: {
+                console.log("Logout clicked");
             }
         }
     }
