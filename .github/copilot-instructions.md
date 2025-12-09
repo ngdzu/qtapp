@@ -174,6 +174,7 @@ The detailed rules are split into topic-specific files in `./` to reduce token u
 - `./qml_guidelines.md` - QML coding standards and best practices
 - `./md_guidelines.md` - Markdown documentation standards and formatting
 - `./naming_conventions.md` - Naming conventions for classes, mocks, and components
+- `./namespace_guidelines.md` - Namespace organization rules and conventions
 - `./DRY.md` - DRY (Don't Repeat Yourself) principle and code duplication elimination
 
 ### Workflow and Process
@@ -197,6 +198,7 @@ The detailed rules are split into topic-specific files in `./` to reduce token u
    - Writing documentation → Attach `./md_guidelines.md` and `./mermaid_guidelines.md`
    - Doing ZTODO tasks → Attach `./ztodo_verification.md`
    - Refactoring or code cleanup → Attach `./DRY.md`
+   - Organizing namespaces → Attach `./namespace_guidelines.md`
 
 2. **Use @workspace or @file mentions** to bring in specific guidelines:
    - `@file ./cpp_guidelines.md` when asking C++ questions
@@ -206,13 +208,13 @@ The detailed rules are split into topic-specific files in `./` to reduce token u
 
 ### Quick Reference: When to Use Which Rules
 
-- **C++ Implementation**: `cpp_guidelines.md` + `api_documentation.md` + `naming_conventions.md` + `DRY.md`
+- **C++ Implementation**: `cpp_guidelines.md` + `api_documentation.md` + `naming_conventions.md` + `namespace_guidelines.md` + `DRY.md`
 - **QML UI Work**: `qml_guidelines.md`
 - **Documentation**: `md_guidelines.md` + `mermaid_guidelines.md` + `documentation_guidelines.md`
 - **ZTODO Tasks**: `ztodo_verification.md` + task-specific guidelines
 - **Lesson Creation**: `lesson_guidelines.md`
 - **Docker/Deployment**: `docker_guidelines.md`
-- **Code Refactoring/Cleanup**: `DRY.md` + `cpp_guidelines.md`
+- **Code Refactoring/Cleanup**: `DRY.md` + `cpp_guidelines.md` + `namespace_guidelines.md`
 
 ### Note on Constants and Hardcoded Values
 The "No Hardcoded Values" rule is covered in `./cpp_guidelines.md` (Section 4: Constants and Magic Numbers). Always use constants, configuration, or constants files instead of hardcoded strings, numbers, or paths in production code.
