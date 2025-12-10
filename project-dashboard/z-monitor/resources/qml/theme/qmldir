@@ -1,1 +1,3 @@
+module Theme
+singleton Theme 1.0 Theme.qml
 singleton TopBarConstants 1.0 TopBarConstants.qml

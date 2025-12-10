@@ -1,13 +1,15 @@
 <RCC>
     <qresource prefix="/qml">
-            <file>components/PatientBanner.qml</file>
-            <file>components/BottomNav.qml</file>
-            <file>views/PatientProfileView.qml</file>
+        <file>components/PatientBanner.qml</file>
+        <file>components/PatientProfileDialog.qml</file>
+        <file>components/BottomNav.qml</file>
+        <file>views/PatientProfileView.qml</file>
         <file>Main.qml</file>
-        <file>Theme.qml</file>
-        <file>qmldir</file>
-        <file>theme/TopBarConstants.qml</file>
-        <file>theme/qmldir</file>
+        <file>Theme/Theme.qml</file>
+        <file>Theme/TopBarConstants.qml</file>
+        <file>Theme/qmldir</file>
+        <file>Colors/Colors.qml</file>
+        <file>Colors/qmldir</file>
         <!-- Icons - Navigation (base) -->
         <file>icons/layout-dashboard.svg</file>
         <file>icons/brain-circuit.svg</file>

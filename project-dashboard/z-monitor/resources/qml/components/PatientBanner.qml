@@ -13,7 +13,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qml 1.0
-import "../theme"
+import Theme 1.0
 
 // Theme colors are passed in from parent; avoid hard dependency here
 

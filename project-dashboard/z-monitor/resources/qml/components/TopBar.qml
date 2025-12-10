@@ -11,7 +11,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import "../theme"
+import Theme 1.0
 
 Rectangle {
     id: topBar

@@ -9,7 +9,7 @@ add_subdirectory(ui)
 # UI layer sources are set by ui/CMakeLists.txt via PARENT_SCOPE
 # INTERFACE_SOURCES variable is now available after add_subdirectory(ui)
 
-# QML Resources
+# QML Resources (non-module resources like icons, components, views)
 set(QML_RESOURCES
     ${Z_MONITOR_ROOT}/resources/qml/qml.qrc
 )
@@ -23,14 +23,17 @@ set(SCHEMA_RESOURCES
 set(MAIN_SOURCES
     main.cpp
     ${INTERFACE_SOURCES}
-    ${QML_RESOURCES}
     ${SCHEMA_RESOURCES}
 )
 
 # Create main executable
 qt_add_executable(z-monitor
     ${MAIN_SOURCES}
+    ${QML_RESOURCES}
 )
+
+# Manually register Theme QML module by ensuring qmldir is in QRC
+# The qml.qrc already includes Theme/qmldir, so no additional work needed
 
 # Link all layer libraries to main executable
 # Note: Infrastructure layer transitively provides domain and application layers

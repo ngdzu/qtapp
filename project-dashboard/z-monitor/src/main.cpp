@@ -155,13 +155,10 @@ int main(int argc, char *argv[])
     // Create QML engine
     QQmlApplicationEngine engine;
 
-    // Ensure QML engine can import resources under qrc:/qml
-    engine.addImportPath("qrc:/qml");
-
-    // Add build/qml directory for deployed QML plugins (e.g., QtCharts)
-    QString buildQmlPath = QCoreApplication::applicationDirPath() + "/../qml";
-    engine.addImportPath(buildQmlPath);
-    qInfo() << "Added QML import path:" << buildQmlPath;
+    // Ensure QML engine can import Colors singleton module from QRC
+    engine.addImportPath(":/qml");
+    // Add qt_add_qml_module import path (default resource prefix)
+    engine.addImportPath(":/qt/qml");
 
     // Register controllers as QML singletons (accessible globally in QML)
     engine.rootContext()->setContextProperty("dashboardController", dashboardController);

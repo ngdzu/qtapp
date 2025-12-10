@@ -17,7 +17,7 @@ import "components"
 import "views"
 import qml 1.0
 import "components"
-import "theme"
+import Theme 1.0
 
 ApplicationWindow {
     id: root
@@ -94,7 +94,7 @@ ApplicationWindow {
             bannerBorderColor: Theme.colors.bannerBorder
 
             // Handle signals
-            onPatientBannerClicked: root.currentView = root.viewState.PatientProfile
+            onPatientBannerClicked: patientProfileDialog.open()
             onNotificationClicked: root.showNotifications = !root.showNotifications
         }
 
@@ -184,5 +184,10 @@ ApplicationWindow {
                 console.log("Logout clicked");
             }
         }
+    }
+
+    // Patient Profile Dialog
+    PatientProfileDialog {
+        id: patientProfileDialog
     }
 }
